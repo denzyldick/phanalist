@@ -1,11 +1,14 @@
 use php_parser_rs::lexer::token::Span;
 use php_parser_rs::parser::ast::classes::ClassMember;
+use php_parser_rs::parser::ast::functions::{MethodBody, ReturnType};
 use php_parser_rs::parser::ast::identifiers::{DynamicIdentifier, Identifier, SimpleIdentifier};
-use php_parser_rs::parser::ast::modifiers::{PropertyModifier, PropertyModifierGroup};
-use php_parser_rs::parser::ast::operators;
+use php_parser_rs::parser::ast::modifiers::{
+    MethodModifier, MethodModifierGroup, PropertyModifier, PropertyModifierGroup,
+};
 use php_parser_rs::parser::ast::properties::{Property, PropertyEntry};
 use php_parser_rs::parser::ast::variables::SimpleVariable;
 use php_parser_rs::parser::ast::Expression;
+use php_parser_rs::parser::ast::{operators, ReturnStatement};
 use std::path::PathBuf;
 
 use php_parser_rs::parser::ast::Statement;
@@ -148,7 +151,56 @@ impl File {
             ClassMember::Constant(_constant) => {}
             ClassMember::TraitUsage(_trait) => {}
             ClassMember::AbstractMethod(abstractmethod) => {}
-            ClassMember::ConcreteMethod(concretemethod) => {}
+            ClassMember::ConcreteMethod(concretemethod) => {
+                println!("{concretemethod:#?}");
+                let name = concretemethod.name.value;
+                match concretemethod.modifiers {
+                    MethodModifierGroup { modifiers } => {
+                        if modifiers.len() == 0 {
+                            self.suggestions.push(Suggestion::from(
+                                format!("The method {} has no modifiers.", name).to_string(),
+                            ))
+                        }
+                    }
+                };
+
+                // Detect return statement without the proper return type signature.
+                match concretemethod.body {
+                    MethodBody {
+                        comments,
+                        left_brace,
+                        statements,
+                        right_brace,
+                    } => {
+                        for statement in statements {
+                            let i = match statement {
+                                Statement::Return(ReturnStatement {
+                                    r#return,
+                                    value,
+                                    ending,
+                                }) => match value {
+                                    None => None,
+                                    Some(s) => match s {
+                                        Expression::Literal(l) => {
+                                            match concretemethod.return_type {
+                                                None => {
+                                                    self.suggestions.push(
+                                                                Suggestion::from(format!("The {} has a return statement but it has no return type signature.", name).to_string())
+                                                            );
+                                                }
+                                                Some(_) => {}
+                                            }
+                                            Some(l)
+                                        }
+                                        _ => None,
+                                    },
+                                },
+                                _ => None,
+                            };
+                        }
+                    }
+                }
+            }
             ClassMember::VariableProperty(variableproperty) => {}
             ClassMember::AbstractConstructor(_constructor) => {}
             ClassMember::ConcreteConstructor(constructor) => {
