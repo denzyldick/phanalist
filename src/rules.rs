@@ -1,7 +1,9 @@
 use php_parser_rs::lexer::token::Span;
 use php_parser_rs::parser::ast::classes::ClassMember;
+use php_parser_rs::parser::ast::identifiers::{DynamicIdentifier, Identifier, SimpleIdentifier};
 use php_parser_rs::parser::ast::operators;
-use php_parser_rs::parser::ast::properties::{ PropertyEntry};
+use php_parser_rs::parser::ast::properties::{Property, PropertyEntry};
+use php_parser_rs::parser::ast::variables::SimpleVariable;
 use php_parser_rs::parser::ast::Expression;
 use std::path::PathBuf;
 
