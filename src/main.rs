@@ -1,3 +1,4 @@
+use clap::Parser;
 use php_parser_rs::parser;
 use php_parser_rs::parser::ast::classes::ClassMember;
 use std::io::Result;
@@ -5,9 +6,18 @@ use std::path::PathBuf;
 use std::{env, fs};
 mod rules;
 
+/// A static analyser for your PHP project.
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about=None)]
+struct Args {
+    /// The name of the directory where the files are located.
+    #[arg(short, long)]
+    directory: String,
+}
 fn main() -> Result<()> {
-    let current_dir = env::current_dir()?;
-    scan_folder(current_dir).unwrap();
+    let args = Args::parse();
+    let path = PathBuf::from(args.directory);
+    scan_folder(path).unwrap();
     Ok(())
 }
 
@@ -26,11 +36,6 @@ fn scan_folder(current_dir: PathBuf) -> Result<()> {
                             println!("{:?}", err);
                         }
                         Ok(content) => {
-                            // println!(
-                            //     "size: {:?} bytes, filename: {:?}",
-                            //     metadata.len(),
-                            //     path.file_name().ok_or("No filename")
-                            // );
                             for statement in parse_code(content.as_str()) {
                                 let file = rules::File {
                                     path: entry.path(),
@@ -49,7 +54,7 @@ fn scan_folder(current_dir: PathBuf) -> Result<()> {
     }
     Ok(())
 }
- 
+
 #[warn(unreachable_code)]
 fn parse_code(code: &str) -> Vec<php_parser_rs::parser::ast::Statement> {
     match parser::parse(code) {

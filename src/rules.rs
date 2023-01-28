@@ -30,7 +30,12 @@ impl File {
     }
     pub fn start(mut self) {
         match self.ast {
-            Some(ref ast) => self.analyze(ast.to_owned()),
+            Some(ref ast) => {
+                println!();
+                println!("{} is being analyzed", self.path.display());
+
+                self.analyze(ast.to_owned())
+            }
             None => {
                 println!("No generated");
             }
@@ -121,6 +126,7 @@ impl File {
             php_parser_rs::parser::ast::identifiers::Identifier::SimpleIdentifier(identifier) => {
                 match (identifier) {
                     SimpleIdentifier { span, value } => {
+                        let property_value = value;
                         for m in &self.members {
                             match m {
                                 ClassMember::Property(p) => {
@@ -128,13 +134,16 @@ impl File {
                                         match (entry) {
                                             PropertyEntry::Uninitialized { variable } => {
                                                 return variable.name.to_string()
-                                                    == format!("${}", value);
+                                                    == format!("${}", property_value);
                                             }
                                             PropertyEntry::Initialized {
                                                 variable,
                                                 equals,
                                                 value,
-                                            } => {}
+                                            } => {
+                                                return variable.name.to_string()
+                                                    == format!("${}", property_value);
+                                            }
                                         }
                                     }
                                 }

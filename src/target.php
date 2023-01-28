@@ -4,10 +4,10 @@
   class uTesting
   {
     private $a;
+    private $fake_variable = null;
 
     public function __construct()
     {
-      $this->a = 'helloworld';
-      $this->fake_variable ='hellworld';
+      $this->fake_variable = 'hellworld';
     }
   }
