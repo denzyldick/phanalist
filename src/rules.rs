@@ -1,6 +1,7 @@
 use php_parser_rs::lexer::token::Span;
 use php_parser_rs::parser::ast::classes::ClassMember;
 use php_parser_rs::parser::ast::identifiers::{DynamicIdentifier, Identifier, SimpleIdentifier};
+use php_parser_rs::parser::ast::modifiers::{PropertyModifier, PropertyModifierGroup};
 use php_parser_rs::parser::ast::operators;
 use php_parser_rs::parser::ast::properties::{Property, PropertyEntry};
 use php_parser_rs::parser::ast::variables::SimpleVariable;
@@ -13,28 +14,60 @@ pub struct File {
     pub path: PathBuf,
     pub ast: Option<Statement>,
     pub members: Vec<ClassMember>,
+    pub suggestions: Vec<Suggestion>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Suggestion {
+    suggestion: String,
+}
+
+impl Suggestion {
+    pub fn from(suggesion: String) -> Self {
+        Self {
+            suggestion: suggesion,
+        }
+    }
+}
+
+pub enum Output {
+    STDOUT,
+    FILE,
 }
 impl File {
-    pub fn opening_tag(&self, t: Span) {
+    pub fn output(&mut self, location: Output) {
+        match location {
+            Output::STDOUT => {
+                if self.suggestions.len() > 0 {
+                    println!("{} ", self.path.display());
+                    println!("{} has been detected. ", self.suggestions.len());
+                    for suggestion in &self.suggestions {
+                        println!("\t{}", suggestion.suggestion);
+                    }
+                }
+            }
+            Output::FILE => {}
+        }
+    }
+
+    pub fn opening_tag(&mut self, t: Span) {
         if t.line > 1 {
-            println!("The opening tag <?php is not on the right line. This should always be the first line in a PHP file.");
+            self.suggestions.push(Suggestion::from("The opening tag <?php is not on the right line. This should always be the first line in a PHP file.".to_string()))
         }
 
         if t.column > 1 {
-            println!(
-                "The opening tag doesn't start at the right column: {}.",
-                t.column
-            );
+            self.suggestions.push(Suggestion::from(
+                format!(
+                    "The opening tag doesn't start at the right column: {}.",
+                    t.column
+                )
+                .to_string(),
+            ));
         }
     }
-    pub fn start(mut self) {
+    pub fn start(&mut self) {
         match self.ast {
-            Some(ref ast) => {
-                println!();
-                println!("{} is being analyzed", self.path.display());
-
-                self.analyze(ast.to_owned())
-            }
+            Some(ref ast) => self.analyze(ast.to_owned()),
             None => {
                 println!("No generated");
             }
@@ -91,17 +124,26 @@ impl File {
         }
     }
 
-    pub fn has_capitalized_name(&self, name: String) {
+    pub fn has_capitalized_name(&mut self, name: String) {
         if !name.chars().next().unwrap().is_uppercase() {
-            println!("The class name {} is not capitlized. The first letter of the name of the class should be in uppercase.", name);
+            self.suggestions.push(Suggestion::from(format!("The class name {} is not capitlized. The first letter of the name of the class should be in uppercase.", name).to_string()))
         }
     }
 
     pub fn class_member_analyze(&mut self, member: ClassMember) {
         match member {
             ClassMember::Property(property) => {
-                if property.modifiers.modifiers.len() == 0 {}
-                for modifier in property.modifiers.modifiers {}
+                let name = self.property_name(property.clone());
+                match property.modifiers {
+                    PropertyModifierGroup { modifiers } => {
+                        if modifiers.len() == 0 {
+                            self.suggestions.push(Suggestion::from(
+                                format!("The variables {} have no modifier.", name.join(", "))
+                                    .to_string(),
+                            ));
+                        }
+                    }
+                }
             }
             ClassMember::Constant(_constant) => {}
             ClassMember::TraitUsage(_trait) => {}
@@ -115,6 +157,32 @@ impl File {
                 }
             }
         }
+    }
+
+    fn property_name(&self, property: Property) -> Vec<std::string::String> {
+        return match property {
+            Property {
+                attributes,
+                modifiers,
+                r#type,
+                entries,
+                end,
+            } => {
+                let mut names: Vec<String> = Vec::new();
+                for entry in entries {
+                    let name = match entry {
+                        PropertyEntry::Initialized {
+                            variable,
+                            equals,
+                            value,
+                        } => variable.name.to_string(),
+                        PropertyEntry::Uninitialized { variable } => variable.to_string(),
+                    };
+                    names.push(name);
+                }
+                return names;
+            }
+        };
     }
 
     fn propperty_exists(
@@ -156,7 +224,8 @@ impl File {
         }
         false
     }
-    pub fn analyze_expression(&self, expresion: Expression) {
+
+    pub fn analyze_expression(&mut self, expresion: Expression) {
         match expresion {
             Expression::Cast { cast, kind, value } => {}
             Expression::YieldFrom { value } => {}
@@ -283,10 +352,13 @@ impl File {
                 };
 
                 if exists == false {
-                    println!(
-                        "The property {} is being called, but it does not exists.",
-                        name
-                    )
+                    self.suggestions.push(Suggestion::from(
+                        format!(
+                            "The property {} is being called, but it does not exists.",
+                            name
+                        )
+                        .to_string(),
+                    ));
                 }
             }
             Expression::Instanceof {

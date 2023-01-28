@@ -37,12 +37,14 @@ fn scan_folder(current_dir: PathBuf) -> Result<()> {
                         }
                         Ok(content) => {
                             for statement in parse_code(content.as_str()) {
-                                let file = rules::File {
+                                let mut file = rules::File {
                                     path: entry.path(),
                                     ast: Some(statement),
                                     members: Vec::new(),
+                                    suggestions: Vec::new(),
                                 };
-                                file.start()
+                                file.start();
+                                file.output(rules::Output::STDOUT);
                             }
                         }
                     }

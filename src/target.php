@@ -5,6 +5,7 @@
   {
     private $a;
     private $fake_variable = null;
+    $no_= null, $no_modifier = null;
 
     public function __construct()
     {
