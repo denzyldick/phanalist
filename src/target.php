@@ -1,7 +1,7 @@
 
  <?php
 
-  class uTesting
+ class uTesting extends FakeClass
   {
     private $a;
     private $fake_variable = null;

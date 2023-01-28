@@ -11,6 +11,7 @@ use php_parser_rs::parser::ast::properties::{Property, PropertyEntry};
 use php_parser_rs::parser::ast::variables::SimpleVariable;
 use php_parser_rs::parser::ast::Expression;
 use php_parser_rs::parser::ast::{operators, ReturnStatement};
+use std::convert::identity;
 use std::path::PathBuf;
 
 use php_parser_rs::parser::ast::Statement;
@@ -25,12 +26,14 @@ pub struct File {
 #[derive(Debug, Clone)]
 pub struct Suggestion {
     suggestion: String,
+    span: Span,
 }
 
 impl Suggestion {
-    pub fn from(suggesion: String) -> Self {
+    pub fn from(suggesion: String, span: Span) -> Self {
         Self {
             suggestion: suggesion,
+            span: span,
         }
     }
 }
@@ -45,10 +48,11 @@ impl File {
             Output::STDOUT => {
                 if self.suggestions.len() > 0 {
                     println!("{} ", self.path.display());
-                    println!("{} has been detected. ", self.suggestions.len());
+                    println!("Found {} suggestions detected. ", self.suggestions.len());
                     for suggestion in &self.suggestions {
-                        println!("\t{}", suggestion.suggestion);
+                        println!("Line: {} - {}", suggestion.span.line, suggestion.suggestion);
                     }
+                    println!("");
                 }
             }
             Output::FILE => {}
@@ -57,7 +61,11 @@ impl File {
 
     pub fn opening_tag(&mut self, t: Span) {
         if t.line > 1 {
-            self.suggestions.push(Suggestion::from("The opening tag <?php is not on the right line. This should always be the first line in a PHP file.".to_string()))
+            self.suggestions.push(
+                Suggestion::from(
+                    "The opening tag <?php is not on the right line. This should always be the first line in a PHP file.".to_string(),
+                    t
+                ))
         }
 
         if t.column > 1 {
@@ -67,6 +75,7 @@ impl File {
                     t.column
                 )
                 .to_string(),
+                t,
             ));
         }
     }
@@ -100,10 +109,16 @@ impl File {
             Statement::Function(_FunctionStatement) => {}
             Statement::Class(ClassStatement) => {
                 let name = String::from(ClassStatement.name.value);
-                self.has_capitalized_name(name);
+                self.has_capitalized_name(name, ClassStatement.class);
                 for member in ClassStatement.body.members {
                     self.members.push(member.clone());
                     self.class_member_analyze(member);
+                }
+                let extends = ClassStatement.extends;
+
+                match extends {
+                    Some(e) => {}
+                    None => {}
                 }
             }
             Statement::Trait(_TraitStatement) => {}
@@ -129,9 +144,12 @@ impl File {
         }
     }
 
-    pub fn has_capitalized_name(&mut self, name: String) {
+    pub fn has_capitalized_name(&mut self, name: String, span: Span) {
         if !name.chars().next().unwrap().is_uppercase() {
-            self.suggestions.push(Suggestion::from(format!("The class name {} is not capitlized. The first letter of the name of the class should be in uppercase.", name).to_string()))
+            self.suggestions.push(Suggestion::from(
+                format!("The class name {} is not capitlized. The first letter of the name of the class should be in uppercase.", name).to_string(),
+                span
+            ))
         }
     }
 
@@ -145,6 +163,7 @@ impl File {
                             self.suggestions.push(Suggestion::from(
                                 format!("The variables {} have no modifier.", name.join(", "))
                                     .to_string(),
+                                property.end,
                             ));
                         }
                     }
@@ -160,6 +179,7 @@ impl File {
                         if modifiers.len() == 0 {
                             self.suggestions.push(Suggestion::from(
                                 format!("The method {} has no modifiers.", method_name).to_string(),
+                                concretemethod.function,
                             ))
                         }
                     }
@@ -186,7 +206,10 @@ impl File {
                                     match data_type {
                                         None => {
                                             self.suggestions.push(
-                                                        Suggestion::from(format!("The paramer({}) in the method {} has no datatype.", name, method_name).to_string())
+                                                        Suggestion::from(
+                                                            format!("The parameter({}) in the method {} has no datatype.", name, method_name).to_string(),
+                                                            concretemethod.function
+                                                        )
                                                     );
                                         }
                                         Some(_) => {}
@@ -218,7 +241,10 @@ impl File {
                                             match concretemethod.return_type {
                                                 None => {
                                                     self.suggestions.push(
-                                                                Suggestion::from(format!("The {} has a return statement but it has no return type signature.", method_name).to_string())
+                                                                Suggestion::from(
+                                                                    format!("The {} has a return statement but it has no return type signature.", method_name).to_string(),
+                                                                r#return
+                                                                )
                                                             );
                                                 }
                                                 Some(_) => {}
@@ -429,13 +455,19 @@ impl File {
             Expression::Identifier(identifier) => {
                 let exists = self.propperty_exists(identifier.clone());
 
-                let name: String = match identifier {
+                let name: String = match identifier.clone() {
                     php_parser_rs::parser::ast::identifiers::Identifier::SimpleIdentifier(
                         identifier,
                     ) => identifier.value.to_string(),
                     _ => "".to_string(),
                 };
 
+                let span: Span = match identifier {
+                    php_parser_rs::parser::ast::identifiers::Identifier::SimpleIdentifier(
+                        identifier,
+                    ) => identifier.span,
+                    _ => todo!(),
+                };
                 if exists == false {
                     self.suggestions.push(Suggestion::from(
                         format!(
@@ -443,6 +475,7 @@ impl File {
                             name
                         )
                         .to_string(),
+                        span,
                     ));
                 }
             }
