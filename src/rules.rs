@@ -1,5 +1,6 @@
 use php_parser_rs::lexer::token::Span;
 use php_parser_rs::parser::ast::classes::ClassMember;
+use php_parser_rs::parser::ast::constant::{ClassishConstant, ConstantEntry};
 use php_parser_rs::parser::ast::functions::{
     FunctionParameter, FunctionParameterList, MethodBody, ReturnType,
 };
@@ -169,7 +170,39 @@ impl File {
                     }
                 }
             }
-            ClassMember::Constant(_constant) => {}
+            ClassMember::Constant(constant) => {
+                println!("{constant:#?}");
+
+                for entry in constant.entries {
+                    match entry {
+                        ConstantEntry {
+                            name,
+                            equals,
+                            value,
+                        } => {
+                            let mut is_uppercase = true;
+                            for l in name.value.to_string().chars() {
+
+                                if l.is_uppercase() == false {
+                                    is_uppercase = l.is_uppercase()
+                                }
+                            }
+
+                            if is_uppercase == false {
+                                self.suggestions.push(Suggestion::from(
+                                    format!(
+                                        "All letters in a constant({}) should be uppercased.",
+                                        name.value.to_string()
+                                    ),
+                                    name.span,
+                                ))
+                            }
+
+                            println!("{name:#?}")
+                        }
+                    }
+                }
+            }
             ClassMember::TraitUsage(_trait) => {}
             ClassMember::AbstractMethod(abstractmethod) => {}
             ClassMember::ConcreteMethod(concretemethod) => {
@@ -202,19 +235,17 @@ impl File {
                                     ellipsis,
                                     default,
                                     ampersand,
-                                } => {
-                                    match data_type {
-                                        None => {
-                                            self.suggestions.push(
+                                } => match data_type {
+                                    None => {
+                                        self.suggestions.push(
                                                         Suggestion::from(
                                                             format!("The parameter({}) in the method {} has no datatype.", name, method_name).to_string(),
                                                             concretemethod.function
                                                         )
                                                     );
-                                        }
-                                        Some(_) => {}
                                     }
-                                }
+                                    Some(_) => {}
+                                },
                             }
                         }
                     }
