@@ -3,6 +3,7 @@
 
  class uTesting extends FakeClass
   {
+    const hello = null;
     private $a;
     private $fake_variable = null;
     $no_= null, $no_modifier = null;
