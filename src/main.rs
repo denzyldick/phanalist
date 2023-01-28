@@ -6,7 +6,6 @@ use std::path::PathBuf;
 use std::{env, fs};
 mod rules;
 
-
 /// A static analyser for your PHP project.
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about=None)]
@@ -15,6 +14,7 @@ struct Args {
     #[arg(short, long)]
     directory: String,
 }
+
 fn main() -> Result<()> {
     let args = Args::parse();
     let path = PathBuf::from(args.directory);
@@ -37,6 +37,8 @@ fn scan_folder(current_dir: PathBuf) -> Result<()> {
                             println!("{:?}", err);
                         }
                         Ok(content) => {
+                            /// @todo move this to another thread. Waith for all files to be
+                            /// parsed.
                             for statement in parse_code(content.as_str()) {
                                 let mut file = rules::File {
                                     path: entry.path(),
@@ -63,7 +65,6 @@ fn parse_code(code: &str) -> Vec<php_parser_rs::parser::ast::Statement> {
     match parser::parse(code) {
         Ok(ast) => ast,
         Err(err) => {
-            // println!("{:?}", err);
             vec![]
         }
     }
