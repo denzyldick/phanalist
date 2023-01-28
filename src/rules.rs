@@ -1,6 +1,8 @@
 use php_parser_rs::lexer::token::Span;
 use php_parser_rs::parser::ast::classes::ClassMember;
-use php_parser_rs::parser::ast::functions::{MethodBody, ReturnType};
+use php_parser_rs::parser::ast::functions::{
+    FunctionParameter, FunctionParameterList, MethodBody, ReturnType,
+};
 use php_parser_rs::parser::ast::identifiers::{DynamicIdentifier, Identifier, SimpleIdentifier};
 use php_parser_rs::parser::ast::modifiers::{
     MethodModifier, MethodModifierGroup, PropertyModifier, PropertyModifierGroup,
@@ -152,17 +154,48 @@ impl File {
             ClassMember::TraitUsage(_trait) => {}
             ClassMember::AbstractMethod(abstractmethod) => {}
             ClassMember::ConcreteMethod(concretemethod) => {
-                println!("{concretemethod:#?}");
-                let name = concretemethod.name.value;
+                let method_name = concretemethod.name.value;
                 match concretemethod.modifiers {
                     MethodModifierGroup { modifiers } => {
                         if modifiers.len() == 0 {
                             self.suggestions.push(Suggestion::from(
-                                format!("The method {} has no modifiers.", name).to_string(),
+                                format!("The method {} has no modifiers.", method_name).to_string(),
                             ))
                         }
                     }
                 };
+                // Detect parameters without type.
+                match concretemethod.parameters {
+                    FunctionParameterList {
+                        comments,
+                        left_parenthesis,
+                        right_parenthesis,
+                        parameters,
+                    } => {
+                        for parameter in parameters.inner {
+                            match parameter {
+                                FunctionParameter {
+                                    comments,
+                                    name,
+                                    attributes,
+                                    data_type,
+                                    ellipsis,
+                                    default,
+                                    ampersand,
+                                } => {
+                                    match data_type {
+                                        None => {
+                                            self.suggestions.push(
+                                                        Suggestion::from(format!("The paramer({}) in the method {} has no datatype.", name, method_name).to_string())
+                                                    );
+                                        }
+                                        Some(_) => {}
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
 
                 // Detect return statement without the proper return type signature.
                 match concretemethod.body {
