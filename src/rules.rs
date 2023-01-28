@@ -171,8 +171,6 @@ impl File {
                 }
             }
             ClassMember::Constant(constant) => {
-                println!("{constant:#?}");
-
                 for entry in constant.entries {
                     match entry {
                         ConstantEntry {
@@ -182,8 +180,7 @@ impl File {
                         } => {
                             let mut is_uppercase = true;
                             for l in name.value.to_string().chars() {
-
-                                if l.is_uppercase() == false {
+                                if l.is_uppercase() == false && l.is_alphabetic() {
                                     is_uppercase = l.is_uppercase()
                                 }
                             }
@@ -198,7 +195,6 @@ impl File {
                                 ))
                             }
 
-                            println!("{name:#?}")
                         }
                     }
                 }
