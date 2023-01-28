@@ -218,7 +218,7 @@ impl File {
                                             match concretemethod.return_type {
                                                 None => {
                                                     self.suggestions.push(
-                                                                Suggestion::from(format!("The {} has a return statement but it has no return type signature.", name).to_string())
+                                                                Suggestion::from(format!("The {} has a return statement but it has no return type signature.", method_name).to_string())
                                                             );
                                                 }
                                                 Some(_) => {}
