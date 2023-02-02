@@ -2,4 +2,6 @@
 
 class FakeClass
 {
+
+  $what,$why;
 }
