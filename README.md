@@ -3,6 +3,16 @@
 TLDR; A static analyzer for PHP. It helps you catch common 
 mistakes in PHP code. 
 
+These are the current checks implemented.
+- [x] Extending undefined classes.
+- [x] Methods without modifiers(private, public & protected).
+- [x] Classes that start with a lowercase.
+- [x] Methods that return a value without defining a return type.
+- [x] Constants that have all letters in lowercase.
+- [x] Parameters without any type.
+- [x] Correct location for the PHP opening tag.
+
+
 ### Preview
 <img src=https://github.com/denzyldick/phanalist/blob/main/output.gif  />
 
