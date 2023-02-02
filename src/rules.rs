@@ -1,3 +1,4 @@
+use colored::*;
 use php_parser_rs::lexer::byte_string::ByteString;
 use php_parser_rs::lexer::token::Span;
 use php_parser_rs::parser::ast::classes::{ClassExtends, ClassMember, ClassStatement};
@@ -25,13 +26,6 @@ use std::path::PathBuf;
 use std::{env, fs};
 
 use php_parser_rs::parser::ast::Statement;
-#[derive(Debug, Clone)]
-pub struct File {
-    pub path: PathBuf,
-    pub ast: Option<Statement>,
-    pub members: Vec<ClassMember>,
-    pub suggestions: Vec<Suggestion>,
-}
 
 #[derive(Debug, Clone)]
 pub struct Project {
@@ -59,7 +53,6 @@ impl Project {
                                     println!("{:?}", err);
                                 }
                                 Ok(content) => {
-                                    println!("{file_name:?}");
                                     for statement in self.parse_code(content.as_str()) {
                                         let mut file = File {
                                             path: entry.path().to_path_buf(),
@@ -171,7 +164,7 @@ impl Project {
             Statement::Class(ClassStatement) => {
                 // println!("{:?}", String::from(ClassStatement.name.value.clone()),);
                 let name = String::from(ClassStatement.name.value);
-                match project.has_capitalized_name(name.clone(), ClassStatement.class ) {
+                match project.has_capitalized_name(name.clone(), ClassStatement.class) {
                     Some(s) => {
                         file.suggestions.push(s);
                     }
@@ -766,7 +759,13 @@ impl Suggestion {
         }
     }
 }
-
+#[derive(Debug, Clone)]
+pub struct File {
+    pub path: PathBuf,
+    pub ast: Option<Statement>,
+    pub members: Vec<ClassMember>,
+    pub suggestions: Vec<Suggestion>,
+}
 pub enum Output {
     STDOUT,
     FILE,
@@ -776,12 +775,21 @@ impl File {
         match location {
             Output::STDOUT => {
                 if self.suggestions.len() > 0 {
-                    println!("{} ", self.path.display());
-                    println!("Found {} suggestions detected. ", self.suggestions.len());
+                    let file_symbol = "--->".blue().bold();
+                    println!("{} {} ", file_symbol, self.path.display());
+                    println!("{} {}", "Warnings detected: ".yellow().bold(), self.suggestions.len().to_string().as_str().red().bold());
+                    let line_symbol = "|".blue().bold();
+                    println!("  \t{}", line_symbol);
                     for suggestion in &self.suggestions {
-                        println!("Line: {} - {}", suggestion.span.line, suggestion.suggestion);
+                        println!(
+                            "  {}\t{} {}",
+                            format!("{}:{}",suggestion.span.line, suggestion.span.column).blue().bold(),
+                            line_symbol,
+                            suggestion.suggestion
+                        );
                     }
-                    println!("");
+                    println!("  \t{}", line_symbol);
+                    println!("")
                 }
             }
             Output::FILE => {}
