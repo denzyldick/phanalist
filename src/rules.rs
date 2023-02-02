@@ -1,9 +1,14 @@
+use php_parser_rs::lexer::byte_string::ByteString;
 use php_parser_rs::lexer::token::Span;
-use php_parser_rs::parser::ast::classes::ClassMember;
+use php_parser_rs::parser::ast::classes::{ClassExtends, ClassMember, ClassStatement};
 use php_parser_rs::parser::ast::constant::{ClassishConstant, ConstantEntry};
 use php_parser_rs::parser::ast::functions::{
     FunctionParameter, FunctionParameterList, MethodBody, ReturnType,
 };
+use std::io::Error;
+use walkdir::WalkDir;
+
+use php_parser_rs::parser;
 use php_parser_rs::parser::ast::identifiers::{DynamicIdentifier, Identifier, SimpleIdentifier};
 use php_parser_rs::parser::ast::modifiers::{
     MethodModifier, MethodModifierGroup, PropertyModifier, PropertyModifierGroup,
@@ -12,8 +17,12 @@ use php_parser_rs::parser::ast::properties::{Property, PropertyEntry};
 use php_parser_rs::parser::ast::variables::SimpleVariable;
 use php_parser_rs::parser::ast::Expression;
 use php_parser_rs::parser::ast::{operators, ReturnStatement};
+use std::borrow::{Borrow, BorrowMut};
+use std::collections::HashMap;
 use std::convert::identity;
+use std::io::Read;
 use std::path::PathBuf;
+use std::{env, fs};
 
 use php_parser_rs::parser::ast::Statement;
 #[derive(Debug, Clone)]
@@ -25,44 +34,101 @@ pub struct File {
 }
 
 #[derive(Debug, Clone)]
-pub struct Suggestion {
-    suggestion: String,
-    span: Span,
+pub struct Project {
+    pub files: Vec<File>,
+    pub classes: HashMap<String, ClassStatement>,
 }
 
-impl Suggestion {
-    pub fn from(suggesion: String, span: Span) -> Self {
-        Self {
-            suggestion: suggesion,
-            span: span,
-        }
-    }
-}
+impl Project {
+    pub fn scan_folder(&mut self, current_dir: PathBuf) {
+        for entry in WalkDir::new(current_dir) {
+            let entry = entry.unwrap();
+            let path = entry.path();
+            let metadata = fs::metadata(&path).unwrap();
+            let file_name = match path.file_name() {
+                Some(f) => String::from(f.to_str().unwrap()),
+                None => String::from(""),
+            };
+            if file_name != "." || file_name != "" {
+                if metadata.is_file() {
+                    if let Some(extension) = path.extension() {
+                        if extension == "php" {
+                            let content = fs::read_to_string(entry.path());
+                            match content {
+                                Err(err) => {
+                                    println!("{:?}", err);
+                                }
+                                Ok(content) => {
+                                    println!("{file_name:?}");
+                                    for statement in self.parse_code(content.as_str()) {
+                                        let mut file = File {
+                                            path: entry.path().to_path_buf(),
+                                            ast: Some(statement.clone()),
+                                            members: Vec::new(),
+                                            suggestions: Vec::new(),
+                                        };
 
-pub enum Output {
-    STDOUT,
-    FILE,
-}
-impl File {
-    pub fn output(&mut self, location: Output) {
-        match location {
-            Output::STDOUT => {
-                if self.suggestions.len() > 0 {
-                    println!("{} ", self.path.display());
-                    println!("Found {} suggestions detected. ", self.suggestions.len());
-                    for suggestion in &self.suggestions {
-                        println!("Line: {} - {}", suggestion.span.line, suggestion.suggestion);
+                                        self.files.push(file);
+                                    }
+                                }
+                            }
+                        }
+                    } else if metadata.is_dir() {
+                        self.scan_folder(path.to_path_buf());
                     }
-                    println!("");
                 }
             }
-            Output::FILE => {}
         }
     }
 
-    pub fn opening_tag(&mut self, t: Span) {
+    fn parse_code(&self, code: &str) -> Vec<php_parser_rs::parser::ast::Statement> {
+        match parser::parse(code) {
+            Ok(ast) => ast,
+            Err(err) => {
+                // println!("{:#?}", err);
+                vec![]
+            }
+        }
+    }
+    fn build_class_list(mut self) -> Project {
+        for mut file in self.files.clone() {
+            let ast = match file.start() {
+                None => {}
+                Some(a) => {
+                    let k = String::from(a.name.value.clone());
+                    let v = a.clone();
+                    self.classes.insert(k, v);
+                }
+            };
+        }
+        self
+    }
+    fn run(&mut self) {
+        let mut s = self;
+        let files = &mut s.clone().files;
+        for i in files.iter() {
+            let f = &mut i.clone();
+            s.analyze(f);
+        }
+    }
+    pub fn start(self) -> Result<String, Error> {
+        let mut s = self;
+        s = s.build_class_list();
+        s.run();
+
+        Ok("".to_string())
+    }
+    pub fn add(&mut self, file: File) {
+        self.files.push(file)
+    }
+
+    pub fn find_class(&self, fqn: &str) -> Option<ClassStatement> {
+        return self.classes.get(fqn).cloned();
+    }
+
+    pub fn opening_tag(&mut self, t: Span, file: &mut File) -> &mut Project {
         if t.line > 1 {
-            self.suggestions.push(
+            file.suggestions.push(
                 Suggestion::from(
                     "The opening tag <?php is not on the right line. This should always be the first line in a PHP file.".to_string(),
                     t
@@ -70,7 +136,7 @@ impl File {
         }
 
         if t.column > 1 {
-            self.suggestions.push(Suggestion::from(
+            file.suggestions.push(Suggestion::from(
                 format!(
                     "The opening tag doesn't start at the right column: {}.",
                     t.column
@@ -79,20 +145,14 @@ impl File {
                 t,
             ));
         }
+        self
     }
-    pub fn start(&mut self) {
-        match self.ast {
-            Some(ref ast) => self.analyze(ast.to_owned()),
-            None => {
-                println!("No generated");
-            }
-        }
-    }
-    pub fn analyze(&mut self, statement: php_parser_rs::parser::ast::Statement) {
+    pub fn analyze(&mut self, file: &mut File) -> &mut Project {
+        let statement = file.ast.clone().unwrap();
+        let mut project = self;
         match statement {
-            Statement::FullOpeningTag(span) => self.opening_tag(span),
-            Statement::FullOpeningTag(span) => self.opening_tag(span),
-            Statement::ShortOpeningTag(span) => self.opening_tag(span),
+            Statement::FullOpeningTag(span) => project = project.opening_tag(span, file),
+            Statement::ShortOpeningTag(span) => project = project.opening_tag(span, file),
             Statement::EchoOpeningTag(_Span) => {}
             Statement::ClosingTag(_Span) => {}
             Statement::InlineHtml(_ByteString) => {}
@@ -109,18 +169,38 @@ impl File {
             Statement::Constant(_ConstantStatement) => {}
             Statement::Function(_FunctionStatement) => {}
             Statement::Class(ClassStatement) => {
+                // println!("{:?}", String::from(ClassStatement.name.value.clone()),);
                 let name = String::from(ClassStatement.name.value);
-                self.has_capitalized_name(name, ClassStatement.class);
-                for member in ClassStatement.body.members {
-                    self.members.push(member.clone());
-                    self.class_member_analyze(member);
-                }
-                let extends = ClassStatement.extends;
-
-                match extends {
-                    Some(e) => {}
+                match project.has_capitalized_name(name.clone(), ClassStatement.class ) {
+                    Some(s) => {
+                        file.suggestions.push(s);
+                    }
                     None => {}
                 }
+
+                for member in ClassStatement.body.members {
+                    file.members.push(member.clone());
+
+                    project = project.class_member_analyze(member, file);
+                }
+                let extends = ClassStatement.extends;
+                match extends {
+                    Some(ClassExtends { extends, parent }) => {
+                        let exists =
+                            project.find_class(String::from(parent.value.clone()).as_str());
+                        match exists {
+                            None => file.suggestions.push(Suggestion::from(
+                                format!(
+                                    "{} is extending a class({}) that doesnt exits.",
+                                    name, parent.value
+                                ),
+                                ClassStatement.class,
+                            )),
+                            _ => {}
+                        }
+                    }
+                    None => {}
+                };
             }
             Statement::Trait(_TraitStatement) => {}
             Statement::Interface(_InterfaceStatement) => {}
@@ -128,7 +208,7 @@ impl File {
             Statement::Switch(_SwitchStatement) => {}
             Statement::Echo(_EchoStatement) => {}
             Statement::Expression(ExpressionStatement) => {
-                self.analyze_expression(ExpressionStatement.expression)
+                project = project.analyze_expression(ExpressionStatement.expression, file.clone())
             }
             Statement::Return(_ReturnStatement) => {}
             Statement::Namespace(_NamespaceStatement) => {}
@@ -143,25 +223,29 @@ impl File {
             Statement::Declare(_DeclareStatement) => {}
             Statement::Noop(_Span) => {}
         }
+        file.output(Output::STDOUT);
+        project
     }
 
-    pub fn has_capitalized_name(&mut self, name: String, span: Span) {
+    pub fn has_capitalized_name(&mut self, name: String, span: Span) -> Option<Suggestion> {
         if !name.chars().next().unwrap().is_uppercase() {
-            self.suggestions.push(Suggestion::from(
+            Some(Suggestion::from(
                 format!("The class name {} is not capitlized. The first letter of the name of the class should be in uppercase.", name).to_string(),
                 span
-            ))
+            ));
         }
+
+        None
     }
 
-    pub fn class_member_analyze(&mut self, member: ClassMember) {
+    pub fn class_member_analyze(&mut self, member: ClassMember, file: &mut File) -> &mut Project {
         match member {
             ClassMember::Property(property) => {
                 let name = self.property_name(property.clone());
                 match property.modifiers {
                     PropertyModifierGroup { modifiers } => {
                         if modifiers.len() == 0 {
-                            self.suggestions.push(Suggestion::from(
+                            file.suggestions.push(Suggestion::from(
                                 format!("The variables {} have no modifier.", name.join(", "))
                                     .to_string(),
                                 property.end,
@@ -169,6 +253,7 @@ impl File {
                         }
                     }
                 }
+                self
             }
             ClassMember::Constant(constant) => {
                 for entry in constant.entries {
@@ -186,7 +271,7 @@ impl File {
                             }
 
                             if is_uppercase == false {
-                                self.suggestions.push(Suggestion::from(
+                                file.suggestions.push(Suggestion::from(
                                     format!(
                                         "All letters in a constant({}) should be uppercased.",
                                         name.value.to_string()
@@ -194,19 +279,19 @@ impl File {
                                     name.span,
                                 ))
                             }
-
                         }
                     }
                 }
+                self
             }
-            ClassMember::TraitUsage(_trait) => {}
-            ClassMember::AbstractMethod(abstractmethod) => {}
+            ClassMember::TraitUsage(_trait) => self,
+            ClassMember::AbstractMethod(abstractmethod) => self,
             ClassMember::ConcreteMethod(concretemethod) => {
                 let method_name = concretemethod.name.value;
                 match concretemethod.modifiers {
                     MethodModifierGroup { modifiers } => {
                         if modifiers.len() == 0 {
-                            self.suggestions.push(Suggestion::from(
+                            file.suggestions.push(Suggestion::from(
                                 format!("The method {} has no modifiers.", method_name).to_string(),
                                 concretemethod.function,
                             ))
@@ -233,7 +318,7 @@ impl File {
                                     ampersand,
                                 } => match data_type {
                                     None => {
-                                        self.suggestions.push(
+                                        file.suggestions.push(
                                                         Suggestion::from(
                                                             format!("The parameter({}) in the method {} has no datatype.", name, method_name).to_string(),
                                                             concretemethod.function
@@ -267,7 +352,7 @@ impl File {
                                         Expression::Literal(l) => {
                                             match concretemethod.return_type {
                                                 None => {
-                                                    self.suggestions.push(
+                                                    file.suggestions.push(
                                                                 Suggestion::from(
                                                                     format!("The {} has a return statement but it has no return type signature.", method_name).to_string(),
                                                                 r#return
@@ -284,15 +369,17 @@ impl File {
                                 _ => None,
                             };
                         }
+                        self
                     }
                 }
             }
-            ClassMember::VariableProperty(variableproperty) => {}
-            ClassMember::AbstractConstructor(_constructor) => {}
+            ClassMember::VariableProperty(variableproperty) => self,
+            ClassMember::AbstractConstructor(_constructor) => self,
             ClassMember::ConcreteConstructor(constructor) => {
                 for statement in constructor.body.statements {
-                    self.analyze(statement);
+                    let f = &mut file.clone();
                 }
+                self
             }
         }
     }
@@ -326,13 +413,14 @@ impl File {
     fn propperty_exists(
         &self,
         identifier: php_parser_rs::parser::ast::identifiers::Identifier,
+        file: File,
     ) -> bool {
         match identifier {
             php_parser_rs::parser::ast::identifiers::Identifier::SimpleIdentifier(identifier) => {
                 match (identifier) {
                     SimpleIdentifier { span, value } => {
                         let property_value = value;
-                        for m in &self.members {
+                        for m in &file.members {
                             match m {
                                 ClassMember::Property(p) => {
                                     for entry in &p.entries {
@@ -363,7 +451,8 @@ impl File {
         false
     }
 
-    pub fn analyze_expression(&mut self, expresion: Expression) {
+    pub fn analyze_expression(&mut self, expresion: Expression, mut file: File) -> &mut Project {
+        let mut project = self;
         match expresion {
             Expression::Cast { cast, kind, value } => {}
             Expression::YieldFrom { value } => {}
@@ -442,7 +531,7 @@ impl File {
                 arrow,
                 property,
             } => {
-                self.analyze_expression(*property);
+                project = project.analyze_expression(*property, file);
             }
             Expression::StaticMethodClosureCreation {
                 target,
@@ -480,7 +569,7 @@ impl File {
             Expression::Include { include, path } => {}
             Expression::Variable(variable) => {}
             Expression::Identifier(identifier) => {
-                let exists = self.propperty_exists(identifier.clone());
+                let exists = project.propperty_exists(identifier.clone(), file.clone());
 
                 let name: String = match identifier.clone() {
                     php_parser_rs::parser::ast::identifiers::Identifier::SimpleIdentifier(
@@ -496,7 +585,7 @@ impl File {
                     _ => todo!(),
                 };
                 if exists == false {
-                    self.suggestions.push(Suggestion::from(
+                    file.suggestions.push(Suggestion::from(
                         format!(
                             "The property {} is being called, but it does not exists.",
                             name
@@ -572,7 +661,7 @@ impl File {
                     left,
                     equals,
                     right,
-                } => self.analyze_expression(*left),
+                } => project = project.analyze_expression(*left, file),
                 operators::AssignmentOperation::LeftShift {
                     left,
                     left_shift_equals,
@@ -659,5 +748,49 @@ impl File {
             } => {}
             Expression::Reference { ampersand, right } => {}
         }
+        project
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Suggestion {
+    suggestion: String,
+    span: Span,
+}
+
+impl Suggestion {
+    pub fn from(suggesion: String, span: Span) -> Self {
+        Self {
+            suggestion: suggesion,
+            span: span,
+        }
+    }
+}
+
+pub enum Output {
+    STDOUT,
+    FILE,
+}
+impl File {
+    pub fn output(&mut self, location: Output) {
+        match location {
+            Output::STDOUT => {
+                if self.suggestions.len() > 0 {
+                    println!("{} ", self.path.display());
+                    println!("Found {} suggestions detected. ", self.suggestions.len());
+                    for suggestion in &self.suggestions {
+                        println!("Line: {} - {}", suggestion.span.line, suggestion.suggestion);
+                    }
+                    println!("");
+                }
+            }
+            Output::FILE => {}
+        }
+    }
+    pub fn start(&mut self) -> Option<php_parser_rs::parser::ast::classes::ClassStatement> {
+        return match (self.ast.to_owned().unwrap()) {
+            Statement::Class(c) => Some(c),
+            _ => None,
+        };
     }
 }
