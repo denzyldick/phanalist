@@ -13,6 +13,13 @@ These are the current checks implemented.
 - [x] Correct location for the PHP opening tag.
 
 
+### How to compile and run
+To successfully run this project you will need to first install the rust toolchain. If everything was
+installed successfully you will need to download this project and run `cargo build`. This command 
+will compile the source code and create an executable. The executable is located inside the 
+`target/debug` folder. Run this executable inside of your PHP project.
+
+
 ### Preview
 <img src=https://github.com/denzyldick/phanalist/blob/main/output.gif  />
 
