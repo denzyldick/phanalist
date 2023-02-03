@@ -27,6 +27,8 @@ use std::{env, fs};
 
 use php_parser_rs::parser::ast::Statement;
 
+use crate::analyse::{self, *};
+
 #[derive(Debug, Clone)]
 pub struct Project {
     pub files: Vec<File>,
@@ -164,7 +166,7 @@ impl Project {
             Statement::Class(ClassStatement) => {
                 // println!("{:?}", String::from(ClassStatement.name.value.clone()),);
                 let name = String::from(ClassStatement.name.value);
-                match project.has_capitalized_name(name.clone(), ClassStatement.class) {
+                match analyse::has_capitalized_name(name.clone(), ClassStatement.class) {
                     Some(s) => {
                         file.suggestions.push(s);
                     }
@@ -173,7 +175,6 @@ impl Project {
 
                 for member in ClassStatement.body.members {
                     file.members.push(member.clone());
-
                     project = project.class_member_analyze(member, file);
                 }
                 let extends = ClassStatement.extends;
@@ -204,7 +205,28 @@ impl Project {
                 project = project.analyze_expression(ExpressionStatement.expression, file.clone())
             }
             Statement::Return(_ReturnStatement) => {}
-            Statement::Namespace(_NamespaceStatement) => {}
+            Statement::Namespace(namespace) => match namespace {
+                parser::ast::namespaces::NamespaceStatement::Unbraced(unbraced) => {
+                    for statement in unbraced.statements {
+                        match statement {
+                            Statement::Class(ClassStatement) => {
+                                project.class_statement_analyze(ClassStatement, file);
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                parser::ast::namespaces::NamespaceStatement::Braced(braced) => {
+                    for statement in braced.body.statements {
+                        match statement {
+                            Statement::Class(ClassStatement) => {
+                                project.class_statement_analyze(ClassStatement, file);
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            },
             Statement::Use(_UseStatement) => {}
             Statement::GroupUse(_GroupUseStatement) => {}
             Statement::Comment(_Comment) => {}
@@ -220,59 +242,65 @@ impl Project {
         project
     }
 
-    pub fn has_capitalized_name(&mut self, name: String, span: Span) -> Option<Suggestion> {
-        if !name.chars().next().unwrap().is_uppercase() {
-            Some(Suggestion::from(
-                format!("The class name {} is not capitlized. The first letter of the name of the class should be in uppercase.", name).to_string(),
-                span
-            ));
+    pub fn class_statement_analyze(
+        &mut self,
+        ClassStatement: ClassStatement,
+        file: &mut File,
+    ) -> &mut Project {
+        let mut project = self;
+        let name = String::from(ClassStatement.name.value);
+        match analyse::has_capitalized_name(name.clone(), ClassStatement.class) {
+            Some(s) => {
+                file.suggestions.push(s);
+            }
+            None => {}
         }
 
-        None
+        for member in ClassStatement.body.members {
+            file.members.push(member.clone());
+            project = project.class_member_analyze(member, file);
+        }
+        let extends = ClassStatement.extends;
+        match extends {
+            Some(ClassExtends { extends, parent }) => {
+                let exists = project.find_class(String::from(parent.value.clone()).as_str());
+                match exists {
+                    None => file.suggestions.push(Suggestion::from(
+                        format!(
+                            "{} is extending a class({}) that doesnt exits.",
+                            name, parent.value
+                        ),
+                        ClassStatement.class,
+                    )),
+                    _ => {}
+                }
+            }
+            None => {}
+        };
+        project
     }
-
     pub fn class_member_analyze(&mut self, member: ClassMember, file: &mut File) -> &mut Project {
         match member {
             ClassMember::Property(property) => {
                 let name = self.property_name(property.clone());
-                match property.modifiers {
-                    PropertyModifierGroup { modifiers } => {
-                        if modifiers.len() == 0 {
-                            file.suggestions.push(Suggestion::from(
-                                format!("The variables {} have no modifier.", name.join(", "))
-                                    .to_string(),
-                                property.end,
-                            ));
-                        }
-                    }
+                if analyse::property_without_modifiers(property.clone()) {
+                    file.suggestions.push(Suggestion::from(
+                        format!("The variables {} have no modifier.", name.join(", ")).to_string(),
+                        property.end,
+                    ));
                 }
                 self
             }
             ClassMember::Constant(constant) => {
                 for entry in constant.entries {
-                    match entry {
-                        ConstantEntry {
-                            name,
-                            equals,
-                            value,
-                        } => {
-                            let mut is_uppercase = true;
-                            for l in name.value.to_string().chars() {
-                                if l.is_uppercase() == false && l.is_alphabetic() {
-                                    is_uppercase = l.is_uppercase()
-                                }
-                            }
-
-                            if is_uppercase == false {
-                                file.suggestions.push(Suggestion::from(
-                                    format!(
-                                        "All letters in a constant({}) should be uppercased.",
-                                        name.value.to_string()
-                                    ),
-                                    name.span,
-                                ))
-                            }
-                        }
+                    if (analyse::uppercased_constant_name(entry.clone()) == false) {
+                        file.suggestions.push(Suggestion::from(
+                            format!(
+                                "All letters in a constant({}) should be uppercased.",
+                                entry.name.value.to_string()
+                            ),
+                            entry.name.span,
+                        ))
                     }
                 }
                 self
@@ -300,71 +328,45 @@ impl Project {
                         parameters,
                     } => {
                         for parameter in parameters.inner {
-                            match parameter {
-                                FunctionParameter {
-                                    comments,
-                                    name,
-                                    attributes,
-                                    data_type,
-                                    ellipsis,
-                                    default,
-                                    ampersand,
-                                } => match data_type {
-                                    None => {
-                                        file.suggestions.push(
-                                                        Suggestion::from(
-                                                            format!("The parameter({}) in the method {} has no datatype.", name, method_name).to_string(),
-                                                            concretemethod.function
-                                                        )
-                                                    );
-                                    }
-                                    Some(_) => {}
-                                },
+                            if analyse::function_parameter_without_type(parameter.clone()) {
+                                file.suggestions.push(Suggestion::from(
+                                    format!(
+                                        "The parameter({}) in the method {} has no datatype.",
+                                        parameter.name, method_name
+                                    )
+                                    .to_string(),
+                                    concretemethod.function,
+                                ));
                             }
                         }
                     }
                 }
 
                 // Detect return statement without the proper return type signature.
-                match concretemethod.body {
-                    MethodBody {
-                        comments,
-                        left_brace,
-                        statements,
-                        right_brace,
-                    } => {
-                        for statement in statements {
-                            let i = match statement {
-                                Statement::Return(ReturnStatement {
-                                    r#return,
-                                    value,
-                                    ending,
-                                }) => match value {
-                                    None => None,
-                                    Some(s) => match s {
-                                        Expression::Literal(l) => {
-                                            match concretemethod.return_type {
-                                                None => {
-                                                    file.suggestions.push(
+                //
+                let has_return = analyse::method_has_return(concretemethod.body);
+
+                match has_return {
+                    Some(ReturnStatement {
+                        r#return,
+                        value,
+                        ending,
+                    }) => {
+                        match concretemethod.return_type {
+                            None => {
+                                file.suggestions.push(
                                                                 Suggestion::from(
                                                                     format!("The {} has a return statement but it has no return type signature.", method_name).to_string(),
                                                                 r#return
                                                                 )
                                                             );
-                                                }
-                                                Some(_) => {}
-                                            }
-                                            Some(l)
-                                        }
-                                        _ => None,
-                                    },
-                                },
-                                _ => None,
-                            };
-                        }
-                        self
+                            }
+                            _ => {}
+                        };
                     }
-                }
+                    None => {}
+                };
+                self
             }
             ClassMember::VariableProperty(variableproperty) => self,
             ClassMember::AbstractConstructor(_constructor) => self,
@@ -401,47 +403,6 @@ impl Project {
                 return names;
             }
         };
-    }
-
-    fn propperty_exists(
-        &self,
-        identifier: php_parser_rs::parser::ast::identifiers::Identifier,
-        file: File,
-    ) -> bool {
-        match identifier {
-            php_parser_rs::parser::ast::identifiers::Identifier::SimpleIdentifier(identifier) => {
-                match (identifier) {
-                    SimpleIdentifier { span, value } => {
-                        let property_value = value;
-                        for m in &file.members {
-                            match m {
-                                ClassMember::Property(p) => {
-                                    for entry in &p.entries {
-                                        match (entry) {
-                                            PropertyEntry::Uninitialized { variable } => {
-                                                return variable.name.to_string()
-                                                    == format!("${}", property_value);
-                                            }
-                                            PropertyEntry::Initialized {
-                                                variable,
-                                                equals,
-                                                value,
-                                            } => {
-                                                return variable.name.to_string()
-                                                    == format!("${}", property_value);
-                                            }
-                                        }
-                                    }
-                                }
-                                _ => {}
-                            }
-                        }
-                    }
-                }
-            }
-            php_parser_rs::parser::ast::identifiers::Identifier::DynamicIdentifier(_) => {}
-        }
-        false
     }
 
     pub fn analyze_expression(&mut self, expresion: Expression, mut file: File) -> &mut Project {
@@ -562,15 +523,8 @@ impl Project {
             Expression::Include { include, path } => {}
             Expression::Variable(variable) => {}
             Expression::Identifier(identifier) => {
-                let exists = project.propperty_exists(identifier.clone(), file.clone());
-
-                let name: String = match identifier.clone() {
-                    php_parser_rs::parser::ast::identifiers::Identifier::SimpleIdentifier(
-                        identifier,
-                    ) => identifier.value.to_string(),
-                    _ => "".to_string(),
-                };
-
+                let exists = analyse::propperty_exists(identifier.clone(), file.clone());
+                let name = analyse::get_property_name(identifier.clone());
                 let span: Span = match identifier {
                     php_parser_rs::parser::ast::identifiers::Identifier::SimpleIdentifier(
                         identifier,
@@ -766,6 +720,7 @@ pub struct File {
     pub members: Vec<ClassMember>,
     pub suggestions: Vec<Suggestion>,
 }
+#[derive(Debug)]
 pub enum Output {
     STDOUT,
     FILE,
@@ -777,13 +732,19 @@ impl File {
                 if self.suggestions.len() > 0 {
                     let file_symbol = "--->".blue().bold();
                     println!("{} {} ", file_symbol, self.path.display());
-                    println!("{} {}", "Warnings detected: ".yellow().bold(), self.suggestions.len().to_string().as_str().red().bold());
+                    println!(
+                        "{} {}",
+                        "Warnings detected: ".yellow().bold(),
+                        self.suggestions.len().to_string().as_str().red().bold()
+                    );
                     let line_symbol = "|".blue().bold();
                     println!("  \t{}", line_symbol);
                     for suggestion in &self.suggestions {
                         println!(
                             "  {}\t{} {}",
-                            format!("{}:{}",suggestion.span.line, suggestion.span.column).blue().bold(),
+                            format!("{}:{}", suggestion.span.line, suggestion.span.column)
+                                .blue()
+                                .bold(),
                             line_symbol,
                             suggestion.suggestion
                         );
