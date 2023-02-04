@@ -7,6 +7,7 @@ use php_parser_rs::parser::ast::functions::{
     FunctionParameter, FunctionParameterList, MethodBody, ReturnType,
 };
 use std::io::Error;
+use std::ops::BitXorAssign;
 use walkdir::WalkDir;
 
 use php_parser_rs::parser;
@@ -14,10 +15,11 @@ use php_parser_rs::parser::ast::identifiers::{DynamicIdentifier, Identifier, Sim
 use php_parser_rs::parser::ast::modifiers::{
     MethodModifier, MethodModifierGroup, PropertyModifier, PropertyModifierGroup,
 };
+use php_parser_rs::parser::ast::operators::AssignmentOperationExpression::*;
 use php_parser_rs::parser::ast::properties::{Property, PropertyEntry};
-use php_parser_rs::parser::ast::variables::SimpleVariable;
-use php_parser_rs::parser::ast::Expression;
+use php_parser_rs::parser::ast::variables::{SimpleVariable, Variable, VariableVariable};
 use php_parser_rs::parser::ast::{operators, ReturnStatement};
+use php_parser_rs::parser::ast::{Expression, ExpressionStatement};
 use std::borrow::{Borrow, BorrowMut};
 use std::collections::HashMap;
 use std::convert::identity;
@@ -52,7 +54,7 @@ impl Project {
                             let content = fs::read_to_string(entry.path());
                             match content {
                                 Err(err) => {
-                                    println!("{:?}", err);
+                                    // println!("{err:?}");
                                 }
                                 Ok(content) => {
                                     for statement in self.parse_code(content.as_str()) {
@@ -74,6 +76,14 @@ impl Project {
                 }
             }
         }
+    }
+
+    pub fn get_files(self) -> Vec<File> {
+        self.files
+    }
+    pub fn print_files_statistics(&self) {
+        let info = format!("\t{} php files have found.", self.files.len());
+        println!("{}", info.blue().bold());
     }
 
     fn parse_code(&self, code: &str) -> Vec<php_parser_rs::parser::ast::Statement> {
@@ -107,9 +117,15 @@ impl Project {
         }
     }
     pub fn start(self) -> Result<String, Error> {
+        let now = std::time::Instant::now();
         let mut s = self;
         s = s.build_class_list();
         s.run();
+        println!(
+            "Analysed {} files in : {:.2?}",
+            s.files.len(),
+            now.elapsed()
+        );
 
         Ok("".to_string())
     }
@@ -146,8 +162,11 @@ impl Project {
         let statement = file.ast.clone().unwrap();
         let mut project = self;
         match statement {
-            Statement::FullOpeningTag(span) => project = project.opening_tag(span, file),
-            Statement::ShortOpeningTag(span) => project = project.opening_tag(span, file),
+            Statement::FullOpeningTag(tag) => project = project.opening_tag(tag.span, file),
+            Statement::ShortOpeningTag(tag) => {
+                project = project.opening_tag(tag.span, file);
+            }
+
             Statement::EchoOpeningTag(_Span) => {}
             Statement::ClosingTag(_Span) => {}
             Statement::InlineHtml(_ByteString) => {}
@@ -164,37 +183,7 @@ impl Project {
             Statement::Constant(_ConstantStatement) => {}
             Statement::Function(_FunctionStatement) => {}
             Statement::Class(ClassStatement) => {
-                // println!("{:?}", String::from(ClassStatement.name.value.clone()),);
-                let name = String::from(ClassStatement.name.value);
-                match analyse::has_capitalized_name(name.clone(), ClassStatement.class) {
-                    Some(s) => {
-                        file.suggestions.push(s);
-                    }
-                    None => {}
-                }
-
-                for member in ClassStatement.body.members {
-                    file.members.push(member.clone());
-                    project = project.class_member_analyze(member, file);
-                }
-                let extends = ClassStatement.extends;
-                match extends {
-                    Some(ClassExtends { extends, parent }) => {
-                        let exists =
-                            project.find_class(String::from(parent.value.clone()).as_str());
-                        match exists {
-                            None => file.suggestions.push(Suggestion::from(
-                                format!(
-                                    "{} is extending a class({}) that doesnt exits.",
-                                    name, parent.value
-                                ),
-                                ClassStatement.class,
-                            )),
-                            _ => {}
-                        }
-                    }
-                    None => {}
-                };
+                project.class_statement_analyze(ClassStatement, file);
             }
             Statement::Trait(_TraitStatement) => {}
             Statement::Interface(_InterfaceStatement) => {}
@@ -202,7 +191,7 @@ impl Project {
             Statement::Switch(_SwitchStatement) => {}
             Statement::Echo(_EchoStatement) => {}
             Statement::Expression(ExpressionStatement) => {
-                project = project.analyze_expression(ExpressionStatement.expression, file.clone())
+                project = project.analyze_expression(ExpressionStatement.expression, file)
             }
             Statement::Return(_ReturnStatement) => {}
             Statement::Namespace(namespace) => match namespace {
@@ -344,7 +333,7 @@ impl Project {
 
                 // Detect return statement without the proper return type signature.
                 //
-                let has_return = analyse::method_has_return(concretemethod.body);
+                let has_return = analyse::method_has_return(concretemethod.body.clone());
 
                 match has_return {
                     Some(ReturnStatement {
@@ -366,13 +355,25 @@ impl Project {
                     }
                     None => {}
                 };
+                for statement in concretemethod.body.statements {
+                    // self.analyze_expression(statement, file);
+
+                    // println!("{statement:#?}");
+                }
+
                 self
             }
             ClassMember::VariableProperty(variableproperty) => self,
             ClassMember::AbstractConstructor(_constructor) => self,
             ClassMember::ConcreteConstructor(constructor) => {
                 for statement in constructor.body.statements {
-                    let f = &mut file.clone();
+                    match statement {
+                        Statement::Expression(ExpressionStatement { expression, ending }) => {
+                            self.analyze_expression(expression, file);
+                        }
+
+                        _ => {}
+                    }
                 }
                 self
             }
@@ -405,122 +406,88 @@ impl Project {
         };
     }
 
-    pub fn analyze_expression(&mut self, expresion: Expression, mut file: File) -> &mut Project {
+    pub fn analyze_expression(&mut self, expresion: Expression, file: &mut File) -> &mut Project {
         let mut project = self;
+        // println!("{expresion:#?}");
         match expresion {
-            Expression::Cast { cast, kind, value } => {}
-            Expression::YieldFrom { value } => {}
-            Expression::Yield { key, value } => {}
-            Expression::Match {
-                keyword,
-                left_parenthesis,
-                condition,
-                right_parenthesis,
-                left_brace,
-                default,
-                arms,
-                right_brace,
-            } => {}
-            Expression::Throw { value } => {}
-            Expression::Clone { target } => {}
-            Expression::Coalesce {
-                lhs,
-                double_question,
-                rhs,
-            } => {}
-            Expression::Ternary {
-                condition,
-                question,
-                then,
-                colon,
-                r#else,
-            } => {}
+            Expression::Cast(_) => {}
+            Expression::YieldFrom(_) => {}
+            Expression::Yield(_) => {}
+            Expression::Match(_) => {}
+            Expression::Throw(_) => {}
+            Expression::Clone(_) => {}
+            Expression::Coalesce(_) => {}
+            Expression::Ternary(_) => {}
             Expression::Null => {}
             Expression::MagicConstant(constant) => {}
-            Expression::Bool { value } => {}
+            Expression::Bool(_) => {}
             Expression::AnonymousClass(class) => {}
-            Expression::Nowdoc { value } => {}
-            Expression::Heredoc { parts } => {}
+            Expression::Nowdoc(_) => {}
+            Expression::Heredoc(_) => {}
             Expression::ArrowFunction(function) => {}
             Expression::Closure(closure) => {}
-            Expression::List {
-                list,
-                start,
-                items,
-                end,
-            } => {}
-            Expression::Array {
-                array,
-                start,
-                items,
-                end,
-            } => {}
+            Expression::List(_) => {}
+            Expression::Array(_) => {}
             Expression::Parent => {}
-            Expression::ShortArray { start, items, end } => {}
+            Expression::ShortArray(_) => {}
             Expression::Self_ => {}
             Expression::Static => {}
-            Expression::ConstantFetch {
-                target,
-                double_colon,
-                constant,
-            } => {}
-            Expression::StaticPropertyFetch {
-                target,
-                double_colon,
-                property,
-            } => {}
-            Expression::NullsafePropertyFetch {
-                target,
-                question_arrow,
-                property,
-            } => {}
-            Expression::NullsafeMethodCall {
-                target,
-                question_arrow,
-                method,
-                arguments,
-            } => {}
-            Expression::PropertyFetch {
-                target,
-                arrow,
-                property,
-            } => {
-                project = project.analyze_expression(*property, file);
+            Expression::ConstantFetch(_) => {}
+            Expression::StaticPropertyFetch(_) => {}
+            Expression::NullsafePropertyFetch(_) => {}
+            Expression::NullsafeMethodCall(_) => {}
+            Expression::PropertyFetch(property) => {
+                match *property.target {
+                    Expression::Variable(v) => match v {
+                        Variable::BracedVariableVariable(_) => {}
+                        Variable::SimpleVariable(variable) => {
+                            if variable.name.to_string() == String::from("$this") {
+                                let identifier = *property.property;
+
+                                match identifier {
+                                    Expression::Identifier(identifier) => {
+                                        let exists = analyse::propperty_exists(
+                                            identifier.clone(),
+                                            file.clone(),
+                                        );
+                                        let name = analyse::get_property_name(identifier.clone());
+                                        let span: Span = match identifier {
+                    php_parser_rs::parser::ast::identifiers::Identifier::SimpleIdentifier(
+                        identifier,
+                    ) => identifier.span,
+                    _ => todo!(),
+                };
+                                        if exists == false {
+                                            file.suggestions.push(Suggestion::from(
+                                                format!(
+                            "The property {} is being called, but it does not exists.",
+                            name
+                        )
+                                                .to_string(),
+                                                span,
+                                            ));
+                                        }
+                                    }
+
+                                    _ => {}
+                                }
+                            }
+                        }
+                        Variable::VariableVariable(_) => {}
+                    },
+
+                    __ => {}
+                }
             }
-            Expression::StaticMethodClosureCreation {
-                target,
-                double_colon,
-                method,
-                placeholder,
-            } => {}
-            Expression::StaticVariableMethodClosureCreation {
-                target,
-                double_colon,
-                method,
-                placeholder,
-            } => {}
-            Expression::StaticVariableMethodCall {
-                target,
-                double_colon,
-                method,
-                arguments,
-            } => {}
-            Expression::StaticMethodCall {
-                target,
-                double_colon,
-                method,
-                arguments,
-            } => {}
-            Expression::MethodCall {
-                target,
-                arrow,
-                method,
-                arguments,
-            } => {}
-            Expression::FunctionCall { target, arguments } => {}
-            Expression::RequireOnce { require_once, path } => {}
-            Expression::Require { require, path } => {}
-            Expression::Include { include, path } => {}
+            Expression::StaticMethodClosureCreation(_) => {}
+            Expression::StaticVariableMethodClosureCreation(_) => {}
+            Expression::StaticVariableMethodCall(_) => {}
+            Expression::StaticMethodCall(_) => {}
+            Expression::MethodCall(_) => {}
+            Expression::FunctionCall(_) => {}
+            Expression::RequireOnce(_) => {}
+            Expression::Require(_) => {}
+            Expression::Include(_) => {}
             Expression::Variable(variable) => {}
             Expression::Identifier(identifier) => {
                 let exists = analyse::propperty_exists(identifier.clone(), file.clone());
@@ -542,158 +509,117 @@ impl Project {
                     ));
                 }
             }
-            Expression::Instanceof {
-                left,
-                instanceof,
-                right,
-            } => {}
-            Expression::Concat { left, dot, right } => {}
+            Expression::Instanceof(_) => {}
+            Expression::Concat(_) => {}
             Expression::ArithmeticOperation(operation) => {}
             Expression::Literal(literal) => {}
-            Expression::Print {
-                print,
-                value,
-                argument,
-            } => {}
-            Expression::Unset { unset, arguments } => {}
-            Expression::Isset { isset, arguments } => {}
-            Expression::Empty { empty, argument } => {}
+            Expression::Print(_) => {}
+            Expression::Unset(_) => {}
+            Expression::Isset(_) => {}
+            Expression::Empty(_) => {}
             Expression::AssignmentOperation(assignment) => match assignment {
-                operators::AssignmentOperation::RightShift {
+                BitwiseOr {
                     left,
-                    right_shift_equals,
+                    pipe_equals,
                     right,
                 } => {}
-                operators::AssignmentOperation::BitwiseXor {
-                    left,
-                    caret_equals,
-                    right,
-                } => {}
-                operators::AssignmentOperation::BitwiseAnd {
+                BitwiseAnd {
                     left,
                     ampersand_equals,
                     right,
                 } => {}
-                operators::AssignmentOperation::BitwiseOr {
+                BitwiseOr {
                     left,
                     pipe_equals,
                     right,
                 } => {}
-                operators::AssignmentOperation::Concat {
+                BitwiseXor {
                     left,
-                    dot_equals,
+                    caret_equals,
                     right,
                 } => {}
-                operators::AssignmentOperation::Subtraction {
-                    left,
-                    minus_equals,
-                    right,
-                } => {}
-                operators::AssignmentOperation::Exponentiation {
-                    left,
-                    pow_equals,
-                    right,
-                } => {}
-                operators::AssignmentOperation::Multiplication {
-                    left,
-                    asterisk_equals,
-                    right,
-                } => {}
-                operators::AssignmentOperation::Division {
-                    left,
-                    slash_equals,
-                    right,
-                } => {}
-                operators::AssignmentOperation::Assign {
-                    left,
-                    equals,
-                    right,
-                } => project = project.analyze_expression(*left, file),
-                operators::AssignmentOperation::LeftShift {
+                LeftShift {
                     left,
                     left_shift_equals,
                     right,
                 } => {}
-                operators::AssignmentOperation::Modulo {
+                RightShift {
                     left,
-                    percent_equals,
+                    right_shift_equals,
                     right,
                 } => {}
-                operators::AssignmentOperation::Addition {
-                    left,
-                    plus_equals,
-                    right,
-                } => {}
-                operators::AssignmentOperation::BitwiseOr {
-                    left,
-                    pipe_equals,
-                    right,
-                } => {}
-                operators::AssignmentOperation::Coalesce {
+                Coalesce {
                     left,
                     coalesce_equals,
                     right,
                 } => {}
+                Assign {
+                    left,
+                    equals,
+                    right,
+                } => {
+                    project = project.analyze_expression(*left, file);
+                }
+                Addition {
+                    left,
+                    plus_equals,
+                    right,
+                } => {}
+                Subtraction {
+                    left,
+                    minus_equals,
+                    right,
+                } => {}
+                Multiplication {
+                    left,
+                    asterisk_equals,
+                    right,
+                } => {}
+                Division {
+                    left,
+                    slash_equals,
+                    right,
+                } => {}
+                Modulo {
+                    left,
+                    percent_equals,
+                    right,
+                } => {}
+
+                Exponentiation {
+                    left,
+                    pow_equals,
+                    right,
+                } => {}
+                Concat {
+                    left,
+                    dot_equals,
+                    right,
+                } => {}
             },
-            Expression::Eval { eval, argument } => {}
-            Expression::Die { die, argument } => {}
+            Expression::Eval(_) => {}
+            Expression::Die(_) => {}
             Expression::Noop {} => {}
-            Expression::New {
-                new,
-                target,
-                arguments,
-            } => {}
-            Expression::Exit { exit, argument } => {}
-            Expression::StaticVariableMethodClosureCreation {
-                target,
-                double_colon,
-                method,
-                placeholder,
-            } => {}
-            Expression::StaticVariableMethodCall {
-                target,
-                double_colon,
-                method,
-                arguments,
-            } => {}
-            Expression::MethodClosureCreation {
-                target,
-                arrow,
-                method,
-                placeholder,
-            } => {}
+            Expression::New(_) => {}
+            Expression::Exit(_) => {}
+            Expression::StaticVariableMethodClosureCreation(_) => {}
+            Expression::StaticVariableMethodCall(_) => {}
+            Expression::MethodClosureCreation(_) => {}
             Expression::AssignmentOperation(asignment) => {}
-            Expression::FunctionClosureCreation {
-                target,
-                placeholder,
-            } => {}
-            Expression::InterpolatedString { parts } => {}
+            Expression::FunctionClosureCreation(_) => {}
+            Expression::InterpolatedString(_) => {}
             Expression::LogicalOperation(operation) => {}
             Expression::BitwiseOperation(operation) => {}
-            Expression::NullsafeMethodCall {
-                target,
-                question_arrow,
-                method,
-                arguments,
-            } => {}
-            Expression::ErrorSuppress { at, expr } => {}
-            Expression::IncludeOnce { include_once, path } => {}
-            Expression::ShellExec { parts } => {}
-            Expression::Require { require, path } => {}
+            Expression::NullsafeMethodCall(_) => {}
+            Expression::ErrorSuppress(_) => {}
+            Expression::IncludeOnce(_) => {}
+            Expression::ShellExec(_) => {}
+            Expression::Require(_) => {}
             Expression::ComparisonOperation(operation) => {}
-            Expression::Parenthesized { start, expr, end } => {}
-            Expression::ArrayIndex {
-                array,
-                left_bracket,
-                index,
-                right_bracket,
-            } => {}
-            Expression::ShortTernary {
-                condition,
-                question_colon,
-                r#else,
-            } => {}
-            Expression::Reference { ampersand, right } => {}
+            Expression::Parenthesized(_) => {}
+            Expression::ArrayIndex(_) => {}
+            Expression::ShortTernary(_) => {}
+            Expression::Reference(_) => {}
         }
         project
     }
@@ -726,6 +652,10 @@ pub enum Output {
     FILE,
 }
 impl File {
+    fn get_line(&mut self, span: Span) -> String {
+        println!("{}", self.path.display());
+        return "".to_string();
+    }
     pub fn output(&mut self, location: Output) {
         match location {
             Output::STDOUT => {

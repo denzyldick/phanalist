@@ -11,6 +11,17 @@
 
     public function __construct($o)
     {
+
+
+      $hello = false;
+      if($hello == false){
+         $this->no_modifier = 'helloworld';
+      }else if ($hello === true){
+
+        $this->no_ = 'hmm';
+
+      }
+
       $this->fake_variable = 'hellworld';
     }
 
