@@ -5,6 +5,7 @@ use php_parser_rs::lexer::token::Span;
 use php_parser_rs::parser::ast::classes::{ClassExtends, ClassMember, ClassStatement};
 use php_parser_rs::parser::ast::constant::ConstantEntry;
 use php_parser_rs::parser::ast::constant::ConstantStatement;
+use php_parser_rs::parser::ast::control_flow::IfStatement;
 use php_parser_rs::parser::ast::functions::{
     FunctionParameter, FunctionParameterList, MethodBody, ReturnType,
 };
@@ -14,6 +15,8 @@ use php_parser_rs::parser::ast::modifiers::{
     MethodModifier, MethodModifierGroup, PropertyModifier, PropertyModifierGroup,
 };
 use php_parser_rs::parser::ast::properties::{Property, PropertyEntry};
+use php_parser_rs::parser::ast::Block;
+use php_parser_rs::parser::ast::BlockStatement;
 use php_parser_rs::parser::ast::Expression;
 use php_parser_rs::parser::ast::Statement;
 use php_parser_rs::parser::ast::{operators, ReturnStatement};
@@ -144,3 +147,49 @@ pub fn method_has_return(body: MethodBody) -> Option<ReturnStatement> {
     }
     None
 }
+
+// E – N + 2*P
+// pub fn calculate_cyclomatic_complexity(body: MethodBody) -> i32 {
+//     let mut result = 0;
+//     let mut edge = 0;
+//     let mut node = 0;
+//     let mut exit = 0;
+
+//     let (edge, node, exit) = calculate(body.statements, edge, node, exit);
+//     return edge - node + (2 * exit);
+// }
+
+// fn calculate(
+//     statements: Vec<Statement>,
+//     mut edge: i32,
+//     mut node: i32,
+//     mut exit: i32,
+// ) -> (i32, i32, i32) {
+//     for statement in statements {
+//         match statement {
+//             Statement::If(s) => match s.body {
+//                 php_parser_rs::parser::ast::control_flow::IfStatementBody::Statement {
+//                     statement,
+//                     elseifs,
+//                     r#else,
+//                 } => {
+//                     edge = edge + 1;
+//                 }
+//             },
+//             Statement::For(s) => {}
+//             Statement::While(s) => {}
+//             Statement::Function(s) => {}
+//             Statement::Try(s) => {}
+//             Statement::Goto(s) => {}
+//             Statement::Break(s) => {}
+//             Statement::Foreach(s) => {}
+//             Statement::Switch(s) => {}
+//             Statement::Continue(s) => {}
+//             _ => {
+//                 node =node + 1;
+//             }
+//         }
+//     }
+
+//     (edge, node, exit)
+// }

@@ -32,6 +32,7 @@ fn main() -> Result<()> {
     };
 
     project.scan_folder(path);
+    project.print_files_statistics();
     project.start()?;
     Ok(())
 }
