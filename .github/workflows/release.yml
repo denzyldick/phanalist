@@ -1,3 +1,4 @@
+name: "Create cross platform executables"
 on:
   push:
     branches:
