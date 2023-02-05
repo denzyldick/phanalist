@@ -13,9 +13,10 @@ RUN strip target/release/phanalist
 
 # use a plain alpine image, the alpine version needs to match the builder
 FROM alpine:3.16
+# Workdir
 # if needed, install additional dependencies here
 RUN apk add --no-cache libgcc
 # copy the binary into the final image
-COPY --from=0 /app/target/release/phanalist .
+COPY --from=0 /app/target/release/phanalist  /usr/bin/
 # set the binary as entrypoint
-ENTRYPOINT ["/phanalist"]
+CMD ["phanalist","--directory=/var/src"]
