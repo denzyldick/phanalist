@@ -19,6 +19,14 @@ installed successfully you will need to download this project and run `cargo bui
 will compile the source code and create an executable. The executable is located inside the 
 `target/debug` folder. Run this executable inside of your PHP project.
 
+### Container
+
+You can also use the docker image. Run the docker images inside your PHP project. 
+
+```bash
+$ docker run -v $(pwd):/var/src ghcr.io/denzyldick/phanalist:latest
+
+```
 
 ### Preview
 <img src=https://github.com/denzyldick/phanalist/blob/main/output.gif  />
