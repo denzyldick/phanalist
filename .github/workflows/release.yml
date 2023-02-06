@@ -44,7 +44,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         # TODO: if any of the build step fails, the release should be deleted.
         with:
-            files: 'phanlist*'
+            files: 'phanalist*'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
