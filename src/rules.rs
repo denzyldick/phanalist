@@ -38,6 +38,7 @@ pub struct Project {
 }
 
 impl Project {
+    /// Scan the folder.
     pub fn scan_folder(&mut self, current_dir: PathBuf) {
         for entry in WalkDir::new(current_dir) {
             let entry = entry.unwrap();
@@ -78,23 +79,28 @@ impl Project {
         }
     }
 
+    /// Get all files.
     pub fn get_files(self) -> Vec<File> {
         self.files
     }
+
+    /// Print the statistics.
     pub fn print_files_statistics(&self) {
         let info = format!("\t{} php files have found.", self.files.len());
         println!("{}", info.blue().bold());
     }
 
+    /// Parse the code and generate an ast.
     fn parse_code(&self, code: &str) -> Vec<php_parser_rs::parser::ast::Statement> {
         match parser::parse(code) {
             Ok(ast) => ast,
             Err(err) => {
-                // println!("{:#?}", err);
                 vec![]
             }
         }
     }
+
+    /// Build the class list.
     fn build_class_list(mut self) -> Project {
         for mut file in self.files.clone() {
             let ast = match file.start() {
@@ -108,6 +114,8 @@ impl Project {
         }
         self
     }
+
+    /// Iterate over the list of files and analyse the code.
     fn run(&mut self) {
         let mut s = self;
         let files = &mut s.clone().files;
@@ -116,6 +124,8 @@ impl Project {
             s.analyze(f);
         }
     }
+
+    /// Build the class list and run analyse.
     pub fn start(self) -> Result<String, Error> {
         let now = std::time::Instant::now();
         let mut s = self;
@@ -129,14 +139,18 @@ impl Project {
 
         Ok("".to_string())
     }
+
+    /// Add a file to the files.
     pub fn add(&mut self, file: File) {
         self.files.push(file)
     }
 
+    /// Find a class based on the name
     pub fn find_class(&self, fqn: &str) -> Option<ClassStatement> {
         return self.classes.get(fqn).cloned();
     }
 
+    /// Check if the opening tag is on the right position.
     pub fn opening_tag(&mut self, t: Span, file: &mut File) -> &mut Project {
         if t.line > 1 {
             file.suggestions.push(
@@ -158,6 +172,8 @@ impl Project {
         }
         self
     }
+
+    /// Analase the code.
     pub fn analyze(&mut self, file: &mut File) -> &mut Project {
         let statement = file.ast.clone().unwrap();
         let mut project = self;
@@ -166,7 +182,6 @@ impl Project {
             Statement::ShortOpeningTag(tag) => {
                 project = project.opening_tag(tag.span, file);
             }
-
             Statement::EchoOpeningTag(_Span) => {}
             Statement::ClosingTag(_Span) => {}
             Statement::InlineHtml(_ByteString) => {}
@@ -231,6 +246,7 @@ impl Project {
         project
     }
 
+    /// Analyse class statement.
     pub fn class_statement_analyze(
         &mut self,
         ClassStatement: ClassStatement,
@@ -268,6 +284,8 @@ impl Project {
         };
         project
     }
+
+    /// Analyse class member. 
     pub fn class_member_analyze(&mut self, member: ClassMember, file: &mut File) -> &mut Project {
         match member {
             ClassMember::Property(property) => {
@@ -355,11 +373,14 @@ impl Project {
                     }
                     None => {}
                 };
-                for statement in concretemethod.body.statements {
-                    // self.analyze_expression(statement, file);
 
-                    // println!("{statement:#?}");
-                }
+                let score = analyse::calculate_cyclomatic_complexity(concretemethod.body);
+                println!("{score:?} cycolmatic complexity");
+                // for statement in concretemethod.body.statements {
+                //     // self.analyze_expression(statement, file);
+
+                //     // println!("{statement:#?}");
+                // }
 
                 self
             }
@@ -380,6 +401,7 @@ impl Project {
         }
     }
 
+    ///
     fn property_name(&self, property: Property) -> Vec<std::string::String> {
         return match property {
             Property {
@@ -405,7 +427,7 @@ impl Project {
             }
         };
     }
-
+    /// Analyze expressions.
     pub fn analyze_expression(&mut self, expresion: Expression, file: &mut File) -> &mut Project {
         let mut project = self;
         // println!("{expresion:#?}");
@@ -436,49 +458,45 @@ impl Project {
             Expression::StaticPropertyFetch(_) => {}
             Expression::NullsafePropertyFetch(_) => {}
             Expression::NullsafeMethodCall(_) => {}
-            Expression::PropertyFetch(property) => {
-                match *property.target {
-                    Expression::Variable(v) => match v {
-                        Variable::BracedVariableVariable(_) => {}
-                        Variable::SimpleVariable(variable) => {
-                            if variable.name.to_string() == String::from("$this") {
-                                let identifier = *property.property;
+            Expression::PropertyFetch(property) => match *property.target {
+                Expression::Variable(v) => match v {
+                    Variable::BracedVariableVariable(_) => {}
+                    Variable::SimpleVariable(variable) => {
+                        if variable.name.to_string() == String::from("$this") {
+                            let identifier = *property.property;
 
-                                match identifier {
-                                    Expression::Identifier(identifier) => {
-                                        let exists = analyse::propperty_exists(
-                                            identifier.clone(),
-                                            file.clone(),
-                                        );
-                                        let name = analyse::get_property_name(identifier.clone());
-                                        let span: Span = match identifier {
+                            match identifier {
+                                Expression::Identifier(identifier) => {
+                                    let exists =
+                                        analyse::propperty_exists(identifier.clone(), file.clone());
+                                    let name = analyse::get_property_name(identifier.clone());
+                                    let span: Span = match identifier {
                     php_parser_rs::parser::ast::identifiers::Identifier::SimpleIdentifier(
                         identifier,
                     ) => identifier.span,
                     _ => todo!(),
                 };
-                                        if exists == false {
-                                            file.suggestions.push(Suggestion::from(
-                                                format!(
+                                    if exists == false {
+                                        file.suggestions.push(Suggestion::from(
+                                            format!(
                             "The property {} is being called, but it does not exists.",
                             name
                         )
-                                                .to_string(),
-                                                span,
-                                            ));
-                                        }
+                                            .to_string(),
+                                            span,
+                                        ));
                                     }
-
-                                    _ => {}
                                 }
+
+                                _ => {}
                             }
                         }
-                        Variable::VariableVariable(_) => {}
-                    },
+                    }
+                    Variable::VariableVariable(_) => {}
+                },
 
-                    __ => {}
-                }
-            }
+                __ => {}
+            },
             Expression::StaticMethodClosureCreation(_) => {}
             Expression::StaticVariableMethodClosureCreation(_) => {}
             Expression::StaticVariableMethodCall(_) => {}

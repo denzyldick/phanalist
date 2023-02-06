@@ -26,7 +26,12 @@
     }
 
     function test($a){
+
+      if($a){
+
+     }
       return 1;
+
     }
 
   }
