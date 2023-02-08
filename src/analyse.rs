@@ -158,14 +158,12 @@ pub fn method_has_return(body: MethodBody) -> Option<ReturnStatement> {
 
 /// E – N + 2*P
 pub fn calculate_cyclomatic_complexity(body: MethodBody) -> usize {
-    println!("{body:#?}");
     let mut result = 0;
     let mut edge = 0;
     let mut node = 0;
     let mut exit = 0;
 
     let (edge, node, exit) = calculate(body.statements, edge, node, exit);
-    println!("{edge:?} {node:?} {exit:?}");
     return 1;    // return edge - node + (2 * exit);
 }
 

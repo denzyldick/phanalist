@@ -1,9 +1,10 @@
 use clap::Parser;
 use php_parser_rs::parser::ast::classes::ClassMember;
-use rules::{Output, Project};
+use rules::{File, Output, Project};
 use std::collections::HashMap;
 use std::io::Result;
 use std::path::PathBuf;
+use std::sync::mpsc::{self, Receiver, Sender};
 use std::{env, fs};
 
 mod analyse;
