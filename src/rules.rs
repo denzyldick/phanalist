@@ -40,39 +40,45 @@ pub struct Project {
 impl Project {
     /// Scan the folder.
     pub fn scan_folder(&mut self, current_dir: PathBuf) {
-        for entry in WalkDir::new(current_dir) {
+        for entry in WalkDir::new(current_dir.clone()) {
             let entry = entry.unwrap();
             let path = entry.path();
             let metadata = fs::metadata(&path).unwrap();
-            let file_name = match path.file_name() {
-                Some(f) => String::from(f.to_str().unwrap()),
-                None => String::from(""),
-            };
-            if file_name != "." || file_name != "" {
-                if metadata.is_file() {
-                    if let Some(extension) = path.extension() {
-                        if extension == "php" {
-                            let content = fs::read_to_string(entry.path());
-                            match content {
-                                Err(err) => {
-                                    // println!("{err:?}");
-                                }
-                                Ok(content) => {
-                                    for statement in self.parse_code(content.as_str()) {
-                                        let mut file = File {
-                                            path: entry.path().to_path_buf(),
-                                            ast: Some(statement.clone()),
-                                            members: Vec::new(),
-                                            suggestions: Vec::new(),
-                                        };
 
-                                        self.files.push(file);
+            if current_dir.display().to_string() != path.display().to_string()
+                && metadata.is_dir()
+                && path.display().to_string() != "."
+            {
+                self.scan_folder(path.to_path_buf());
+            } else {
+                let file_name = match path.file_name() {
+                    Some(f) => String::from(f.to_str().unwrap()),
+                    None => String::from(""),
+                };
+                if file_name != "." || file_name != "" {
+                    if metadata.is_file() {
+                        if let Some(extension) = path.extension() {
+                            if extension == "php" {
+                                let content = fs::read_to_string(entry.path());
+                                match content {
+                                    Err(err) => {
+                                        // println!("{err:?}");
+                                    }
+                                    Ok(content) => {
+                                        for statement in self.parse_code(content.as_str()) {
+                                            let mut file = File {
+                                                path: entry.path().to_path_buf(),
+                                                ast: Some(statement.clone()),
+                                                members: Vec::new(),
+                                                suggestions: Vec::new(),
+                                            };
+
+                                            self.files.push(file);
+                                        }
                                     }
                                 }
                             }
                         }
-                    } else if metadata.is_dir() {
-                        self.scan_folder(path.to_path_buf());
                     }
                 }
             }
@@ -285,7 +291,7 @@ impl Project {
         project
     }
 
-    /// Analyse class member. 
+    /// Analyse class member.
     pub fn class_member_analyze(&mut self, member: ClassMember, file: &mut File) -> &mut Project {
         match member {
             ClassMember::Property(property) => {
@@ -375,7 +381,6 @@ impl Project {
                 };
 
                 let score = analyse::calculate_cyclomatic_complexity(concretemethod.body);
-                println!("{score:?} cycolmatic complexity");
                 // for statement in concretemethod.body.statements {
                 //     // self.analyze_expression(statement, file);
 
@@ -704,6 +709,7 @@ impl File {
             Output::FILE => {}
         }
     }
+    ///
     pub fn start(&mut self) -> Option<php_parser_rs::parser::ast::classes::ClassStatement> {
         return match (self.ast.to_owned().unwrap()) {
             Statement::Class(c) => Some(c),
