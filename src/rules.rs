@@ -6,10 +6,12 @@ use php_parser_rs::parser::ast::constant::{ClassishConstant, ConstantEntry};
 use php_parser_rs::parser::ast::functions::{
     FunctionParameter, FunctionParameterList, MethodBody, ReturnType,
 };
+use php_parser_rs::parser::error::ParseErrorStack;
 use std::io::Error;
 use std::ops::BitXorAssign;
-use walkdir::WalkDir;
+use std::sync::mpsc::{Receiver, Sender};
 
+use jwalk::WalkDir;
 use php_parser_rs::parser;
 use php_parser_rs::parser::ast::identifiers::{DynamicIdentifier, Identifier, SimpleIdentifier};
 use php_parser_rs::parser::ast::modifiers::{
@@ -37,46 +39,29 @@ pub struct Project {
     pub classes: HashMap<String, ClassStatement>,
 }
 
-impl Project {
-    /// Scan the folder.
-    pub fn scan_folder(&mut self, current_dir: PathBuf) {
-        for entry in WalkDir::new(current_dir.clone()) {
-            let entry = entry.unwrap();
-            let path = entry.path();
-            let metadata = fs::metadata(&path).unwrap();
-
-            if current_dir.display().to_string() != path.display().to_string()
-                && metadata.is_dir()
-                && path.display().to_string() != "."
-            {
-                self.scan_folder(path.to_path_buf());
-            } else {
-                let file_name = match path.file_name() {
-                    Some(f) => String::from(f.to_str().unwrap()),
-                    None => String::from(""),
-                };
-                if file_name != "." || file_name != "" {
-                    if metadata.is_file() {
-                        if let Some(extension) = path.extension() {
-                            if extension == "php" {
-                                let content = fs::read_to_string(entry.path());
-                                match content {
-                                    Err(err) => {
-                                        // println!("{err:?}");
-                                    }
-                                    Ok(content) => {
-                                        for statement in self.parse_code(content.as_str()) {
-                                            let mut file = File {
-                                                path: entry.path().to_path_buf(),
-                                                ast: Some(statement.clone()),
-                                                members: Vec::new(),
-                                                suggestions: Vec::new(),
-                                            };
-
-                                            self.files.push(file);
-                                        }
-                                    }
-                                }
+// Scan a directory and find all php files. When a
+// file has been found the content of the file will be sent to
+// as a message to the receiver.
+pub fn scan_folder(current_dir: PathBuf, sender: Sender<(String, PathBuf)>) {
+    for entry in WalkDir::new(current_dir.clone()).follow_links(false) {
+        let entry = entry.unwrap();
+        let path = entry.path();
+        let metadata = fs::metadata(&path).unwrap();
+        let file_name = match path.file_name() {
+            Some(f) => String::from(f.to_str().unwrap()),
+            None => String::from(""),
+        };
+        if file_name != "." || file_name != "" {
+            if metadata.is_file() {
+                if let Some(extension) = path.extension() {
+                    if extension == "php" {
+                        let content = fs::read_to_string(entry.path());
+                        match content {
+                            Err(err) => {
+                                // println!("{err:?}");
+                            }
+                            Ok(content) => {
+                                sender.send((content, path));
                             }
                         }
                     }
@@ -84,26 +69,17 @@ impl Project {
             }
         }
     }
+}
+
+impl Project {
+    pub fn push(mut self, file: File) -> Self {
+        self.files.push(file);
+        self
+    }
 
     /// Get all files.
     pub fn get_files(self) -> Vec<File> {
         self.files
-    }
-
-    /// Print the statistics.
-    pub fn print_files_statistics(&self) {
-        let info = format!("\t{} php files have found.", self.files.len());
-        println!("{}", info.blue().bold());
-    }
-
-    /// Parse the code and generate an ast.
-    fn parse_code(&self, code: &str) -> Vec<php_parser_rs::parser::ast::Statement> {
-        match parser::parse(code) {
-            Ok(ast) => ast,
-            Err(err) => {
-                vec![]
-            }
-        }
     }
 
     /// Build the class list.
@@ -132,16 +108,12 @@ impl Project {
     }
 
     /// Build the class list and run analyse.
-    pub fn start(self) -> Result<String, Error> {
-        let now = std::time::Instant::now();
+    pub fn start(mut self) -> Result<String, Error> {
         let mut s = self;
+
         s = s.build_class_list();
         s.run();
-        println!(
-            "Analysed {} files in : {:.2?}",
-            s.files.len(),
-            now.elapsed()
-        );
+
 
         Ok("".to_string())
     }
@@ -715,5 +687,12 @@ impl File {
             Statement::Class(c) => Some(c),
             _ => None,
         };
+    }
+}
+/// Parse the code and generate an ast.
+pub fn parse_code(code: &str) -> Option<Vec<php_parser_rs::parser::ast::Statement>> {
+    match parser::parse(code) {
+        Ok(a) => Some(a),
+        Err(r) => Some(vec![]),
     }
 }

@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::io::Result;
 use std::path::PathBuf;
 use std::sync::mpsc::{self, Receiver, Sender};
-use std::{env, fs};
+use std::{env, fs, thread};
 
 mod analyse;
 mod rules;
@@ -24,16 +24,36 @@ struct Args {
 /// # Errors
 ///
 /// This function will return an error if .
-fn main() -> Result<()> {
+fn main() {
     let args = Args::parse();
     let path = PathBuf::from(args.directory);
-    let mut project = Project {
+    let (send, recv) = mpsc::channel();
+    let project = &mut Project {
         files: Vec::new(),
         classes: HashMap::new(),
     };
 
-    project.scan_folder(path);
-    project.print_files_statistics();
-    project.start()?;
-    Ok(())
+    let now = std::time::Instant::now();
+    let handle = thread::spawn(move || {
+        rules::scan_folder(path, send);
+    });
+
+    let mut files = 0;
+    for (content, path) in recv {
+        for statement in rules::parse_code(content.as_str()).unwrap() {
+            let file = &mut File {
+                path: PathBuf::new(),
+                ast: Some(statement.clone()),
+                members: Vec::new(),
+                suggestions: Vec::new(),
+            };
+            project.analyze(file);
+        }
+        files = files + 1;
+    }
+    println!(
+        "Analysed {} files in : {:.2?}",
+        files,
+        now.elapsed()
+    );
 }
