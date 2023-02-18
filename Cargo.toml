@@ -8,5 +8,6 @@ edition = "2021"
 [dependencies]
 clap = { version = "4.1.4", features = ["derive"] }
 colored = "2.0.0"
+jwalk = "0.8.1"
 php-parser-rs = { git = "https://github.com/php-rust-tools/parser", version = "0.1.0" }
 walkdir = "2.3.2"
