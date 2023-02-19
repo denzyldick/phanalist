@@ -102,18 +102,24 @@ impl Project {
     fn run(&mut self, db: &DB) {
         let mut s = self;
         let mut iter = db.iterator(IteratorMode::Start);
-        while let i = iter.next().unwrap() {
-            let item = i.unwrap();
-            let file = item.1;
-            let key = item.0;
-            let path = std::str::from_utf8(&key).unwrap();
-            match serde_json::from_slice(&file) {
-                Err(_) => {}
-                Ok(mut f) => {
-                    s.analyze(&mut f);
+        while let i = iter.next() {
+            match i {
+                Some(i) => {
+                    let item = i.unwrap();
+                    let file = item.1;
+                    let key = item.0;
+                    let path = std::str::from_utf8(&key).unwrap();
+                    match serde_json::from_slice(&file) {
+                        Err(_) => {}
+                        Ok(mut f) => {
+                            s.analyze(&mut f);
+                        }
+                    };
                 }
-            };
+                None => {}
+            }
         }
+        println!("Helloworld");
     }
 
     /// Build the class list and run analyse.
