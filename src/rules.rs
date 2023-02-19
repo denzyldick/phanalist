@@ -7,6 +7,7 @@ use php_parser_rs::parser::ast::functions::{
     FunctionParameter, FunctionParameterList, MethodBody, ReturnType,
 };
 use php_parser_rs::parser::error::ParseErrorStack;
+use rocksdb::{IteratorMode, DB};
 use std::io::Error;
 use std::ops::BitXorAssign;
 use std::sync::mpsc::{Receiver, Sender};
@@ -98,22 +99,28 @@ impl Project {
     }
 
     /// Iterate over the list of files and analyse the code.
-    fn run(&mut self) {
+    fn run(&mut self, db: &DB) {
         let mut s = self;
-        let files = &mut s.clone().files;
-        for i in files.iter() {
-            let f = &mut i.clone();
-            s.analyze(f);
+        let mut iter = db.iterator(IteratorMode::Start);
+        while let i = iter.next().unwrap() {
+            let item = i.unwrap();
+            let file = item.1;
+            let key = item.0;
+            let path = std::str::from_utf8(&key).unwrap();
+            match serde_json::from_slice(&file) {
+                Err(_) => {}
+                Ok(mut f) => {
+                    s.analyze(&mut f);
+                }
+            };
         }
     }
 
     /// Build the class list and run analyse.
-    pub fn start(mut self) -> Result<String, Error> {
+    pub fn start(self, db: &DB) -> Result<String, Error> {
         let mut s = self;
 
-        s = s.build_class_list();
-        s.run();
-
+        s.run(db);
 
         Ok("".to_string())
     }
@@ -153,7 +160,7 @@ impl Project {
 
     /// Analase the code.
     pub fn analyze(&mut self, file: &mut File) -> &mut Project {
-        let statement = file.ast.clone().unwrap();
+        let statement = file.ast.clone();
         let mut project = self;
         match statement {
             Statement::FullOpeningTag(tag) => project = project.opening_tag(tag.span, file),
@@ -580,7 +587,6 @@ impl Project {
                     percent_equals,
                     right,
                 } => {}
-
                 Exponentiation {
                     left,
                     pow_equals,
@@ -634,18 +640,28 @@ impl Suggestion {
         }
     }
 }
-#[derive(Debug, Clone)]
+
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct File {
     pub path: PathBuf,
-    pub ast: Option<Statement>,
+
+    pub ast: Statement,
+
+    #[serde(skip_serializing, skip_deserializing)]
     pub members: Vec<ClassMember>,
+
+    #[serde(skip_serializing, skip_deserializing)]
     pub suggestions: Vec<Suggestion>,
 }
+
 #[derive(Debug)]
 pub enum Output {
     STDOUT,
     FILE,
 }
+
 impl File {
     fn get_line(&mut self, span: Span) -> String {
         println!("{}", self.path.display());
@@ -683,7 +699,7 @@ impl File {
     }
     ///
     pub fn start(&mut self) -> Option<php_parser_rs::parser::ast::classes::ClassStatement> {
-        return match (self.ast.to_owned().unwrap()) {
+        return match (self.ast.to_owned()) {
             Statement::Class(c) => Some(c),
             _ => None,
         };

@@ -1,14 +1,15 @@
 use clap::Parser;
-use php_parser_rs::parser::ast::classes::ClassMember;
-use rules::{File, Output, Project};
+
+use rocksdb::DB;
+use rules::{File, Project};
 use std::collections::HashMap;
-use std::io::Result;
 use std::path::PathBuf;
 use std::sync::mpsc::{self, Receiver, Sender};
-use std::{env, fs, thread};
+use std::{fs, thread};
 
 mod analyse;
 mod rules;
+mod storage;
 
 /// A static analyser for your PHP project.
 #[derive(Parser, Debug)]
@@ -28,32 +29,30 @@ fn main() {
     let args = Args::parse();
     let path = PathBuf::from(args.directory);
     let (send, recv) = mpsc::channel();
-    let project = &mut Project {
+    let project = Project {
         files: Vec::new(),
         classes: HashMap::new(),
     };
 
     let now = std::time::Instant::now();
-    let handle = thread::spawn(move || {
+    thread::spawn(move || {
         rules::scan_folder(path, send);
     });
 
+    let db = DB::open_default("/tmp").unwrap();
     let mut files = 0;
     for (content, path) in recv {
         for statement in rules::parse_code(content.as_str()).unwrap() {
             let file = &mut File {
                 path: PathBuf::new(),
-                ast: Some(statement.clone()),
+                ast: statement.clone(),
                 members: Vec::new(),
                 suggestions: Vec::new(),
             };
-            project.analyze(file);
+            storage::put(&db, path.display().to_string(), file.clone());
         }
         files = files + 1;
     }
-    println!(
-        "Analysed {} files in : {:.2?}",
-        files,
-        now.elapsed()
-    );
+    project.start(&db);
+    println!("Analysed {} files in : {:.2?}", files, now.elapsed());
 }
