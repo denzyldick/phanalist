@@ -4,7 +4,7 @@ use php_parser_rs::lexer::token::Span;
 use php_parser_rs::parser::ast::classes::{ClassExtends, ClassMember, ClassStatement};
 use php_parser_rs::parser::ast::constant::{ClassishConstant, ConstantEntry};
 use php_parser_rs::parser::ast::functions::{
-    FunctionParameter, FunctionParameterList, MethodBody, ReturnType,
+    ConcreteMethod, FunctionParameter, FunctionParameterList, MethodBody, ReturnType,
 };
 use php_parser_rs::parser::error::ParseErrorStack;
 use rocksdb::{IteratorMode, DB};
@@ -21,7 +21,7 @@ use php_parser_rs::parser::ast::modifiers::{
 use php_parser_rs::parser::ast::operators::AssignmentOperationExpression::*;
 use php_parser_rs::parser::ast::properties::{Property, PropertyEntry};
 use php_parser_rs::parser::ast::variables::{SimpleVariable, Variable, VariableVariable};
-use php_parser_rs::parser::ast::{operators, ReturnStatement};
+use php_parser_rs::parser::ast::{operators, MethodCallExpression, ReturnStatement};
 use php_parser_rs::parser::ast::{Expression, ExpressionStatement};
 use std::borrow::{Borrow, BorrowMut};
 use std::collections::HashMap;
@@ -83,52 +83,25 @@ impl Project {
         self.files
     }
 
-    /// Build the class list.
-    fn build_class_list(mut self) -> Project {
-        for mut file in self.files.clone() {
-            let ast = match file.start() {
-                None => {}
-                Some(a) => {
-                    let k = String::from(a.name.value.clone());
-                    let v = a.clone();
-                    self.classes.insert(k, v);
+    /// Iterate over the list of files and analyse the code.
+    pub fn run(&mut self, db: &DB) {
+        let iter = db.iterator(IteratorMode::Start);
+        for i in iter {
+            let item = i.unwrap();
+            let file = item.1;
+            let key = item.0;
+            let path = std::str::from_utf8(&key).unwrap();
+
+            match serde_json::from_slice::<File>(&file) {
+                Err(e) => {
+                    println!("{e}");
+                }
+                Ok(mut f) => {
+                    f.ast = parse_code(f.content.as_str()).unwrap();
+                    self.analyze(&mut f);
                 }
             };
         }
-        self
-    }
-
-    /// Iterate over the list of files and analyse the code.
-    fn run(&mut self, db: &DB) {
-        let mut s = self;
-        let mut iter = db.iterator(IteratorMode::Start);
-        while let i = iter.next() {
-            match i {
-                Some(i) => {
-                    let item = i.unwrap();
-                    let file = item.1;
-                    let key = item.0;
-                    let path = std::str::from_utf8(&key).unwrap();
-                    match serde_json::from_slice(&file) {
-                        Err(_) => {}
-                        Ok(mut f) => {
-                            s.analyze(&mut f);
-                        }
-                    };
-                }
-                None => {}
-            }
-        }
-        println!("Helloworld");
-    }
-
-    /// Build the class list and run analyse.
-    pub fn start(self, db: &DB) -> Result<String, Error> {
-        let mut s = self;
-
-        s.run(db);
-
-        Ok("".to_string())
     }
 
     /// Add a file to the files.
@@ -138,6 +111,7 @@ impl Project {
 
     /// Find a class based on the name
     pub fn find_class(&self, fqn: &str) -> Option<ClassStatement> {
+        /// todo find the class here.
         return self.classes.get(fqn).cloned();
     }
 
@@ -166,72 +140,77 @@ impl Project {
 
     /// Analase the code.
     pub fn analyze(&mut self, file: &mut File) -> &mut Project {
-        let statement = file.ast.clone();
         let mut project = self;
-        match statement {
-            Statement::FullOpeningTag(tag) => project = project.opening_tag(tag.span, file),
-            Statement::ShortOpeningTag(tag) => {
-                project = project.opening_tag(tag.span, file);
-            }
-            Statement::EchoOpeningTag(_Span) => {}
-            Statement::ClosingTag(_Span) => {}
-            Statement::InlineHtml(_ByteString) => {}
-            Statement::Label(_LabelStatement) => {}
-            Statement::Goto(_GotoStatement) => {}
-            Statement::HaltCompiler(_HaltCompiler) => {}
-            Statement::Static(_StaticStatement) => {}
-            Statement::DoWhile(_DoWhileStatement) => {}
-            Statement::While(_WhileStatement) => {}
-            Statement::For(_ForStatement) => {}
-            Statement::Foreach(_ForeachStatement) => {}
-            Statement::Break(_BreakStatement) => {}
-            Statement::Continue(_ContinueStatement) => {}
-            Statement::Constant(_ConstantStatement) => {}
-            Statement::Function(_FunctionStatement) => {}
-            Statement::Class(ClassStatement) => {
-                project.class_statement_analyze(ClassStatement, file);
-            }
-            Statement::Trait(_TraitStatement) => {}
-            Statement::Interface(_InterfaceStatement) => {}
-            Statement::If(_IfStatement) => {}
-            Statement::Switch(_SwitchStatement) => {}
-            Statement::Echo(_EchoStatement) => {}
-            Statement::Expression(ExpressionStatement) => {
-                project = project.analyze_expression(ExpressionStatement.expression, file)
-            }
-            Statement::Return(_ReturnStatement) => {}
-            Statement::Namespace(namespace) => match namespace {
-                parser::ast::namespaces::NamespaceStatement::Unbraced(unbraced) => {
-                    for statement in unbraced.statements {
-                        match statement {
-                            Statement::Class(ClassStatement) => {
-                                project.class_statement_analyze(ClassStatement, file);
+
+        for statement in file.ast.clone() {
+            match statement {
+                Statement::FullOpeningTag(tag) => project = project.opening_tag(tag.span, file),
+                Statement::ShortOpeningTag(tag) => {
+                    project = project.opening_tag(tag.span, file);
+                }
+                Statement::EchoOpeningTag(_Span) => {}
+                Statement::ClosingTag(_Span) => {}
+                Statement::InlineHtml(_ByteString) => {}
+                Statement::Label(_LabelStatement) => {}
+                Statement::Goto(_GotoStatement) => {}
+                Statement::HaltCompiler(_HaltCompiler) => {}
+                Statement::Static(_StaticStatement) => {}
+                Statement::DoWhile(_DoWhileStatement) => {}
+                Statement::While(_WhileStatement) => {}
+                Statement::For(_ForStatement) => {}
+                Statement::Foreach(_ForeachStatement) => {}
+                Statement::Break(_BreakStatement) => {}
+                Statement::Continue(_ContinueStatement) => {}
+                Statement::Constant(_ConstantStatement) => {}
+                Statement::Function(_FunctionStatement) => {}
+                Statement::Class(class_statement) => {
+                    project = project.class_statement_analyze(class_statement, file);
+                }
+                Statement::Trait(_TraitStatement) => {}
+                Statement::Interface(_InterfaceStatement) => {}
+                Statement::If(_IfStatement) => {}
+                Statement::Switch(_SwitchStatement) => {}
+                Statement::Echo(_EchoStatement) => {}
+                Statement::Expression(ExpressionStatement) => {
+                    project = project.analyze_expression(ExpressionStatement.expression, file)
+                }
+                Statement::Return(return_statement) => {
+                    // println!("Hello world");
+                    // println!("{return_statement:#?}")
+                }
+                Statement::Namespace(namespace) => match namespace {
+                    parser::ast::namespaces::NamespaceStatement::Unbraced(unbraced) => {
+                        for statement in unbraced.statements {
+                            match statement {
+                                Statement::Class(ClassStatement) => {
+                                    project.class_statement_analyze(ClassStatement, file);
+                                }
+                                _ => {}
                             }
-                            _ => {}
                         }
                     }
-                }
-                parser::ast::namespaces::NamespaceStatement::Braced(braced) => {
-                    for statement in braced.body.statements {
-                        match statement {
-                            Statement::Class(ClassStatement) => {
-                                project.class_statement_analyze(ClassStatement, file);
+                    parser::ast::namespaces::NamespaceStatement::Braced(braced) => {
+                        for statement in braced.body.statements {
+                            match statement {
+                                Statement::Class(ClassStatement) => {
+                                    project.class_statement_analyze(ClassStatement, file);
+                                }
+                                _ => {}
                             }
-                            _ => {}
                         }
                     }
-                }
-            },
-            Statement::Use(_UseStatement) => {}
-            Statement::GroupUse(_GroupUseStatement) => {}
-            Statement::Comment(_Comment) => {}
-            Statement::Try(_TryStatement) => {}
-            Statement::UnitEnum(_UnitEnumStatement) => {}
-            Statement::BackedEnum(_BackedEnumStatement) => {}
-            Statement::Block(_BlockStatement) => {}
-            Statement::Global(_GlobalStatement) => {}
-            Statement::Declare(_DeclareStatement) => {}
-            Statement::Noop(_Span) => {}
+                },
+                Statement::Use(_UseStatement) => {}
+                Statement::GroupUse(_GroupUseStatement) => {}
+                Statement::Comment(_Comment) => {}
+                Statement::Try(_TryStatement) => {}
+                Statement::UnitEnum(_UnitEnumStatement) => {}
+                Statement::BackedEnum(_BackedEnumStatement) => {}
+                Statement::Block(_BlockStatement) => {}
+                Statement::Global(_GlobalStatement) => {}
+                Statement::Declare(_DeclareStatement) => {}
+                Statement::Noop(_Span) => {}
+            }
         }
         file.output(Output::STDOUT);
         project
@@ -240,23 +219,24 @@ impl Project {
     /// Analyse class statement.
     pub fn class_statement_analyze(
         &mut self,
-        ClassStatement: ClassStatement,
+        class_statement: ClassStatement,
         file: &mut File,
     ) -> &mut Project {
         let mut project = self;
-        let name = String::from(ClassStatement.name.value);
-        match analyse::has_capitalized_name(name.clone(), ClassStatement.class) {
+        let name = String::from(class_statement.name.value);
+        match analyse::has_capitalized_name(name.clone(), class_statement.class) {
             Some(s) => {
                 file.suggestions.push(s);
             }
             None => {}
         }
 
-        for member in ClassStatement.body.members {
+        for member in class_statement.body.members {
             file.members.push(member.clone());
             project = project.class_member_analyze(member, file);
         }
-        let extends = ClassStatement.extends;
+
+        let extends = class_statement.extends;
         match extends {
             Some(ClassExtends { extends, parent }) => {
                 let exists = project.find_class(String::from(parent.value.clone()).as_str());
@@ -266,7 +246,7 @@ impl Project {
                             "{} is extending a class({}) that doesnt exits.",
                             name, parent.value
                         ),
-                        ClassStatement.class,
+                        class_statement.class,
                     )),
                     _ => {}
                 }
@@ -291,7 +271,7 @@ impl Project {
             }
             ClassMember::Constant(constant) => {
                 for entry in constant.entries {
-                    if (analyse::uppercased_constant_name(entry.clone()) == false) {
+                    if analyse::uppercased_constant_name(entry.clone()) == false {
                         file.suggestions.push(Suggestion::from(
                             format!(
                                 "All letters in a constant({}) should be uppercased.",
@@ -339,9 +319,85 @@ impl Project {
                         }
                     }
                 }
+                match concretemethod.body.clone() {
+                    MethodBody {
+                        comments,
+                        left_brace,
+                        statements,
+                        right_brace,
+                    } => {
+                        for statement in statements {
+                            match statement {
+                                _ => {}
+                                Statement::Expression(ExpressionStatement {
+                                    expression,
+                                    ending,
+                                }) => match expression {
+                                    Expression::MethodCall(MethodCallExpression) => {
+                                        match *MethodCallExpression.method {
+                                            _ => {}
+                                            Expression::Identifier(
+                                                Identifier::SimpleIdentifier(s),
+                                            ) => {
+                                                match *MethodCallExpression.target {
+                                                    Expression::Variable(
+                                                        Variable::SimpleVariable(s),
+                                                    ) => {
+                                                        if s.name.to_string()
+                                                            == String::from("$this")
+                                                        {
+                                                            let mut exists = false;
+                                                            for member in file.members.iter() {
+                                                                match member.clone() {
+                                                                    ClassMember::ConcreteMethod(
+                                                                        ConcreteMethod {
+                                                                            comments,
+                                                                            attributes,
+                                                                            modifiers,
+                                                                            function,
+                                                                            ampersand,
+                                                                            name,
+                                                                            parameters,
+                                                                            return_type,
+                                                                            body,
+                                                                        },
+                                                                    ) => {
+                                                                        if exists == false
+                                                                            && name.to_string()
+                                                                                == String::from(
+                                                                                    s.name.clone(),
+                                                                                )
+                                                                        {
+                                                                            exists = true;
+                                                                        }
+                                                                    }
+                                                                    _ => {}
+                                                                };
+                                                            }
+                                                            if exists == false {
+                                                                let suggestion = Suggestion::from(
+                                                                                    format!(
+                                                                                        "The method {} is being called but it doesn't exists. ",
+                                                                                        String::from(s.name)
+                                                                                        ),
+                                                                                    s.span);
+                                                                file.suggestions.push(suggestion);
+                                                            };
+                                                        };
+                                                    }
+                                                    _ => {}
+                                                };
+                                            }
+                                        };
+                                    }
+                                    _ => {}
+                                },
+                            };
+                        }
+                    }
+                };
 
                 // Detect return statement without the proper return type signature.
-                //
                 let has_return = analyse::method_has_return(concretemethod.body.clone());
 
                 match has_return {
@@ -364,13 +420,6 @@ impl Project {
                     }
                     None => {}
                 };
-
-                let score = analyse::calculate_cyclomatic_complexity(concretemethod.body);
-                // for statement in concretemethod.body.statements {
-                //     // self.analyze_expression(statement, file);
-
-                //     // println!("{statement:#?}");
-                // }
 
                 self
             }
@@ -653,7 +702,10 @@ use serde::{Deserialize, Serialize};
 pub struct File {
     pub path: PathBuf,
 
-    pub ast: Statement,
+    pub content: String,
+
+    #[serde(skip_serializing, skip_deserializing)]
+    pub ast: Vec<Statement>,
 
     #[serde(skip_serializing, skip_deserializing)]
     pub members: Vec<ClassMember>,
@@ -702,13 +754,6 @@ impl File {
             }
             Output::FILE => {}
         }
-    }
-    ///
-    pub fn start(&mut self) -> Option<php_parser_rs::parser::ast::classes::ClassStatement> {
-        return match (self.ast.to_owned()) {
-            Statement::Class(c) => Some(c),
-            _ => None,
-        };
     }
 }
 /// Parse the code and generate an ast.

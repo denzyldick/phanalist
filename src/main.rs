@@ -2,7 +2,7 @@ use clap::Parser;
 
 use rocksdb::DB;
 use rules::{File, Project};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::{fs, thread};
@@ -29,7 +29,7 @@ fn main() {
     let args = Args::parse();
     let path = PathBuf::from(args.directory);
     let (send, recv) = mpsc::channel();
-    let project = Project {
+    let mut project = Project {
         files: Vec::new(),
         classes: HashMap::new(),
     };
@@ -39,20 +39,30 @@ fn main() {
         rules::scan_folder(path, send);
     });
 
-    let db = DB::open_default("/tmp").unwrap();
+    let file_path = "/tmp/phanalist";
+    let file = std::path::Path::new(file_path);
+
+    if file.is_dir() {
+        match fs::remove_dir_all(file) {
+            Ok(_) => {}
+            Err(error) => {}
+        }
+    }
+
+    let db = DB::open_default("/tmp/phanalist").unwrap();
     let mut files = 0;
     for (content, path) in recv {
-        for statement in rules::parse_code(content.as_str()).unwrap() {
-            let file = &mut File {
-                path: PathBuf::new(),
-                ast: statement.clone(),
-                members: Vec::new(),
-                suggestions: Vec::new(),
-            };
-            storage::put(&db, path.display().to_string(), file.clone());
-        }
+        let file = &mut File {
+            content: content,
+            path: path.clone(),
+            ast: Vec::new(),
+            members: Vec::new(),
+            suggestions: Vec::new(),
+        };
+        storage::put(&db, path.display().to_string(), file.clone());
+
         files = files + 1;
     }
-    project.start(&db);
+    project.run(&db);
     println!("Analysed {} files in : {:.2?}", files, now.elapsed());
 }

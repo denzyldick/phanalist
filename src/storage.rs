@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{collections::HashMap, fmt::Debug};
 
 use crate::rules::File;
 use rocksdb::{DBCommon, Options, SingleThreaded, DB};
@@ -17,11 +17,12 @@ pub fn put<T: Serialize + Debug>(db: &DB, key: String, file: T) {
             };
         }
         Err(e) => {
-            // println!("{file:?}");
-            // print!("{e}");
+            println!("{file:#?}");
+            print!("{e}");
         }
     };
 }
+
 pub fn get(db: &DB, key: String) -> Option<File> {
     let path = "/tmp";
 

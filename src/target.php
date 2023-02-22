@@ -23,6 +23,7 @@
       }
 
       $this->fake_variable = 'hellworld';
+      return '';
     }
 
     function test($a){
@@ -30,8 +31,11 @@
       if($a){
 
      }
+      $this->does_not_exists();
       return 1;
 
     }
 
-  }
+
+
+ }
