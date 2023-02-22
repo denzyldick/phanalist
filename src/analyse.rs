@@ -22,14 +22,14 @@ use php_parser_rs::parser::ast::Statement;
 use php_parser_rs::parser::ast::{operators, ReturnStatement};
 /// All class names should be capatilized.
 pub fn has_capitalized_name(name: String, span: Span) -> Option<Suggestion> {
-    if !name.chars().next().unwrap().is_uppercase() {
+    if name.chars().next().unwrap().is_uppercase() == false {
         Some(Suggestion::from(
                 format!("The class name {} is not capitlized. The first letter of the name of the class should be in uppercase.", name).to_string(),
                 span
-            ));
+            ))
+    } else {
+        None
     }
-
-    None
 }
 
 /// Check if a property exists.
@@ -72,7 +72,7 @@ pub fn propperty_exists(
     }
     false
 }
-/// Retrieve the property name. 
+/// Retrieve the property name.
 pub fn get_property_name(
     identifier: php_parser_rs::parser::ast::identifiers::Identifier,
 ) -> String {
@@ -84,7 +84,7 @@ pub fn get_property_name(
     }
 }
 
-/// Check if the porperty has a modifier. 
+/// Check if the porperty has a modifier.
 pub fn property_without_modifiers(property: Property) -> bool {
     return match property.modifiers {
         PropertyModifierGroup { modifiers } => return modifiers.len() == 0,
@@ -154,66 +154,4 @@ pub fn method_has_return(body: MethodBody) -> Option<ReturnStatement> {
         };
     }
     None
-}
-
-/// E – N + 2*P
-pub fn calculate_cyclomatic_complexity(body: MethodBody) -> usize {
-    let mut result = 0;
-    let mut edge = 0;
-    let mut node = 0;
-    let mut exit = 0;
-
-    let (edge, node, exit) = calculate(body.statements, edge, node, exit);
-    return 1;    // return edge - node + (2 * exit);
-}
-
-/// Calculate the cyclomatic complexity in a recursive way.
-fn calculate(
-    statements: Vec<Statement>,
-    mut edge: usize,
-    mut node: usize,
-    mut exit: usize,
-) -> (usize, usize, usize) {
-    node = node + statements.len();
-    for statement in statements {
-        match statement {
-            Statement::If(s) => match s.body {
-                php_parser_rs::parser::ast::control_flow::IfStatementBody::Block {
-                    colon,
-                    statements,
-                    elseifs,
-                    r#else,
-                    endif,
-                    ending,
-                } => {
-                    edge = edge + 1;
-                    (edge, node, exit) = calculate(statements, edge, node, exit);
-                }
-                php_parser_rs::parser::ast::control_flow::IfStatementBody::Statement {
-                    statement,
-                    elseifs,
-                    r#else,
-                } => {
-                    let mut vector: Vec<Statement> = Vec::new();
-                    vector.push(*statement);
-                    edge = edge + 1;
-                    (edge, node, exit) = calculate(vector, edge, node, exit);
-                }
-            },
-            Statement::For(s) => {}
-            Statement::While(s) => {}
-            Statement::Function(s) => {}
-            Statement::Try(s) => {}
-            Statement::Goto(s) => {}
-            Statement::Break(s) => {}
-            Statement::Foreach(s) => {}
-            Statement::Switch(s) => {}
-            Statement::Continue(s) => {}
-            _ => {
-                node = node + 1;
-            }
-        }
-    }
-
-    (edge, node, exit)
 }
