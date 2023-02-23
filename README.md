@@ -1,9 +1,9 @@
 <img src="https://raw.githubusercontent.com/denzyldick/phanalist/main/branding/banner-cropped.png"/>
 
-# PHanalist [![Build](https://github.com/denzyldick/phanalist/actions/workflows/build.yml/badge.svg)](https://github.com/denzyldick/phanalist/actions/workflows/build.yml)
+[![Build](https://github.com/denzyldick/phanalist/actions/workflows/build.yml/badge.svg)](https://github.com/denzyldick/phanalist/actions/workflows/build.yml)
 
-TLDR; A static analyzer for PHP. It helps you catch common 
-mistakes in PHP code. 
+***_TLDR; A static analyzer for PHP. It helps you catch common mistakes in PHP code._***
+ 
 
 These are the current checks implemented.
 - [ ] Extending undefined classes.
