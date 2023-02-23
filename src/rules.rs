@@ -725,6 +725,7 @@ impl File {
         println!("{}", self.path.display());
         return "".to_string();
     }
+
     pub fn output(&mut self, location: Output) {
         match location {
             Output::STDOUT => {
@@ -737,18 +738,21 @@ impl File {
                         self.suggestions.len().to_string().as_str().red().bold()
                     );
                     let line_symbol = "|".blue().bold();
-                    println!("  \t{}", line_symbol);
                     for suggestion in &self.suggestions {
-                        println!(
-                            "  {}\t{} {}",
-                            format!("{}:{}", suggestion.span.line, suggestion.span.column)
-                                .blue()
-                                .bold(),
-                            line_symbol,
-                            suggestion.suggestion
-                        );
+                        println!("\t{}", suggestion.suggestion.bold());
+                        for (i, line) in self.content.lines().enumerate() {
+                            if i == suggestion.span.line - 1 {
+                                println!(
+                                    "  {}\t{} {}",
+                                    format!("{}:{}", suggestion.span.line, suggestion.span.column)
+                                        .bold(),
+                                    line_symbol,
+                                    line.bold().on_red()
+                                );
+                            }
+                        }
+                        println!("");
                     }
-                    println!("  \t{}", line_symbol);
                     println!("")
                 }
             }
