@@ -32,5 +32,8 @@ $ docker run -v $(pwd):/var/src ghcr.io/denzyldick/phanalist:latest
 ```
 
 ### Preview
-<img src=https://github.com/denzyldick/phanalist/blob/main/output.gif  />
+
+In this example phanalist is analysing 1 php file. 
+
+<img src=https://github.com/denzyldick/phanalist/blob/main/output.gif/>
 
