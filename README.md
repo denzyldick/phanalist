@@ -1,3 +1,4 @@
+<img src="https://raw.githubusercontent.com/denzyldick/phanalist/main/branding/banner.png"/>
 # PHanalist [![Build](https://github.com/denzyldick/phanalist/actions/workflows/build.yml/badge.svg)](https://github.com/denzyldick/phanalist/actions/workflows/build.yml)
 
 TLDR; A static analyzer for PHP. It helps you catch common 
