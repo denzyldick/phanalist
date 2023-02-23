@@ -2,6 +2,8 @@
 
 [![Build](https://github.com/denzyldick/phanalist/actions/workflows/build.yml/badge.svg)](https://github.com/denzyldick/phanalist/actions/workflows/build.yml)
 
+[![Docker](https://github.com/denzyldick/phanalist/actions/workflows/ci.yml/badge.svg)](https://github.com/denzyldick/phanalist/actions/workflows/ci.yml)
+
 ***_TLDR; A static analyzer for PHP. It helps you catch common mistakes in PHP code._***
  
 
