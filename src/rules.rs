@@ -1,38 +1,25 @@
 use colored::*;
-use php_parser_rs::lexer::byte_string::ByteString;
 use php_parser_rs::lexer::token::Span;
 use php_parser_rs::parser::ast::classes::{ClassExtends, ClassMember, ClassStatement};
-use php_parser_rs::parser::ast::constant::{ClassishConstant, ConstantEntry};
-use php_parser_rs::parser::ast::functions::{
-    ConcreteMethod, FunctionParameter, FunctionParameterList, MethodBody, ReturnType,
-};
-use php_parser_rs::parser::error::ParseErrorStack;
+use php_parser_rs::parser::ast::functions::{ConcreteMethod, FunctionParameterList, MethodBody};
 use rocksdb::{IteratorMode, DB};
-use std::io::Error;
-use std::ops::BitXorAssign;
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::Sender;
 
 use jwalk::WalkDir;
 use php_parser_rs::parser;
-use php_parser_rs::parser::ast::identifiers::{DynamicIdentifier, Identifier, SimpleIdentifier};
-use php_parser_rs::parser::ast::modifiers::{
-    MethodModifier, MethodModifierGroup, PropertyModifier, PropertyModifierGroup,
-};
+use php_parser_rs::parser::ast::identifiers::Identifier;
+use php_parser_rs::parser::ast::modifiers::MethodModifierGroup;
 use php_parser_rs::parser::ast::operators::AssignmentOperationExpression::*;
 use php_parser_rs::parser::ast::properties::{Property, PropertyEntry};
-use php_parser_rs::parser::ast::variables::{SimpleVariable, Variable, VariableVariable};
-use php_parser_rs::parser::ast::{operators, MethodCallExpression, ReturnStatement};
-use php_parser_rs::parser::ast::{Expression, ExpressionStatement};
-use std::borrow::{Borrow, BorrowMut};
-use std::collections::HashMap;
-use std::convert::identity;
-use std::io::Read;
-use std::path::PathBuf;
-use std::{env, fs};
-
+use php_parser_rs::parser::ast::variables::Variable;
+use php_parser_rs::parser::ast::ReturnStatement;
 use php_parser_rs::parser::ast::Statement;
+use php_parser_rs::parser::ast::{Expression, ExpressionStatement};
+use std::collections::HashMap;
+use std::fs;
+use std::path::PathBuf;
 
-use crate::analyse::{self, *};
+use crate::analyse;
 
 #[derive(Debug, Clone)]
 pub struct Project {
@@ -58,11 +45,11 @@ pub fn scan_folder(current_dir: PathBuf, sender: Sender<(String, PathBuf)>) {
                     if extension == "php" {
                         let content = fs::read_to_string(entry.path());
                         match content {
-                            Err(err) => {
+                            Err(_ ) => {
                                 // println!("{err:?}");
                             }
                             Ok(content) => {
-                                sender.send((content, path));
+                                sender.send((content, path)).unwrap();
                             }
                         }
                     }
@@ -73,24 +60,12 @@ pub fn scan_folder(current_dir: PathBuf, sender: Sender<(String, PathBuf)>) {
 }
 
 impl Project {
-    pub fn push(mut self, file: File) -> Self {
-        self.files.push(file);
-        self
-    }
-
-    /// Get all files.
-    pub fn get_files(self) -> Vec<File> {
-        self.files
-    }
-
     /// Iterate over the list of files and analyse the code.
     pub fn run(&mut self, db: &DB) {
         let iter = db.iterator(IteratorMode::Start);
         for i in iter {
             let item = i.unwrap();
             let file = item.1;
-            let key = item.0;
-            let path = std::str::from_utf8(&key).unwrap();
 
             match serde_json::from_slice::<File>(&file) {
                 Err(e) => {
@@ -104,14 +79,9 @@ impl Project {
         }
     }
 
-    /// Add a file to the files.
-    pub fn add(&mut self, file: File) {
-        self.files.push(file)
-    }
-
     /// Find a class based on the name
     pub fn find_class(&self, fqn: &str) -> Option<ClassStatement> {
-        /// todo find the class here.
+        //todo find the class here.
         return self.classes.get(fqn).cloned();
     }
 
@@ -148,33 +118,33 @@ impl Project {
                 Statement::ShortOpeningTag(tag) => {
                     project = project.opening_tag(tag.span, file);
                 }
-                Statement::EchoOpeningTag(_Span) => {}
-                Statement::ClosingTag(_Span) => {}
-                Statement::InlineHtml(_ByteString) => {}
-                Statement::Label(_LabelStatement) => {}
-                Statement::Goto(_GotoStatement) => {}
-                Statement::HaltCompiler(_HaltCompiler) => {}
-                Statement::Static(_StaticStatement) => {}
-                Statement::DoWhile(_DoWhileStatement) => {}
-                Statement::While(_WhileStatement) => {}
-                Statement::For(_ForStatement) => {}
-                Statement::Foreach(_ForeachStatement) => {}
-                Statement::Break(_BreakStatement) => {}
-                Statement::Continue(_ContinueStatement) => {}
-                Statement::Constant(_ConstantStatement) => {}
-                Statement::Function(_FunctionStatement) => {}
+                Statement::EchoOpeningTag(_) => {}
+                Statement::ClosingTag(_) => {}
+                Statement::InlineHtml(_) => {}
+                Statement::Label(_) => {}
+                Statement::Goto(_) => {}
+                Statement::HaltCompiler(_) => {}
+                Statement::Static(_) => {}
+                Statement::DoWhile(_) => {}
+                Statement::While(_) => {}
+                Statement::For(_) => {}
+                Statement::Foreach(_) => {}
+                Statement::Break(_) => {}
+                Statement::Continue(_) => {}
+                Statement::Constant(_) => {}
+                Statement::Function(_) => {}
                 Statement::Class(class_statement) => {
                     project = project.class_statement_analyze(class_statement, file);
                 }
-                Statement::Trait(_TraitStatement) => {}
-                Statement::Interface(_InterfaceStatement) => {}
-                Statement::If(_IfStatement) => {}
-                Statement::Switch(_SwitchStatement) => {}
-                Statement::Echo(_EchoStatement) => {}
-                Statement::Expression(ExpressionStatement) => {
-                    project = project.analyze_expression(ExpressionStatement.expression, file)
+                Statement::Trait(_) => {}
+                Statement::Interface(_) => {}
+                Statement::If(_) => {}
+                Statement::Switch(_) => {}
+                Statement::Echo(_) => {}
+                Statement::Expression(expression_statement) => {
+                    project = project.analyze_expression(expression_statement.expression, file)
                 }
-                Statement::Return(return_statement) => {
+                Statement::Return(_) => {
                     // println!("Hello world");
                     // println!("{return_statement:#?}")
                 }
@@ -182,8 +152,8 @@ impl Project {
                     parser::ast::namespaces::NamespaceStatement::Unbraced(unbraced) => {
                         for statement in unbraced.statements {
                             match statement {
-                                Statement::Class(ClassStatement) => {
-                                    project.class_statement_analyze(ClassStatement, file);
+                                Statement::Class(class_statement) => {
+                                    project.class_statement_analyze(class_statement, file);
                                 }
                                 _ => {}
                             }
@@ -192,24 +162,24 @@ impl Project {
                     parser::ast::namespaces::NamespaceStatement::Braced(braced) => {
                         for statement in braced.body.statements {
                             match statement {
-                                Statement::Class(ClassStatement) => {
-                                    project.class_statement_analyze(ClassStatement, file);
+                                Statement::Class(class_statement) => {
+                                    project.class_statement_analyze(class_statement, file);
                                 }
                                 _ => {}
                             }
                         }
                     }
                 },
-                Statement::Use(_UseStatement) => {}
-                Statement::GroupUse(_GroupUseStatement) => {}
-                Statement::Comment(_Comment) => {}
-                Statement::Try(_TryStatement) => {}
-                Statement::UnitEnum(_UnitEnumStatement) => {}
-                Statement::BackedEnum(_BackedEnumStatement) => {}
-                Statement::Block(_BlockStatement) => {}
-                Statement::Global(_GlobalStatement) => {}
-                Statement::Declare(_DeclareStatement) => {}
-                Statement::Noop(_Span) => {}
+                Statement::Use(_) => {}
+                Statement::GroupUse(_) => {}
+                Statement::Comment(_) => {}
+                Statement::Try(_) => {}
+                Statement::UnitEnum(_) => {}
+                Statement::BackedEnum(_) => {}
+                Statement::Block(_) => {}
+                Statement::Global(_) => {}
+                Statement::Declare(_) => {}
+                Statement::Noop(_) => {}
             }
         }
         file.output(Output::STDOUT);
@@ -284,7 +254,7 @@ impl Project {
                 self
             }
             ClassMember::TraitUsage(_trait) => self,
-            ClassMember::AbstractMethod(abstractmethod) => self,
+            ClassMember::AbstractMethod(_) => self,
             ClassMember::ConcreteMethod(concretemethod) => {
                 let method_name = concretemethod.name.value;
                 match concretemethod.modifiers {
@@ -328,18 +298,24 @@ impl Project {
                     } => {
                         for statement in statements {
                             match statement {
-                                _ => {}
+                                Statement::Expression(ExpressionStatement {
+                                    expression,
+                                    ending,
+                                }) => {
+                                    self.analyze_expression(expression, file);
+                                }
+
                                 Statement::Expression(ExpressionStatement {
                                     expression,
                                     ending,
                                 }) => match expression {
-                                    Expression::MethodCall(MethodCallExpression) => {
-                                        match *MethodCallExpression.method {
+                                    Expression::MethodCall(method_call_expression) => {
+                                        match *method_call_expression.method {
                                             _ => {}
                                             Expression::Identifier(
                                                 Identifier::SimpleIdentifier(s),
                                             ) => {
-                                                match *MethodCallExpression.target {
+                                                match *method_call_expression.target {
                                                     Expression::Variable(
                                                         Variable::SimpleVariable(s),
                                                     ) => {
@@ -392,6 +368,7 @@ impl Project {
                                     }
                                     _ => {}
                                 },
+                                _ => {}
                             };
                         }
                     }
@@ -423,7 +400,7 @@ impl Project {
 
                 self
             }
-            ClassMember::VariableProperty(variableproperty) => self,
+            ClassMember::VariableProperty(_) => self,
             ClassMember::AbstractConstructor(_constructor) => self,
             ClassMember::ConcreteConstructor(constructor) => {
                 for statement in constructor.body.statements {
@@ -480,13 +457,13 @@ impl Project {
             Expression::Coalesce(_) => {}
             Expression::Ternary(_) => {}
             Expression::Null => {}
-            Expression::MagicConstant(constant) => {}
+            Expression::MagicConstant(_) => {}
             Expression::Bool(_) => {}
-            Expression::AnonymousClass(class) => {}
+            Expression::AnonymousClass(_) => {}
             Expression::Nowdoc(_) => {}
             Expression::Heredoc(_) => {}
-            Expression::ArrowFunction(function) => {}
-            Expression::Closure(closure) => {}
+            Expression::ArrowFunction(_) => {}
+            Expression::Closure(_) => {}
             Expression::List(_) => {}
             Expression::Array(_) => {}
             Expression::Parent => {}
@@ -545,7 +522,7 @@ impl Project {
             Expression::RequireOnce(_) => {}
             Expression::Require(_) => {}
             Expression::Include(_) => {}
-            Expression::Variable(variable) => {}
+            Expression::Variable(_) => {}
             Expression::Identifier(identifier) => {
                 let exists = analyse::propperty_exists(identifier.clone(), file.clone());
                 let name = analyse::get_property_name(identifier.clone());
@@ -568,48 +545,13 @@ impl Project {
             }
             Expression::Instanceof(_) => {}
             Expression::Concat(_) => {}
-            Expression::ArithmeticOperation(operation) => {}
-            Expression::Literal(literal) => {}
+            Expression::ArithmeticOperation(_) => {}
+            Expression::Literal(_) => {}
             Expression::Print(_) => {}
             Expression::Unset(_) => {}
             Expression::Isset(_) => {}
             Expression::Empty(_) => {}
             Expression::AssignmentOperation(assignment) => match assignment {
-                BitwiseOr {
-                    left,
-                    pipe_equals,
-                    right,
-                } => {}
-                BitwiseAnd {
-                    left,
-                    ampersand_equals,
-                    right,
-                } => {}
-                BitwiseOr {
-                    left,
-                    pipe_equals,
-                    right,
-                } => {}
-                BitwiseXor {
-                    left,
-                    caret_equals,
-                    right,
-                } => {}
-                LeftShift {
-                    left,
-                    left_shift_equals,
-                    right,
-                } => {}
-                RightShift {
-                    left,
-                    right_shift_equals,
-                    right,
-                } => {}
-                Coalesce {
-                    left,
-                    coalesce_equals,
-                    right,
-                } => {}
                 Assign {
                     left,
                     equals,
@@ -617,41 +559,8 @@ impl Project {
                 } => {
                     project = project.analyze_expression(*left, file);
                 }
-                Addition {
-                    left,
-                    plus_equals,
-                    right,
-                } => {}
-                Subtraction {
-                    left,
-                    minus_equals,
-                    right,
-                } => {}
-                Multiplication {
-                    left,
-                    asterisk_equals,
-                    right,
-                } => {}
-                Division {
-                    left,
-                    slash_equals,
-                    right,
-                } => {}
-                Modulo {
-                    left,
-                    percent_equals,
-                    right,
-                } => {}
-                Exponentiation {
-                    left,
-                    pow_equals,
-                    right,
-                } => {}
-                Concat {
-                    left,
-                    dot_equals,
-                    right,
-                } => {}
+
+                _ => {}
             },
             Expression::Eval(_) => {}
             Expression::Die(_) => {}
@@ -661,7 +570,7 @@ impl Project {
             Expression::StaticVariableMethodClosureCreation(_) => {}
             Expression::StaticVariableMethodCall(_) => {}
             Expression::MethodClosureCreation(_) => {}
-            Expression::AssignmentOperation(asignment) => {}
+            Expression::AssignmentOperation(_) => {}
             Expression::FunctionClosureCreation(_) => {}
             Expression::InterpolatedString(_) => {}
             Expression::LogicalOperation(operation) => {}
@@ -764,6 +673,6 @@ impl File {
 pub fn parse_code(code: &str) -> Option<Vec<php_parser_rs::parser::ast::Statement>> {
     match parser::parse(code) {
         Ok(a) => Some(a),
-        Err(r) => Some(vec![]),
+        Err(_) => Some(vec![]),
     }
 }

@@ -20,11 +20,6 @@ struct Args {
     directory: String,
 }
 
-/// .
-///
-/// # Errors
-///
-/// This function will return an error if .
 fn main() {
     let args = Args::parse();
     let path = PathBuf::from(args.directory);

@@ -7,7 +7,8 @@
     const hello = null;
     private $a;
     private $fake_variable = null;
-    $no_= null, $no_modifier = null;
+    $no= null;
+    $no_modifier = null;
 
     public function __construct($o)
     {
@@ -33,6 +34,15 @@
      }
       $this->does_not_exists();
       return 1;
+
+    }
+
+    public function no_return(bool $test):int{
+      
+      $this->faefa = "hae";
+      if($test){
+        return 200;
+      }
 
     }
 
