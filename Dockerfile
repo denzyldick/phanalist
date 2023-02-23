@@ -4,9 +4,14 @@ FROM rust:1-alpine3.16
 ENV RUSTFLAGS="-C target-feature=-crt-static"
 # if needed, add additional dependencies here
 RUN apk add --no-cache musl-dev
+# install clang
+RUN apk add clang 
 # set the workdir and copy the source into it
 WORKDIR /app
 COPY ./ /app
+RUN rustup component add rustfmt
+RUN apk add build-base
+RUN apk add linux-headers
 # do a release build
 RUN cargo build --release
 RUN strip target/release/phanalist
