@@ -45,7 +45,7 @@ pub fn scan_folder(current_dir: PathBuf, sender: Sender<(String, PathBuf)>) {
                     if extension == "php" {
                         let content = fs::read_to_string(entry.path());
                         match content {
-                            Err(_ ) => {
+                            Err(_) => {
                                 // println!("{err:?}");
                             }
                             Ok(content) => {
@@ -489,9 +489,10 @@ impl Project {
                                     let span: Span = match identifier {
                     php_parser_rs::parser::ast::identifiers::Identifier::SimpleIdentifier(
                         identifier,
-                    ) => identifier.span,
-                    _ => todo!(),
-                };
+                    ) => Some(identifier.span),
+                    _ => Some(Span { line: 0, column: 0, position: 0 })   // todo fix this
+                                            ,
+                }.unwrap();
                                     if exists == false {
                                         file.suggestions.push(Suggestion::from(
                                             format!(
