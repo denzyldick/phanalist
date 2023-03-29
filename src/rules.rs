@@ -657,7 +657,7 @@ impl File {
                                     format!("{}:{}", suggestion.span.line, suggestion.span.column)
                                         .bold(),
                                     line_symbol,
-                                    line.bold().on_red()
+                                    line.bold()
                                 );
                             }
                         }
