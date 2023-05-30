@@ -1,33 +1,20 @@
-use std::collections::HashMap;
-
-use crate::project::File;
 use crate::project::Suggestion;
 
-use php_parser_rs::lexer::token::Span;
-use php_parser_rs::parser;
 use php_parser_rs::parser::ast::classes::{ClassExtends, ClassMember, ClassStatement};
 use php_parser_rs::parser::ast::constant::ConstantEntry;
-use php_parser_rs::parser::ast::constant::ConstantStatement;
-use php_parser_rs::parser::ast::control_flow::IfStatement;
-use php_parser_rs::parser::ast::functions::{
-    FunctionParameter, FunctionParameterList, MethodBody, ReturnType,
-};
-use php_parser_rs::parser::ast::identifiers::Identifier;
-use php_parser_rs::parser::ast::identifiers::{DynamicIdentifier, SimpleIdentifier};
-use php_parser_rs::parser::ast::literals::Literal;
-use php_parser_rs::parser::ast::modifiers::MethodModifierGroup;
-use php_parser_rs::parser::ast::modifiers::{
-    MethodModifier, PropertyModifier, PropertyModifierGroup,
-};
-use php_parser_rs::parser::ast::operators;
+use php_parser_rs::{lexer::token::Span, parser};
+
 use php_parser_rs::parser::ast::operators::AssignmentOperationExpression::*;
 use php_parser_rs::parser::ast::properties::{Property, PropertyEntry};
 use php_parser_rs::parser::ast::variables::Variable;
-use php_parser_rs::parser::ast::Block;
-use php_parser_rs::parser::ast::BlockStatement;
+use php_parser_rs::parser::ast::{
+    functions::{FunctionParameter, MethodBody},
+    identifiers::SimpleIdentifier,
+    modifiers::PropertyModifierGroup,
+};
+
 use php_parser_rs::parser::ast::ReturnStatement;
-use php_parser_rs::parser::ast::Statement;
-use php_parser_rs::parser::ast::{Expression, ExpressionStatement};
+use php_parser_rs::parser::ast::{Expression, Statement};
 /// All class names should be capatilized.
 pub fn has_capitalized_name(name: String, span: Span) -> Option<Suggestion> {
     if name.chars().next().unwrap().is_uppercase() == false {
@@ -44,7 +31,7 @@ pub fn has_capitalized_name(name: String, span: Span) -> Option<Suggestion> {
 pub fn propperty_exists(identifier: php_parser_rs::parser::ast::identifiers::Identifier) -> bool {
     match identifier {
         php_parser_rs::parser::ast::identifiers::Identifier::SimpleIdentifier(identifier) => {
-            match (identifier) {
+            match identifier {
                 SimpleIdentifier { span, value } => {
                     let property_value = value;
                     // for m in &file.members {
@@ -147,13 +134,13 @@ pub fn opening_tag(t: Span) -> Option<Suggestion> {
 pub fn function_parameter_without_type(parameter: FunctionParameter) -> bool {
     match parameter {
         FunctionParameter {
-            comments,
-            name,
-            attributes,
+            comments: _,
+            name: _,
+            attributes: _,
             data_type,
-            ellipsis,
-            default,
-            ampersand,
+            ellipsis: _,
+            default: _,
+            ampersand: _,
         } => match data_type {
             None => return true,
             Some(_) => return false,
@@ -173,9 +160,9 @@ pub fn method_has_return(body: MethodBody) -> Option<ReturnStatement> {
                 Some(ref s) => match s {
                     Expression::Literal(l) => {
                         return Some(ReturnStatement {
-                            r#return: r#return,
-                            value: value,
-                            ending: ending,
+                            r#return,
+                            value,
+                            ending,
                         })
                     }
                     _ => None,
@@ -544,8 +531,8 @@ pub fn analyze_expression(expresion: Expression) -> Vec<Suggestion> {
         Expression::AssignmentOperation(assignment) => match assignment {
             Assign {
                 left,
-                equals,
-                right,
+                equals: _,
+                right: _,
             } => {
                 suggestions.append(&mut analyze_expression(*left));
             }
