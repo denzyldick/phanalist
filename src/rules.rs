@@ -3,6 +3,8 @@ use php_parser_rs::lexer::token::Span;
 use php_parser_rs::parser::ast::classes::{ClassExtends, ClassMember, ClassStatement};
 use php_parser_rs::parser::ast::functions::{ConcreteMethod, FunctionParameterList, MethodBody};
 use rocksdb::{IteratorMode, DB};
+use std::error::Error;
+use std::io::{ErrorKind, Write};
 use std::sync::mpsc::Sender;
 
 use jwalk::WalkDir;
@@ -25,8 +27,9 @@ use crate::analyse;
 pub struct Project {
     pub files: Vec<File>,
     pub classes: HashMap<String, ClassStatement>,
+    pub config: Config,
+    pub working_dir: PathBuf,
 }
-
 // Scan a directory and find all php files. When a
 // file has been found the content of the file will be sent to
 // as a message to the receiver.
@@ -59,7 +62,28 @@ pub fn scan_folder(current_dir: PathBuf, sender: Sender<(String, PathBuf)>) {
     }
 }
 
+#[derive(Serialize, Debug, Deserialize, Clone)]
+pub struct Config {
+    pub src: String,
+    pub storage: String,
+    disable: Vec<String>,
+}
+
 impl Project {
+    pub fn new(work_dir: PathBuf) -> Self {
+        let mut project = Self {
+            files: Vec::new(),
+            classes: HashMap::new(),
+            config: Config {
+                src: String::new(),
+                storage: String::new(),
+                disable: Vec::new(),
+            },
+            working_dir: work_dir,
+        };
+        project.parse_config();
+        project
+    }
     /// Iterate over the list of files and analyse the code.
     pub fn run(&mut self, db: &DB) {
         let iter = db.iterator(IteratorMode::Start);
@@ -77,6 +101,55 @@ impl Project {
                 }
             };
         }
+    }
+
+    /// Parse the configuration yaml file.
+    pub fn parse_config(&mut self) {
+        let path = format!("{}/phanalist.yaml", self.working_dir.display());
+        println!("{}", self.working_dir.display());
+        println!("{}", path);
+        self.config = match fs::read_to_string(path) {
+            Err(e) if e.kind() == ErrorKind::NotFound => {
+                println!("No configuration file named phanalist.yaml has been found. ");
+                println!("Do you want to automatticaly create  configuration file? [Y/n]");
+
+                let mut answer = String::new();
+
+                std::io::stdin().read_line(&mut answer).unwrap();
+
+                if answer.trim().to_lowercase() == "y" {
+                    let mut disable = Vec::new();
+                    disable.push("DUMMY_ERROR".to_string());
+                    let C = Config {
+                        src: String::from("./"),
+                        disable: disable,
+                        storage: String::from("/tmp/phanalist"),
+                    };
+
+                    let t = serde_yaml::to_string(&C).unwrap();
+                    println!("New configuration file as been created: phanalist.yaml");
+                    println!("{t}");
+                    let mut file = std::fs::File::create("./phanalist.yaml").unwrap();
+                    file.write_all(t.as_bytes()).unwrap();
+                    C
+                } else {
+                    let mut disable = Vec::new();
+                    Config {
+                        src: String::from("./"),
+                        disable: disable,
+                        storage: String::from("/tmp/phanalist"),
+                    }
+                }
+            }
+
+            Err(e) => {
+                panic!("{}", e)
+            }
+            Ok(s) => {
+                println!("Reading configuration from phanalist.yml");
+                serde_yaml::from_str(&s).unwrap()
+            }
+        };
     }
 
     /// Find a class based on the name
