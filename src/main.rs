@@ -1,10 +1,7 @@
 use clap::Parser;
 
-use rocksdb::DB;
-use project::{File, Project};
+use project::Project;
 use std::path::PathBuf;
-use std::sync::mpsc::{self};
-use std::{fs, thread};
 
 mod analyse;
 mod project;

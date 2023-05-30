@@ -1,22 +1,14 @@
 use colored::*;
 use php_parser_rs::lexer::token::Span;
-use php_parser_rs::parser::ast::classes::{ClassExtends, ClassMember, ClassStatement};
-use php_parser_rs::parser::ast::functions::{ConcreteMethod, FunctionParameterList, MethodBody};
-use rocksdb::{DBWithThreadMode, IteratorMode, DB};
-use std::error::Error;
+use php_parser_rs::parser::ast::classes::{ClassMember, ClassStatement};
+
+use rocksdb::{IteratorMode, DB};
 use std::io::{ErrorKind, Write};
 use std::sync::mpsc::Sender;
 
 use jwalk::WalkDir;
 use php_parser_rs::parser;
-use php_parser_rs::parser::ast::identifiers::Identifier;
-use php_parser_rs::parser::ast::modifiers::MethodModifierGroup;
-use php_parser_rs::parser::ast::operators::AssignmentOperationExpression::*;
-use php_parser_rs::parser::ast::properties::{Property, PropertyEntry};
-use php_parser_rs::parser::ast::variables::Variable;
-use php_parser_rs::parser::ast::ReturnStatement;
 use php_parser_rs::parser::ast::Statement;
-use php_parser_rs::parser::ast::{Expression, ExpressionStatement};
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
@@ -236,7 +228,7 @@ impl Project {
     }
 
     /// analyse the code.
-    pub fn analyze( mut file: File) -> Vec<Suggestion> {
+    pub fn analyze(mut file: File) -> Vec<Suggestion> {
         for statement in file.ast.clone() {
             let suggestions = analyse::Analyse::statement(statement);
             for suggestion in suggestions {
