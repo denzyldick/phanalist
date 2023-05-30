@@ -1,10 +1,10 @@
 use std::{collections::HashMap, fmt::Debug};
 
-use crate::rules::File;
+use crate::project::File;
 use rocksdb::{DBCommon, Options, SingleThreaded, DB};
 use serde::{Deserialize, Serialize};
 
-pub fn put<T: Serialize + Debug>(db: &DB, key: String, file: T) {
+pub fn put<T: Serialize + Debug>(db: &DB, key: String, file: T) -> &DB {
     let bytes = match serde_json::to_string(&file) {
         Ok(o) => {
             match db.put(key, o) {
@@ -21,6 +21,7 @@ pub fn put<T: Serialize + Debug>(db: &DB, key: String, file: T) {
             print!("{e}");
         }
     };
+    db
 }
 
 pub fn get(db: &DB, key: String) -> Option<File> {
