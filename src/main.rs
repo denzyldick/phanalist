@@ -28,7 +28,6 @@ fn main() {
     let now = std::time::Instant::now();
     let path = project.config.src.clone();
 
-    println!("{project:#?}");
     thread::spawn(move || {
         let path = PathBuf::from(path);
         rules::scan_folder(path, send);
