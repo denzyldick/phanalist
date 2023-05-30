@@ -24,27 +24,27 @@ fn main() {
     let args = Args::parse();
     let path = PathBuf::from(args.directory);
     let (send, recv) = mpsc::channel();
-    let mut project = Project {
-        files: Vec::new(),
-        classes: HashMap::new(),
-    };
-
+    let mut project = Project::new(path);
     let now = std::time::Instant::now();
+    let path = project.config.src.clone();
+
+    println!("{project:#?}");
     thread::spawn(move || {
+        let path = PathBuf::from(path);
         rules::scan_folder(path, send);
     });
 
-    let file_path = "/tmp/phanalist";
-    let file = std::path::Path::new(file_path);
+    let file_path = project.config.storage.clone();
+    let file = std::path::Path::new(&file_path);
 
     if file.is_dir() {
         match fs::remove_dir_all(file) {
             Ok(_) => {}
-            Err(error) => {}
+            Err(_) => {}
         }
     }
 
-    let db = DB::open_default("/tmp/phanalist").unwrap();
+    let db = DB::open_default(file_path).unwrap();
     let mut files = 0;
     for (content, path) in recv {
         let file = &mut File {
