@@ -4,8 +4,9 @@ use crate::project::Suggestion;
 
 use php_parser_rs::parser::ast::classes::{ClassExtends, ClassMember, ClassStatement};
 use php_parser_rs::parser::ast::constant::ConstantEntry;
+use php_parser_rs::parser::ast::control_flow::IfStatement;
 use php_parser_rs::parser::ast::functions::{ConcreteMethod, FunctionParameterList};
-use php_parser_rs::parser::ast::identifiers::Identifier;
+
 use php_parser_rs::parser::ast::modifiers::MethodModifierGroup;
 use php_parser_rs::parser::ast::try_block::CatchBlock;
 use php_parser_rs::{lexer::token::Span, parser};
@@ -293,75 +294,6 @@ pub fn class_member_analyze(member: ClassMember) -> Vec<Suggestion> {
                 } => {
                     for s in statements {
                         suggestions.append(&mut analyse_statement(s));
-                        // match statement {
-                        //     Statement::Expression(ExpressionStatement { expression, ending }) => {
-                        //         analyze_expression(expression);
-                        //     }
-
-                        //     Statement::Expression(ExpressionStatement { expression, ending }) => {
-                        //         match expression {
-                        //             Expression::MethodCall(method_call_expression) => {
-                        //                 match *method_call_expression.method {
-                        //                     _ => {}
-                        //                     Expression::Identifier(
-                        //                         Identifier::SimpleIdentifier(s),
-                        //                     ) => {
-                        //                         match *method_call_expression.target {
-                        //                             Expression::Variable(
-                        //                                 Variable::SimpleVariable(s),
-                        //                             ) => {
-                        //                                 if s.name.to_string()
-                        //                                     == String::from("$this")
-                        //                                 {
-                        //                                     let mut exists = false;
-                        //                                     // for member in members.iter() {
-                        //                                     //     match member.clone() {
-                        //                                     //         ClassMember::ConcreteMethod(
-                        //                                     //             ConcreteMethod {
-                        //                                     //                 comments,
-                        //                                     //                 attributes,
-                        //                                     //                 modifiers,
-                        //                                     //                 function,
-                        //                                     //                 ampersand,
-                        //                                     //                 name,
-                        //                                     //                 parameters,
-                        //                                     //                 return_type,
-                        //                                     //                 body,
-                        //                                     //             },
-                        //                                     //         ) => {
-                        //                                     //             if exists == false
-                        //                                     //                 && name.to_string()
-                        //                                     //                     == String::from(
-                        //                                     //                         s.name.clone(),
-                        //                                     //                     )
-                        //                                     //             {
-                        //                                     //                 exists = true;
-                        //                                     //             }
-                        //                                     //         }
-                        //                                     //         _ => {}
-                        //                                     //     };
-                        //                                     // }
-                        //                                     if exists == false {
-                        //                                         let suggestion = Suggestion::from(
-                        //                                                             format!(
-                        //                                                                 "The method {} is being called but it doesn't exists. ",
-                        //                                                                 String::from(s.name)
-                        //                                                                 ),
-                        //                                                             s.span);
-                        //                                         suggestions.push(suggestion);
-                        //                                     };
-                        //                                 };
-                        //                             }
-                        //                             _ => {}
-                        //                         };
-                        //                     }
-                        //                 };
-                        //             }
-                        //             _ => {}
-                        //         }
-                        //     }
-                        //     _ => {}
-                        // };
                     }
                 }
             };
@@ -395,13 +327,6 @@ pub fn class_member_analyze(member: ClassMember) -> Vec<Suggestion> {
         ClassMember::ConcreteConstructor(constructor) => {
             for statement in constructor.body.statements {
                 suggestions.append(&mut analyse_statement(statement));
-                //     match statement {
-                //         Statement::Expression(ExpressionStatement { expression, ending }) => {
-                //             analyze_expression(expression);
-                //         }
-
-                //         _ => {}
-                //     }
             }
         }
     }
@@ -582,13 +507,17 @@ fn analyse_statement(statement: Statement) -> Vec<Suggestion> {
     let mut suggestions = Vec::new();
     match statement {
         Statement::FullOpeningTag(tag) => {
-            let s = opening_tag(tag.span);
-            suggestions.push(s.unwrap())
+            match opening_tag(tag.span) {
+                Some(s) => suggestions.push(s),
+                None => {}
+            };
         }
 
         Statement::ShortOpeningTag(tag) => {
-            let s = opening_tag(tag.span).unwrap();
-            suggestions.push(s);
+            match opening_tag(tag.span) {
+                Some(s) => suggestions.push(s),
+                None => {}
+            };
         }
         Statement::EchoOpeningTag(_) => {}
         Statement::ClosingTag(_) => {}
@@ -610,17 +539,27 @@ fn analyse_statement(statement: Statement) -> Vec<Suggestion> {
         }
         Statement::Trait(_) => {}
         Statement::Interface(_) => {}
-        Statement::If(_) => {}
+        Statement::If(if_statement) => {
+
+            match if_statement {
+                IfStatement {
+                    r#if,
+                    left_parenthesis,
+                    condition,
+                    right_parenthesis,
+                    body,
+                } => {
+                    // let
+                }
+            }
+            // std::process::exit(0);
+        }
         Statement::Switch(_) => {}
         Statement::Echo(_) => {}
         Statement::Expression(expression_statement) => {
-            println!("{expression_statement:#?}");
             suggestions.append(&mut analyze_expression(expression_statement.expression));
         }
-        Statement::Return(_) => {
-            // println!("Hello world");
-            // println!("{return_statement:#?}")
-        }
+        Statement::Return(_) => {}
         Statement::Namespace(namespace) => match namespace {
             parser::ast::namespaces::NamespaceStatement::Unbraced(unbraced) => {
                 for statement in unbraced.statements {
