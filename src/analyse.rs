@@ -1,7 +1,13 @@
+use std::process;
+
 use crate::project::Suggestion;
 
 use php_parser_rs::parser::ast::classes::{ClassExtends, ClassMember, ClassStatement};
 use php_parser_rs::parser::ast::constant::ConstantEntry;
+use php_parser_rs::parser::ast::functions::{ConcreteMethod, FunctionParameterList};
+use php_parser_rs::parser::ast::identifiers::Identifier;
+use php_parser_rs::parser::ast::modifiers::MethodModifierGroup;
+use php_parser_rs::parser::ast::try_block::CatchBlock;
 use php_parser_rs::{lexer::token::Span, parser};
 
 use php_parser_rs::parser::ast::operators::AssignmentOperationExpression::*;
@@ -13,8 +19,8 @@ use php_parser_rs::parser::ast::{
     modifiers::PropertyModifierGroup,
 };
 
-use php_parser_rs::parser::ast::ReturnStatement;
 use php_parser_rs::parser::ast::{Expression, Statement};
+use php_parser_rs::parser::ast::{ExpressionStatement, ReturnStatement};
 /// All class names should be capatilized.
 pub fn has_capitalized_name(name: String, span: Span) -> Option<Suggestion> {
     if name.chars().next().unwrap().is_uppercase() == false {
@@ -188,7 +194,7 @@ pub fn class_statement_analyze(class_statement: ClassStatement) -> Vec<Suggestio
 
     for member in class_statement.body.members {
         // file.members.push(member.clone());
-        class_member_analyze(member);
+        suggestions.append(&mut class_member_analyze(member));
     }
 
     let extends = class_statement.extends;
@@ -213,185 +219,187 @@ pub fn class_statement_analyze(class_statement: ClassStatement) -> Vec<Suggestio
 
 /// Analyse class member.
 pub fn class_member_analyze(member: ClassMember) -> Vec<Suggestion> {
-    let suggestions = Vec::new();
-    // match member {
-    //     ClassMember::Property(property) => {
-    //         let name = property_name(property.clone());
-    //         if property_without_modifiers(property.clone()) {
-    //             suggestions.push(Suggestion::from(
-    //                 format!("The variables {} have no modifier.", name.join(", ")).to_string(),
-    //                 property.end,
-    //             ));
-    //         }
-    //     }
-    //     ClassMember::Constant(constant) => {
-    //         for entry in constant.entries {
-    //             if uppercased_constant_name(entry.clone()) == false {
-    //                 suggestions.push(Suggestion::from(
-    //                     format!(
-    //                         "All letters in a constant({}) should be uppercased.",
-    //                         entry.name.value.to_string()
-    //                     ),
-    //                     entry.name.span,
-    //                 ))
-    //             }
-    //         }
-    //     }
-    //     ClassMember::TraitUsage(_trait) => {}
-    //     ClassMember::AbstractMethod(_) => {}
-    //     ClassMember::ConcreteMethod(concretemethod) => {
-    //         let method_name = concretemethod.name.value;
-    //         match concretemethod.modifiers {
-    //             MethodModifierGroup { modifiers } => {
-    //                 if modifiers.len() == 0 {
-    //                     suggestions.push(Suggestion::from(
-    //                         format!("The method {} has no modifiers.", method_name).to_string(),
-    //                         concretemethod.function,
-    //                     ))
-    //                 }
-    //             }
-    //         };
-    //         // Detect parameters without type.
-    //         match concretemethod.parameters {
-    //             FunctionParameterList {
-    //                 comments,
-    //                 left_parenthesis,
-    //                 right_parenthesis,
-    //                 parameters,
-    //             } => {
-    //                 for parameter in parameters.inner {
-    //                     if function_parameter_without_type(parameter.clone()) {
-    //                         suggestions.push(Suggestion::from(
-    //                             format!(
-    //                                 "The parameter({}) in the method {} has no datatype.",
-    //                                 parameter.name, method_name
-    //                             )
-    //                             .to_string(),
-    //                             concretemethod.function,
-    //                         ));
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //         match concretemethod.body.clone() {
-    //             MethodBody {
-    //                 comments,
-    //                 left_brace,
-    //                 statements,
-    //                 right_brace,
-    //             } => {
-    //                 for statement in statements {
-    //                     match statement {
-    //                         Statement::Expression(ExpressionStatement { expression, ending }) => {
-    //                             analyze_expression(expression);
-    //                         }
+    let mut suggestions = Vec::new();
+    match member {
+        ClassMember::Property(property) => {
+            let name = property_name(property.clone());
+            if property_without_modifiers(property.clone()) {
+                suggestions.push(Suggestion::from(
+                    format!("The variables {} have no modifier.", name.join(", ")).to_string(),
+                    property.end,
+                ));
+            }
+        }
+        ClassMember::Constant(constant) => {
+            for entry in constant.entries {
+                if uppercased_constant_name(entry.clone()) == false {
+                    suggestions.push(Suggestion::from(
+                        format!(
+                            "All letters in a constant({}) should be uppercased.",
+                            entry.name.value.to_string()
+                        ),
+                        entry.name.span,
+                    ))
+                }
+            }
+        }
+        ClassMember::TraitUsage(_trait) => {}
+        ClassMember::AbstractMethod(_) => {}
+        ClassMember::ConcreteMethod(concretemethod) => {
+            let method_name = concretemethod.name.value;
+            match concretemethod.modifiers {
+                MethodModifierGroup { modifiers } => {
+                    if modifiers.len() == 0 {
+                        suggestions.push(Suggestion::from(
+                            format!("The method {} has no modifiers.", method_name).to_string(),
+                            concretemethod.function,
+                        ))
+                    }
+                }
+            };
+            // Detect parameters without type.
+            match concretemethod.parameters {
+                FunctionParameterList {
+                    comments,
+                    left_parenthesis,
+                    right_parenthesis,
+                    parameters,
+                } => {
+                    for parameter in parameters.inner {
+                        if function_parameter_without_type(parameter.clone()) {
+                            suggestions.push(Suggestion::from(
+                                format!(
+                                    "The parameter({}) in the method {} has no datatype.",
+                                    parameter.name, method_name
+                                )
+                                .to_string(),
+                                concretemethod.function,
+                            ));
+                        }
+                    }
+                }
+            }
+            match concretemethod.body.clone() {
+                MethodBody {
+                    comments,
+                    left_brace,
+                    statements,
+                    right_brace,
+                } => {
+                    for s in statements {
+                        suggestions.append(&mut analyse_statement(s));
+                        // match statement {
+                        //     Statement::Expression(ExpressionStatement { expression, ending }) => {
+                        //         analyze_expression(expression);
+                        //     }
 
-    //                         Statement::Expression(ExpressionStatement { expression, ending }) => {
-    //                             match expression {
-    //                                 Expression::MethodCall(method_call_expression) => {
-    //                                     match *method_call_expression.method {
-    //                                         _ => {}
-    //                                         Expression::Identifier(
-    //                                             Identifier::SimpleIdentifier(s),
-    //                                         ) => {
-    //                                             match *method_call_expression.target {
-    //                                                 Expression::Variable(
-    //                                                     Variable::SimpleVariable(s),
-    //                                                 ) => {
-    //                                                     if s.name.to_string()
-    //                                                         == String::from("$this")
-    //                                                     {
-    //                                                         let mut exists = false;
-    //                                                         for member in file.members.iter() {
-    //                                                             match member.clone() {
-    //                                                                 ClassMember::ConcreteMethod(
-    //                                                                     ConcreteMethod {
-    //                                                                         comments,
-    //                                                                         attributes,
-    //                                                                         modifiers,
-    //                                                                         function,
-    //                                                                         ampersand,
-    //                                                                         name,
-    //                                                                         parameters,
-    //                                                                         return_type,
-    //                                                                         body,
-    //                                                                     },
-    //                                                                 ) => {
-    //                                                                     if exists == false
-    //                                                                         && name.to_string()
-    //                                                                             == String::from(
-    //                                                                                 s.name.clone(),
-    //                                                                             )
-    //                                                                     {
-    //                                                                         exists = true;
-    //                                                                     }
-    //                                                                 }
-    //                                                                 _ => {}
-    //                                                             };
-    //                                                         }
-    //                                                         if exists == false {
-    //                                                             let suggestion = Suggestion::from(
-    //                                                                                 format!(
-    //                                                                                     "The method {} is being called but it doesn't exists. ",
-    //                                                                                     String::from(s.name)
-    //                                                                                     ),
-    //                                                                                 s.span);
-    //                                                             suggestions.push(suggestion);
-    //                                                         };
-    //                                                     };
-    //                                                 }
-    //                                                 _ => {}
-    //                                             };
-    //                                         }
-    //                                     };
-    //                                 }
-    //                                 _ => {}
-    //                             }
-    //                         }
-    //                         _ => {}
-    //                     };
-    //                 }
-    //             }
-    //         };
+                        //     Statement::Expression(ExpressionStatement { expression, ending }) => {
+                        //         match expression {
+                        //             Expression::MethodCall(method_call_expression) => {
+                        //                 match *method_call_expression.method {
+                        //                     _ => {}
+                        //                     Expression::Identifier(
+                        //                         Identifier::SimpleIdentifier(s),
+                        //                     ) => {
+                        //                         match *method_call_expression.target {
+                        //                             Expression::Variable(
+                        //                                 Variable::SimpleVariable(s),
+                        //                             ) => {
+                        //                                 if s.name.to_string()
+                        //                                     == String::from("$this")
+                        //                                 {
+                        //                                     let mut exists = false;
+                        //                                     // for member in members.iter() {
+                        //                                     //     match member.clone() {
+                        //                                     //         ClassMember::ConcreteMethod(
+                        //                                     //             ConcreteMethod {
+                        //                                     //                 comments,
+                        //                                     //                 attributes,
+                        //                                     //                 modifiers,
+                        //                                     //                 function,
+                        //                                     //                 ampersand,
+                        //                                     //                 name,
+                        //                                     //                 parameters,
+                        //                                     //                 return_type,
+                        //                                     //                 body,
+                        //                                     //             },
+                        //                                     //         ) => {
+                        //                                     //             if exists == false
+                        //                                     //                 && name.to_string()
+                        //                                     //                     == String::from(
+                        //                                     //                         s.name.clone(),
+                        //                                     //                     )
+                        //                                     //             {
+                        //                                     //                 exists = true;
+                        //                                     //             }
+                        //                                     //         }
+                        //                                     //         _ => {}
+                        //                                     //     };
+                        //                                     // }
+                        //                                     if exists == false {
+                        //                                         let suggestion = Suggestion::from(
+                        //                                                             format!(
+                        //                                                                 "The method {} is being called but it doesn't exists. ",
+                        //                                                                 String::from(s.name)
+                        //                                                                 ),
+                        //                                                             s.span);
+                        //                                         suggestions.push(suggestion);
+                        //                                     };
+                        //                                 };
+                        //                             }
+                        //                             _ => {}
+                        //                         };
+                        //                     }
+                        //                 };
+                        //             }
+                        //             _ => {}
+                        //         }
+                        //     }
+                        //     _ => {}
+                        // };
+                    }
+                }
+            };
 
-    //         // Detect return statement without the proper return type signature.
-    //         let has_return = method_has_return(concretemethod.body.clone());
+            // Detect return statement without the proper return type signature.
+            let has_return = method_has_return(concretemethod.body.clone());
 
-    //         match has_return {
-    //             Some(ReturnStatement {
-    //                 r#return,
-    //                 value,
-    //                 ending,
-    //             }) => {
-    //                 match concretemethod.return_type {
-    //                     None => {
-    //                         suggestions.push(
-    //                                                             Suggestion::from(
-    //                                                                 format!("The {} has a return statement but it has no return type signature.", method_name).to_string(),
-    //                                                             r#return
-    //                                                             )
-    //                                                         );
-    //                     }
-    //                     _ => {}
-    //                 };
-    //             }
-    //             None => {}
-    //         };
-    //     }
-    //     ClassMember::VariableProperty(_) => {}
-    //     ClassMember::AbstractConstructor(_constructor) => {}
-    //     ClassMember::ConcreteConstructor(constructor) => {
-    //         for statement in constructor.body.statements {
-    //             match statement {
-    //                 Statement::Expression(ExpressionStatement { expression, ending }) => {
-    //                     analyze_expression(expression);
-    //                 }
+            match has_return {
+                Some(ReturnStatement {
+                    r#return,
+                    value,
+                    ending,
+                }) => {
+                    match concretemethod.return_type {
+                        None => {
+                            suggestions.push(
+                                                                Suggestion::from(
+                                                                    format!("The {} has a return statement but it has no return type signature.", method_name).to_string(),
+                                                                r#return
+                                                                )
+                                                            );
+                        }
+                        _ => {}
+                    };
+                }
+                None => {}
+            };
+        }
+        ClassMember::VariableProperty(_) => {}
+        ClassMember::AbstractConstructor(_constructor) => {}
+        ClassMember::ConcreteConstructor(constructor) => {
+            for statement in constructor.body.statements {
+                suggestions.append(&mut analyse_statement(statement));
+                //     match statement {
+                //         Statement::Expression(ExpressionStatement { expression, ending }) => {
+                //             analyze_expression(expression);
+                //         }
 
-    //                 _ => {}
-    //             }
-    //         }
-    //     }
-    // }
+                //         _ => {}
+                //     }
+            }
+        }
+    }
     suggestions
 }
 
@@ -565,85 +573,105 @@ pub fn analyze_expression(expresion: Expression) -> Vec<Suggestion> {
     suggestions
 }
 
+fn analyse_statement(statement: Statement) -> Vec<Suggestion> {
+    let mut suggestions = Vec::new();
+    match statement {
+        Statement::FullOpeningTag(tag) => {
+            let s = opening_tag(tag.span);
+            suggestions.push(s.unwrap())
+        }
+
+        Statement::ShortOpeningTag(tag) => {
+            let s = opening_tag(tag.span).unwrap();
+            suggestions.push(s);
+        }
+        Statement::EchoOpeningTag(_) => {}
+        Statement::ClosingTag(_) => {}
+        Statement::InlineHtml(_) => {}
+        Statement::Label(_) => {}
+        Statement::Goto(_) => {}
+        Statement::HaltCompiler(_) => {}
+        Statement::Static(_) => {}
+        Statement::DoWhile(_) => {}
+        Statement::While(_) => {}
+        Statement::For(_) => {}
+        Statement::Foreach(_) => {}
+        Statement::Break(_) => {}
+        Statement::Continue(_) => {}
+        Statement::Constant(_) => {}
+        Statement::Function(_) => {}
+        Statement::Class(class_statement) => {
+            suggestions.append(&mut class_statement_analyze(class_statement));
+        }
+        Statement::Trait(_) => {}
+        Statement::Interface(_) => {}
+        Statement::If(_) => {}
+        Statement::Switch(_) => {}
+        Statement::Echo(_) => {}
+        Statement::Expression(expression_statement) => {
+            println!("{expression_statement:#?}");
+            suggestions.append(&mut analyze_expression(expression_statement.expression));
+        }
+        Statement::Return(_) => {
+            // println!("Hello world");
+            // println!("{return_statement:#?}")
+        }
+        Statement::Namespace(namespace) => match namespace {
+            parser::ast::namespaces::NamespaceStatement::Unbraced(unbraced) => {
+                for statement in unbraced.statements {
+                    match statement {
+                        Statement::Class(class_statement) => {
+                            suggestions.append(&mut class_statement_analyze(class_statement));
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            parser::ast::namespaces::NamespaceStatement::Braced(braced) => {
+                for statement in braced.body.statements {
+                    match statement {
+                        Statement::Class(class_statement) => {
+                            suggestions.append(&mut class_statement_analyze(class_statement));
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        },
+        Statement::Use(_) => {}
+        Statement::GroupUse(_) => {}
+        Statement::Comment(_) => {}
+        Statement::Try(statement) => {
+            for catch in statement.catches {
+                match catch {
+                    CatchBlock {
+                        start,
+                        end: _,
+                        types: _,
+                        var: _,
+                        body,
+                    } => {
+                        if body.len() == 0 {
+                            suggestions.push(Suggestion::from("There is an empty catch. It's not recommended to catch an exception.".to_string(),start ));
+                        }
+                    }
+                }
+            }
+        }
+        Statement::UnitEnum(_) => {}
+        Statement::BackedEnum(_) => {}
+        Statement::Block(_) => {}
+        Statement::Global(_) => {}
+        Statement::Declare(_) => {}
+        Statement::Noop(_) => {}
+    };
+
+    suggestions
+}
 pub struct Analyse {}
 
 impl Analyse {
     pub fn statement(statement: parser::ast::Statement) -> Vec<Suggestion> {
-        let mut suggestions = Vec::new();
-        match statement {
-            Statement::FullOpeningTag(tag) => {
-                let s = opening_tag(tag.span);
-                suggestions.push(s.unwrap())
-            }
-
-            Statement::ShortOpeningTag(tag) => {
-                let s = opening_tag(tag.span).unwrap();
-                suggestions.push(s);
-            }
-            Statement::EchoOpeningTag(_) => {}
-            Statement::ClosingTag(_) => {}
-            Statement::InlineHtml(_) => {}
-            Statement::Label(_) => {}
-            Statement::Goto(_) => {}
-            Statement::HaltCompiler(_) => {}
-            Statement::Static(_) => {}
-            Statement::DoWhile(_) => {}
-            Statement::While(_) => {}
-            Statement::For(_) => {}
-            Statement::Foreach(_) => {}
-            Statement::Break(_) => {}
-            Statement::Continue(_) => {}
-            Statement::Constant(_) => {}
-            Statement::Function(_) => {}
-            Statement::Class(class_statement) => {
-                suggestions.append(&mut class_statement_analyze(class_statement));
-            }
-            Statement::Trait(_) => {}
-            Statement::Interface(_) => {}
-            Statement::If(_) => {}
-            Statement::Switch(_) => {}
-            Statement::Echo(_) => {}
-            Statement::Expression(expression_statement) => {
-                suggestions.append(&mut analyze_expression(expression_statement.expression));
-            }
-            Statement::Return(_) => {
-                // println!("Hello world");
-                // println!("{return_statement:#?}")
-            }
-            Statement::Namespace(namespace) => match namespace {
-                parser::ast::namespaces::NamespaceStatement::Unbraced(unbraced) => {
-                    for statement in unbraced.statements {
-                        match statement {
-                            Statement::Class(class_statement) => {
-                                suggestions.append(&mut class_statement_analyze(class_statement));
-                            }
-                            _ => {}
-                        }
-                    }
-                }
-                parser::ast::namespaces::NamespaceStatement::Braced(braced) => {
-                    for statement in braced.body.statements {
-                        match statement {
-                            Statement::Class(class_statement) => {
-                                suggestions.append(&mut class_statement_analyze(class_statement));
-                            }
-                            _ => {}
-                        }
-                    }
-                }
-            },
-            Statement::Use(_) => {}
-            Statement::GroupUse(_) => {}
-            Statement::Comment(_) => {}
-            Statement::Try(_) => {}
-            Statement::UnitEnum(_) => {}
-            Statement::BackedEnum(_) => {}
-            Statement::Block(_) => {}
-            Statement::Global(_) => {}
-            Statement::Declare(_) => {}
-            Statement::Noop(_) => {}
-        };
-
-        suggestions
+        analyse_statement(statement)
     }
 }

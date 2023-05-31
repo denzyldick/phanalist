@@ -12,7 +12,10 @@
 
     public function __construct($o)
     {
+      try{
 
+      }catch(\Exception $e){
+      }
 
       $hello = false;
       if($hello == false){
@@ -44,6 +47,11 @@
         return 200;
       }
 
+      try{
+
+      }catch(\RuntimeException $e){
+        
+      }
     }
 
 
