@@ -304,9 +304,9 @@ impl File {
                                 println!(
                                     "  {}\t{} {}",
                                     format!("{}:{}", suggestion.span.line, suggestion.span.column)
-                                        .bold(),
+                                        .blue().bold(),
                                     line_symbol,
-                                    line.bold()
+                                    line
                                 );
                             }
                         }
