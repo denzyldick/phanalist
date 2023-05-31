@@ -7,6 +7,8 @@
 
 These are the current checks implemented.
 - [ ] Extending undefined classes.
+- [x] Having an try/catch with an empty catch that doesn't do anything. 
+- [x] A method that has more than 5 parameters. 
 - [x] Methods without modifiers(private, public & protected).
 - [x] Classes that start with a lowercase.
 - [x] Check if method exists when being called inside another method.
