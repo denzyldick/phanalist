@@ -265,6 +265,11 @@ pub fn class_member_analyze(member: ClassMember) -> Vec<Suggestion> {
                     right_parenthesis,
                     parameters,
                 } => {
+                    if parameters.inner.len() > 5 {
+                        suggestions.push(Suggestion::from(
+                                "This method has too many parameters. More than 5 parameters is considered a too much. Try passing an object containing these values.".to_string(),
+                                concretemethod.function));
+                    }
                     for parameter in parameters.inner {
                         if function_parameter_without_type(parameter.clone()) {
                             suggestions.push(Suggestion::from(

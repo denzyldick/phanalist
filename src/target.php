@@ -54,6 +54,8 @@
       }
     }
 
-
+    public function too_many_parameters(bool $one, bool $two, bool $three, bool $four, bool $five, bool $six):int{
+      
+    }
 
  }
