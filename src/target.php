@@ -25,19 +25,51 @@
         $this->no_ = 'hmm';
 
       }
+      
+      if($second = false){
 
+      }
       $this->fake_variable = 'hellworld';
       return '';
     }
 
     function test($a){
 
-      if($a){
+      if($c){
 
-     }
-      $this->does_not_exists();
-      return 1;
 
+        if($d) {
+
+            $this->test();
+        }
+
+        if($test){
+
+        }
+
+
+        if($test){
+
+        }
+        if($d) {
+
+          $this->test();
+          while($test > 0){
+
+          }
+        }
+      }
+
+      if($a) {
+
+        if($c === 'hellowlrld'){
+
+        }
+      }
+      if($b){
+
+      }
+      
     }
 
     public function no_return(bool $test):int{
