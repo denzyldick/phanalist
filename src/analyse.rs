@@ -7,6 +7,7 @@ use php_parser_rs::parser::ast::constant::ConstantEntry;
 use php_parser_rs::parser::ast::control_flow::IfStatement;
 use php_parser_rs::parser::ast::functions::{ConcreteMethod, FunctionParameterList};
 
+use php_parser_rs::parser::ast::loops::WhileStatement;
 use php_parser_rs::parser::ast::modifiers::MethodModifierGroup;
 use php_parser_rs::parser::ast::try_block::CatchBlock;
 use php_parser_rs::{lexer::token::Span, parser};
@@ -20,7 +21,7 @@ use php_parser_rs::parser::ast::{
     modifiers::PropertyModifierGroup,
 };
 
-use php_parser_rs::parser::ast::{Expression, Statement};
+use php_parser_rs::parser::ast::{Block, BlockStatement, Expression, Statement};
 use php_parser_rs::parser::ast::{ExpressionStatement, ReturnStatement};
 /// All class names should be capatilized.
 pub fn has_capitalized_name(name: String, span: Span) -> Option<Suggestion> {
@@ -292,6 +293,13 @@ pub fn class_member_analyze(member: ClassMember) -> Vec<Suggestion> {
                     statements,
                     right_brace,
                 } => {
+                    if calculate_cyclomatic_complexity(statements.clone()) > 10 {
+                        suggestions.push(Suggestion::from(
+                            "This method body is too complex. Make it easier to understand."
+                                .to_string(),
+                            concretemethod.function,
+                        ));
+                    }
                     for s in statements {
                         suggestions.append(&mut analyse_statement(s));
                     }
@@ -502,6 +510,59 @@ pub fn analyze_expression(expresion: Expression) -> Vec<Suggestion> {
     };
     suggestions
 }
+pub fn calculate_cyclomatic_complexity(mut statements: Vec<Statement>) -> i64 {
+    if statements.len() > 0 {
+        let statement: Statement = statements.pop().unwrap();
+        return match statement {
+            Statement::Expression(ExpressionStatement { expression, ending }) => match expression {
+                Expression::MethodCall(method) => 1,
+                _ => 0,
+            },
+            Statement::If(IfStatement {
+                r#if,
+                left_parenthesis,
+                condition,
+                right_parenthesis,
+                body,
+            }) => {
+                let c = match body {
+                    parser::ast::control_flow::IfStatementBody::Block {
+                        colon,
+                        statements,
+                        elseifs,
+                        r#else,
+                        endif,
+                        ending,
+                    } => calculate_cyclomatic_complexity(statements),
+                    parser::ast::control_flow::IfStatementBody::Statement {
+                        statement,
+                        elseifs,
+                        r#else,
+                    } => calculate_cyclomatic_complexity(vec![*statement]),
+                };
+                c + 1
+            }
+            Statement::While(WhileStatement {
+                r#while,
+                left_parenthesis,
+                condition,
+                right_parenthesis,
+                body,
+            }) => 1,
+            Statement::Block(BlockStatement {
+                left_brace,
+                statements,
+                right_brace,
+            }) => calculate_cyclomatic_complexity(statements),
+            _ => 0,
+        } + calculate_cyclomatic_complexity(statements);
+    }
+    0
+}
+
+pub fn calculate_npath() -> i64 {
+    3
+}
 
 fn analyse_statement(statement: Statement) -> Vec<Suggestion> {
     let mut suggestions = Vec::new();
@@ -539,21 +600,15 @@ fn analyse_statement(statement: Statement) -> Vec<Suggestion> {
         }
         Statement::Trait(_) => {}
         Statement::Interface(_) => {}
-        Statement::If(if_statement) => {
-
-            match if_statement {
-                IfStatement {
-                    r#if,
-                    left_parenthesis,
-                    condition,
-                    right_parenthesis,
-                    body,
-                } => {
-                    // let
-                }
-            }
-            // std::process::exit(0);
-        }
+        Statement::If(if_statement) => match if_statement {
+            IfStatement {
+                r#if,
+                left_parenthesis,
+                condition,
+                right_parenthesis,
+                body,
+            } => {}
+        },
         Statement::Switch(_) => {}
         Statement::Echo(_) => {}
         Statement::Expression(expression_statement) => {
@@ -609,7 +664,6 @@ fn analyse_statement(statement: Statement) -> Vec<Suggestion> {
         Statement::Declare(_) => {}
         Statement::Noop(_) => {}
     };
-
     suggestions
 }
 pub struct Analyse {}
