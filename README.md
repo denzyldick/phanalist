@@ -6,6 +6,7 @@
  
 
 These are the current checks implemented.
+- [x] Detect when the cyclomatic complexity of a method is too high. The current threshold is 10. 
 - [ ] Extending undefined classes.
 - [x] Having an try/catch with an empty catch that doesn't do anything. 
 - [x] A method that has more than 5 parameters. 
