@@ -1,12 +1,7 @@
 use crate::analyse::Rule;
 use crate::project::Suggestion;
-use php_parser_rs::parser::ast::classes::ClassStatement;
-use php_parser_rs::parser::ast::control_flow::{IfStatement, IfStatementBody};
-
-use php_parser_rs::parser::ast::loops::{ForStatementBody, ForeachStatement, WhileStatement};
-use php_parser_rs::parser::ast::loops::{ForeachStatementBody, WhileStatementBody};
 use php_parser_rs::parser::ast::try_block::CatchBlock;
-use php_parser_rs::parser::ast::{BlockStatement, Statement, SwitchStatement};
+use php_parser_rs::parser::ast::Statement;
 
 pub struct E002 {}
 impl Rule for E002 {
