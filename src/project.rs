@@ -13,7 +13,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 
-use crate::analyse::{self, Analyse};
+use crate::analyse::Analyse;
 use crate::storage;
 
 #[derive(Debug)]
@@ -142,35 +142,6 @@ impl Project {
         }
         files
     }
-    pub fn scan_folder(current_dir: PathBuf, sender: Sender<(String, PathBuf)>) {
-        for entry in WalkDir::new(current_dir.clone()).follow_links(false) {
-            let entry = entry.unwrap();
-            let path = entry.path();
-            let metadata = fs::metadata(&path).unwrap();
-            let file_name = match path.file_name() {
-                Some(f) => String::from(f.to_str().unwrap()),
-                None => String::from(""),
-            };
-            if file_name != "." || file_name != "" {
-                if metadata.is_file() {
-                    if let Some(extension) = path.extension() {
-                        if extension == "php" {
-                            let content = fs::read_to_string(entry.path());
-                            match content {
-                                Err(_) => {
-                                    // println!("{err:?}");
-                                }
-                                Ok(content) => {
-                                    sender.send((content, path)).unwrap();
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     /// Parse the configuration yaml file.
     /// If there is no configuration file, create a new new one.
     pub fn parse_config(&mut self) {
@@ -220,11 +191,7 @@ impl Project {
         };
     }
 
-    /// Find a class based on the name
-    pub fn find_class(&self, fqn: &str) -> Option<ClassStatement> {
-        //todo find the class here.
-        return self.classes.get(fqn).cloned();
-    }
+    
 
     /// analyse the code.
     pub fn analyze(mut file: File) -> Vec<Suggestion> {
@@ -280,11 +247,6 @@ pub enum Output {
 }
 
 impl File {
-    fn get_line(&mut self, span: Span) -> String {
-        println!("{}", self.path.display());
-        return "".to_string();
-    }
-
     pub fn output(&mut self, location: Output) {
         match location {
             Output::STDOUT => {

@@ -1,19 +1,15 @@
-use std::{collections::HashMap, fmt::Debug};
+use std::fmt::Debug;
 
 use crate::project::File;
-use rocksdb::{DBCommon, Options, SingleThreaded, DB};
-use serde::{Deserialize, Serialize};
+use rocksdb::DB;
+use serde::Serialize;
 
 pub fn put<T: Serialize + Debug>(db: &DB, key: String, file: T) -> &DB {
-    let bytes = match serde_json::to_string(&file) {
+    let _bytes = match serde_json::to_string(&file) {
         Ok(o) => {
             match db.put(key, o) {
-                Err(e) => {
-                    // println!("Helloworld");
-                    // println!("{file:?}");
-                    // println!("{e}");
-                }
-                Ok(ok) => {}
+                Err(_e) => {}
+                Ok(_ok) => {}
             };
         }
         Err(e) => {
@@ -24,9 +20,12 @@ pub fn put<T: Serialize + Debug>(db: &DB, key: String, file: T) -> &DB {
     db
 }
 
+/// .
+///
+/// # Panics
+///
+/// Panics if .
 pub fn get(db: &DB, key: String) -> Option<File> {
-    let path = "/tmp";
-
     match db.get(key) {
         Ok(Some(f)) => {
             let file = serde_json::from_slice(&f).unwrap();
