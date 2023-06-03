@@ -51,45 +51,48 @@ pub fn calculate_cyclomatic_complexity(mut statements: Vec<Statement>) -> i64 {
     if statements.len() > 0 {
         let statement: Statement = statements.pop().unwrap();
         return match statement {
-            Statement::Expression(ExpressionStatement { expression, ending }) => match expression {
-                Expression::MethodCall(method) => 1,
+            Statement::Expression(ExpressionStatement {
+                expression,
+                ending: _,
+            }) => match expression {
+                Expression::MethodCall(_method) => 1,
                 _ => 0,
             },
             Statement::If(IfStatement {
-                r#if,
-                left_parenthesis,
-                condition,
-                right_parenthesis,
+                r#if: _,
+                left_parenthesis: _,
+                condition: _,
+                right_parenthesis: _,
                 body,
             }) => {
                 let c = match body {
                     control_flow::IfStatementBody::Block {
-                        colon,
+                        colon: _,
                         statements,
-                        elseifs,
-                        r#else,
-                        endif,
-                        ending,
+                        elseifs: _,
+                        r#else: _,
+                        endif: _,
+                        ending: _,
                     } => calculate_cyclomatic_complexity(statements),
                     control_flow::IfStatementBody::Statement {
                         statement,
-                        elseifs,
-                        r#else,
+                        elseifs: _,
+                        r#else: _,
                     } => calculate_cyclomatic_complexity(vec![*statement]),
                 };
                 c + 1
             }
             Statement::While(WhileStatement {
-                r#while,
-                left_parenthesis,
-                condition,
-                right_parenthesis,
-                body,
+                r#while: _,
+                left_parenthesis: _,
+                condition: _,
+                right_parenthesis: _,
+                body: _,
             }) => 1,
             Statement::Block(BlockStatement {
-                left_brace,
+                left_brace: _,
                 statements,
-                right_brace,
+                right_brace: _,
             }) => calculate_cyclomatic_complexity(statements),
             _ => 0,
         } + calculate_cyclomatic_complexity(statements);
