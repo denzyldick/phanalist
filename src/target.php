@@ -1,5 +1,4 @@
 
-
 <?php
 namespace Hello{
  class uTesting extends FakeClass
@@ -20,15 +19,7 @@ namespace Hello{
         }catch(\Exception $e){
 
         }
-
-        try{}catch(\Exception $e){
-try{}catch(\Exception $e){
-        }
-        }
-      }
-try{}catch(\Exception $e){
-
-        }
+       }
    }
 
     public function hello(){
@@ -39,29 +30,8 @@ try{}catch(\Exception $e){
 
           }
       }
+      return false;
     }
-    public function test2(){
-for ($x = 0; $x <= 10; $x++) {
-
-        try{}catch(\Exception $e){}
-      }
-    }
-      function test(){
-      while(true){
-
-        try{}catch(\Exception $e){
-            
-        }
-      }
-
-
-      switch($hello){
-      case 1:
-try{}catch(\Exception $e){}
-
-        break;
-      }
-    }
-
+   
  }
  }
