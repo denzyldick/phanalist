@@ -1,0 +1,61 @@
+use php_parser_rs::parser::ast::{
+    classes::ClassMember,
+    functions::{ConstructorParameterList, FunctionParameterList},
+    Statement,
+};
+
+use crate::{analyse::Rule, project::Suggestion};
+
+pub struct E007 {}
+impl Rule for E007 {
+    fn validate(
+        &self,
+        statement: &php_parser_rs::parser::ast::Statement,
+    ) -> Vec<crate::project::Suggestion> {
+        let mut suggestions = Vec::new();
+        match statement {
+            Statement::Class(class) => {
+                for member in &class.body.members {
+                    match member {
+                        ClassMember::ConcreteMethod(concretemethod) => {
+                            // Detect parameters without type.
+                            match &concretemethod.parameters {
+                                FunctionParameterList {
+                                    comments: _,
+                                    left_parenthesis: _,
+                                    right_parenthesis: _,
+                                    parameters,
+                                } => {
+                                    if parameters.inner.len() > 5 {
+                                        suggestions.push(Suggestion::from(
+                                "This method has too many parameters. More than 5 parameters is considered a too much. Try passing an object containing these values.".to_string(),
+                                concretemethod.function));
+                                    }
+                                }
+                            }
+                        }
+                        ClassMember::ConcreteConstructor(concreteconstructor) => {
+                            match &concreteconstructor.parameters {
+                                ConstructorParameterList {
+                                    comments: _,
+                                    left_parenthesis: _,
+                                    right_parenthesis: _,
+                                    parameters,
+                                } => {
+                                    if parameters.inner.len() > 5 {
+                                        suggestions.push(Suggestion::from(
+                                "This method has too many parameters. More than 5 parameters is considered a too much. Try passing an object containing these values.".to_string(),
+                                concreteconstructor.function));
+                                    }
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            _ => {}
+        }
+        suggestions
+    }
+}
