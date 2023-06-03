@@ -13,7 +13,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 
-use crate::analyse;
+use crate::analyse::{self, Analyse};
 use crate::storage;
 
 #[derive(Debug)]
@@ -109,7 +109,6 @@ impl Project {
             };
         }
     }
-
     pub fn scan(&self) -> i64 {
         let (send, recv) = std::sync::mpsc::channel();
         let path = self.config.src.clone();
@@ -229,8 +228,9 @@ impl Project {
 
     /// analyse the code.
     pub fn analyze(mut file: File) -> Vec<Suggestion> {
+        let analyse: Analyse = Analyse::new();
         for statement in file.ast.clone() {
-            let suggestions = analyse::Analyse::statement(statement);
+            let suggestions = analyse.statement(statement);
             for suggestion in suggestions {
                 file.suggestions.push(suggestion);
             }
