@@ -1,8 +1,6 @@
 use crate::analyse::Rule;
 use crate::project::Suggestion;
 use php_parser_rs::lexer::token::Span;
-use php_parser_rs::parser::ast::classes::ClassMember;
-use php_parser_rs::parser::ast::constant::ConstantEntry;
 use php_parser_rs::parser::ast::Statement;
 
 pub struct E005 {}
