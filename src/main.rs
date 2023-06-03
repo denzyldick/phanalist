@@ -6,6 +6,7 @@ use std::path::PathBuf;
 mod analyse;
 mod project;
 mod storage;
+mod rules;
 
 /// A static analyser for your PHP project.
 #[derive(Parser, Debug)]

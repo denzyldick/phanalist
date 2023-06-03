@@ -1,14 +1,18 @@
+use std::collections::HashMap;
 use std::process;
 
 use crate::project::Suggestion;
 
 use php_parser_rs::parser::ast::classes::{ClassExtends, ClassMember, ClassStatement};
 use php_parser_rs::parser::ast::constant::ConstantEntry;
-use php_parser_rs::parser::ast::control_flow::IfStatement;
+use php_parser_rs::parser::ast::control_flow::{IfStatement, IfStatementBody};
 use php_parser_rs::parser::ast::functions::{ConcreteMethod, FunctionParameterList};
 
-use php_parser_rs::parser::ast::loops::WhileStatement;
+use php_parser_rs::parser::ast::loops::{
+    ForStatementBody, ForeachStatement, ForeachStatementBody, WhileStatement, WhileStatementBody,
+};
 use php_parser_rs::parser::ast::modifiers::MethodModifierGroup;
+use php_parser_rs::parser::ast::namespaces::BracedNamespaceBody;
 use php_parser_rs::parser::ast::try_block::CatchBlock;
 use php_parser_rs::{lexer::token::Span, parser};
 
@@ -21,7 +25,10 @@ use php_parser_rs::parser::ast::{
     modifiers::PropertyModifierGroup,
 };
 
-use php_parser_rs::parser::ast::{Block, BlockStatement, Expression, Statement};
+use php_parser_rs::parser::ast::{
+    namespaces, Block, BlockStatement, Expression, FullOpeningTagStatement, Statement,
+    SwitchStatement,
+};
 use php_parser_rs::parser::ast::{ExpressionStatement, ReturnStatement};
 /// All class names should be capatilized.
 pub fn has_capitalized_name(name: String, span: Span) -> Option<Suggestion> {
@@ -288,10 +295,10 @@ pub fn class_member_analyze(member: ClassMember) -> Vec<Suggestion> {
             }
             match concretemethod.body.clone() {
                 MethodBody {
-                    comments,
-                    left_brace,
+                    comments: _,
+                    left_brace: _,
                     statements,
-                    right_brace,
+                    right_brace: _,
                 } => {
                     if calculate_cyclomatic_complexity(statements.clone()) > 10 {
                         suggestions.push(Suggestion::from(
@@ -312,8 +319,8 @@ pub fn class_member_analyze(member: ClassMember) -> Vec<Suggestion> {
             match has_return {
                 Some(ReturnStatement {
                     r#return,
-                    value,
-                    ending,
+                    value: _,
+                    ending: _,
                 }) => {
                     match concretemethod.return_type {
                         None => {
@@ -616,7 +623,7 @@ fn analyse_statement(statement: Statement) -> Vec<Suggestion> {
         }
         Statement::Return(_) => {}
         Statement::Namespace(namespace) => match namespace {
-            parser::ast::namespaces::NamespaceStatement::Unbraced(unbraced) => {
+            namespaces::NamespaceStatement::Unbraced(unbraced) => {
                 for statement in unbraced.statements {
                     match statement {
                         Statement::Class(class_statement) => {
@@ -626,7 +633,7 @@ fn analyse_statement(statement: Statement) -> Vec<Suggestion> {
                     }
                 }
             }
-            parser::ast::namespaces::NamespaceStatement::Braced(braced) => {
+            namespaces::NamespaceStatement::Braced(braced) => {
                 for statement in braced.body.statements {
                     match statement {
                         Statement::Class(class_statement) => {
@@ -640,23 +647,7 @@ fn analyse_statement(statement: Statement) -> Vec<Suggestion> {
         Statement::Use(_) => {}
         Statement::GroupUse(_) => {}
         Statement::Comment(_) => {}
-        Statement::Try(statement) => {
-            for catch in statement.catches {
-                match catch {
-                    CatchBlock {
-                        start,
-                        end: _,
-                        types: _,
-                        var: _,
-                        body,
-                    } => {
-                        if body.len() == 0 {
-                            suggestions.push(Suggestion::from("There is an empty catch. It's not recommended to catch an exception.".to_string(),start ));
-                        }
-                    }
-                }
-            }
-        }
+        Statement::Try(_) => {}
         Statement::UnitEnum(_) => {}
         Statement::BackedEnum(_) => {}
         Statement::Block(_) => {}
@@ -666,10 +657,222 @@ fn analyse_statement(statement: Statement) -> Vec<Suggestion> {
     };
     suggestions
 }
-pub struct Analyse {}
 
+pub trait Rule {
+    fn validate(&self, statement: &Statement) -> Vec<Suggestion>;
+}
+
+pub struct Analyse {
+    rules: HashMap<String, Box<dyn Rule>>,
+}
+
+use crate::rules;
 impl Analyse {
-    pub fn statement(statement: parser::ast::Statement) -> Vec<Suggestion> {
-        analyse_statement(statement)
+    pub fn new() -> Self {
+        let mut rules = HashMap::new();
+        rules.insert(
+            "E001".to_string(),
+            Box::new(rules::E001::E001 {}) as Box<dyn Rule>,
+        );
+        rules.insert(
+            "E002".to_string(),
+            Box::new(rules::E002::E002 {}) as Box<dyn Rule>,
+        );
+        rules.insert(
+            "E003".to_string(),
+            Box::new(rules::E003::E003 {}) as Box<dyn Rule>,
+        );
+        let analyse = Self { rules };
+        analyse
+    }
+
+    pub fn statement(&self, statement: parser::ast::Statement) -> Vec<Suggestion> {
+        let mut suggestions = Vec::new();
+        let rules = &self.rules;
+        for (_, rule) in rules.into_iter() {
+            suggestions.append(&mut self.expand(&statement, rule));
+        }
+        suggestions
+    }
+    fn expand(&self, statement: &Statement, rule: &Box<dyn Rule>) -> Vec<Suggestion> {
+        let mut suggestions = Vec::new();
+        suggestions.append(&mut rule.validate(statement));
+        match statement {
+            Statement::Try(s) => {
+                for catch in &s.catches {
+                    match catch {
+                        CatchBlock {
+                            start: _,
+                            end: _,
+                            types: _,
+                            var: _,
+                            body,
+                        } => {
+                            for statement in body {
+                                suggestions.append(&mut self.expand(statement, rule));
+                            }
+                        }
+                    }
+                }
+            }
+            Statement::Class(ClassStatement {
+                attributes: _,
+                modifiers: _,
+                class: _,
+                name: _,
+                extends: _,
+                implements: _,
+                body,
+            }) => {
+                for member in &body.members {
+                    match member {
+                        php_parser_rs::parser::ast::classes::ClassMember::ConcreteMethod(
+                            concrete_method,
+                        ) => {
+                            let statements = &concrete_method.body.statements;
+
+                            for statement in statements {
+                                suggestions.append(&mut self.expand(statement, rule));
+                            }
+                        }
+                        php_parser_rs::parser::ast::classes::ClassMember::ConcreteConstructor(
+                            concrete_constructor,
+                        ) => {
+                            let statements = &concrete_constructor.body.statements;
+
+                            for statement in statements {
+                                suggestions.append(&mut self.expand(statement, rule));
+                            }
+                        }
+                        _ => {}
+                    };
+                }
+            }
+            Statement::If(if_statement) => match if_statement {
+                IfStatement {
+                    r#if: _,
+                    left_parenthesis: _,
+                    condition: _,
+                    right_parenthesis: _,
+                    body,
+                } => {
+                    match body {
+                        IfStatementBody::Block {
+                            colon: _,
+                            statements,
+                            elseifs: _,
+                            r#else: _,
+                            endif: _,
+                            ending: _,
+                        } => {
+                            for statement in statements {
+                                suggestions.append(&mut &mut self.expand(statement, rule));
+                            }
+                        }
+                        IfStatementBody::Statement {
+                            statement,
+                            elseifs: _,
+                            r#else: _,
+                        } => suggestions.append(&mut self.expand(statement, rule)),
+                    };
+                }
+            },
+            Statement::While(while_statement) => match &while_statement.body {
+                WhileStatementBody::Block {
+                    colon: _,
+                    statements,
+                    endwhile: _,
+                    ending: _,
+                } => {
+                    for statement in statements {
+                        suggestions.append(&mut self.expand(&statement, rule));
+                    }
+                }
+                WhileStatementBody::Statement { statement } => {
+                    suggestions.append(&mut self.expand(&statement, rule));
+                }
+            },
+            Statement::Switch(SwitchStatement {
+                switch: _,
+                left_parenthesis: _,
+                condition: _,
+                right_parenthesis: _,
+                cases,
+            }) => {
+                for case in cases {
+                    for statement in &case.body {
+                        suggestions.append(&mut self.expand(statement, rule))
+                    }
+                }
+            }
+            Statement::Foreach(ForeachStatement {
+                foreach: _,
+                left_parenthesis: _,
+                iterator: _,
+                right_parenthesis: _,
+                body,
+            }) => match body {
+                ForeachStatementBody::Block {
+                    colon: _,
+                    statements,
+                    endforeach: _,
+                    ending: _,
+                } => {
+                    for statement in statements {
+                        suggestions.append(&mut self.expand(statement, rule));
+                    }
+                }
+                ForeachStatementBody::Statement { statement } => {
+                    suggestions.append(&mut self.expand(statement, rule));
+                }
+            },
+            Statement::For(for_statement_body) => match &for_statement_body.body {
+                ForStatementBody::Block {
+                    colon: _,
+                    statements,
+                    endfor: _,
+                    ending: _,
+                } => {
+                    for statement in statements {
+                        suggestions.append(&mut self.expand(&statement, rule));
+                    }
+                }
+                ForStatementBody::Statement { statement } => {
+                    suggestions.append(&mut self.expand(&statement, rule))
+                }
+            },
+            Statement::Block(BlockStatement {
+                left_brace: _,
+                statements,
+                right_brace: _,
+            }) => {
+                for statement in statements {
+                    suggestions.append(&mut self.expand(statement, rule));
+                }
+            }
+
+            Statement::Namespace(namespace) => match &namespace {
+                namespaces::NamespaceStatement::Unbraced(unbraced) => {
+                    for statement in &unbraced.statements {
+                        suggestions.append(&mut self.expand(statement, rule));
+                    }
+                }
+                namespaces::NamespaceStatement::Braced(braced) => {
+                    for statement in &braced.body.statements {
+                        suggestions.append(&mut self.expand(statement, rule));
+                    }
+                }
+            },
+
+            _ => {}
+        };
+
+        suggestions
+    }
+}
+
+impl Default for Analyse {
+    fn default() -> Self {
+        Self::new()
     }
 }
