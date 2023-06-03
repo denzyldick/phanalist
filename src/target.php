@@ -1,6 +1,7 @@
 
- <?php
 
+<?php
+namespace Hello{
  class uTesting extends FakeClass
   {
     const I_ = null;
@@ -12,82 +13,55 @@
 
     public function __construct($o)
     {
-      try{
+       if($helloworld){
 
-      }catch(\Exception $e){
-      }
+        try{
 
-      $hello = false;
-      if($hello == false){
-         $this->no_modifier = 'helloworld';
-      }else if ($hello === true){
-
-        $this->no_ = 'hmm';
-
-      }
-      
-      if($second = false){
-
-      }
-      $this->fake_variable = 'hellworld';
-      return '';
-    }
-
-    function test($a){
-
-      if($c){
-
-
-        if($d) {
-
-            $this->test();
-        }
-
-        if($test){
+        }catch(\Exception $e){
 
         }
 
-
-        if($test){
+        try{}catch(\Exception $e){
+try{}catch(\Exception $e){
+        }
+        }
+      }
+try{}catch(\Exception $e){
 
         }
-        if($d) {
+   }
 
-          $this->test();
-          while($test > 0){
+    public function hello(){
+      foreach([] as $key => $value){
+          try{
+
+          }catch(\Exception $e){
 
           }
+      }
+    }
+    public function test2(){
+for ($x = 0; $x <= 10; $x++) {
+
+        try{}catch(\Exception $e){}
+      }
+    }
+      function test(){
+      while(true){
+
+        try{}catch(\Exception $e){
+            
         }
       }
 
-      if($a) {
 
-        if($c === 'hellowlrld'){
+      switch($hello){
+      case 1:
+try{}catch(\Exception $e){}
 
-        }
-      }
-      if($b){
-
-      }
-      
-    }
-
-    public function no_return(bool $test):int{
-      
-      $this->faefa = "hae";
-      if($test){
-        return 200;
-      }
-
-      try{
-
-      }catch(\RuntimeException $e){
-        
+        break;
       }
     }
 
-    public function too_many_parameters(bool $one, bool $two, bool $three, bool $four, bool $five, bool $six):int{
-      
-    }
-
+ }
  }
