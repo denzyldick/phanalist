@@ -253,7 +253,6 @@ impl Analyse {
 
             _ => {}
         };
-
         suggestions
     }
 }
