@@ -61,6 +61,7 @@ pub struct Config {
     pub src: String,
     pub storage: String,
     disable: Vec<String>,
+    output: Output,
 }
 
 impl Project {
@@ -72,6 +73,7 @@ impl Project {
                 src: String::new(),
                 storage: String::new(),
                 disable: Vec::new(),
+                output: Output::STDOUT,
             },
             working_dir: work_dir,
             db: None,
@@ -130,7 +132,7 @@ impl Project {
         let mut files = 0;
         for (content, path) in recv {
             let file = &mut File {
-                content: content,
+                content,
                 path: path.clone(),
                 ast: Vec::new(),
                 members: Vec::new(),
@@ -164,6 +166,7 @@ impl Project {
                         src: String::from("./"),
                         disable,
                         storage: String::from("/tmp/phanalist"),
+                        output: Output::STDOUT,
                     };
 
                     let t = serde_yaml::to_string(&config).unwrap();
@@ -177,6 +180,7 @@ impl Project {
                         src: String::from("./"),
                         disable: Vec::new(),
                         storage: String::from("/tmp/phanalist"),
+                        output: Output::STDOUT,
                     }
                 }
             }
@@ -190,8 +194,6 @@ impl Project {
             }
         };
     }
-
-    
 
     /// analyse the code.
     pub fn analyze(mut file: File) -> Vec<Suggestion> {
@@ -217,7 +219,7 @@ impl Suggestion {
     pub fn from(suggesion: String, span: Span) -> Self {
         Self {
             suggestion: suggesion,
-            span: span,
+            span,
         }
     }
 }
@@ -240,7 +242,7 @@ pub struct File {
     pub suggestions: Vec<Suggestion>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Output {
     STDOUT,
     FILE,
