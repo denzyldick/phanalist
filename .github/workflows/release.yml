@@ -1,12 +1,10 @@
 name: release
 
 on:
-  pull_request:
   push:
-    branches:
-      - master
-#     tags:
-#       - 'v*.*.*'
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
   deploy:
