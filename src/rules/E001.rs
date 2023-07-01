@@ -1,6 +1,6 @@
-use php_parser_rs::parser::ast::Statement;
-use crate::project::Suggestion;
 use crate::analyse::Rule;
+use crate::project::Suggestion;
+use php_parser_rs::parser::ast::Statement;
 
 pub struct E001 {}
 impl Rule for E001 {
@@ -11,7 +11,8 @@ impl Rule for E001 {
                 if span.line > 1 {
                     return vec![Suggestion::from(
                     "The opening tag <?php is not on the right line. This should always be the first line in a PHP file.".to_string(),
-                   span 
+                   span,
+                   "E001".to_string()
                 )];
                 }
 
@@ -23,15 +24,17 @@ impl Rule for E001 {
                         )
                         .to_string(),
                         span,
+                        "E001".to_string(),
                     )];
                 }
             }
-             Statement::ShortOpeningTag(tag) => {
+            Statement::ShortOpeningTag(tag) => {
                 let span = tag.span;
                 if span.line > 1 {
                     return vec![Suggestion::from(
                     "The opening tag <?php is not on the right line. This should always be the first line in a PHP file.".to_string(),
-                   span 
+                   span,
+                    "E001".to_string()
                 )];
                 }
 
@@ -43,13 +46,13 @@ impl Rule for E001 {
                         )
                         .to_string(),
                         span,
+                        "E001".to_string(),
                     )];
                 }
             }
 
-            _ =>{}
+            _ => {}
         };
         vec![]
     }
 }
-

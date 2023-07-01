@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::project::Suggestion;
+use crate::project::{Config, Suggestion};
 
 use php_parser_rs::parser::ast::classes::ClassStatement;
 
@@ -23,52 +23,82 @@ pub struct Analyse {
 
 use crate::rules;
 impl Analyse {
-    pub fn new() -> Self {
+    pub fn new(disable: Vec<String>) -> Self {
         let mut rules = HashMap::new();
-        rules.insert(
-            "E001".to_string(),
-            Box::new(rules::E001::E001 {}) as Box<dyn Rule>,
-        );
-        rules.insert(
-            "E002".to_string(),
-            Box::new(rules::E002::E002 {}) as Box<dyn Rule>,
-        );
-        rules.insert(
-            "E003".to_string(),
-            Box::new(rules::E003::E003 {}) as Box<dyn Rule>,
-        );
-        rules.insert(
-            "E004".to_string(),
-            Box::new(rules::E004::E004 {}) as Box<dyn Rule>,
-        );
-        rules.insert(
-            "E005".to_string(),
-            Box::new(rules::E005::E005 {}) as Box<dyn Rule>,
-        );
-        rules.insert(
-            "E006".to_string(),
-            Box::new(rules::E006::E006 {}) as Box<dyn Rule>,
-        );
-        rules.insert(
-            "E007".to_string(),
-            Box::new(rules::E007::E007 {}) as Box<dyn Rule>,
-        );
-        rules.insert(
-            "EOO8".to_string(),
-            Box::new(rules::E008::E008 {}) as Box<dyn Rule>,
-        );
-        rules.insert(
-            "EO09".to_string(),
-            Box::new(rules::E009::E009 {}) as Box<dyn Rule>,
-        );
-        rules.insert(
-            "EO010".to_string(),
-            Box::new(rules::E0010::E0010 {}) as Box<dyn Rule>,
-        );
-        rules.insert(
-            "EO011".to_string(),
-            Box::new(rules::E0011::E0011 {}) as Box<dyn Rule>,
-        );
+        // @todo refactor this code below
+        if disable.contains(&"E001".to_string()) == false {
+            rules.insert(
+                "E001".to_string(),
+                Box::new(rules::E001::E001 {}) as Box<dyn Rule>,
+            );
+        }
+
+        if disable.contains(&"E002".to_string()) == false {
+            rules.insert(
+                "E002".to_string(),
+                Box::new(rules::E002::E002 {}) as Box<dyn Rule>,
+            );
+        }
+
+        if disable.contains(&"E003".to_string()) == false {
+            rules.insert(
+                "E003".to_string(),
+                Box::new(rules::E003::E003 {}) as Box<dyn Rule>,
+            );
+        }
+
+        if disable.contains(&"E004".to_string()) == false {
+            rules.insert(
+                "E004".to_string(),
+                Box::new(rules::E004::E004 {}) as Box<dyn Rule>,
+            );
+        }
+        if disable.contains(&"E005".to_string()) == false {
+            rules.insert(
+                "E005".to_string(),
+                Box::new(rules::E005::E005 {}) as Box<dyn Rule>,
+            );
+        }
+
+        if disable.contains(&"E006".to_string()) == false {
+            rules.insert(
+                "E006".to_string(),
+                Box::new(rules::E006::E006 {}) as Box<dyn Rule>,
+            );
+        }
+
+        if disable.contains(&"E007".to_string()) == false {
+            rules.insert(
+                "E007".to_string(),
+                Box::new(rules::E007::E007 {}) as Box<dyn Rule>,
+            );
+        }
+
+        if disable.contains(&"E008".to_string()) == false {
+            rules.insert(
+                "E008".to_string(),
+                Box::new(rules::E008::E008 {}) as Box<dyn Rule>,
+            );
+        }
+
+        if disable.contains(&"E009".to_string()) == false {
+            rules.insert(
+                "E009".to_string(),
+                Box::new(rules::E009::E009 {}) as Box<dyn Rule>,
+            );
+        }
+        if disable.contains(&"E0010".to_string()) == false {
+            rules.insert(
+                "E0010".to_string(),
+                Box::new(rules::E0010::E0010 {}) as Box<dyn Rule>,
+            );
+        }
+        if disable.contains(&"E0011".to_string()) == false {
+            rules.insert(
+                "E0011".to_string(),
+                Box::new(rules::E0011::E0011 {}) as Box<dyn Rule>,
+            );
+        }
         let analyse = Self { rules };
         analyse
     }
@@ -259,6 +289,6 @@ impl Analyse {
 
 impl Default for Analyse {
     fn default() -> Self {
-        Self::new()
+        Self::new(vec![])
     }
 }

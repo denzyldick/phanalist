@@ -32,7 +32,9 @@ impl Rule for E008 {
                                             suggestions.push(
                                                                 Suggestion::from(
                                                                     format!("The {} has a return statement but it has no return type signature.", method_name).to_string(),
-                                                                r#return
+                                                                r#return,
+                                                        "E008".to_string(),
+
                                                                 )
                                                             );
                                         }
