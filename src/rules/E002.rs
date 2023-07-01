@@ -19,7 +19,10 @@ impl Rule for E002 {
                             body,
                         } => {
                             if body.len() == 0 {
-                                suggestions.push(Suggestion::from("There is an empty catch. It's not recommended to catch an Exception without doing anything with it..".to_string(),*start ));
+                                suggestions.push(Suggestion::from(
+                                        "There is an empty catch. It's not recommended to catch an Exception without doing anything with it..".to_string(),
+                                        *start,
+                                    "E002".to_string()));
                             }
                         }
                     }

@@ -21,6 +21,7 @@ impl Rule for E006 {
                                     format!("The variables {} have no modifier.", name.join(", "))
                                         .to_string(),
                                     property.end,
+                                    "E006".to_string(),
                                 ));
                             }
                         }

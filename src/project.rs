@@ -106,7 +106,7 @@ impl Project {
                 }
                 Ok(mut f) => {
                     f.ast = parse_code(f.content.as_str()).unwrap();
-                    Self::analyze(f);
+                    Self::analyze(f, self.config.disable.clone());
                 }
             };
         }
@@ -196,8 +196,8 @@ impl Project {
     }
 
     /// analyse the code.
-    pub fn analyze(mut file: File) -> Vec<Suggestion> {
-        let analyse: Analyse = Analyse::new();
+    pub fn analyze(mut file: File, disable: Vec<String>) -> Vec<Suggestion> {
+        let analyse: Analyse = Analyse::new(disable);
         for statement in file.ast.clone() {
             let suggestions = analyse.statement(statement);
             for suggestion in suggestions {
@@ -211,13 +211,15 @@ impl Project {
 
 #[derive(Debug, Clone)]
 pub struct Suggestion {
+    rule: String,
     suggestion: String,
     span: Span,
 }
 
 impl Suggestion {
-    pub fn from(suggesion: String, span: Span) -> Self {
+    pub fn from(suggesion: String, span: Span, rule: String) -> Self {
         Self {
+            rule,
             suggestion: suggesion,
             span,
         }
@@ -262,7 +264,7 @@ impl File {
                     );
                     let line_symbol = "|".blue().bold();
                     for suggestion in &self.suggestions {
-                        println!("\t{}", suggestion.suggestion.bold());
+                        println!("  {}:\t{}", suggestion.rule.yellow().bold(), suggestion.suggestion.bold());
                         for (i, line) in self.content.lines().enumerate() {
                             if i == suggestion.span.line - 1 {
                                 println!(

@@ -22,6 +22,7 @@ impl Rule for E003 {
                                             format!("The method {} has no modifiers.", method_name)
                                                 .to_string(),
                                             concretemethod.function,
+                                            "E003".to_string(),
                                         ))
                                     }
                                 }
@@ -39,6 +40,7 @@ impl Rule for E003 {
                                             )
                                             .to_string(),
                                             constructor.function,
+                                            "E003".to_string(),
                                         ))
                                     }
                                 }

@@ -33,6 +33,7 @@ impl Rule for E009 {
                             "This method body is too complex. Make it easier to understand."
                                 .to_string(),
                             concretemethod.function,
+                                                "E009".to_string()
                         ));
                                     }
                                 }

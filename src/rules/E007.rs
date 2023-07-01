@@ -29,7 +29,9 @@ impl Rule for E007 {
                                     if parameters.inner.len() > 5 {
                                         suggestions.push(Suggestion::from(
                                 "This method has too many parameters. More than 5 parameters is considered a too much. Try passing an object containing these values.".to_string(),
-                                concretemethod.function));
+                                concretemethod.function,
+                                                "E007".to_string()
+                                            ));
                                     }
                                 }
                             }
@@ -45,7 +47,8 @@ impl Rule for E007 {
                                     if parameters.inner.len() > 5 {
                                         suggestions.push(Suggestion::from(
                                 "This method has too many parameters. More than 5 parameters is considered a too much. Try passing an object containing these values.".to_string(),
-                                concreteconstructor.function));
+                                concreteconstructor.function,
+                                            "E007".to_string()));
                                     }
                                 }
                             }
