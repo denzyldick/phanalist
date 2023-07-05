@@ -161,6 +161,7 @@ impl Project {
                 std::io::stdin().read_line(&mut answer).unwrap();
 
                 if answer.trim().to_lowercase() == "y" {
+                if answer.trim().to_lowercase() == "y" || answer.trim().to_lowercase() == "yes" {
                     let mut disable = Vec::new();
                     disable.push("DUMMY_ERROR".to_string());
                     let config = Config {
