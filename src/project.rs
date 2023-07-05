@@ -154,6 +154,7 @@ impl Project {
             Err(e) if e.kind() == ErrorKind::NotFound => {
                 println!("No configuration file named phanalist.yaml has been found. ");
                 println!("Do you want to automatticaly create  configuration file? [Y/n]");
+                println!("Do you want to create configuration file? [Y/n]");
 
                 let mut answer = String::new();
 
