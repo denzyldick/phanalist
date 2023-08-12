@@ -3,3 +3,6 @@
 .vscode
 test-big-projects
 phanalist.yaml
+*.php
+
+/vendor/

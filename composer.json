@@ -1,0 +1,14 @@
+{
+  "name": "denzyl/phanalist",
+  "description": "A opinionated and fast static analyzer.",
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Denzyl Dick",
+      "email": "ddenzyl@gmail.com"
+    }
+  ],
+  "require": {},
+  "bin": []
+}
