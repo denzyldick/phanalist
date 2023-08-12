@@ -1,29 +1,28 @@
-use std::collections::HashMap;
-
-use crate::project::{Config, Suggestion};
-
-use php_parser_rs::parser::ast::classes::ClassStatement;
-
+use crate::project::{File, Suggestion};
 use php_parser_rs::parser;
+use php_parser_rs::parser::ast::classes::ClassStatement;
 use php_parser_rs::parser::ast::control_flow::{IfStatement, IfStatementBody};
 use php_parser_rs::parser::ast::loops::{
     ForStatementBody, ForeachStatement, ForeachStatementBody, WhileStatementBody,
 };
 use php_parser_rs::parser::ast::try_block::CatchBlock;
+use std::collections::HashMap;
 
 use php_parser_rs::parser::ast::{namespaces, BlockStatement, Statement, SwitchStatement};
 
 pub trait Rule {
     fn validate(&self, statement: &Statement) -> Vec<Suggestion>;
+    fn set_file(&self, file: File) {}
 }
 
 pub struct Analyse {
     rules: HashMap<String, Box<dyn Rule>>,
+    file: File,
 }
 
 use crate::rules;
 impl Analyse {
-    pub fn new(disable: Vec<String>) -> Self {
+    pub fn new(disable: Vec<String>, file: File) -> Self {
         let mut rules = HashMap::new();
         // @todo refactor this code below
         if disable.contains(&"E001".to_string()) == false {
@@ -90,7 +89,7 @@ impl Analyse {
         if disable.contains(&"E0010".to_string()) == false {
             rules.insert(
                 "E0010".to_string(),
-                Box::new(rules::E0010::E0010 {}) as Box<dyn Rule>,
+                Box::new(rules::E0010::E0010 { file: file.clone() }) as Box<dyn Rule>,
             );
         }
         if disable.contains(&"E0011".to_string()) == false {
@@ -99,7 +98,7 @@ impl Analyse {
                 Box::new(rules::E0011::E0011 {}) as Box<dyn Rule>,
             );
         }
-        let analyse = Self { rules };
+        let analyse = Self { rules, file };
         analyse
     }
 
@@ -111,6 +110,7 @@ impl Analyse {
         }
         suggestions
     }
+
     fn expand(&self, statement: &Statement, rule: &Box<dyn Rule>) -> Vec<Suggestion> {
         let mut suggestions = Vec::new();
         suggestions.append(&mut rule.validate(statement));
@@ -284,11 +284,5 @@ impl Analyse {
             _ => {}
         };
         suggestions
-    }
-}
-
-impl Default for Analyse {
-    fn default() -> Self {
-        Self::new(vec![])
     }
 }

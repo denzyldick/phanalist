@@ -22,7 +22,7 @@ impl Rule for E004 {
                                             entry.name.value.to_string()
                                         ),
                                         entry.name.span,
-                                        "E004".to_string()
+                                        "E004".to_string(),
                                     ))
                                 }
                             }

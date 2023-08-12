@@ -1,8 +1,7 @@
-use std::fmt::Debug;
-
 use crate::project::File;
 use rocksdb::DB;
 use serde::Serialize;
+use std::fmt::Debug;
 
 pub fn put<T: Serialize + Debug>(db: &DB, key: String, file: T) -> &DB {
     let _bytes = match serde_json::to_string(&file) {

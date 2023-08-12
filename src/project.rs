@@ -2,19 +2,19 @@ use colored::*;
 use php_parser_rs::lexer::token::Span;
 use php_parser_rs::parser::ast::classes::{ClassMember, ClassStatement};
 
+use php_parser_rs::parser::ast::functions::ConcreteMethod;
 use rocksdb::{IteratorMode, DB};
 use std::io::{ErrorKind, Write};
 use std::sync::mpsc::Sender;
 
+use crate::analyse::Analyse;
+use crate::storage;
 use jwalk::WalkDir;
 use php_parser_rs::parser;
 use php_parser_rs::parser::ast::Statement;
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
-
-use crate::analyse::Analyse;
-use crate::storage;
 
 #[derive(Debug)]
 pub struct Project {
@@ -88,7 +88,6 @@ impl Project {
                 Err(_) => {}
             }
         }
-
         project.db = Some(DB::open_default(&project.config.storage).unwrap());
         project
     }
@@ -111,6 +110,7 @@ impl Project {
             };
         }
     }
+
     pub fn scan(&self) -> i64 {
         let (send, recv) = std::sync::mpsc::channel();
         let path = self.config.src.clone();
@@ -131,19 +131,23 @@ impl Project {
         let db = self.db.as_ref().unwrap();
         let mut files = 0;
         for (content, path) in recv {
+            let ast = parse_code(&content).unwrap();
             let file = &mut File {
                 content,
                 path: path.clone(),
-                ast: Vec::new(),
+                ast: ast.clone(),
                 members: Vec::new(),
+                methods: Vec::new(),
                 suggestions: Vec::new(),
             };
-            storage::put(&db, path.display().to_string(), file.clone());
 
+            file.build_metadata();
+            storage::put(&db, file.get_fully_qualified_name().unwrap(), file.clone());
             files = files + 1;
         }
         files
     }
+
     /// Parse the configuration yaml file.
     /// If there is no configuration file, create a new new one.
     pub fn parse_config(&mut self) {
@@ -153,14 +157,12 @@ impl Project {
         self.config = match fs::read_to_string(path) {
             Err(e) if e.kind() == ErrorKind::NotFound => {
                 println!("No configuration file named phanalist.yaml has been found. ");
-                println!("Do you want to automatticaly create  configuration file? [Y/n]");
                 println!("Do you want to create configuration file? [Y/n]");
 
                 let mut answer = String::new();
 
                 std::io::stdin().read_line(&mut answer).unwrap();
 
-                if answer.trim().to_lowercase() == "y" {
                 if answer.trim().to_lowercase() == "y" || answer.trim().to_lowercase() == "yes" {
                     let mut disable = Vec::new();
                     disable.push("DUMMY_ERROR".to_string());
@@ -172,7 +174,7 @@ impl Project {
                     };
 
                     let t = serde_yaml::to_string(&config).unwrap();
-                    println!("New configuration file as been created: phanalist.yaml");
+                    println!("The new configuration file as been created: phanalist.yaml");
                     println!("{t}");
                     let mut file = std::fs::File::create("./phanalist.yaml").unwrap();
                     file.write_all(t.as_bytes()).unwrap();
@@ -197,9 +199,9 @@ impl Project {
         };
     }
 
-    /// analyse the code.
+    /// Analyze the code.
     pub fn analyze(mut file: File, disable: Vec<String>) -> Vec<Suggestion> {
-        let analyse: Analyse = Analyse::new(disable);
+        let analyse: Analyse = Analyse::new(disable, file.clone());
         for statement in file.ast.clone() {
             let suggestions = analyse.statement(statement);
             for suggestion in suggestions {
@@ -244,6 +246,8 @@ pub struct File {
 
     #[serde(skip_serializing, skip_deserializing)]
     pub suggestions: Vec<Suggestion>,
+
+    pub methods: Vec<ConcreteMethod>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -253,6 +257,107 @@ pub enum Output {
 }
 
 impl File {
+    /// Build metadata public methods, variables, contstants, etc.
+    /// @todo add properties and constants.
+    pub fn build_metadata(&mut self) {
+        self.ast.iter().for_each(|statement| {
+            if let Statement::Class(ClassStatement {
+                attributes: _,
+                modifiers: _,
+                class: _,
+                name: _,
+                extends: _,
+                implements: _,
+                body,
+            }) = statement
+            {
+                for member in &body.members {
+                    match member {
+                        php_parser_rs::parser::ast::classes::ClassMember::ConcreteMethod(
+                            _concrete_method,
+                        ) => {
+                            self.members.push(member.clone());
+                        }
+                        _ => {}
+                    };
+                }
+            };
+        });
+    }
+    /// Return the namespace of the statement.
+    /// @todo make sure it also works with unbraced namepspace.
+    fn get_namespace(&self) -> Option<String> {
+        let mut namespace: Option<String> = None;
+        self.ast.iter().for_each(|statement| {
+            namespace = match statement {
+                Statement::Namespace(parser::ast::namespaces::NamespaceStatement::Braced(n)) => {
+                    Some(n.name.clone().unwrap().value.to_string())
+                }
+                Statement::Namespace(parser::ast::namespaces::NamespaceStatement::Unbraced(n)) => {
+                    Some("".to_string())
+                }
+                _ => Some("".to_string()),
+            };
+        });
+        namespace
+    }
+
+    /// Get the class name inside a method body
+    /// @todo make sure it also works with unbraced namespace.
+    fn get_class_name(&self) -> Option<String> {
+        let mut class_name: Option<String> = None;
+        for statement in &self.ast {
+            match class_name {
+                None => {
+                    match statement {
+                        Statement::Namespace(
+                            parser::ast::namespaces::NamespaceStatement::Braced(n),
+                        ) => {
+                            for statement in &n.body.statements {
+                                match statement {
+                                    Statement::Class(ClassStatement {
+                                        attributes: _,
+                                        modifiers: _,
+                                        class: _,
+                                        name,
+                                        extends: _,
+                                        implements: _,
+                                        body: _,
+                                    }) => {
+                                        class_name = Some(name.value.to_string());
+                                    }
+                                    _ => (),
+                                }
+                            }
+                        }
+                        _ => {}
+                    };
+                    match statement {
+                        Statement::Class(ClassStatement {
+                            attributes: _,
+                            modifiers: _,
+                            class: _,
+                            name,
+                            extends: _,
+                            implements: _,
+                            body: _,
+                        }) => {
+                            class_name = Some(name.value.to_string());
+                        }
+                        _ => (),
+                    }
+                }
+                _ => {}
+            }
+        }
+        class_name
+    }
+    pub fn get_fully_qualified_name(&self) -> Option<String> {
+        match self.get_namespace() {
+            Some(n) => Some(format!("{}\\{}", n, self.get_class_name().unwrap())),
+            None => Some(self.get_class_name().unwrap()),
+        }
+    }
     pub fn output(&mut self, location: Output) {
         match location {
             Output::STDOUT => {
@@ -266,7 +371,11 @@ impl File {
                     );
                     let line_symbol = "|".blue().bold();
                     for suggestion in &self.suggestions {
-                        println!("  {}:\t{}", suggestion.rule.yellow().bold(), suggestion.suggestion.bold());
+                        println!(
+                            "  {}:\t{}",
+                            suggestion.rule.yellow().bold(),
+                            suggestion.suggestion.bold()
+                        );
                         for (i, line) in self.content.lines().enumerate() {
                             if i == suggestion.span.line - 1 {
                                 println!(
