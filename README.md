@@ -5,6 +5,7 @@
 ***_TLDR; A static analyzer for PHP. It helps you catch common mistakes in your PHP code._***
  
 
+
 These are the current checks implemented.
 - [x] Detect when the cyclomatic complexity of a method is too high. The current threshold is 10. 
 - [ ] Extending undefined classes.
@@ -30,7 +31,7 @@ will compile the source code and create an executable. The executable is located
 You can also use the docker image. Run the docker images inside your PHP project. 
 
 ```bash
-$ docker run -v $(pwd):/var/src ghcr.io/denzyldick/phanalist:latest
+$ docker run -it -v $(pwd):/var/src ghcr.io/denzyldick/phanalist:latest
 
 ```
 
