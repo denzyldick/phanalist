@@ -1,12 +1,11 @@
-# Start with a rust alpine image
-FROM ubuntu:latest as build 
-RUN apt update 
-RUN apt install -y rustc cargo clang
-WORKDIR /app
-COPY ./ /app
-RUN cargo build --release
+FROM rust:latest as builder
+RUN apt-get update && apt-get install -y \
+    clang \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /usr/src/phanalist
+COPY . .
+RUN cargo build --release 
 
-FROM alpine:latest  
-COPY --from=0 /app/target/release/phanalist .
-
-CMD ["./phanalist","--directory=/var/src"]
+FROM ubuntu:latest
+COPY --from=builder /usr/src/phanalist/target/release/phanalist /usr/local/bin/phanalist
+CMD ["phanalist"]
