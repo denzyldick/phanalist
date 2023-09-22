@@ -21,9 +21,7 @@ struct Args {
 }
 
 fn main() {
-    std::env::set_var("RUST_BACKTRACE", "1");
     let args = Args::parse();
-    println!("{args:#?}");
     if args.deamon {
         language_server_protocol::start();
     } else {
