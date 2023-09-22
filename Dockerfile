@@ -8,4 +8,5 @@ RUN cargo build --release
 
 FROM ubuntu:latest
 COPY --from=builder /usr/src/phanalist/target/release/phanalist /usr/local/bin/phanalist
+WORKDIR /var/src
 CMD ["phanalist"]
