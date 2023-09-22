@@ -6,9 +6,8 @@ use php_parser_rs::parser::ast::loops::{
     ForStatementBody, ForeachStatement, ForeachStatementBody, WhileStatementBody,
 };
 use php_parser_rs::parser::ast::try_block::CatchBlock;
-use std::collections::HashMap;
-
 use php_parser_rs::parser::ast::{namespaces, BlockStatement, Statement, SwitchStatement};
+use std::collections::HashMap;
 
 pub trait Rule {
     fn validate(&self, statement: &Statement) -> Vec<Suggestion>;

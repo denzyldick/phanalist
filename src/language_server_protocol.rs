@@ -16,7 +16,6 @@ pub(crate) fn start() {
 
     // Run the server
     let (id, params) = connection.initialize_start().unwrap();
-
     let init_params: InitializeParams = serde_json::from_value(params).unwrap();
     let client_capabilities: ClientCapabilities = init_params.capabilities;
     let server_capabilities = ServerCapabilities::default();
