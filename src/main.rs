@@ -7,7 +7,7 @@ mod language_server_protocol;
 mod project;
 mod rules;
 mod storage;
-///
+
 /// A static analyser for your PHP project.
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about=None)]

@@ -19,11 +19,6 @@ pub fn put<T: Serialize + Debug>(db: &DB, key: String, file: T) -> &DB {
     db
 }
 
-/// .
-///
-/// # Panics
-///
-/// Panics if .
 pub fn get(db: &DB, key: String) -> Option<File> {
     match db.get(key) {
         Ok(Some(f)) => {
