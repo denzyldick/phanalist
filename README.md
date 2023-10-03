@@ -31,9 +31,10 @@ $ docker run -it -v $(pwd):/var/src ghcr.io/denzyldick/phanalist:latest
 
 ```
 
-### Preview
+### 👁 Sneak preview.
 
-In this example phanalist is analysing 1 php file. 
+To illustrate the performance, I have decided to clone different random PHP projects from Github. With the 
+current rules implemented, I could scan many files in just a few seconds.  
 
 <img src=https://github.com/denzyldick/phanalist/blob/main/output.gif/>
 
