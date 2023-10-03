@@ -36,23 +36,7 @@ impl Rule for E0010 {
                         arrow,
                         method,
                         arguments,
-                    }) => {
-                        // println!("{:#?}", class_name_target);
-                        // prin;
-                        // println!("{:#?}", self.file.ast);
-                        /**
-                        @todo get the fully qualified name of the target class.
-                        Retrieve the metadata from the datastore.
-                        */
-
-                        /**
-                        The file struct is now available in the analyse struct.
-                        Find a way that the rule can say if they need the whole file.
-                        Like and extra interface or trait.
-                        */
-                        println!("{:#? }", target);
-                        println!("{:#?}", method);
-                    }
+                    }) => {}
                     _ => {}
                 }
             }
