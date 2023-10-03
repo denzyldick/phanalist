@@ -24,6 +24,7 @@ pub struct Project {
     pub working_dir: PathBuf,
     db: Option<DB>,
 }
+
 // Scan a directory and find all php files. When a
 // file has been found the content of the file will be sent to
 // as a message to the receiver.
@@ -142,8 +143,14 @@ impl Project {
             };
 
             file.build_metadata();
-            storage::put(&db, file.get_fully_qualified_name().unwrap(), file.clone());
-            files = files + 1;
+            match file.get_fully_qualified_name() {
+                Some(fqn) => {
+                    storage::put(&db, fqn, file.clone());
+
+                    files = files + 1;
+                }
+                None => {}
+            };
         }
         files
     }
@@ -285,7 +292,6 @@ impl File {
         });
     }
     /// Return the namespace of the statement.
-    /// @todo make sure it also works with unbraced namepspace.
     fn get_namespace(&self) -> Option<String> {
         let mut namespace: Option<String> = None;
         self.ast.iter().for_each(|statement| {
@@ -294,16 +300,15 @@ impl File {
                     Some(n.name.clone().unwrap().value.to_string())
                 }
                 Statement::Namespace(parser::ast::namespaces::NamespaceStatement::Unbraced(n)) => {
-                    Some("".to_string())
+                    Some(n.name.to_string())
                 }
-                _ => Some("".to_string()),
+                _ => None,
             };
         });
         namespace
     }
 
     /// Get the class name inside a method body
-    /// @todo make sure it also works with unbraced namespace.
     fn get_class_name(&self) -> Option<String> {
         let mut class_name: Option<String> = None;
         for statement in &self.ast {
@@ -314,6 +319,26 @@ impl File {
                             parser::ast::namespaces::NamespaceStatement::Braced(n),
                         ) => {
                             for statement in &n.body.statements {
+                                match statement {
+                                    Statement::Class(ClassStatement {
+                                        attributes: _,
+                                        modifiers: _,
+                                        class: _,
+                                        name,
+                                        extends: _,
+                                        implements: _,
+                                        body: _,
+                                    }) => {
+                                        class_name = Some(name.value.to_string());
+                                    }
+                                    _ => (),
+                                }
+                            }
+                        }
+                        Statement::Namespace(
+                            parser::ast::namespaces::NamespaceStatement::Unbraced(n),
+                        ) => {
+                            for statement in &n.statements {
                                 match statement {
                                     Statement::Class(ClassStatement {
                                         attributes: _,
@@ -354,8 +379,17 @@ impl File {
     }
     pub fn get_fully_qualified_name(&self) -> Option<String> {
         match self.get_namespace() {
-            Some(n) => Some(format!("{}\\{}", n, self.get_class_name().unwrap())),
-            None => Some(self.get_class_name().unwrap()),
+            Some(n) => {
+                let option = self.get_class_name();
+                match option {
+                    None => None,
+                    Some(s) => Some(format!("{}\\{}", n, s)),
+                }
+            }
+            None => match self.get_class_name() {
+                Some(c) => Some(c),
+                None => None,
+            },
         }
     }
     pub fn output(&mut self, location: Output) {
@@ -397,6 +431,7 @@ impl File {
         }
     }
 }
+
 /// Parse the code and generate an ast.
 pub fn parse_code(code: &str) -> Option<Vec<php_parser_rs::parser::ast::Statement>> {
     match parser::parse(code) {
