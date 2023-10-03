@@ -7,7 +7,7 @@ mod language_server_protocol;
 mod project;
 mod rules;
 mod storage;
-
+///
 /// A static analyser for your PHP project.
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about=None)]
@@ -20,7 +20,9 @@ struct Args {
     deamon: bool,
 }
 
+/// .
 fn main() {
+    std::env::set_var("RUST_BACKTRACE", "1");
     let args = Args::parse();
     if args.deamon {
         language_server_protocol::start();
