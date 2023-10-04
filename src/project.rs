@@ -297,7 +297,11 @@ impl File {
         self.ast.iter().for_each(|statement| {
             namespace = match statement {
                 Statement::Namespace(parser::ast::namespaces::NamespaceStatement::Braced(n)) => {
-                    Some(n.name.clone().unwrap().value.to_string())
+                    if n.name.is_some(){
+                        Some(n.name.clone().unwrap().value.to_string())
+                    }else{
+                        None
+                    }
                 }
                 Statement::Namespace(parser::ast::namespaces::NamespaceStatement::Unbraced(n)) => {
                     Some(n.name.to_string())
