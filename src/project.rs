@@ -3,6 +3,9 @@ use php_parser_rs::lexer::token::Span;
 use php_parser_rs::parser::ast::classes::{ClassMember, ClassStatement};
 
 use php_parser_rs::parser::ast::functions::ConcreteMethod;
+use php_parser_rs::parser::ast::namespaces::{
+    BracedNamespace, NamespaceStatement, UnbracedNamespace,
+};
 use rocksdb::{IteratorMode, DB};
 use std::io::{ErrorKind, Write};
 use std::sync::mpsc::Sender;
@@ -248,7 +251,6 @@ pub struct File {
     #[serde(skip_serializing, skip_deserializing)]
     pub ast: Vec<Statement>,
 
-    #[serde(skip_serializing, skip_deserializing)]
     pub members: Vec<ClassMember>,
 
     #[serde(skip_serializing, skip_deserializing)]
@@ -268,6 +270,38 @@ impl File {
     /// @todo add properties and constants.
     pub fn build_metadata(&mut self) {
         self.ast.iter().for_each(|statement| {
+            if let Statement::Namespace(NamespaceStatement::Unbraced(UnbracedNamespace {
+                start,
+                name,
+                end,
+                statements,
+            })) = statement
+            {
+                statements.iter().for_each(|statement| {
+                    if let Statement::Class(ClassStatement {
+                        attributes: _,
+                        modifiers: _,
+                        class: _,
+                        name: _,
+                        extends: _,
+                        implements: _,
+                        body,
+                    }) = statement
+                    {
+                        for member in &body.members {
+                            match member {
+                            php_parser_rs::parser::ast::classes::ClassMember::ConcreteMethod(
+                                _concrete_method,
+                            ) => {
+                                self.members.push(member.clone());
+                            }
+                            _ => {}
+                        };
+                        }
+                    };
+                })
+            };
+
             if let Statement::Class(ClassStatement {
                 attributes: _,
                 modifiers: _,
@@ -291,15 +325,16 @@ impl File {
             };
         });
     }
+
     /// Return the namespace of the statement.
     fn get_namespace(&self) -> Option<String> {
         let mut namespace: Option<String> = None;
         self.ast.iter().for_each(|statement| {
             namespace = match statement {
                 Statement::Namespace(parser::ast::namespaces::NamespaceStatement::Braced(n)) => {
-                    if n.name.is_some(){
+                    if n.name.is_some() {
                         Some(n.name.clone().unwrap().value.to_string())
-                    }else{
+                    } else {
                         None
                     }
                 }
@@ -381,6 +416,7 @@ impl File {
         }
         class_name
     }
+
     pub fn get_fully_qualified_name(&self) -> Option<String> {
         match self.get_namespace() {
             Some(n) => {
@@ -396,6 +432,7 @@ impl File {
             },
         }
     }
+
     pub fn output(&mut self, location: Output) {
         match location {
             Output::STDOUT => {

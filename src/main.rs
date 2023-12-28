@@ -22,6 +22,7 @@ struct Args {
 
 /// .
 fn main() {
+    println!("Phanalist running. ");
     std::env::set_var("RUST_BACKTRACE", "1");
     let args = Args::parse();
     if args.deamon {
