@@ -19,7 +19,7 @@ pub struct Analyse {
     file: File,
 }
 
-use crate::rules;
+use crate::rules::{self, E0010};
 impl Analyse {
     pub fn new(disable: Vec<String>, file: File) -> Self {
         let mut rules = HashMap::new();
@@ -88,7 +88,7 @@ impl Analyse {
         if disable.contains(&"E0010".to_string()) == false {
             rules.insert(
                 "E0010".to_string(),
-                Box::new(rules::E0010::E0010 { file: file.clone() }) as Box<dyn Rule>,
+                Box::new(E0010::E0010::new(file.clone())) as Box<dyn Rule>,
             );
         }
         if disable.contains(&"E0011".to_string()) == false {
