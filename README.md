@@ -38,3 +38,11 @@ current rules implemented, I could scan many files in just a few seconds.
 
 [![asciicast](https://asciinema.org/a/611811.svg)](https://asciinema.org/a/611811)
 
+### Development
+
+You will need the rust toolchain to contribute or compile from the source. Phanalist also has a dependency that is written in c. So, that means you are also required to install the following packages. 
+
+##### Debian based
+```bash
+sudo apt install clang
+```
