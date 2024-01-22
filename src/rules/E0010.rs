@@ -39,7 +39,7 @@ impl Rule for E0010 {
                     }
                     _ => None,
                 };
-                println!("{:#?}", self.file.members.len());
+                // println!("{:#?}", self.file.members.len());
                 match &ExpressionStatement.expression {
                     php_parser_rs::parser::ast::Expression::MethodCall(MethodCallExpression {
                         target,
