@@ -1,12 +1,9 @@
-use php_parser_rs::{
-    node::Node,
-    parser::ast::{
-        classes::ClassMember,
-        control_flow::{self, IfStatement},
-        functions::MethodBody,
-        loops::{WhileStatement, WhileStatementBody},
-        BlockStatement, Expression, ExpressionStatement, Statement,
-    },
+use php_parser_rs::parser::ast::{
+    classes::ClassMember,
+    control_flow::{self, IfStatement},
+    functions::MethodBody,
+    loops::{WhileStatement, WhileStatementBody},
+    BlockStatement, ExpressionStatement, Statement,
 };
 
 use crate::{analyse::Rule, project::Suggestion};
@@ -19,11 +16,24 @@ struct Graph {
     p: i64,
 }
 
-impl Graph {
+trait NewTrait {
+    fn new() -> Self;
+    fn calculate(&self) -> i64;
+
+    fn increase_node(&mut self);
+
+    fn increase_edge(&mut self);
+
+    fn increase_exit_node(&mut self);
+
+    fn merge(&mut self, c: &mut Graph);
+}
+
+impl NewTrait for Graph {
     fn new() -> Self {
         Self { n: 0, e: 0, p: 0 }
     }
-    pub fn calculate(&self) -> i64 {
+    fn calculate(&self) -> i64 {
         self.n - self.e + (2 * self.p)
     }
 
