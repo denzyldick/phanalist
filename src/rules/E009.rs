@@ -105,11 +105,6 @@ impl Rule for E009 {
         suggestions
     }
 }
-/// .
-///
-/// # Panics
-///
-/// Panics if .
 fn calculate_cyclomatic_complexity(
     mut statements: Vec<Statement>,
     graph: &mut Graph,
