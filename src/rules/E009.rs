@@ -84,6 +84,7 @@ impl Rule for E009 {
                                         &mut graph,
                                     );
 
+                                    println!("{}", graph.calculate());
                                     if graph.calculate() > 10 {
                                         suggestions.push(Suggestion::from(
                             "This method body is too complex. Make it easier to understand."
