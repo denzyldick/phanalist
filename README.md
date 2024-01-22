@@ -2,6 +2,8 @@
 
 ***_TLDR: ⏲️ A static analyzer for PHP. It helps you catch common mistakes in your PHP code._***
 
+> ***In the early stages of development.***
+
 ### :stop_sign: Rules
 These are the current checks implemented.
 - [x] Detect when the cyclomatic complexity of a method is too high. The current threshold is 10. 
@@ -17,7 +19,7 @@ These are the current checks implemented.
 - [x] Correct location for the PHP opening tag.
 
 ### 🔗 How to compile and run
-To successfully run this project, you must first install the rust toolchain. If everything was
+To run this project successfully, you must first install the rust toolchain. If everything was
 installed successfully, you must download this project and run `cargo build.` This command 
 will compile the source code and create an executable. The executable is located inside the 
 `target/debug` folder. You can just run this executable inside of your PHP project.
@@ -38,7 +40,7 @@ current rules implemented, I could scan many files in just a few seconds.
 
 [![asciicast](https://asciinema.org/a/611811.svg)](https://asciinema.org/a/611811)
 
-### Development
+### 🛠️ Development
 
 You will need the rust toolchain to contribute or compile from the source. Phanalist also has a dependency that is written in c. So, that means you are also required to install the following packages. 
 
