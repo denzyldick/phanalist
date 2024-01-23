@@ -49,12 +49,12 @@ You will need the rust toolchain to contribute or compile from the source. Phana
 sudo apt install clang
 ```
 
-####### Articles
+#### Articles
 
-If you want to contribute to this project, read a series of chapters on my [https://dev.to/denzyldick](https://dev.to/denzyldick account. It 
+Read a series of chapters on my [https://dev.to/denzyldick](https://dev.to/denzyldick) account to understand the project's internals. It 
 is a great, easy-to-read introduction to this project. 
 
-1. [Write your own static analyzer for PHP.]([url](https://dev.to/denzyldick/the-beginning-of-my-php-static-analyzer-in-rust-5bp8)https://dev.to/denzyldick/the-beginning-of-my-php-static-analyzer-in-rust-5bp8)
-2. [How I made it impossible to write spaghetti code.]([url](https://dev.to/denzyldick/how-i-made-it-impossible-to-write-spaghetti-code-dg4)https://dev.to/denzyldick/how-i-made-it-impossible-to-write-spaghetti-code-dg4).
-3. [Detecting spaghetti code in AST of a PHP source code.]([url](https://dev.to/denzyldick/traversing-an-ast-of-php-source-code-2kee)https://dev.to/denzyldick/traversing-an-ast-of-php-source-code-2kee)
+1. [Write your own static analyzer for PHP.](https://dev.to/denzyldick/the-beginning-of-my-php-static-analyzer-in-rust-5bp8)
+2. [How I made it impossible to write spaghetti code.](https://dev.to/denzyldick/how-i-made-it-impossible-to-write-spaghetti-code-dg4)
+3. [Detecting spaghetti code in AST of a PHP source code.](https://dev.to/denzyldick/traversing-an-ast-of-php-source-code-2kee)
 
