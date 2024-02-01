@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use php_parser_rs::parser::ast::{
-    identifiers::SimpleIdentifier, variables::SimpleVariable, ExpressionStatement,
-    MethodCallExpression, NewExpression, Statement,
+    identifiers::SimpleIdentifier,
+    MethodCallExpression, NewExpression,
 };
 
 use crate::{analyse::Rule, project::File};
@@ -14,7 +14,7 @@ pub struct E0010 {
 impl E0010 {
     pub fn new(file: File) -> E0010 {
         E0010 {
-            file: file,
+            file,
             scope: HashMap::new(),
         }
     }
@@ -26,13 +26,13 @@ impl Rule for E0010 {
     ) -> Vec<crate::project::Suggestion> {
         match statement {
             php_parser_rs::parser::ast::Statement::Expression(ExpressionStatement) => {
-                let class_name_target = match &ExpressionStatement.expression {
+                let _class_name_target = match &ExpressionStatement.expression {
                     php_parser_rs::parser::ast::Expression::AssignmentOperation(Assign) => {
                         match Assign.right() {
                             php_parser_rs::parser::ast::Expression::New(NewExpression {
-                                new,
+                                new: _,
                                 target,
-                                arguments,
+                                arguments: _,
                             }) => Some(target),
                             _ => None,
                         }
@@ -42,10 +42,10 @@ impl Rule for E0010 {
                 // println!("{:#?}", self.file.members.len());
                 match &ExpressionStatement.expression {
                     php_parser_rs::parser::ast::Expression::MethodCall(MethodCallExpression {
-                        target,
-                        arrow,
-                        method,
-                        arguments,
+                        target: _,
+                        arrow: _,
+                        method: _,
+                        arguments: _,
                     }) => {}
                     _ => {}
                 }

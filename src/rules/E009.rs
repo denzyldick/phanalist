@@ -38,21 +38,21 @@ impl NewTrait for Graph {
     }
 
     fn increase_node(&mut self) {
-        self.n = self.n + 1;
+        self.n += 1;
     }
 
     fn increase_edge(&mut self) {
-        self.e = self.e + 1;
+        self.e += 1;
     }
 
     fn increase_exit_node(&mut self) {
-        self.p = self.p + 1;
+        self.p += 1;
     }
 
     fn merge(&mut self, c: &mut Graph) {
-        self.n = self.n + c.n;
-        self.e = self.e + c.e;
-        self.p = self.p + c.p
+        self.n += c.n;
+        self.e += c.e;
+        self.p += c.p
     }
 }
 #[test]
@@ -108,7 +108,7 @@ fn calculate_cyclomatic_complexity(
     mut statements: Vec<Statement>,
     graph: &mut Graph,
 ) -> &mut Graph {
-    if statements.len() > 0 {
+    if !statements.is_empty() {
         let statement: Statement = statements.pop().unwrap();
         return match statement {
             Statement::Expression(ExpressionStatement {

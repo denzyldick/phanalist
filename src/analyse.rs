@@ -11,7 +11,7 @@ use std::collections::HashMap;
 
 pub trait Rule {
     fn validate(&self, statement: &Statement) -> Vec<Suggestion>;
-    fn set_file(&self, file: File) {}
+    fn set_file(&self, _file: File) {}
 }
 
 pub struct Analyse {
@@ -24,87 +24,87 @@ impl Analyse {
     pub fn new(disable: Vec<String>, file: File) -> Self {
         let mut rules = HashMap::new();
         // @todo refactor this code below
-        if disable.contains(&"E001".to_string()) == false {
+        if !disable.contains(&"E001".to_string()) {
             rules.insert(
                 "E001".to_string(),
                 Box::new(rules::E001::E001 {}) as Box<dyn Rule>,
             );
         }
 
-        if disable.contains(&"E002".to_string()) == false {
+        if !disable.contains(&"E002".to_string()) {
             rules.insert(
                 "E002".to_string(),
                 Box::new(rules::E002::E002 {}) as Box<dyn Rule>,
             );
         }
 
-        if disable.contains(&"E003".to_string()) == false {
+        if !disable.contains(&"E003".to_string()) {
             rules.insert(
                 "E003".to_string(),
                 Box::new(rules::E003::E003 {}) as Box<dyn Rule>,
             );
         }
 
-        if disable.contains(&"E004".to_string()) == false {
+        if !disable.contains(&"E004".to_string()) {
             rules.insert(
                 "E004".to_string(),
                 Box::new(rules::E004::E004 {}) as Box<dyn Rule>,
             );
         }
-        if disable.contains(&"E005".to_string()) == false {
+        if !disable.contains(&"E005".to_string()) {
             rules.insert(
                 "E005".to_string(),
                 Box::new(rules::E005::E005 {}) as Box<dyn Rule>,
             );
         }
 
-        if disable.contains(&"E006".to_string()) == false {
+        if !disable.contains(&"E006".to_string()) {
             rules.insert(
                 "E006".to_string(),
                 Box::new(rules::E006::E006 {}) as Box<dyn Rule>,
             );
         }
 
-        if disable.contains(&"E007".to_string()) == false {
+        if !disable.contains(&"E007".to_string()) {
             rules.insert(
                 "E007".to_string(),
                 Box::new(rules::E007::E007 {}) as Box<dyn Rule>,
             );
         }
 
-        if disable.contains(&"E008".to_string()) == false {
+        if !disable.contains(&"E008".to_string()) {
             rules.insert(
                 "E008".to_string(),
                 Box::new(rules::E008::E008 {}) as Box<dyn Rule>,
             );
         }
 
-        if disable.contains(&"E009".to_string()) == false {
+        if !disable.contains(&"E009".to_string()) {
             rules.insert(
                 "E009".to_string(),
                 Box::new(rules::E009::E009 {}) as Box<dyn Rule>,
             );
         }
-        if disable.contains(&"E0010".to_string()) == false {
+        if !disable.contains(&"E0010".to_string()) {
             rules.insert(
                 "E0010".to_string(),
                 Box::new(E0010::E0010::new(file.clone())) as Box<dyn Rule>,
             );
         }
-        if disable.contains(&"E0011".to_string()) == false {
+        if !disable.contains(&"E0011".to_string()) {
             rules.insert(
                 "E0011".to_string(),
                 Box::new(rules::E0011::E0011 {}) as Box<dyn Rule>,
             );
         }
-        let analyse = Self { rules, file };
-        analyse
+        
+        Self { rules, file }
     }
 
     pub fn statement(&self, statement: parser::ast::Statement) -> Vec<Suggestion> {
         let mut suggestions = Vec::new();
         let rules = &self.rules;
-        for (_, rule) in rules.into_iter() {
+        for (_, rule) in rules.iter() {
             suggestions.append(&mut self.expand(&statement, rule));
         }
         suggestions
@@ -182,7 +182,7 @@ impl Analyse {
                             ending: _,
                         } => {
                             for statement in statements {
-                                suggestions.append(&mut &mut self.expand(statement, rule));
+                                suggestions.append(&mut self.expand(statement, rule));
                             }
                         }
                         IfStatementBody::Statement {
@@ -201,11 +201,11 @@ impl Analyse {
                     ending: _,
                 } => {
                     for statement in statements {
-                        suggestions.append(&mut self.expand(&statement, rule));
+                        suggestions.append(&mut self.expand(statement, rule));
                     }
                 }
                 WhileStatementBody::Statement { statement } => {
-                    suggestions.append(&mut self.expand(&statement, rule));
+                    suggestions.append(&mut self.expand(statement, rule));
                 }
             },
             Statement::Switch(SwitchStatement {
@@ -250,11 +250,11 @@ impl Analyse {
                     ending: _,
                 } => {
                     for statement in statements {
-                        suggestions.append(&mut self.expand(&statement, rule));
+                        suggestions.append(&mut self.expand(statement, rule));
                     }
                 }
                 ForStatementBody::Statement { statement } => {
-                    suggestions.append(&mut self.expand(&statement, rule))
+                    suggestions.append(&mut self.expand(statement, rule))
                 }
             },
             Statement::Block(BlockStatement {

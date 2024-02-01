@@ -4,7 +4,7 @@ use serde::Serialize;
 use std::fmt::Debug;
 
 pub fn put<T: Serialize + Debug>(db: &DB, key: String, file: T) -> &DB {
-    let _bytes = match serde_json::to_string(&file) {
+    match serde_json::to_string(&file) {
         Ok(o) => {
             match db.put(key, o) {
                 Err(_e) => {}
