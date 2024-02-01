@@ -4,7 +4,7 @@ use php_parser_rs::parser::ast::classes::{ClassMember, ClassStatement};
 
 use php_parser_rs::parser::ast::functions::ConcreteMethod;
 use php_parser_rs::parser::ast::namespaces::{
-    BracedNamespace, NamespaceStatement, UnbracedNamespace,
+    NamespaceStatement, UnbracedNamespace,
 };
 use rocksdb::{IteratorMode, DB};
 use std::io::{ErrorKind, Write};
@@ -40,18 +40,16 @@ pub fn scan_folder(current_dir: PathBuf, sender: Sender<(String, PathBuf)>) {
             Some(f) => String::from(f.to_str().unwrap()),
             None => String::from(""),
         };
-        if file_name != "." || file_name != "" {
-            if metadata.is_file() {
-                if let Some(extension) = path.extension() {
-                    if extension == "php" {
-                        let content = fs::read_to_string(entry.path());
-                        match content {
-                            Err(_) => {
-                                // println!("{err:?}");
-                            }
-                            Ok(content) => {
-                                sender.send((content, path)).unwrap();
-                            }
+        if (file_name != "." || !file_name.is_empty()) && metadata.is_file() {
+            if let Some(extension) = path.extension() {
+                if extension == "php" {
+                    let content = fs::read_to_string(entry.path());
+                    match content {
+                        Err(_) => {
+                            // println!("{err:?}");
+                        }
+                        Ok(content) => {
+                            sender.send((content, path)).unwrap();
                         }
                     }
                 }
@@ -148,9 +146,9 @@ impl Project {
             file.build_metadata();
             match file.get_fully_qualified_name() {
                 Some(fqn) => {
-                    storage::put(&db, fqn, file.clone());
+                    storage::put(db, fqn, file.clone());
 
-                    files = files + 1;
+                    files += 1;
                 }
                 None => {}
             };
@@ -271,9 +269,9 @@ impl File {
     pub fn build_metadata(&mut self) {
         self.ast.iter().for_each(|statement| {
             if let Statement::Namespace(NamespaceStatement::Unbraced(UnbracedNamespace {
-                start,
-                name,
-                end,
+                start: _,
+                name: _,
+                end: _,
                 statements,
             })) = statement
             {
@@ -421,22 +419,16 @@ impl File {
         match self.get_namespace() {
             Some(n) => {
                 let option = self.get_class_name();
-                match option {
-                    None => None,
-                    Some(s) => Some(format!("{}\\{}", n, s)),
-                }
+                option.map(|s| format!("{}\\{}", n, s))
             }
-            None => match self.get_class_name() {
-                Some(c) => Some(c),
-                None => None,
-            },
+            None => self.get_class_name(),
         }
     }
 
     pub fn output(&mut self, location: Output) {
         match location {
             Output::STDOUT => {
-                if self.suggestions.len() > 0 {
+                if !self.suggestions.is_empty() {
                     let file_symbol = "--->".blue().bold();
                     println!("{} {} ", file_symbol, self.path.display());
                     println!(
@@ -463,9 +455,9 @@ impl File {
                                 );
                             }
                         }
-                        println!("");
+                        println!();
                     }
-                    println!("")
+                    println!()
                 }
             }
             Output::FILE => {}

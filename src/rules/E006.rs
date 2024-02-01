@@ -38,8 +38,8 @@ impl Rule for E006 {
 /// Check if the porperty has a modifier.
 pub fn property_without_modifiers(property: Property) -> bool {
     match property.modifiers {
-        PropertyModifierGroup { modifiers } => return modifiers.len() == 0,
-    };
+        PropertyModifierGroup { modifiers } => modifiers.is_empty(),
+    }
 }
 fn property_name(property: Property) -> Vec<std::string::String> {
     match property {
@@ -62,7 +62,7 @@ fn property_name(property: Property) -> Vec<std::string::String> {
                 };
                 names.push(name);
             }
-            return names;
+            names
         }
-    };
+    }
 }

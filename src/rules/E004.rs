@@ -15,11 +15,11 @@ impl Rule for E004 {
                     match member {
                         ClassMember::Constant(constant) => {
                             for entry in &constant.entries {
-                                if uppercased_constant_name(entry.clone()) == false {
+                                if !uppercased_constant_name(entry.clone()) {
                                     suggestions.push(Suggestion::from(
                                         format!(
                                             "All letters in a constant({}) should be uppercased.",
-                                            entry.name.value.to_string()
+                                            entry.name.value
                                         ),
                                         entry.name.span,
                                         "E004".to_string(),
@@ -46,12 +46,12 @@ pub fn uppercased_constant_name(entry: ConstantEntry) -> bool {
         } => {
             let mut is_uppercase = true;
             for l in name.value.to_string().chars() {
-                if l.is_uppercase() == false && l.is_alphabetic() {
+                if !l.is_uppercase() && l.is_alphabetic() {
                     is_uppercase = l.is_uppercase()
                 }
             }
 
-            return is_uppercase;
+            is_uppercase
         }
     }
 }
