@@ -1,12 +1,17 @@
-use crate::analyse::Rule;
-use crate::project::Suggestion;
 use php_parser_rs::parser::ast::classes::ClassMember;
 use php_parser_rs::parser::ast::modifiers::MethodModifierGroup;
 use php_parser_rs::parser::ast::Statement;
 
+use crate::project::Suggestion;
+use crate::rules::Rule;
+
 pub struct E003 {}
 
 impl Rule for E003 {
+    fn get_code(&self) -> String {
+        String::from("E003")
+    }
+
     fn validate(&self, statement: &Statement) -> Vec<Suggestion> {
         let mut suggestions = Vec::new();
 

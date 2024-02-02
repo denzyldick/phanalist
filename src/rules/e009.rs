@@ -6,7 +6,8 @@ use php_parser_rs::parser::ast::{
     BlockStatement, ExpressionStatement, Statement,
 };
 
-use crate::{analyse::Rule, project::Suggestion};
+use crate::project::Suggestion;
+use crate::rules::Rule;
 
 pub struct E009 {}
 
@@ -61,6 +62,10 @@ pub fn calculate() {
     assert_eq!(g.calculate(), 5);
 }
 impl Rule for E009 {
+    fn get_code(&self) -> String {
+        String::from("E009")
+    }
+
     fn validate(
         &self,
         statement: &php_parser_rs::parser::ast::Statement,

@@ -1,10 +1,16 @@
-use crate::analyse::Rule;
-use crate::project::Suggestion;
 use php_parser_rs::parser::ast::try_block::CatchBlock;
 use php_parser_rs::parser::ast::Statement;
 
+use crate::project::Suggestion;
+use crate::rules::Rule;
+
 pub struct E002 {}
+
 impl Rule for E002 {
+    fn get_code(&self) -> String {
+        String::from("E002")
+    }
+
     fn validate(&self, statement: &Statement) -> Vec<Suggestion> {
         let mut suggestions = Vec::new();
 

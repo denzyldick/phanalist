@@ -3,11 +3,35 @@ use php_parser_rs::parser::ast::{
     functions::{ConstructorParameterList, FunctionParameterList},
     Statement,
 };
+use serde_json::Value;
 
-use crate::{analyse::Rule, project::Suggestion};
+use crate::project::Suggestion;
+use crate::rules::Rule as Base;
 
-pub struct E007 {}
-impl Rule for E007 {
+pub struct Settings {
+    pub max_parameters: i32,
+}
+pub struct Rule {
+    pub settings: Settings,
+}
+
+impl Default for Rule {
+    fn default() -> Self {
+        Rule {
+            settings: Settings { max_parameters: 5 },
+        }
+    }
+}
+
+impl Base for Rule {
+    fn get_code(&self) -> String {
+        String::from("E007")
+    }
+
+    fn set_config(&mut self, _json: &Value) {
+        dbg!(_json);
+    }
+
     fn validate(
         &self,
         statement: &php_parser_rs::parser::ast::Statement,

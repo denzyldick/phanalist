@@ -1,9 +1,15 @@
-use crate::analyse::Rule;
-use crate::project::Suggestion;
 use php_parser_rs::parser::ast::Statement;
 
+use crate::project::Suggestion;
+use crate::rules::Rule;
+
 pub struct E001 {}
+
 impl Rule for E001 {
+    fn get_code(&self) -> String {
+        String::from("E001")
+    }
+
     fn validate(&self, statement: &Statement) -> Vec<Suggestion> {
         match statement {
             Statement::FullOpeningTag(tag) => {

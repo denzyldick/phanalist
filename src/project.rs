@@ -1,29 +1,31 @@
-use colored::*;
-use php_parser_rs::lexer::token::Span;
-use php_parser_rs::parser::ast::classes::{ClassMember, ClassStatement};
-
-use php_parser_rs::parser::ast::functions::ConcreteMethod;
-use php_parser_rs::parser::ast::namespaces::{NamespaceStatement, UnbracedNamespace};
-use rocksdb::{IteratorMode, DB};
-use std::io::{ErrorKind, Write};
+use std::collections::HashMap;
+use std::default::Default;
+use std::fs;
+use std::io::ErrorKind;
+use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 
-use crate::analyse::Analyse;
-use crate::storage;
+use colored::*;
 use jwalk::WalkDir;
+use php_parser_rs::lexer::token::Span;
 use php_parser_rs::parser;
+use php_parser_rs::parser::ast::classes::{ClassMember, ClassStatement};
+use php_parser_rs::parser::ast::functions::ConcreteMethod;
+use php_parser_rs::parser::ast::namespaces::{NamespaceStatement, UnbracedNamespace};
 use php_parser_rs::parser::ast::Statement;
-use std::collections::HashMap;
-use std::fs;
-use std::path::PathBuf;
+use rocksdb::{IteratorMode, DB};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+use crate::analyse::Analyse;
+use crate::config::{Config, Output};
+use crate::storage;
+
 pub struct Project {
     pub files: Vec<File>,
     pub classes: HashMap<String, ClassStatement>,
     pub config: Config,
-    pub working_dir: PathBuf,
     db: Option<DB>,
+    analyse: Option<Analyse>,
 }
 
 // Scan a directory and find all php files. When a
@@ -56,29 +58,21 @@ pub fn scan_folder(current_dir: PathBuf, sender: Sender<(String, PathBuf)>) {
     }
 }
 
-#[derive(Serialize, Debug, Deserialize, Clone)]
-pub struct Config {
-    pub src: String,
-    pub storage: String,
-    disable: Vec<String>,
-    output: Output,
-}
-
 impl Project {
-    pub fn new(work_dir: PathBuf) -> Self {
+    pub fn new(config_path: PathBuf, src: Option<String>) -> Self {
         let mut project = Self {
             files: Vec::new(),
             classes: HashMap::new(),
-            config: Config {
-                src: String::new(),
-                storage: String::new(),
-                disable: Vec::new(),
-                output: Output::STDOUT,
-            },
-            working_dir: work_dir,
+            config: Config::default(),
             db: None,
+            analyse: None,
         };
-        project.parse_config();
+        project.parse_config(config_path);
+
+        if let Some(src) = src {
+            project.config.src = src;
+        }
+
         let file_path = project.config.storage.clone();
         let file = std::path::Path::new(&file_path);
 
@@ -86,6 +80,9 @@ impl Project {
             let _ = fs::remove_dir_all(file);
         }
         project.db = Some(DB::open_default(&project.config.storage).unwrap());
+
+        project.analyse = Some(Analyse::new(project.config.clone()));
+
         project
     }
     /// Iterate over the list of files and analyse the code.
@@ -102,7 +99,7 @@ impl Project {
                 }
                 Ok(mut f) => {
                     f.ast = parse_code(f.content.as_str()).unwrap();
-                    Self::analyze(f, self.config.disable.clone());
+                    Self::analyze(f, self.analyse.as_ref().unwrap());
                 }
             };
         }
@@ -146,57 +143,41 @@ impl Project {
 
     /// Parse the configuration yaml file.
     /// If there is no configuration file, create a new new one.
-    pub fn parse_config(&mut self) {
-        let path = format!("{}/phanalist.yaml", self.working_dir.display());
-        println!("{}", self.working_dir.display());
-        println!("{}", path);
-        self.config = match fs::read_to_string(path) {
+    pub fn parse_config(&mut self, path: PathBuf) {
+        match fs::read_to_string(path.clone()) {
             Err(e) if e.kind() == ErrorKind::NotFound => {
-                println!("No configuration file named phanalist.yaml has been found. ");
-                println!("Do you want to create configuration file? [Y/n]");
+                println!("No configuration file {} has been found. Do you want to create configuration file? [Y/n]", &path.clone().display());
 
                 let mut answer = String::new();
-
                 std::io::stdin().read_line(&mut answer).unwrap();
 
                 if answer.trim().to_lowercase() == "y" || answer.trim().to_lowercase() == "yes" {
-                    let disable = vec!["DUMMY_ERROR".to_string()];
-                    let config = Config {
-                        src: String::from("./"),
-                        disable,
-                        storage: String::from("/tmp/phanalist"),
-                        output: Output::STDOUT,
-                    };
-
-                    let t = serde_yaml::to_string(&config).unwrap();
-                    println!("The new configuration file as been created: phanalist.yaml");
-                    println!("{t}");
-                    let mut file = std::fs::File::create("./phanalist.yaml").unwrap();
-                    file.write_all(t.as_bytes()).unwrap();
-                    config
-                } else {
-                    Config {
-                        src: String::from("./"),
-                        disable: Vec::new(),
-                        storage: String::from("/tmp/phanalist"),
-                        output: Output::STDOUT,
-                    }
-                }
+                    self.config.save(path.clone());
+                    println!(
+                        "The new {} configuration file as been created:",
+                        &path.display()
+                    );
+                };
             }
 
             Err(e) => {
                 panic!("{}", e)
             }
             Ok(s) => {
-                println!("Reading configuration from phanalist.yml");
-                serde_yaml::from_str(&s).unwrap()
+                println!("Using configuration file {}", &path.display());
+                match serde_yaml::from_str(&s) {
+                    Ok(c) => {
+                        self.config = c;
+                    }
+                    Err(e) => {
+                        println!("Unable to use the config: {}. Ignoring it.", &e);
+                    }
+                }
             }
         };
     }
 
-    /// Analyze the code.
-    pub fn analyze(mut file: File, disable: Vec<String>) -> Vec<Suggestion> {
-        let analyse: Analyse = Analyse::new(disable);
+    pub fn analyze(mut file: File, analyse: &Analyse) -> Vec<Suggestion> {
         for statement in file.ast.clone() {
             let suggestions = analyse.statement(statement);
             for suggestion in suggestions {
@@ -225,8 +206,6 @@ impl Suggestion {
     }
 }
 
-use serde::{Deserialize, Serialize};
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct File {
     pub path: PathBuf,
@@ -242,13 +221,6 @@ pub struct File {
     pub suggestions: Vec<Suggestion>,
 
     pub methods: Vec<ConcreteMethod>,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[allow(clippy::upper_case_acronyms)]
-pub enum Output {
-    STDOUT,
-    FILE,
 }
 
 impl File {
