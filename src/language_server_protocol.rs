@@ -1,13 +1,6 @@
 use lsp_types::{ClientCapabilities, InitializeParams, ServerCapabilities};
-use std::error::Error;
 
-use lsp_server::{Connection};
-
-fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
-    // ... Run main loop ...
-
-    Ok(())
-}
+use lsp_server::Connection;
 
 pub(crate) fn start() {
     // Create the transport. Includes the stdio (stdin and stdout) versions but this could
