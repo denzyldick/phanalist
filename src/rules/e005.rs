@@ -20,11 +20,13 @@ impl Rule for E005 {
 }
 pub fn has_capitalized_name(name: String, span: Span) -> Option<Suggestion> {
     if !name.chars().next().unwrap().is_uppercase() {
-        Some(Suggestion::from(
+        Some(
+            Suggestion::from(
                 format!("The class name {} is not capitlized. The first letter of the name of the class should be in uppercase.", name).to_string(),
                 span,
                 "E005".to_string()
-            ))
+            )
+        )
     } else {
         None
     }

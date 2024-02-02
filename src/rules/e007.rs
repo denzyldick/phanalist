@@ -26,11 +26,13 @@ impl Rule for E007 {
                             parameters,
                         } = &concretemethod.parameters;
                         if parameters.inner.len() > 5 {
-                            suggestions.push(Suggestion::from(
-                    "This method has too many parameters. More than 5 parameters is considered a too much. Try passing an object containing these values.".to_string(),
-                    concretemethod.function,
+                            suggestions.push(
+                                Suggestion::from(
+                                    "This method has too many parameters. More than 5 parameters is considered a too much. Try passing an object containing these values.".to_string(),
+                                    concretemethod.function,
                                     "E007".to_string()
-                                ));
+                                )
+                            );
                         }
                     }
                     ClassMember::ConcreteConstructor(concreteconstructor) => {
@@ -39,12 +41,15 @@ impl Rule for E007 {
                             left_parenthesis: _,
                             right_parenthesis: _,
                             parameters,
-                        } =  &concreteconstructor.parameters;
+                        } = &concreteconstructor.parameters;
                         if parameters.inner.len() > 5 {
-                            suggestions.push(Suggestion::from(
-                    "This method has too many parameters. More than 5 parameters is considered a too much. Try passing an object containing these values.".to_string(),
-                    concreteconstructor.function,
-                                "E007".to_string()));
+                            suggestions.push(
+                                Suggestion::from(
+                                    "This method has too many parameters. More than 5 parameters is considered a too much. Try passing an object containing these values.".to_string(),
+                                    concreteconstructor.function,
+                                    "E007".to_string()
+                                )
+                            );
                         }
                     }
                     _ => {}

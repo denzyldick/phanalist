@@ -1,6 +1,6 @@
 use lsp_types::{ClientCapabilities, InitializeParams, ServerCapabilities};
 
-use lsp_server::{Connection};
+use lsp_server::Connection;
 
 pub(crate) fn start() {
     // Create the transport. Includes the stdio (stdin and stdout) versions but this could

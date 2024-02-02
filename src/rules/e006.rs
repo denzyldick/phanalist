@@ -31,8 +31,8 @@ impl Rule for E006 {
 }
 /// Check if the porperty has a modifier.
 pub fn property_without_modifiers(property: Property) -> bool {
-     let PropertyModifierGroup { modifiers } = property.modifiers;
-     modifiers.is_empty()
+    let PropertyModifierGroup { modifiers } = property.modifiers;
+    modifiers.is_empty()
 }
 fn property_name(property: Property) -> Vec<std::string::String> {
     let Property {

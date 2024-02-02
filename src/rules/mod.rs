@@ -1,4 +1,6 @@
 pub mod e001;
+pub mod e0010;
+pub mod e0011;
 pub mod e002;
 pub mod e003;
 pub mod e004;
@@ -7,5 +9,3 @@ pub mod e006;
 pub mod e007;
 pub mod e008;
 pub mod e009;
-pub mod e0010;
-pub mod e0011;
