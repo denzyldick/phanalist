@@ -19,6 +19,7 @@ pub fn put<T: Serialize + Debug>(db: &DB, key: String, file: T) -> &DB {
     db
 }
 
+#[allow(dead_code)]
 pub fn get(db: &DB, key: String) -> Option<File> {
     match db.get(key) {
         Ok(Some(f)) => {

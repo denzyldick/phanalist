@@ -85,10 +85,7 @@ impl Project {
         let file = std::path::Path::new(&file_path);
 
         if file.is_dir() {
-            match fs::remove_dir_all(file) {
-                Ok(_) => {}
-                Err(_) => {}
-            }
+            let _ = fs::remove_dir_all(file);
         }
         project.db = Some(DB::open_default(&project.config.storage).unwrap());
         project
@@ -124,10 +121,7 @@ impl Project {
         let file = std::path::Path::new(&file_path);
 
         if file.is_dir() {
-            match fs::remove_dir_all(file) {
-                Ok(_) => {}
-                Err(_) => {}
-            }
+            let _ = fs::remove_dir_all(file);
         }
 
         let db = self.db.as_ref().unwrap();
@@ -144,13 +138,9 @@ impl Project {
             };
 
             file.build_metadata();
-            match file.get_fully_qualified_name() {
-                Some(fqn) => {
-                    storage::put(db, fqn, file.clone());
-
-                    files += 1;
-                }
-                None => {}
+            if let Some(fqn) = file.get_fully_qualified_name() {
+                storage::put(db, fqn, file.clone());
+                files += 1;
             };
         }
         files
@@ -172,8 +162,7 @@ impl Project {
                 std::io::stdin().read_line(&mut answer).unwrap();
 
                 if answer.trim().to_lowercase() == "y" || answer.trim().to_lowercase() == "yes" {
-                    let mut disable = Vec::new();
-                    disable.push("DUMMY_ERROR".to_string());
+                    let disable = vec!["DUMMY_ERROR".to_string()];
                     let config = Config {
                         src: String::from("./"),
                         disable,
@@ -209,7 +198,7 @@ impl Project {
 
     /// Analyze the code.
     pub fn analyze(mut file: File, disable: Vec<String>) -> Vec<Suggestion> {
-        let analyse: Analyse = Analyse::new(disable, file.clone());
+        let analyse: Analyse = Analyse::new(disable);
         for statement in file.ast.clone() {
             let suggestions = analyse.statement(statement);
             for suggestion in suggestions {
@@ -257,7 +246,9 @@ pub struct File {
     pub methods: Vec<ConcreteMethod>,
 }
 
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[allow(clippy::upper_case_acronyms)]
 pub enum Output {
     STDOUT,
     FILE,
@@ -287,14 +278,11 @@ impl File {
                     }) = statement
                     {
                         for member in &body.members {
-                            match member {
-                            php_parser_rs::parser::ast::classes::ClassMember::ConcreteMethod(
+                            if let php_parser_rs::parser::ast::classes::ClassMember::ConcreteMethod(
                                 _concrete_method,
-                            ) => {
+                            ) = member {
                                 self.members.push(member.clone());
-                            }
-                            _ => {}
-                        };
+                            };
                         }
                     };
                 })
@@ -311,13 +299,10 @@ impl File {
             }) = statement
             {
                 for member in &body.members {
-                    match member {
-                        php_parser_rs::parser::ast::classes::ClassMember::ConcreteMethod(
-                            _concrete_method,
-                        ) => {
-                            self.members.push(member.clone());
-                        }
-                        _ => {}
+                    if let php_parser_rs::parser::ast::classes::ClassMember::ConcreteMethod(
+                        _concrete_method,
+                    ) = member {
+                        self.members.push(member.clone());
                     };
                 }
             };
@@ -349,67 +334,55 @@ impl File {
     fn get_class_name(&self) -> Option<String> {
         let mut class_name: Option<String> = None;
         for statement in &self.ast {
-            match class_name {
-                None => {
-                    match statement {
-                        Statement::Namespace(
-                            parser::ast::namespaces::NamespaceStatement::Braced(n),
-                        ) => {
-                            for statement in &n.body.statements {
-                                match statement {
-                                    Statement::Class(ClassStatement {
-                                        attributes: _,
-                                        modifiers: _,
-                                        class: _,
-                                        name,
-                                        extends: _,
-                                        implements: _,
-                                        body: _,
-                                    }) => {
-                                        class_name = Some(name.value.to_string());
-                                    }
-                                    _ => (),
-                                }
+        if class_name.is_none() {
+                match statement {
+                    Statement::Namespace(
+                        parser::ast::namespaces::NamespaceStatement::Braced(n),
+                    ) => {
+                        for statement in &n.body.statements {
+                            if let Statement::Class(ClassStatement {
+                                attributes: _,
+                                modifiers: _,
+                                class: _,
+                                name,
+                                extends: _,
+                                implements: _,
+                                body: _,
+                            }) = statement {
+                                class_name = Some(name.value.to_string());
                             }
                         }
-                        Statement::Namespace(
-                            parser::ast::namespaces::NamespaceStatement::Unbraced(n),
-                        ) => {
-                            for statement in &n.statements {
-                                match statement {
-                                    Statement::Class(ClassStatement {
-                                        attributes: _,
-                                        modifiers: _,
-                                        class: _,
-                                        name,
-                                        extends: _,
-                                        implements: _,
-                                        body: _,
-                                    }) => {
-                                        class_name = Some(name.value.to_string());
-                                    }
-                                    _ => (),
-                                }
-                            }
-                        }
-                        _ => {}
-                    };
-                    match statement {
-                        Statement::Class(ClassStatement {
-                            attributes: _,
-                            modifiers: _,
-                            class: _,
-                            name,
-                            extends: _,
-                            implements: _,
-                            body: _,
-                        }) => {
-                            class_name = Some(name.value.to_string());
-                        }
-                        _ => (),
                     }
+                    Statement::Namespace(
+                        parser::ast::namespaces::NamespaceStatement::Unbraced(n),
+                    ) => {
+                        for statement in &n.statements {
+                            if let Statement::Class(ClassStatement {
+                                attributes: _,
+                                modifiers: _,
+                                class: _,
+                                name,
+                                extends: _,
+                                implements: _,
+                                body: _,
+                            }) = statement {
+                                class_name = Some(name.value.to_string());
+                            }
+                        }
+                    }
+                    _ => {}
+                };
+                if let Statement::Class(ClassStatement {
+                        attributes: _,
+                        modifiers: _,
+                        class: _,
+                        name,
+                        extends: _,
+                        implements: _,
+                        body: _,
+                }) = statement {
+                    class_name = Some(name.value.to_string());
                 }
-                _ => {}
             }
         }
         class_name
