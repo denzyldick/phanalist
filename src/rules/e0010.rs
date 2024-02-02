@@ -1,10 +1,14 @@
 use php_parser_rs::parser::ast::{MethodCallExpression, NewExpression};
 
-use crate::analyse::Rule;
+use crate::rules::Rule;
 
 pub struct E0010 {}
 
 impl Rule for E0010 {
+    fn get_code(&self) -> String {
+        String::from("E0010")
+    }
+
     fn validate(
         &self,
         statement: &php_parser_rs::parser::ast::Statement,

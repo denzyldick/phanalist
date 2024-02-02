@@ -1,10 +1,15 @@
-use crate::analyse::Rule;
-use crate::project::Suggestion;
 use php_parser_rs::lexer::token::Span;
 use php_parser_rs::parser::ast::Statement;
 
+use crate::project::Suggestion;
+use crate::rules::Rule;
+
 pub struct E005 {}
 impl Rule for E005 {
+    fn get_code(&self) -> String {
+        String::from("E005")
+    }
+
     fn validate(&self, statement: &Statement) -> Vec<Suggestion> {
         let mut suggestions = Vec::new();
 

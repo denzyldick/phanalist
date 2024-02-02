@@ -2,11 +2,16 @@ use php_parser_rs::parser::ast::{
     classes::ClassMember, functions::MethodBody, ReturnStatement, Statement,
 };
 
-use crate::{analyse::Rule, project::Suggestion};
+use crate::project::Suggestion;
+use crate::rules::Rule;
 
 pub struct E008 {}
 
 impl Rule for E008 {
+    fn get_code(&self) -> String {
+        String::from("E008")
+    }
+
     fn validate(
         &self,
         statement: &php_parser_rs::parser::ast::Statement,
