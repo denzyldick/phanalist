@@ -78,18 +78,15 @@ impl Rule for E009 {
                         right_brace: _,
                     } = concretemethod.body.clone();
                     {
-                        let graph = calculate_cyclomatic_complexity(
-                            statements.clone(),
-                            &mut graph,
-                        );
+                        let graph = calculate_cyclomatic_complexity(statements.clone(), &mut graph);
 
                         if graph.calculate() > 10 {
                             suggestions.push(Suggestion::from(
-                "This method body is too complex. Make it easier to understand."
-                    .to_string(),
-                concretemethod.function,
-                                    "E009".to_string()
-            ));
+                                "This method body is too complex. Make it easier to understand."
+                                    .to_string(),
+                                concretemethod.function,
+                                "E009".to_string(),
+                            ));
                         }
                     }
                 }

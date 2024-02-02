@@ -1,6 +1,4 @@
-use php_parser_rs::parser::ast::{
-    MethodCallExpression, NewExpression,
-};
+use php_parser_rs::parser::ast::{MethodCallExpression, NewExpression};
 
 use crate::analyse::Rule;
 
@@ -31,7 +29,8 @@ impl Rule for E0010 {
                 arrow: _,
                 method: _,
                 arguments: _,
-            }) = &expression_statement.expression {}
+            }) = &expression_statement.expression
+            {}
         };
         vec![]
     }

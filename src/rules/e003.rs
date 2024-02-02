@@ -18,8 +18,7 @@ impl Rule for E003 {
                         let MethodModifierGroup { modifiers } = &concretemethod.modifiers;
                         if modifiers.is_empty() {
                             suggestions.push(Suggestion::from(
-                                format!("The method {} has no modifiers.", method_name)
-                                    .to_string(),
+                                format!("The method {} has no modifiers.", method_name).to_string(),
                                 concretemethod.function,
                                 "E003".to_string(),
                             ))
@@ -30,11 +29,8 @@ impl Rule for E003 {
                         let MethodModifierGroup { modifiers } = &constructor.modifiers;
                         if modifiers.is_empty() {
                             suggestions.push(Suggestion::from(
-                                format!(
-                                    "This method {} has no modifiers.",
-                                    method_name
-                                )
-                                .to_string(),
+                                format!("This method {} has no modifiers.", method_name)
+                                    .to_string(),
                                 constructor.function,
                                 "E003".to_string(),
                             ))

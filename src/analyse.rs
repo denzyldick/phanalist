@@ -96,7 +96,7 @@ impl Analyse {
                 Box::new(rules::e0011::E0011 {}) as Box<dyn Rule>,
             );
         }
-        
+
         Self { rules }
     }
 
@@ -191,7 +191,7 @@ impl Analyse {
                         } => suggestions.append(&mut self.expand(statement, rule)),
                     };
                 }
-            },
+            }
             Statement::While(while_statement) => match &while_statement.body {
                 WhileStatementBody::Block {
                     colon: _,

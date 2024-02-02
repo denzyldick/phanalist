@@ -3,9 +3,7 @@ use php_parser_rs::lexer::token::Span;
 use php_parser_rs::parser::ast::classes::{ClassMember, ClassStatement};
 
 use php_parser_rs::parser::ast::functions::ConcreteMethod;
-use php_parser_rs::parser::ast::namespaces::{
-    NamespaceStatement, UnbracedNamespace,
-};
+use php_parser_rs::parser::ast::namespaces::{NamespaceStatement, UnbracedNamespace};
 use rocksdb::{IteratorMode, DB};
 use std::io::{ErrorKind, Write};
 use std::sync::mpsc::Sender;
@@ -246,7 +244,6 @@ pub struct File {
     pub methods: Vec<ConcreteMethod>,
 }
 
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[allow(clippy::upper_case_acronyms)]
 pub enum Output {
@@ -301,7 +298,8 @@ impl File {
                 for member in &body.members {
                     if let php_parser_rs::parser::ast::classes::ClassMember::ConcreteMethod(
                         _concrete_method,
-                    ) = member {
+                    ) = member
+                    {
                         self.members.push(member.clone());
                     };
                 }
@@ -334,11 +332,11 @@ impl File {
     fn get_class_name(&self) -> Option<String> {
         let mut class_name: Option<String> = None;
         for statement in &self.ast {
-        if class_name.is_none() {
+            if class_name.is_none() {
                 match statement {
-                    Statement::Namespace(
-                        parser::ast::namespaces::NamespaceStatement::Braced(n),
-                    ) => {
+                    Statement::Namespace(parser::ast::namespaces::NamespaceStatement::Braced(
+                        n,
+                    )) => {
                         for statement in &n.body.statements {
                             if let Statement::Class(ClassStatement {
                                 attributes: _,
@@ -348,7 +346,8 @@ impl File {
                                 extends: _,
                                 implements: _,
                                 body: _,
-                            }) = statement {
+                            }) = statement
+                            {
                                 class_name = Some(name.value.to_string());
                             }
                         }
@@ -365,7 +364,8 @@ impl File {
                                 extends: _,
                                 implements: _,
                                 body: _,
-                            }) = statement {
+                            }) = statement
+                            {
                                 class_name = Some(name.value.to_string());
                             }
                         }
@@ -373,14 +373,15 @@ impl File {
                     _ => {}
                 };
                 if let Statement::Class(ClassStatement {
-                        attributes: _,
-                        modifiers: _,
-                        class: _,
-                        name,
-                        extends: _,
-                        implements: _,
-                        body: _,
-                }) = statement {
+                    attributes: _,
+                    modifiers: _,
+                    class: _,
+                    name,
+                    extends: _,
+                    implements: _,
+                    body: _,
+                }) = statement
+                {
                     class_name = Some(name.value.to_string());
                 }
             }

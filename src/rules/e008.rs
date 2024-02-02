@@ -23,16 +23,16 @@ impl Rule for E008 {
                         r#return,
                         value: _,
                         ending: _,
-                    }) = has_return {
+                    }) = has_return
+                    {
                         if concretemethod.return_type.is_none() {
-                                suggestions.push(
-                                                    Suggestion::from(
-                                                        format!("The {} has a return statement but it has no return type signature.", method_name).to_string(),
-                                                    r#return,
-                                            "E008".to_string(),
-
-                                                    )
-                                                );
+                            suggestions.push(
+                                Suggestion::from(
+                                    format!("The {} has a return statement but it has no return type signature.", method_name).to_string(),
+                                    r#return,
+                                    "E008".to_string(),
+                                )
+                            );
                         };
                     };
                 }
@@ -49,7 +49,8 @@ fn method_has_return(body: MethodBody) -> Option<ReturnStatement> {
             r#return,
             value,
             ending,
-        }) = statement {
+        }) = statement
+        {
             r = Some(ReturnStatement {
                 r#return,
                 value,
