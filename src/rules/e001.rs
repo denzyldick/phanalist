@@ -9,11 +9,13 @@ impl Rule for E001 {
             Statement::FullOpeningTag(tag) => {
                 let span = tag.span;
                 if span.line > 1 {
-                    return vec![Suggestion::from(
-                    "The opening tag <?php is not on the right line. This should always be the first line in a PHP file.".to_string(),
-                   span,
-                   "E001".to_string()
-                )];
+                    return vec![
+                        Suggestion::from(
+                            "The opening tag <?php is not on the right line. This should always be the first line in a PHP file.".to_string(),
+                            span,
+                            "E001".to_string()
+                        )
+                    ];
                 }
 
                 if span.column > 1 {
@@ -31,11 +33,13 @@ impl Rule for E001 {
             Statement::ShortOpeningTag(tag) => {
                 let span = tag.span;
                 if span.line > 1 {
-                    return vec![Suggestion::from(
-                    "The opening tag <?php is not on the right line. This should always be the first line in a PHP file.".to_string(),
-                   span,
-                    "E001".to_string()
-                )];
+                    return vec![
+                        Suggestion::from(
+                            "The opening tag <?php is not on the right line. This should always be the first line in a PHP file.".to_string(),
+                            span,
+                            "E001".to_string()
+                        )
+                    ];
                 }
 
                 if span.column > 1 {

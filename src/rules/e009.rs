@@ -67,39 +67,30 @@ impl Rule for E009 {
     ) -> Vec<crate::project::Suggestion> {
         let mut suggestions = Vec::new();
         let mut graph = Graph { n: 0, e: 0, p: 0 };
-        match statement {
-            Statement::Class(class) => {
-                for member in &class.body.members {
-                    match member {
-                        ClassMember::ConcreteMethod(concretemethod) => {
-                            match concretemethod.body.clone() {
-                                MethodBody {
-                                    comments: _,
-                                    left_brace: _,
-                                    statements,
-                                    right_brace: _,
-                                } => {
-                                    let graph = calculate_cyclomatic_complexity(
-                                        statements.clone(),
-                                        &mut graph,
-                                    );
 
-                                    if graph.calculate() > 10 {
-                                        suggestions.push(Suggestion::from(
-                            "This method body is too complex. Make it easier to understand."
-                                .to_string(),
-                            concretemethod.function,
-                                                "E009".to_string()
-                        ));
-                                    }
-                                }
-                            }
+        if let Statement::Class(class) = statement {
+            for member in &class.body.members {
+                if let ClassMember::ConcreteMethod(concretemethod) = member {
+                    let MethodBody {
+                        comments: _,
+                        left_brace: _,
+                        statements,
+                        right_brace: _,
+                    } = concretemethod.body.clone();
+                    {
+                        let graph = calculate_cyclomatic_complexity(statements.clone(), &mut graph);
+
+                        if graph.calculate() > 10 {
+                            suggestions.push(Suggestion::from(
+                                "This method body is too complex. Make it easier to understand."
+                                    .to_string(),
+                                concretemethod.function,
+                                "E009".to_string(),
+                            ));
                         }
-                        _ => {}
                     }
                 }
             }
-            _ => {}
         }
         suggestions
     }
