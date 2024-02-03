@@ -26,23 +26,37 @@ impl Analyse {
     }
 
     fn get_active_rules(config: Config) -> HashMap<String, Box<dyn Rule>> {
-        let mut codes: Vec<String> = rules::all_rules().into_keys().collect();
-
-        if !config.enabled_rules.is_empty() {
-            codes.retain(|x| config.enabled_rules.contains(x));
-        }
-
-        if !config.disable_rules.is_empty() {
-            codes.retain(|x| !config.disable_rules.contains(x));
-        }
+        let active_codes = Self::filter_active_codes(
+            rules::all_rules().into_keys().collect(),
+            config.enabled_rules.clone(),
+            config.disable_rules.clone(),
+        );
 
         let mut active_rules = rules::all_rules();
         active_rules.retain(|code, rule| {
             rule.read_config(config.clone());
 
-            codes.contains(code)
+            active_codes.contains(code)
         });
         active_rules
+    }
+
+    fn filter_active_codes(
+        all_codes: Vec<String>,
+        enabled: Vec<String>,
+        disabled: Vec<String>,
+    ) -> Vec<String> {
+        let mut filtered_codes = all_codes.clone();
+
+        if !enabled.is_empty() {
+            filtered_codes.retain(|x| enabled.contains(x));
+        }
+
+        if !disabled.is_empty() {
+            filtered_codes.retain(|x| !disabled.contains(x));
+        }
+
+        filtered_codes
     }
 
     pub fn statement(&self, statement: parser::ast::Statement) -> Vec<Suggestion> {

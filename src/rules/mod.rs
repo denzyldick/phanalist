@@ -6,17 +6,17 @@ use std::default::Default;
 use crate::config::Config;
 use crate::project::Suggestion;
 
-pub mod e001;
-pub mod e0010;
-pub mod e0011;
-pub mod e002;
-pub mod e003;
-pub mod e004;
-pub mod e005;
-pub mod e006;
-pub mod e007;
-pub mod e008;
-pub mod e009;
+pub mod e1;
+pub mod e10;
+pub mod e11;
+pub mod e2;
+pub mod e3;
+pub mod e4;
+pub mod e5;
+pub mod e6;
+pub mod e7;
+pub mod e8;
+pub mod e9;
 
 pub trait Rule {
     // Would be a good idea to have default implementation which extracts the code from struct name
@@ -46,22 +46,17 @@ fn add_rule(rules: &mut HashMap<String, Box<dyn Rule>>, rule: Box<dyn Rule>) {
 pub fn all_rules() -> HashMap<String, Box<dyn Rule>> {
     let mut rules: HashMap<String, Box<dyn Rule>> = HashMap::new();
 
-    add_rule(&mut rules, Box::new(e001::E001 {}));
-    add_rule(&mut rules, Box::new(e002::E002 {}));
-    add_rule(&mut rules, Box::new(e003::E003 {}));
-    add_rule(&mut rules, Box::new(e004::E004 {}));
-    add_rule(&mut rules, Box::new(e005::E005 {}));
-    add_rule(&mut rules, Box::new(e006::E006 {}));
-    add_rule(
-        &mut rules,
-        Box::new(e007::Rule {
-            ..Default::default()
-        }),
-    );
-    add_rule(&mut rules, Box::new(e008::E008 {}));
-    add_rule(&mut rules, Box::new(e009::E009 {}));
-    add_rule(&mut rules, Box::new(e0010::E0010 {}));
-    add_rule(&mut rules, Box::new(e0011::E0011 {}));
+    add_rule(&mut rules, Box::new(e1::Rule {}));
+    add_rule(&mut rules, Box::new(e2::Rule {}));
+    add_rule(&mut rules, Box::new(e3::Rule {}));
+    add_rule(&mut rules, Box::new(e4::Rule {}));
+    add_rule(&mut rules, Box::new(e5::Rule {}));
+    add_rule(&mut rules, Box::new(e6::Rule {}));
+    add_rule(&mut rules, Box::default() as Box<e7::Rule>);
+    add_rule(&mut rules, Box::new(e8::Rule {}));
+    add_rule(&mut rules, Box::new(e9::Rule {}));
+    add_rule(&mut rules, Box::new(e10::Rule {}));
+    add_rule(&mut rules, Box::new(e11::Rule {}));
 
     rules
 }

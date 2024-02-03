@@ -2,13 +2,12 @@ use php_parser_rs::parser::ast::try_block::CatchBlock;
 use php_parser_rs::parser::ast::Statement;
 
 use crate::project::Suggestion;
-use crate::rules::Rule;
 
-pub struct E002 {}
+pub struct Rule {}
 
-impl Rule for E002 {
+impl crate::rules::Rule for Rule {
     fn get_code(&self) -> String {
-        String::from("E002")
+        String::from("E0002")
     }
 
     fn validate(&self, statement: &Statement) -> Vec<Suggestion> {
@@ -28,7 +27,7 @@ impl Rule for E002 {
                         Suggestion::from(
                             "There is an empty catch. It's not recommended to catch an Exception without doing anything with it..".to_string(),
                             *start,
-                            "E002".to_string()
+                            self.get_code()
                         )
                     );
                 }

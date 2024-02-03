@@ -146,7 +146,11 @@ impl Project {
     pub fn parse_config(&mut self, path: PathBuf) {
         match fs::read_to_string(path.clone()) {
             Err(e) if e.kind() == ErrorKind::NotFound => {
-                println!("No configuration file {} has been found. Do you want to create configuration file? [Y/n]", &path.clone().display());
+                println!(
+                    "No configuration file {} has been found.",
+                    &path.clone().display()
+                );
+                println!("Do you want to create a configuration file (otherwise defaults will be used)? [Y/n]");
 
                 let mut answer = String::new();
                 std::io::stdin().read_line(&mut answer).unwrap();
@@ -154,7 +158,7 @@ impl Project {
                 if answer.trim().to_lowercase() == "y" || answer.trim().to_lowercase() == "yes" {
                     self.config.save(path.clone());
                     println!(
-                        "The new {} configuration file as been created:",
+                        "The new {} configuration file as been created",
                         &path.display()
                     );
                 };
