@@ -4,12 +4,12 @@ use php_parser_rs::parser::ast::properties::{Property, PropertyEntry};
 use php_parser_rs::parser::ast::Statement;
 
 use crate::project::Suggestion;
-use crate::rules::Rule;
 
-pub struct E006 {}
-impl Rule for E006 {
+pub struct Rule {}
+
+impl crate::rules::Rule for Rule {
     fn get_code(&self) -> String {
-        String::from("E006")
+        String::from("E0006")
     }
 
     fn validate(&self, statement: &Statement) -> Vec<Suggestion> {
@@ -24,7 +24,7 @@ impl Rule for E006 {
                             format!("The variables {} have no modifier.", name.join(", "))
                                 .to_string(),
                             property.end,
-                            "E006".to_string(),
+                            self.get_code(),
                         ));
                     }
                 }

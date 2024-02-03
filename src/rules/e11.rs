@@ -1,8 +1,6 @@
-use crate::rules::Rule;
+pub struct Rule {}
 
-pub struct E0011 {}
-
-impl Rule for E0011 {
+impl crate::rules::Rule for Rule {
     fn get_code(&self) -> String {
         String::from("E0011")
     }

@@ -1,13 +1,12 @@
 use php_parser_rs::parser::ast::Statement;
 
 use crate::project::Suggestion;
-use crate::rules::Rule;
 
-pub struct E001 {}
+pub struct Rule {}
 
-impl Rule for E001 {
+impl crate::rules::Rule for Rule {
     fn get_code(&self) -> String {
-        String::from("E001")
+        String::from("E0001")
     }
 
     fn validate(&self, statement: &Statement) -> Vec<Suggestion> {
@@ -19,7 +18,7 @@ impl Rule for E001 {
                         Suggestion::from(
                             "The opening tag <?php is not on the right line. This should always be the first line in a PHP file.".to_string(),
                             span,
-                            "E001".to_string()
+                            self.get_code()
                         )
                     ];
                 }
@@ -32,7 +31,7 @@ impl Rule for E001 {
                         )
                         .to_string(),
                         span,
-                        "E001".to_string(),
+                        self.get_code(),
                     )];
                 }
             }
@@ -43,7 +42,7 @@ impl Rule for E001 {
                         Suggestion::from(
                             "The opening tag <?php is not on the right line. This should always be the first line in a PHP file.".to_string(),
                             span,
-                            "E001".to_string()
+                            self.get_code()
                         )
                     ];
                 }
@@ -56,7 +55,7 @@ impl Rule for E001 {
                         )
                         .to_string(),
                         span,
-                        "E001".to_string(),
+                        self.get_code(),
                     )];
                 }
             }

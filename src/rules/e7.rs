@@ -3,14 +3,24 @@ use php_parser_rs::parser::ast::{
     functions::{ConstructorParameterList, FunctionParameterList},
     Statement,
 };
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::project::Suggestion;
-use crate::rules::Rule as Base;
 
+pub static CODE: &str = "E0007";
+
+#[derive(Deserialize, Serialize)]
 pub struct Settings {
     pub max_parameters: i32,
 }
+
+impl Default for Settings {
+    fn default() -> Self {
+        Settings { max_parameters: 5 }
+    }
+}
+
 pub struct Rule {
     pub settings: Settings,
 }
@@ -18,18 +28,22 @@ pub struct Rule {
 impl Default for Rule {
     fn default() -> Self {
         Rule {
-            settings: Settings { max_parameters: 5 },
+            settings: Settings {
+                ..Default::default()
+            },
         }
     }
 }
 
-impl Base for Rule {
+impl crate::rules::Rule for Rule {
     fn get_code(&self) -> String {
-        String::from("E007")
+        String::from(CODE)
     }
 
-    fn set_config(&mut self, _json: &Value) {
-        dbg!(_json);
+    fn set_config(&mut self, json: &Value) {
+        if let Ok(settings) = serde_json::from_value(json.to_owned()) {
+            self.settings = settings;
+        }
     }
 
     fn validate(
@@ -38,6 +52,7 @@ impl Base for Rule {
     ) -> Vec<crate::project::Suggestion> {
         let mut suggestions = Vec::new();
 
+        let message  = format!("This method has too many parameters. More than {} parameters is considered a too much. Try passing an object containing these values.", self.settings.max_parameters);
         if let Statement::Class(class) = statement {
             for member in &class.body.members {
                 match member {
@@ -49,14 +64,12 @@ impl Base for Rule {
                             right_parenthesis: _,
                             parameters,
                         } = &concretemethod.parameters;
-                        if parameters.inner.len() > 5 {
-                            suggestions.push(
-                                Suggestion::from(
-                                    "This method has too many parameters. More than 5 parameters is considered a too much. Try passing an object containing these values.".to_string(),
-                                    concretemethod.function,
-                                    "E007".to_string()
-                                )
-                            );
+                        if parameters.inner.len() > self.settings.max_parameters as usize {
+                            suggestions.push(Suggestion::from(
+                                message.clone(),
+                                concretemethod.function,
+                                "E007".to_string(),
+                            ));
                         }
                     }
                     ClassMember::ConcreteConstructor(concreteconstructor) => {
@@ -66,14 +79,12 @@ impl Base for Rule {
                             right_parenthesis: _,
                             parameters,
                         } = &concreteconstructor.parameters;
-                        if parameters.inner.len() > 5 {
-                            suggestions.push(
-                                Suggestion::from(
-                                    "This method has too many parameters. More than 5 parameters is considered a too much. Try passing an object containing these values.".to_string(),
-                                    concreteconstructor.function,
-                                    "E007".to_string()
-                                )
-                            );
+                        if parameters.inner.len() > self.settings.max_parameters as usize {
+                            suggestions.push(Suggestion::from(
+                                message.clone(),
+                                concreteconstructor.function,
+                                "E007".to_string(),
+                            ));
                         }
                     }
                     _ => {}

@@ -3,7 +3,9 @@ use std::io::Write;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value as JsonValue};
+use serde_json::Value as JsonValue;
+
+use crate::rules;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[allow(clippy::upper_case_acronyms)]
@@ -29,10 +31,8 @@ impl Default for Config {
 
         let mut rules = HashMap::new();
         rules.insert(
-            String::from("E007"),
-            json!({
-                "max_parameters": 5,
-            }),
+            String::from(rules::e7::CODE),
+            serde_json::to_value(rules::e7::Settings::default()).unwrap(),
         );
 
         Config {

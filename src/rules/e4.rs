@@ -3,13 +3,12 @@ use php_parser_rs::parser::ast::constant::ConstantEntry;
 use php_parser_rs::parser::ast::Statement;
 
 use crate::project::Suggestion;
-use crate::rules::Rule;
 
-pub struct E004 {}
+pub struct Rule {}
 
-impl Rule for E004 {
+impl crate::rules::Rule for Rule {
     fn get_code(&self) -> String {
-        String::from("E004")
+        String::from("E0004")
     }
 
     fn validate(&self, statement: &Statement) -> Vec<Suggestion> {
@@ -26,7 +25,7 @@ impl Rule for E004 {
                                     entry.name.value
                                 ),
                                 entry.name.span,
-                                "E004".to_string(),
+                                self.get_code(),
                             ))
                         }
                     }

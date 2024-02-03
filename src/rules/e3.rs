@@ -3,13 +3,12 @@ use php_parser_rs::parser::ast::modifiers::MethodModifierGroup;
 use php_parser_rs::parser::ast::Statement;
 
 use crate::project::Suggestion;
-use crate::rules::Rule;
 
-pub struct E003 {}
+pub struct Rule {}
 
-impl Rule for E003 {
+impl crate::rules::Rule for Rule {
     fn get_code(&self) -> String {
-        String::from("E003")
+        String::from("E0003")
     }
 
     fn validate(&self, statement: &Statement) -> Vec<Suggestion> {
@@ -25,7 +24,7 @@ impl Rule for E003 {
                             suggestions.push(Suggestion::from(
                                 format!("The method {} has no modifiers.", method_name).to_string(),
                                 concretemethod.function,
-                                "E003".to_string(),
+                                self.get_code(),
                             ))
                         };
                     }
@@ -37,7 +36,7 @@ impl Rule for E003 {
                                 format!("This method {} has no modifiers.", method_name)
                                     .to_string(),
                                 constructor.function,
-                                "E003".to_string(),
+                                self.get_code(),
                             ))
                         };
                     }
