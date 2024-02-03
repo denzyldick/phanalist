@@ -1,12 +1,17 @@
-use crate::analyse::Rule;
-use crate::project::Suggestion;
 use php_parser_rs::parser::ast::classes::ClassMember;
 use php_parser_rs::parser::ast::modifiers::PropertyModifierGroup;
 use php_parser_rs::parser::ast::properties::{Property, PropertyEntry};
 use php_parser_rs::parser::ast::Statement;
 
-pub struct E006 {}
-impl Rule for E006 {
+use crate::project::Suggestion;
+
+pub struct Rule {}
+
+impl crate::rules::Rule for Rule {
+    fn get_code(&self) -> String {
+        String::from("E0006")
+    }
+
     fn validate(&self, statement: &Statement) -> Vec<Suggestion> {
         let mut suggestions = Vec::new();
 
@@ -19,7 +24,7 @@ impl Rule for E006 {
                             format!("The variables {} have no modifier.", name.join(", "))
                                 .to_string(),
                             property.end,
-                            "E006".to_string(),
+                            self.get_code(),
                         ));
                     }
                 }

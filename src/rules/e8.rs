@@ -2,11 +2,15 @@ use php_parser_rs::parser::ast::{
     classes::ClassMember, functions::MethodBody, ReturnStatement, Statement,
 };
 
-use crate::{analyse::Rule, project::Suggestion};
+use crate::project::Suggestion;
 
-pub struct E008 {}
+pub struct Rule {}
 
-impl Rule for E008 {
+impl crate::rules::Rule for Rule {
+    fn get_code(&self) -> String {
+        String::from("E0008")
+    }
+
     fn validate(
         &self,
         statement: &php_parser_rs::parser::ast::Statement,
@@ -30,7 +34,7 @@ impl Rule for E008 {
                                 Suggestion::from(
                                     format!("The {} has a return statement but it has no return type signature.", method_name).to_string(),
                                     r#return,
-                                    "E008".to_string(),
+                                    self.get_code()
                                 )
                             );
                         };

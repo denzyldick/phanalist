@@ -6,61 +6,15 @@ use php_parser_rs::parser::ast::{
     BlockStatement, ExpressionStatement, Statement,
 };
 
-use crate::{analyse::Rule, project::Suggestion};
+use crate::project::Suggestion;
 
-pub struct E009 {}
+pub struct Rule {}
 
-struct Graph {
-    n: i64,
-    e: i64,
-    p: i64,
-}
-
-trait NewTrait {
-    fn new() -> Self;
-    fn calculate(&self) -> i64;
-
-    fn increase_node(&mut self);
-
-    fn increase_edge(&mut self);
-
-    fn increase_exit_node(&mut self);
-
-    fn merge(&mut self, c: &mut Graph);
-}
-
-impl NewTrait for Graph {
-    fn new() -> Self {
-        Self { n: 0, e: 0, p: 0 }
-    }
-    fn calculate(&self) -> i64 {
-        self.n - self.e + (2 * self.p)
+impl crate::rules::Rule for Rule {
+    fn get_code(&self) -> String {
+        String::from("E0009")
     }
 
-    fn increase_node(&mut self) {
-        self.n += 1;
-    }
-
-    fn increase_edge(&mut self) {
-        self.e += 1;
-    }
-
-    fn increase_exit_node(&mut self) {
-        self.p += 1;
-    }
-
-    fn merge(&mut self, c: &mut Graph) {
-        self.n += c.n;
-        self.e += c.e;
-        self.p += c.p
-    }
-}
-#[test]
-pub fn calculate() {
-    let g = Graph { n: 8, e: 9, p: 3 };
-    assert_eq!(g.calculate(), 5);
-}
-impl Rule for E009 {
     fn validate(
         &self,
         statement: &php_parser_rs::parser::ast::Statement,
@@ -85,7 +39,7 @@ impl Rule for E009 {
                                 "This method body is too complex. Make it easier to understand."
                                     .to_string(),
                                 concretemethod.function,
-                                "E009".to_string(),
+                                self.get_code(),
                             ));
                         }
                     }
@@ -95,6 +49,39 @@ impl Rule for E009 {
         suggestions
     }
 }
+
+struct Graph {
+    n: i64,
+    e: i64,
+    p: i64,
+}
+
+impl Graph {
+    fn calculate(&self) -> i64 {
+        self.n - self.e + (2 * self.p)
+    }
+
+    fn increase_node(&mut self) {
+        self.n += 1;
+    }
+
+    fn increase_edge(&mut self) {
+        self.e += 1;
+    }
+
+    #[allow(dead_code)]
+    fn increase_exit_node(&mut self) {
+        self.p += 1;
+    }
+
+    #[allow(dead_code)]
+    fn merge(&mut self, c: &mut Graph) {
+        self.n += c.n;
+        self.e += c.e;
+        self.p += c.p
+    }
+}
+
 fn calculate_cyclomatic_complexity(
     mut statements: Vec<Statement>,
     graph: &mut Graph,
@@ -175,4 +162,10 @@ fn calculate_cyclomatic_complexity(
         };
     }
     graph
+}
+
+#[test]
+pub fn calculate() {
+    let g = Graph { n: 8, e: 9, p: 3 };
+    assert_eq!(g.calculate(), 5);
 }

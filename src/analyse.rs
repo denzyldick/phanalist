@@ -1,4 +1,5 @@
-use crate::project::{File, Suggestion};
+use std::collections::HashMap;
+
 use php_parser_rs::parser;
 use php_parser_rs::parser::ast::classes::ClassStatement;
 use php_parser_rs::parser::ast::control_flow::{IfStatement, IfStatementBody};
@@ -7,97 +8,55 @@ use php_parser_rs::parser::ast::loops::{
 };
 use php_parser_rs::parser::ast::try_block::CatchBlock;
 use php_parser_rs::parser::ast::{namespaces, BlockStatement, Statement, SwitchStatement};
-use std::collections::HashMap;
 
-pub trait Rule {
-    fn validate(&self, statement: &Statement) -> Vec<Suggestion>;
-    fn set_file(&self, _file: File) {}
-}
+use crate::config::Config;
+use crate::project::Suggestion;
+use crate::rules::Rule;
+use crate::rules::{self};
 
 pub struct Analyse {
     rules: HashMap<String, Box<dyn Rule>>,
 }
 
-use crate::rules::{self};
 impl Analyse {
-    pub fn new(disable: Vec<String>) -> Self {
-        let mut rules = HashMap::new();
-        // @todo refactor this code below
-        if !disable.contains(&"E001".to_string()) {
-            rules.insert(
-                "E001".to_string(),
-                Box::new(rules::e001::E001 {}) as Box<dyn Rule>,
-            );
+    pub fn new(config: Config) -> Self {
+        Self {
+            rules: Self::get_active_rules(config),
+        }
+    }
+
+    fn get_active_rules(config: Config) -> HashMap<String, Box<dyn Rule>> {
+        let active_codes = Self::filter_active_codes(
+            rules::all_rules().into_keys().collect(),
+            config.enabled_rules.clone(),
+            config.disable_rules.clone(),
+        );
+
+        let mut active_rules = rules::all_rules();
+        active_rules.retain(|code, rule| {
+            rule.read_config(config.clone());
+
+            active_codes.contains(code)
+        });
+        active_rules
+    }
+
+    fn filter_active_codes(
+        all_codes: Vec<String>,
+        enabled: Vec<String>,
+        disabled: Vec<String>,
+    ) -> Vec<String> {
+        let mut filtered_codes = all_codes.clone();
+
+        if !enabled.is_empty() {
+            filtered_codes.retain(|x| enabled.contains(x));
         }
 
-        if !disable.contains(&"E002".to_string()) {
-            rules.insert(
-                "E002".to_string(),
-                Box::new(rules::e002::E002 {}) as Box<dyn Rule>,
-            );
+        if !disabled.is_empty() {
+            filtered_codes.retain(|x| !disabled.contains(x));
         }
 
-        if !disable.contains(&"E003".to_string()) {
-            rules.insert(
-                "E003".to_string(),
-                Box::new(rules::e003::E003 {}) as Box<dyn Rule>,
-            );
-        }
-
-        if !disable.contains(&"E004".to_string()) {
-            rules.insert(
-                "E004".to_string(),
-                Box::new(rules::e004::E004 {}) as Box<dyn Rule>,
-            );
-        }
-        if !disable.contains(&"E005".to_string()) {
-            rules.insert(
-                "E005".to_string(),
-                Box::new(rules::e005::E005 {}) as Box<dyn Rule>,
-            );
-        }
-
-        if !disable.contains(&"E006".to_string()) {
-            rules.insert(
-                "E006".to_string(),
-                Box::new(rules::e006::E006 {}) as Box<dyn Rule>,
-            );
-        }
-
-        if !disable.contains(&"E007".to_string()) {
-            rules.insert(
-                "E007".to_string(),
-                Box::new(rules::e007::E007 {}) as Box<dyn Rule>,
-            );
-        }
-
-        if !disable.contains(&"E008".to_string()) {
-            rules.insert(
-                "E008".to_string(),
-                Box::new(rules::e008::E008 {}) as Box<dyn Rule>,
-            );
-        }
-
-        if !disable.contains(&"E009".to_string()) {
-            rules.insert(
-                "E009".to_string(),
-                Box::new(rules::e009::E009 {}) as Box<dyn Rule>,
-            );
-        }
-        if !disable.contains(&"E0010".to_string()) {
-            rules.insert(
-                "E0010".to_string(),
-                Box::new(rules::e0010::E0010 {}) as Box<dyn Rule>,
-            );
-        }
-        if !disable.contains(&"E0011".to_string()) {
-            rules.insert(
-                "E0011".to_string(),
-                Box::new(rules::e0011::E0011 {}) as Box<dyn Rule>,
-            );
-        }
-
-        Self { rules }
+        filtered_codes
     }
 
     pub fn statement(&self, statement: parser::ast::Statement) -> Vec<Suggestion> {

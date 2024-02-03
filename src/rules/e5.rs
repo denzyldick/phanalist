@@ -1,10 +1,17 @@
-use crate::analyse::Rule;
-use crate::project::Suggestion;
 use php_parser_rs::lexer::token::Span;
 use php_parser_rs::parser::ast::Statement;
 
-pub struct E005 {}
-impl Rule for E005 {
+use crate::project::Suggestion;
+
+pub static CODE: &str = "E0005";
+
+pub struct Rule {}
+
+impl crate::rules::Rule for Rule {
+    fn get_code(&self) -> String {
+        String::from(CODE)
+    }
+
     fn validate(&self, statement: &Statement) -> Vec<Suggestion> {
         let mut suggestions = Vec::new();
 
@@ -24,7 +31,7 @@ pub fn has_capitalized_name(name: String, span: Span) -> Option<Suggestion> {
             Suggestion::from(
                 format!("The class name {} is not capitlized. The first letter of the name of the class should be in uppercase.", name).to_string(),
                 span,
-                "E005".to_string()
+                String::from(CODE)
             )
         )
     } else {
