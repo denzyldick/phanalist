@@ -1,3 +1,8 @@
+use php_parser_rs::parser::ast::Statement;
+
+use crate::file::File;
+use crate::results::Violation;
+
 pub struct Rule {}
 
 impl crate::rules::Rule for Rule {
@@ -5,10 +10,7 @@ impl crate::rules::Rule for Rule {
         String::from("E0011")
     }
 
-    fn validate(
-        &self,
-        _statement: &php_parser_rs::parser::ast::Statement,
-    ) -> Vec<crate::project::Suggestion> {
+    fn validate(&self, _file: &File, _statement: &Statement) -> Vec<Violation> {
         vec![]
     }
 }
