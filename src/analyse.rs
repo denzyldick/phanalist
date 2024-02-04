@@ -10,7 +10,8 @@ use php_parser_rs::parser::ast::try_block::CatchBlock;
 use php_parser_rs::parser::ast::{namespaces, BlockStatement, Statement, SwitchStatement};
 
 use crate::config::Config;
-use crate::project::Suggestion;
+use crate::file::File;
+use crate::results::Violation;
 use crate::rules::Rule;
 use crate::rules::{self};
 
@@ -59,20 +60,20 @@ impl Analyse {
         filtered_codes
     }
 
-    pub fn statement(&self, statement: parser::ast::Statement) -> Vec<Suggestion> {
+    pub fn analyse(&self, file: &File, statement: parser::ast::Statement) -> Vec<Violation> {
         let mut suggestions = Vec::new();
         let rules = &self.rules;
         for (_, rule) in rules.iter() {
-            suggestions.append(&mut self.expand(&statement, rule));
+            suggestions.append(&mut self.expand(&statement, file, rule));
         }
         suggestions
     }
 
     #[allow(clippy::only_used_in_recursion)]
     #[allow(clippy::borrowed_box)]
-    fn expand(&self, statement: &Statement, rule: &Box<dyn Rule>) -> Vec<Suggestion> {
+    fn expand(&self, statement: &Statement, file: &File, rule: &Box<dyn Rule>) -> Vec<Violation> {
         let mut suggestions = Vec::new();
-        suggestions.append(&mut rule.validate(statement));
+        suggestions.append(&mut rule.validate(file, statement));
         match statement {
             Statement::Try(s) => {
                 for catch in &s.catches {
@@ -84,7 +85,7 @@ impl Analyse {
                         body,
                     } = catch;
                     for statement in body {
-                        suggestions.append(&mut self.expand(statement, rule));
+                        suggestions.append(&mut self.expand(statement, file, rule));
                     }
                 }
             }
@@ -105,7 +106,7 @@ impl Analyse {
                             let statements = &concrete_method.body.statements;
 
                             for statement in statements {
-                                suggestions.append(&mut self.expand(statement, rule));
+                                suggestions.append(&mut self.expand(statement, file, rule));
                             }
                         }
                         php_parser_rs::parser::ast::classes::ClassMember::ConcreteConstructor(
@@ -114,7 +115,7 @@ impl Analyse {
                             let statements = &concrete_constructor.body.statements;
 
                             for statement in statements {
-                                suggestions.append(&mut self.expand(statement, rule));
+                                suggestions.append(&mut self.expand(statement, file, rule));
                             }
                         }
                         _ => {}
@@ -140,14 +141,14 @@ impl Analyse {
                             ending: _,
                         } => {
                             for statement in statements {
-                                suggestions.append(&mut self.expand(statement, rule));
+                                suggestions.append(&mut self.expand(statement, file, rule));
                             }
                         }
                         IfStatementBody::Statement {
                             statement,
                             elseifs: _,
                             r#else: _,
-                        } => suggestions.append(&mut self.expand(statement, rule)),
+                        } => suggestions.append(&mut self.expand(statement, file, rule)),
                     };
                 }
             }
@@ -159,11 +160,11 @@ impl Analyse {
                     ending: _,
                 } => {
                     for statement in statements {
-                        suggestions.append(&mut self.expand(statement, rule));
+                        suggestions.append(&mut self.expand(statement, file, rule));
                     }
                 }
                 WhileStatementBody::Statement { statement } => {
-                    suggestions.append(&mut self.expand(statement, rule));
+                    suggestions.append(&mut self.expand(statement, file, rule));
                 }
             },
             Statement::Switch(SwitchStatement {
@@ -175,7 +176,7 @@ impl Analyse {
             }) => {
                 for case in cases {
                     for statement in &case.body {
-                        suggestions.append(&mut self.expand(statement, rule))
+                        suggestions.append(&mut self.expand(statement, file, rule))
                     }
                 }
             }
@@ -193,11 +194,11 @@ impl Analyse {
                     ending: _,
                 } => {
                     for statement in statements {
-                        suggestions.append(&mut self.expand(statement, rule));
+                        suggestions.append(&mut self.expand(statement, file, rule));
                     }
                 }
                 ForeachStatementBody::Statement { statement } => {
-                    suggestions.append(&mut self.expand(statement, rule));
+                    suggestions.append(&mut self.expand(statement, file, rule));
                 }
             },
             Statement::For(for_statement_body) => match &for_statement_body.body {
@@ -208,11 +209,11 @@ impl Analyse {
                     ending: _,
                 } => {
                     for statement in statements {
-                        suggestions.append(&mut self.expand(statement, rule));
+                        suggestions.append(&mut self.expand(statement, file, rule));
                     }
                 }
                 ForStatementBody::Statement { statement } => {
-                    suggestions.append(&mut self.expand(statement, rule))
+                    suggestions.append(&mut self.expand(statement, file, rule))
                 }
             },
             Statement::Block(BlockStatement {
@@ -221,25 +222,26 @@ impl Analyse {
                 right_brace: _,
             }) => {
                 for statement in statements {
-                    suggestions.append(&mut self.expand(statement, rule));
+                    suggestions.append(&mut self.expand(statement, file, rule));
                 }
             }
 
             Statement::Namespace(namespace) => match &namespace {
                 namespaces::NamespaceStatement::Unbraced(unbraced) => {
                     for statement in &unbraced.statements {
-                        suggestions.append(&mut self.expand(statement, rule));
+                        suggestions.append(&mut self.expand(statement, file, rule));
                     }
                 }
                 namespaces::NamespaceStatement::Braced(braced) => {
                     for statement in &braced.body.statements {
-                        suggestions.append(&mut self.expand(statement, rule));
+                        suggestions.append(&mut self.expand(statement, file, rule));
                     }
                 }
             },
 
             _ => {}
         };
+
         suggestions
     }
 }

@@ -6,7 +6,8 @@ use php_parser_rs::parser::ast::{
     BlockStatement, ExpressionStatement, Statement,
 };
 
-use crate::project::Suggestion;
+use crate::file::File;
+use crate::results::Violation;
 
 pub struct Rule {}
 
@@ -15,12 +16,11 @@ impl crate::rules::Rule for Rule {
         String::from("E0009")
     }
 
-    fn validate(
-        &self,
-        statement: &php_parser_rs::parser::ast::Statement,
-    ) -> Vec<crate::project::Suggestion> {
-        let mut suggestions = Vec::new();
+    fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
+        let mut violations = Vec::new();
         let mut graph = Graph { n: 0, e: 0, p: 0 };
+        let suggestion =
+            String::from("This method body is too complex. Make it easier to understand.");
 
         if let Statement::Class(class) = statement {
             for member in &class.body.members {
@@ -35,18 +35,17 @@ impl crate::rules::Rule for Rule {
                         let graph = calculate_cyclomatic_complexity(statements.clone(), &mut graph);
 
                         if graph.calculate() > 10 {
-                            suggestions.push(Suggestion::from(
-                                "This method body is too complex. Make it easier to understand."
-                                    .to_string(),
+                            violations.push(self.new_violation(
+                                file,
+                                suggestion.clone(),
                                 concretemethod.function,
-                                self.get_code(),
                             ));
                         }
                     }
                 }
             }
         }
-        suggestions
+        violations
     }
 }
 

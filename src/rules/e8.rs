@@ -2,7 +2,8 @@ use php_parser_rs::parser::ast::{
     classes::ClassMember, functions::MethodBody, ReturnStatement, Statement,
 };
 
-use crate::project::Suggestion;
+use crate::file::File;
+use crate::results::Violation;
 
 pub struct Rule {}
 
@@ -11,16 +12,13 @@ impl crate::rules::Rule for Rule {
         String::from("E0008")
     }
 
-    fn validate(
-        &self,
-        statement: &php_parser_rs::parser::ast::Statement,
-    ) -> Vec<crate::project::Suggestion> {
-        let mut suggestions = Vec::new();
+    fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
+        let mut violations = Vec::new();
         if let Statement::Class(class) = statement {
             for member in &class.body.members {
                 if let ClassMember::ConcreteMethod(concretemethod) = member {
                     // Detect return statement without the proper return type signature.
-                    let has_return = method_has_return(concretemethod.body.clone());
+                    let has_return = Self::method_has_return(concretemethod.body.clone());
                     let method_name = &concretemethod.name.value;
 
                     if let Some(ReturnStatement {
@@ -30,37 +28,34 @@ impl crate::rules::Rule for Rule {
                     }) = has_return
                     {
                         if concretemethod.return_type.is_none() {
-                            suggestions.push(
-                                Suggestion::from(
-                                    format!("The {} has a return statement but it has no return type signature.", method_name).to_string(),
-                                    r#return,
-                                    self.get_code()
-                                )
-                            );
+                            let suggestion = format!("The {} has a return statement but it has no return type signature.", method_name).to_string();
+                            violations.push(self.new_violation(file, suggestion, r#return));
                         };
                     };
                 }
             }
         };
-        suggestions
+        violations
     }
 }
-/// Return the type of method body.  
-fn method_has_return(body: MethodBody) -> Option<ReturnStatement> {
-    let mut r: Option<ReturnStatement> = None;
-    for statement in body.statements {
-        if let Statement::Return(ReturnStatement {
-            r#return,
-            value,
-            ending,
-        }) = statement
-        {
-            r = Some(ReturnStatement {
+
+impl Rule {
+    fn method_has_return(body: MethodBody) -> Option<ReturnStatement> {
+        let mut r: Option<ReturnStatement> = None;
+        for statement in body.statements {
+            if let Statement::Return(ReturnStatement {
                 r#return,
                 value,
                 ending,
-            });
-        };
+            }) = statement
+            {
+                r = Some(ReturnStatement {
+                    r#return,
+                    value,
+                    ending,
+                });
+            };
+        }
+        r
     }
-    r
 }

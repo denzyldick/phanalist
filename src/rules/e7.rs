@@ -6,7 +6,8 @@ use php_parser_rs::parser::ast::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::project::Suggestion;
+use crate::file::File;
+use crate::results::Violation;
 
 pub static CODE: &str = "E0007";
 
@@ -46,13 +47,10 @@ impl crate::rules::Rule for Rule {
         }
     }
 
-    fn validate(
-        &self,
-        statement: &php_parser_rs::parser::ast::Statement,
-    ) -> Vec<crate::project::Suggestion> {
-        let mut suggestions = Vec::new();
+    fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
+        let mut violations = Vec::new();
 
-        let message  = format!("This method has too many parameters. More than {} parameters is considered a too much. Try passing an object containing these values.", self.settings.max_parameters);
+        let suggestion  = format!("This method has too many parameters. More than {} parameters is considered a too much.", self.settings.max_parameters);
         if let Statement::Class(class) = statement {
             for member in &class.body.members {
                 match member {
@@ -65,10 +63,10 @@ impl crate::rules::Rule for Rule {
                             parameters,
                         } = &concretemethod.parameters;
                         if parameters.inner.len() > self.settings.max_parameters as usize {
-                            suggestions.push(Suggestion::from(
-                                message.clone(),
+                            violations.push(self.new_violation(
+                                file,
+                                suggestion.clone(),
                                 concretemethod.function,
-                                "E007".to_string(),
                             ));
                         }
                     }
@@ -80,10 +78,10 @@ impl crate::rules::Rule for Rule {
                             parameters,
                         } = &concreteconstructor.parameters;
                         if parameters.inner.len() > self.settings.max_parameters as usize {
-                            suggestions.push(Suggestion::from(
-                                message.clone(),
+                            violations.push(self.new_violation(
+                                file,
+                                suggestion.clone(),
                                 concreteconstructor.function,
-                                "E007".to_string(),
                             ));
                         }
                     }
@@ -91,6 +89,6 @@ impl crate::rules::Rule for Rule {
                 }
             }
         };
-        suggestions
+        violations
     }
 }

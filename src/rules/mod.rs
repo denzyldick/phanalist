@@ -1,10 +1,13 @@
-use php_parser_rs::parser::ast::Statement;
-use serde_json::Value;
 use std::collections::HashMap;
 use std::default::Default;
 
+use php_parser_rs::lexer::token::Span;
+use php_parser_rs::parser::ast::Statement;
+use serde_json::Value;
+
 use crate::config::Config;
-use crate::project::Suggestion;
+use crate::file::File;
+use crate::results::Violation;
 
 pub mod e1;
 pub mod e10;
@@ -36,7 +39,18 @@ pub trait Rule {
         }
     }
 
-    fn validate(&self, statement: &Statement) -> Vec<Suggestion>;
+    fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation>;
+
+    fn new_violation(&self, file: &File, suggestion: String, span: Span) -> Violation {
+        let line = file.content.lines().nth(span.line - 1).unwrap();
+
+        Violation {
+            rule: self.get_code(),
+            line: String::from(line),
+            suggestion,
+            span,
+        }
+    }
 }
 
 fn add_rule(rules: &mut HashMap<String, Box<dyn Rule>>, rule: Box<dyn Rule>) {

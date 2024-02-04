@@ -2,7 +2,8 @@ use php_parser_rs::parser::ast::classes::ClassMember;
 use php_parser_rs::parser::ast::modifiers::MethodModifierGroup;
 use php_parser_rs::parser::ast::Statement;
 
-use crate::project::Suggestion;
+use crate::file::File;
+use crate::results::Violation;
 
 pub struct Rule {}
 
@@ -11,8 +12,8 @@ impl crate::rules::Rule for Rule {
         String::from("E0003")
     }
 
-    fn validate(&self, statement: &Statement) -> Vec<Suggestion> {
-        let mut suggestions = Vec::new();
+    fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
+        let mut violations = Vec::new();
 
         if let Statement::Class(class) = statement {
             for member in &class.body.members {
@@ -21,10 +22,12 @@ impl crate::rules::Rule for Rule {
                         let method_name = &concretemethod.name.value;
                         let MethodModifierGroup { modifiers } = &concretemethod.modifiers;
                         if modifiers.is_empty() {
-                            suggestions.push(Suggestion::from(
-                                format!("The method {} has no modifiers.", method_name).to_string(),
+                            let suggestion =
+                                format!("The method {} has no modifiers.", method_name);
+                            violations.push(self.new_violation(
+                                file,
+                                suggestion,
                                 concretemethod.function,
-                                self.get_code(),
                             ))
                         };
                     }
@@ -32,11 +35,12 @@ impl crate::rules::Rule for Rule {
                         let method_name = &constructor.name.value;
                         let MethodModifierGroup { modifiers } = &constructor.modifiers;
                         if modifiers.is_empty() {
-                            suggestions.push(Suggestion::from(
-                                format!("This method {} has no modifiers.", method_name)
-                                    .to_string(),
+                            let suggestion =
+                                format!("This method {} has no modifiers.", method_name);
+                            violations.push(self.new_violation(
+                                file,
+                                suggestion,
                                 constructor.function,
-                                self.get_code(),
                             ))
                         };
                     }
@@ -45,6 +49,6 @@ impl crate::rules::Rule for Rule {
             }
         };
 
-        suggestions
+        violations
     }
 }
