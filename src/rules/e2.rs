@@ -1,7 +1,8 @@
 use php_parser_rs::parser::ast::try_block::CatchBlock;
 use php_parser_rs::parser::ast::Statement;
 
-use crate::project::Suggestion;
+use crate::file::File;
+use crate::results::Violation;
 
 pub struct Rule {}
 
@@ -10,8 +11,8 @@ impl crate::rules::Rule for Rule {
         String::from("E0002")
     }
 
-    fn validate(&self, statement: &Statement) -> Vec<Suggestion> {
-        let mut suggestions = Vec::new();
+    fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
+        let mut violations = Vec::new();
 
         if let Statement::Try(s) = statement {
             for catch in &s.catches {
@@ -23,17 +24,12 @@ impl crate::rules::Rule for Rule {
                     body,
                 } = catch;
                 if body.is_empty() {
-                    suggestions.push(
-                        Suggestion::from(
-                            "There is an empty catch. It's not recommended to catch an Exception without doing anything with it..".to_string(),
-                            *start,
-                            self.get_code()
-                        )
-                    );
+                    let suggestion= String::from("There is an empty catch. It's not recommended to catch an Exception without doing anything with it..");
+                    violations.push(self.new_violation(file, suggestion, *start));
                 }
             }
         };
 
-        suggestions
+        violations
     }
 }

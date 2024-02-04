@@ -1,6 +1,7 @@
 use php_parser_rs::parser::ast::Statement;
 
-use crate::project::Suggestion;
+use crate::file::File;
+use crate::results::Violation;
 
 pub struct Rule {}
 
@@ -9,54 +10,36 @@ impl crate::rules::Rule for Rule {
         String::from("E0001")
     }
 
-    fn validate(&self, statement: &Statement) -> Vec<Suggestion> {
+    fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
         match statement {
             Statement::FullOpeningTag(tag) => {
                 let span = tag.span;
                 if span.line > 1 {
-                    return vec![
-                        Suggestion::from(
-                            "The opening tag <?php is not on the right line. This should always be the first line in a PHP file.".to_string(),
-                            span,
-                            self.get_code()
-                        )
-                    ];
+                    let suggestion= String::from("The opening tag <?php is not on the right line. This should always be the first line in a PHP file.");
+                    return vec![self.new_violation(file, suggestion, span)];
                 }
 
                 if span.column > 1 {
-                    return vec![Suggestion::from(
-                        format!(
-                            "The opening tag doesn't start at the right column: {}.",
-                            span.column
-                        )
-                        .to_string(),
-                        span,
-                        self.get_code(),
-                    )];
+                    let suggestion = format!(
+                        "The opening tag doesn't start at the right column: {}.",
+                        span.column
+                    );
+                    return vec![self.new_violation(file, suggestion, span)];
                 }
             }
             Statement::ShortOpeningTag(tag) => {
                 let span = tag.span;
                 if span.line > 1 {
-                    return vec![
-                        Suggestion::from(
-                            "The opening tag <?php is not on the right line. This should always be the first line in a PHP file.".to_string(),
-                            span,
-                            self.get_code()
-                        )
-                    ];
+                    let suggestion = String::from("The opening tag <?php is not on the right line. This should always be the first line in a PHP file.");
+                    return vec![self.new_violation(file, suggestion, span)];
                 }
 
                 if span.column > 1 {
-                    return vec![Suggestion::from(
-                        format!(
-                            "The opening tag doesn't start at the right column: {}.",
-                            span.column
-                        )
-                        .to_string(),
-                        span,
-                        self.get_code(),
-                    )];
+                    let suggestion = format!(
+                        "The opening tag doesn't start at the right column: {}.",
+                        span.column
+                    );
+                    return vec![self.new_violation(file, suggestion, span)];
                 }
             }
 

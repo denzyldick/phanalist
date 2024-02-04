@@ -7,21 +7,12 @@ use serde_json::Value as JsonValue;
 
 use crate::rules;
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[allow(clippy::upper_case_acronyms)]
-pub enum Output {
-    STDOUT,
-    FILE,
-}
-
 #[derive(Serialize, Debug, Deserialize, Clone)]
 pub struct Config {
     pub src: String,
-    pub storage: String,
     pub enabled_rules: Vec<String>,
     pub disable_rules: Vec<String>,
     pub rules: HashMap<String, JsonValue>,
-    pub output: Output,
 }
 
 impl Default for Config {
@@ -40,8 +31,6 @@ impl Default for Config {
             enabled_rules,
             disable_rules,
             rules,
-            storage: String::from("/tmp/phanalist"),
-            output: Output::STDOUT,
         }
     }
 }
