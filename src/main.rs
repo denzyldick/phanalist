@@ -63,7 +63,13 @@ fn main() {
 
         let mut project = Project::new(config);
 
-        project.scan();
+        let is_not_json_format = format != Format::json;
+        if is_not_json_format {
+            println!();
+            println!("Scanning files ...");
+        }
+        project.scan(is_not_json_format);
+
         project.output(output_format.unwrap(), args.output_summary_only);
     }
 }

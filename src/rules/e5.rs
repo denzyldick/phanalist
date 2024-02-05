@@ -12,13 +12,17 @@ impl crate::rules::Rule for Rule {
         String::from(CODE)
     }
 
+    fn description(&self) -> String {
+        String::from("Class name")
+    }
+
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
         let mut violations = Vec::new();
 
         if let Statement::Class(class) = statement {
             let name = String::from(class.name.value.clone());
             if !name.chars().next().unwrap().is_uppercase() {
-                let suggestion = format!("The class name {} is not capitlized. The first letter of the name of the class should be in uppercase.", name);
+                let suggestion = format!("The class name {} is not capitalized. The first letter of the name of the class should be in uppercase.", name);
                 violations.push(self.new_violation(file, suggestion, class.class))
             }
         };

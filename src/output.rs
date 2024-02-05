@@ -1,11 +1,11 @@
 use std::str::FromStr;
 
+use cli_table::{format::Justify, Cell, Style, Table};
 use colored::Colorize;
 use serde::{Deserialize, Serialize};
 
-use cli_table::{format::Justify, Cell, Style, Table};
-
 use crate::results::Results;
+use crate::rules;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[allow(non_camel_case_types)]
@@ -34,13 +34,24 @@ pub(crate) trait OutputFormatter {
 pub struct Text {}
 impl OutputFormatter for Text {
     fn output(results: Results) {
+        Self::output_files_with_violations(results.clone());
+        Self::output_summary(results.clone());
+
+        println!(
+            "Analysed {} files in : {:.2?}",
+            results.total_files_count,
+            results.duration.unwrap()
+        );
+    }
+}
+
+impl Text {
+    fn output_files_with_violations(results: Results) {
         for (path, violations) in results.files.clone() {
             if !violations.is_empty() {
-                let file_symbol = "--->".blue().bold();
-                println!("{} {} ", file_symbol, path);
                 println!(
-                    "{} {}",
-                    "Warnings detected: ".yellow().bold(),
+                    "{}, detected {} violations:",
+                    path.blue().bold(),
                     violations.len().to_string().as_str().red().bold()
                 );
                 let line_symbol = "|".blue().bold();
@@ -58,33 +69,37 @@ impl OutputFormatter for Text {
                         line_symbol,
                         suggestion.line
                     );
-                    println!();
                 }
                 println!()
             }
         }
+    }
 
+    fn output_summary(results: Results) {
+        let all_rules = rules::all_rules();
         let mut rows = vec![];
-        for (rule_code, violations) in results.codes_count {
+
+        let mut sorted_codes_count = results.codes_count.clone().into_iter().collect::<Vec<_>>();
+        sorted_codes_count.sort_by(|a, b| b.1.cmp(&a.1));
+        for (rule_code, violations) in sorted_codes_count {
+            let rule = all_rules.get(&rule_code).unwrap();
+
             rows.push(vec![
                 rule_code.as_str().cell(),
+                rule.description().cell(),
                 violations.cell().justify(Justify::Right),
             ]);
         }
+
         let table = rows
             .table()
             .title(vec![
                 "Rule Code".cell().bold(true),
+                "Description".cell().bold(true),
                 "Violations".cell().bold(true),
             ])
             .bold(true);
         println!("{}", table.display().unwrap());
-
-        println!(
-            "Analysed {} files in : {:.2?}",
-            results.total_files_count,
-            results.duration.unwrap()
-        );
     }
 }
 
