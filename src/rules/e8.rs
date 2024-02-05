@@ -12,6 +12,10 @@ impl crate::rules::Rule for Rule {
         String::from("E0008")
     }
 
+    fn description(&self) -> String {
+        String::from("Return type signature")
+    }
+
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
         let mut violations = Vec::new();
         if let Statement::Class(class) = statement {
