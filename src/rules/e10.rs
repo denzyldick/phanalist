@@ -10,6 +10,10 @@ impl crate::rules::Rule for Rule {
         String::from("E0010")
     }
 
+    fn description(&self) -> String {
+        String::from("Example rule")
+    }
+
     fn validate(&self, _file: &File, statement: &Statement) -> Vec<Violation> {
         if let Statement::Expression(expression_statement) = statement {
             let _class_name_target = match &expression_statement.expression {
