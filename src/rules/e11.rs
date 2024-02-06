@@ -10,6 +10,10 @@ impl crate::rules::Rule for Rule {
         String::from("E0011")
     }
 
+    fn description(&self) -> String {
+        String::from("Example rule")
+    }
+
     fn validate(&self, _file: &File, _statement: &Statement) -> Vec<Violation> {
         vec![]
     }

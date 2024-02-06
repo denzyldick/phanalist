@@ -41,6 +41,10 @@ impl crate::rules::Rule for Rule {
         String::from(CODE)
     }
 
+    fn description(&self) -> String {
+        String::from("Method parameters count")
+    }
+
     fn set_config(&mut self, json: &Value) {
         if let Ok(settings) = serde_json::from_value(json.to_owned()) {
             self.settings = settings;

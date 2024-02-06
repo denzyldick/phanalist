@@ -16,6 +16,10 @@ impl crate::rules::Rule for Rule {
         String::from("E0009")
     }
 
+    fn description(&self) -> String {
+        String::from("Cyclomatic complexity")
+    }
+
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
         let mut violations = Vec::new();
         let mut graph = Graph { n: 0, e: 0, p: 0 };

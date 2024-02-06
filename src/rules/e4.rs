@@ -12,6 +12,10 @@ impl crate::rules::Rule for Rule {
         String::from("E0004")
     }
 
+    fn description(&self) -> String {
+        String::from("Uppercase constants")
+    }
+
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
         let mut violations = Vec::new();
 
@@ -21,7 +25,7 @@ impl crate::rules::Rule for Rule {
                     for entry in &constant.entries {
                         if !Self::uppercased_constant_name(entry.clone()) {
                             let suggestion = format!(
-                                "All letters in a constant({}) should be uppercased.",
+                                "All letters in a constant({}) should be uppercase.",
                                 entry.name.value
                             );
                             violations.push(self.new_violation(file, suggestion, entry.name.span))

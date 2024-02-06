@@ -12,6 +12,10 @@ impl crate::rules::Rule for Rule {
         String::from("E0003")
     }
 
+    fn description(&self) -> String {
+        String::from("Method modifiers")
+    }
+
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
         let mut violations = Vec::new();
 

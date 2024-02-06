@@ -3,6 +3,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 
+use indicatif::ProgressBar;
 use jwalk::WalkDir;
 use php_parser_rs::parser;
 use php_parser_rs::parser::ast::classes::ClassStatement;
@@ -59,8 +60,13 @@ impl Project {
         }
     }
 
-    pub fn scan(&mut self) {
+    pub fn scan(&mut self, show_bar: bool) {
         let now = std::time::Instant::now();
+        let files_count = WalkDir::new(self.config.src.clone())
+            .follow_links(false)
+            .into_iter()
+            .count();
+        let progress_bar = ProgressBar::new(files_count as u64);
 
         let (send, recv) = std::sync::mpsc::channel();
         let path = self.config.src.clone();
@@ -71,6 +77,10 @@ impl Project {
 
         let mut files = 0;
         for (content, path) in recv {
+            if show_bar {
+                progress_bar.inc(1);
+            }
+
             let ast = match parser::parse(&content) {
                 Ok(a) => a,
                 Err(_) => vec![],
@@ -89,6 +99,10 @@ impl Project {
 
                 files += 1;
             };
+        }
+
+        if show_bar {
+            progress_bar.finish();
         }
 
         self.results.total_files_count = files;
