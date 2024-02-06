@@ -1,6 +1,9 @@
+extern crate exitcode;
+
 use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
+use std::process;
 use std::str::FromStr;
 
 use clap::Parser;
@@ -33,6 +36,9 @@ struct Args {
     output_format: String,
     #[arg(long)]
     output_summary_only: bool,
+    #[arg(short, long)]
+    /// Do not output the results
+    quiet: bool,
     /// Start the LSP server.
     #[arg(long)]
     deamon: bool,
@@ -47,34 +53,42 @@ fn main() {
         let output_format = output::Format::from_str(args.output_format.as_str());
         if output_format.is_err() {
             println!("Invalid input format");
-            return;
+            process::exit(exitcode::USAGE);
         }
 
         let format = output_format.clone().unwrap();
-        let mut config = parse_config(PathBuf::from(args.config), format.clone());
+        let quiet = args.quiet;
+        let mut config = parse_config(PathBuf::from(args.config), format.clone(), quiet);
         if let Some(src) = args.src {
             config.src = src;
         }
 
         if !Path::new(config.src.as_str()).exists() {
             println!("Path {} does not exist", config.src);
-            return;
+            process::exit(exitcode::IOERR);
         }
 
-        let mut project = Project::new(config);
-
+        let mut project = Project {};
         let is_not_json_format = format != Format::json;
-        if is_not_json_format {
+        if is_not_json_format && !quiet {
             println!();
             println!("Scanning files ...");
         }
-        project.scan(is_not_json_format);
+        let results = project.scan(config, is_not_json_format && !quiet);
 
-        project.output(output_format.unwrap(), args.output_summary_only);
+        if !quiet {
+            project.output(results.clone(), format, args.output_summary_only);
+        }
+
+        if results.has_any_violations() {
+            process::exit(exitcode::SOFTWARE);
+        } else {
+            process::exit(exitcode::OK);
+        }
     }
 }
 
-fn parse_config(path: PathBuf, format: Format) -> Config {
+fn parse_config(path: PathBuf, format: Format, quiet: bool) -> Config {
     let default_config = Config::default();
 
     match fs::read_to_string(path.clone()) {
@@ -103,7 +117,7 @@ fn parse_config(path: PathBuf, format: Format) -> Config {
             panic!("{}", e)
         }
         Ok(s) => {
-            if format == Format::text {
+            if format == Format::text && !quiet {
                 println!("Using configuration file {}", &path.display());
             }
             match serde_yaml::from_str(&s) {
