@@ -6,7 +6,6 @@ use std::sync::mpsc::Sender;
 use indicatif::ProgressBar;
 use jwalk::WalkDir;
 use php_parser_rs::parser;
-use php_parser_rs::parser::ast::classes::ClassStatement;
 
 use crate::analyse::Analyse;
 use crate::config::Config;
@@ -14,13 +13,7 @@ use crate::file::File;
 use crate::output::{Format, Json, OutputFormatter, Text};
 use crate::results::Results;
 
-pub struct Project {
-    pub files: Vec<File>,
-    pub classes: HashMap<String, ClassStatement>,
-    pub config: Config,
-    analyse: Analyse,
-    results: Results,
-}
+pub struct Project {}
 
 pub fn scan_folder(current_dir: PathBuf, sender: Sender<(String, PathBuf)>) {
     for entry in WalkDir::new(current_dir.clone()).follow_links(false) {
@@ -50,26 +43,18 @@ pub fn scan_folder(current_dir: PathBuf, sender: Sender<(String, PathBuf)>) {
 }
 
 impl Project {
-    pub fn new(config: Config) -> Self {
-        Self {
-            files: Vec::new(),
-            classes: HashMap::new(),
-            config: config.clone(),
-            analyse: Analyse::new(config.clone()),
-            results: Results::default(),
-        }
-    }
-
-    pub fn scan(&mut self, show_bar: bool) {
+    pub fn scan(&mut self, config: Config, show_bar: bool) -> Results {
         let now = std::time::Instant::now();
-        let files_count = WalkDir::new(self.config.src.clone())
+        let analyze = Analyse::new(config.clone());
+        let mut results = Results::default();
+        let files_count = WalkDir::new(config.src.clone())
             .follow_links(false)
             .into_iter()
             .count();
         let progress_bar = ProgressBar::new(files_count as u64);
 
         let (send, recv) = std::sync::mpsc::channel();
-        let path = self.config.src.clone();
+        let path = config.src.clone();
         std::thread::spawn(move || {
             let path = PathBuf::from(path);
             self::scan_folder(path, send);
@@ -93,8 +78,7 @@ impl Project {
 
             if file.get_fully_qualified_name().is_some() {
                 for statement in file.ast.clone() {
-                    self.results
-                        .add_file_violations(&file, self.analyse.analyse(&file, statement));
+                    results.add_file_violations(&file, analyze.analyse(&file, statement));
                 }
 
                 files += 1;
@@ -105,19 +89,20 @@ impl Project {
             progress_bar.finish();
         }
 
-        self.results.total_files_count = files;
-        self.results.duration = Some(now.elapsed());
+        results.total_files_count = files;
+        results.duration = Some(now.elapsed());
+
+        results
     }
 
-    pub fn output(&mut self, format: Format, summary_only: bool) {
-        let mut output_results = self.results.clone();
+    pub fn output(&mut self, mut results: Results, format: Format, summary_only: bool) {
         if summary_only {
-            output_results.files = HashMap::new();
+            results.files = HashMap::new();
         };
 
         match format {
-            Format::json => Json::output(output_results),
-            _ => Text::output(output_results),
+            Format::json => Json::output(results),
+            _ => Text::output(results),
         };
     }
 }
