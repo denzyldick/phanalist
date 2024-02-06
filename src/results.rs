@@ -47,4 +47,14 @@ impl Results {
 
         self.files.insert(path, current_file_violations);
     }
+
+    pub fn has_any_violations(&self) -> bool {
+        self.codes_count
+            .values()
+            .cloned()
+            .collect::<Vec<i64>>()
+            .iter()
+            .sum::<i64>()
+            > 0
+    }
 }
