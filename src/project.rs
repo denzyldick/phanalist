@@ -11,7 +11,7 @@ use crate::analyse::Analyse;
 use crate::config::Config;
 use crate::file::File;
 use crate::output::{Format, Json, OutputFormatter, Text};
-use crate::results::Results;
+use crate::results::{Results, Violation};
 
 pub struct Project {}
 
@@ -76,13 +76,10 @@ impl Project {
                 ast: ast.clone(),
             };
 
-            if file.get_fully_qualified_name().is_some() {
-                for statement in file.ast.clone() {
-                    results.add_file_violations(&file, analyze.analyse(&file, statement));
-                }
+            let violations = self.analyse_file(&file, &analyze);
+            results.add_file_violations(&file, violations);
 
-                files += 1;
-            };
+            files += 1;
         }
 
         if show_bar {
@@ -104,5 +101,17 @@ impl Project {
             Format::json => Json::output(results),
             _ => Text::output(results),
         };
+    }
+
+    pub(crate) fn analyse_file(&self, file: &File, analyze: &Analyse) -> Vec<Violation> {
+        let mut violations: Vec<Violation> = vec![];
+
+        if file.get_fully_qualified_name().is_some() {
+            for statement in file.ast.clone() {
+                violations.append(&mut analyze.analyse(file, statement));
+            }
+        };
+
+        violations
     }
 }

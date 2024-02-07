@@ -74,3 +74,32 @@ pub fn all_rules() -> HashMap<String, Box<dyn Rule>> {
 
     rules
 }
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+    use std::path::PathBuf;
+
+    use php_parser_rs::parser;
+
+    use crate::analyse::Analyse;
+    use crate::project::Project;
+
+    use super::*;
+
+    pub(crate) fn analyze_file_for_rule(path: &str, rule_code: &str) -> Vec<Violation> {
+        let path = PathBuf::from(format!("./src/rules/test/{path}"));
+        let content = fs::read_to_string(path.clone()).unwrap();
+        let ast = parser::parse(&content).unwrap();
+        let file = File { path, content, ast };
+
+        let config = Config {
+            enabled_rules: vec![rule_code.to_string()],
+            ..Default::default()
+        };
+        let analyse = Analyse::new(config);
+
+        let project = Project {};
+        project.analyse_file(&file, &analyse)
+    }
+}
