@@ -245,3 +245,75 @@ impl Analyse {
         suggestions
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn get_all_codes() -> Vec<String> {
+        vec![
+            "RULE1".to_string(),
+            "RULE2".to_string(),
+            "RULE3".to_string(),
+            "RULE4".to_string(),
+        ]
+    }
+
+    fn get_enabled_codes() -> Vec<String> {
+        vec![
+            "RULE1".to_string(),
+            "RULE3".to_string(),
+            "RULE103".to_string(),
+        ]
+    }
+
+    fn get_disabled_codes() -> Vec<String> {
+        vec![
+            "RULE2".to_string(),
+            "RULE3".to_string(),
+            "RULE203".to_string(),
+        ]
+    }
+
+    #[test]
+    fn test_filter_active_codes_all_enabled() {
+        let all_codes = get_all_codes();
+        let active_codes = Analyse::filter_active_codes(all_codes.clone(), vec![], vec![]);
+
+        assert_eq!(all_codes, active_codes);
+    }
+
+    #[test]
+    fn test_filter_active_codes_some_enabled() {
+        let all_codes = get_all_codes();
+        let enabled_codes = get_enabled_codes();
+        let active_codes =
+            Analyse::filter_active_codes(all_codes.clone(), enabled_codes.clone(), vec![]);
+
+        assert_eq!(vec!["RULE1".to_string(), "RULE3".to_string()], active_codes);
+    }
+
+    #[test]
+    fn test_filter_active_codes_some_disabled() {
+        let all_codes = get_all_codes();
+        let disabled_codes = get_disabled_codes();
+        let active_codes =
+            Analyse::filter_active_codes(all_codes.clone(), vec![], disabled_codes.clone());
+
+        assert_eq!(vec!["RULE1".to_string(), "RULE4".to_string()], active_codes);
+    }
+
+    #[test]
+    fn test_filter_active_codes_some_enabled_and_disabled() {
+        let all_codes = get_all_codes();
+        let disabled_codes = get_disabled_codes();
+        let enabled_codes = get_enabled_codes();
+        let active_codes = Analyse::filter_active_codes(
+            all_codes.clone(),
+            enabled_codes.clone(),
+            disabled_codes.clone(),
+        );
+
+        assert_eq!(vec!["RULE1".to_string()], active_codes);
+    }
+}
