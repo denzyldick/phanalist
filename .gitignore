@@ -1,9 +1,5 @@
 /target
 /test
 .vscode
-test-big-projects
 phanalist.yaml
-*.php
 .idea/*
-bad-source-target
-/vendor/

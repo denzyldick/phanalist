@@ -5,19 +5,37 @@ use php_parser_rs::parser::ast::{
     loops::{WhileStatement, WhileStatementBody},
     BlockStatement, ExpressionStatement, Statement,
 };
+use serde::{Deserialize, Serialize};
 
 use crate::file::File;
 use crate::results::Violation;
 
-pub struct Rule {}
+pub(crate) static CODE: &str = "E0009";
+static DESCRIPTION: &str = "Cyclomatic complexity";
+
+#[derive(Deserialize, Serialize)]
+pub struct Settings {
+    pub max_complexity: i64,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Settings { max_complexity: 10 }
+    }
+}
+
+#[derive(Default)]
+pub struct Rule {
+    pub settings: Settings,
+}
 
 impl crate::rules::Rule for Rule {
     fn get_code(&self) -> String {
-        String::from("E0009")
+        String::from(CODE)
     }
 
     fn description(&self) -> String {
-        String::from("Cyclomatic complexity")
+        String::from(DESCRIPTION)
     }
 
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
@@ -37,8 +55,7 @@ impl crate::rules::Rule for Rule {
                     } = concretemethod.body.clone();
                     {
                         let graph = calculate_cyclomatic_complexity(statements.clone(), &mut graph);
-
-                        if graph.calculate() > 10 {
+                        if graph.calculate() > self.settings.max_complexity {
                             violations.push(self.new_violation(
                                 file,
                                 suggestion.clone(),
@@ -53,6 +70,7 @@ impl crate::rules::Rule for Rule {
     }
 }
 
+#[derive(Debug)]
 struct Graph {
     n: i64,
     e: i64,
@@ -167,8 +185,33 @@ fn calculate_cyclomatic_complexity(
     graph
 }
 
-#[test]
-pub fn calculate() {
-    let g = Graph { n: 8, e: 9, p: 3 };
-    assert_eq!(g.calculate(), 5);
+#[cfg(test)]
+mod tests {
+    use crate::rules::tests::analyze_file_for_rule;
+
+    use super::*;
+
+    #[test]
+    pub fn graph_calculate() {
+        let g = Graph { n: 8, e: 9, p: 3 };
+        assert_eq!(g.calculate(), 5);
+    }
+
+    #[test]
+    fn complex() {
+        let violations = analyze_file_for_rule("e9/complex.php", CODE);
+
+        assert!(violations.len().gt(&0));
+        assert_eq!(
+            violations.first().unwrap().suggestion,
+            "This method body is too complex. Make it easier to understand.".to_string()
+        );
+    }
+
+    #[test]
+    fn not_complex() {
+        let violations = analyze_file_for_rule("e9/not_complex.php", CODE);
+
+        assert!(violations.len().eq(&0));
+    }
 }

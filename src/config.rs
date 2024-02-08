@@ -25,6 +25,10 @@ impl Default for Config {
             String::from(rules::e7::CODE),
             serde_json::to_value(rules::e7::Settings::default()).unwrap(),
         );
+        rules.insert(
+            String::from(rules::e9::CODE),
+            serde_json::to_value(rules::e9::Settings::default()).unwrap(),
+        );
 
         Config {
             src: String::from("./"),
