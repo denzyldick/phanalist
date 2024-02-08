@@ -5,15 +5,18 @@ use php_parser_rs::parser::ast::Statement;
 use crate::file::File;
 use crate::results::Violation;
 
+static CODE: &str = "E0003";
+static DESCRIPTION: &str = "Method modifiers";
+
 pub struct Rule {}
 
 impl crate::rules::Rule for Rule {
     fn get_code(&self) -> String {
-        String::from("E0003")
+        String::from(CODE)
     }
 
     fn description(&self) -> String {
-        String::from("Method modifiers")
+        String::from(DESCRIPTION)
     }
 
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
@@ -22,17 +25,13 @@ impl crate::rules::Rule for Rule {
         if let Statement::Class(class) = statement {
             for member in &class.body.members {
                 match member {
-                    ClassMember::ConcreteMethod(concretemethod) => {
-                        let method_name = &concretemethod.name.value;
-                        let MethodModifierGroup { modifiers } = &concretemethod.modifiers;
+                    ClassMember::ConcreteMethod(method) => {
+                        let method_name = &method.name.value;
+                        let MethodModifierGroup { modifiers } = &method.modifiers;
                         if modifiers.is_empty() {
                             let suggestion =
                                 format!("The method {} has no modifiers.", method_name);
-                            violations.push(self.new_violation(
-                                file,
-                                suggestion,
-                                concretemethod.function,
-                            ))
+                            violations.push(self.new_violation(file, suggestion, method.function))
                         };
                     }
                     ClassMember::ConcreteConstructor(constructor) => {
@@ -54,5 +53,41 @@ impl crate::rules::Rule for Rule {
         };
 
         violations
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::rules::tests::analyze_file_for_rule;
+
+    use super::*;
+
+    #[test]
+    fn no_method_modifiers() {
+        let violations = analyze_file_for_rule("e3/no_method_modifiers.php", CODE);
+
+        assert!(violations.len().gt(&0));
+        assert_eq!(
+            violations.first().unwrap().suggestion,
+            "The method methodWithoutModifier has no modifiers.".to_string()
+        );
+    }
+
+    #[test]
+    fn no_constructor_modifier() {
+        let violations = analyze_file_for_rule("e3/no_constructor_modifiers.php", CODE);
+
+        assert!(violations.len().gt(&0));
+        assert_eq!(
+            violations.first().unwrap().suggestion,
+            "This method __construct has no modifiers.".to_string()
+        );
+    }
+
+    #[test]
+    fn with_modifiers() {
+        let violations = analyze_file_for_rule("e3/with_modifiers.php", CODE);
+
+        assert!(violations.len().eq(&0));
     }
 }

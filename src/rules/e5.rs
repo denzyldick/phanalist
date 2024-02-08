@@ -3,7 +3,8 @@ use php_parser_rs::parser::ast::Statement;
 use crate::file::File;
 use crate::results::Violation;
 
-pub static CODE: &str = "E0005";
+static CODE: &str = "E0005";
+static DESCRIPTION: &str = "Capitalized class name";
 
 pub struct Rule {}
 
@@ -13,7 +14,7 @@ impl crate::rules::Rule for Rule {
     }
 
     fn description(&self) -> String {
-        String::from("Class name")
+        String::from(DESCRIPTION)
     }
 
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
@@ -28,5 +29,30 @@ impl crate::rules::Rule for Rule {
         };
 
         violations
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::rules::tests::analyze_file_for_rule;
+
+    use super::*;
+
+    #[test]
+    fn non_capitalized_classname() {
+        let violations = analyze_file_for_rule("e5/non_capitalized_classname.php", CODE);
+
+        assert!(violations.len().gt(&0));
+        assert_eq!(
+            violations.first().unwrap().suggestion,
+            "The class name nonCapitalized is not capitalized. The first letter of the name of the class should be in uppercase.".to_string()
+        );
+    }
+
+    #[test]
+    fn capitalized_classname() {
+        let violations = analyze_file_for_rule("e5/capitalized_classname.php", CODE);
+
+        assert!(violations.len().eq(&0));
     }
 }

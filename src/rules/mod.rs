@@ -9,9 +9,8 @@ use crate::config::Config;
 use crate::file::File;
 use crate::results::Violation;
 
+pub mod e0;
 pub mod e1;
-pub mod e10;
-pub mod e11;
 pub mod e2;
 pub mod e3;
 pub mod e4;
@@ -68,9 +67,7 @@ pub fn all_rules() -> HashMap<String, Box<dyn Rule>> {
     add_rule(&mut rules, Box::new(e6::Rule {}));
     add_rule(&mut rules, Box::default() as Box<e7::Rule>);
     add_rule(&mut rules, Box::new(e8::Rule {}));
-    add_rule(&mut rules, Box::new(e9::Rule {}));
-    add_rule(&mut rules, Box::new(e10::Rule {}));
-    add_rule(&mut rules, Box::new(e11::Rule {}));
+    add_rule(&mut rules, Box::default() as Box<e9::Rule>);
 
     rules
 }
@@ -88,7 +85,7 @@ mod tests {
     use super::*;
 
     pub(crate) fn analyze_file_for_rule(path: &str, rule_code: &str) -> Vec<Violation> {
-        let path = PathBuf::from(format!("./src/rules/test/{path}"));
+        let path = PathBuf::from(format!("./src/rules/examples/{path}"));
         let content = fs::read_to_string(path.clone()).unwrap();
         let ast = parser::parse(&content).unwrap();
         let file = File { path, content, ast };
