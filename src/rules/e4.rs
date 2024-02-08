@@ -5,15 +5,18 @@ use php_parser_rs::parser::ast::Statement;
 use crate::file::File;
 use crate::results::Violation;
 
+static CODE: &str = "E0004";
+static DESCRIPTION: &str = "Uppercase constants";
+
 pub struct Rule {}
 
 impl crate::rules::Rule for Rule {
     fn get_code(&self) -> String {
-        String::from("E0004")
+        String::from(CODE)
     }
 
     fn description(&self) -> String {
-        String::from("Uppercase constants")
+        String::from(DESCRIPTION)
     }
 
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
@@ -55,5 +58,30 @@ impl Rule {
         }
 
         is_uppercase
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::rules::tests::analyze_file_for_rule;
+
+    use super::*;
+
+    #[test]
+    fn no_uppercase_constant() {
+        let violations = analyze_file_for_rule("e4/no_uppercase_constant.php", CODE);
+
+        assert!(violations.len().gt(&0));
+        assert_eq!(
+            violations.first().unwrap().suggestion,
+            "All letters in a constant(TeST) should be uppercase.".to_string()
+        );
+    }
+
+    #[test]
+    fn uppercase_constant() {
+        let violations = analyze_file_for_rule("e4/uppercase_constant.php", CODE);
+
+        assert!(violations.len().eq(&0));
     }
 }

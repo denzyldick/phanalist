@@ -3,7 +3,8 @@ use php_parser_rs::parser::ast::Statement;
 use crate::file::File;
 use crate::results::Violation;
 
-pub static CODE: &str = "E0001";
+static CODE: &str = "E0001";
+static DESCRIPTION: &str = "Opening tag position";
 
 pub struct Rule {}
 
@@ -13,7 +14,7 @@ impl crate::rules::Rule for Rule {
     }
 
     fn description(&self) -> String {
-        String::from("Opening tag position")
+        String::from(DESCRIPTION)
     }
 
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
@@ -76,7 +77,7 @@ mod tests {
         let violations = analyze_file_for_rule("e1/full_opening_tag_not_first_line.php", CODE);
 
         assert!(violations.len().gt(&0));
-        assert_eq!(violations.get(0).unwrap().suggestion, "The opening tag is not on the right line. This should always be the first line in a PHP file.".to_string());
+        assert_eq!(violations.first().unwrap().suggestion, "The opening tag is not on the right line. This should always be the first line in a PHP file.".to_string());
     }
 
     #[test]
@@ -85,7 +86,7 @@ mod tests {
 
         assert!(violations.len().gt(&0));
         assert_eq!(
-            violations.get(0).unwrap().suggestion,
+            violations.first().unwrap().suggestion,
             "The opening tag doesn't start at the right column: 2.".to_string()
         );
     }
@@ -102,7 +103,7 @@ mod tests {
         let violations = analyze_file_for_rule("e1/short_opening_tag_not_first_line.php", CODE);
 
         assert!(violations.len().gt(&0));
-        assert_eq!(violations.get(0).unwrap().suggestion, "The opening tag is not on the right line. This should always be the first line in a PHP file.".to_string());
+        assert_eq!(violations.first().unwrap().suggestion, "The opening tag is not on the right line. This should always be the first line in a PHP file.".to_string());
     }
 
     #[test]
@@ -111,7 +112,7 @@ mod tests {
 
         assert!(violations.len().gt(&0));
         assert_eq!(
-            violations.get(0).unwrap().suggestion,
+            violations.first().unwrap().suggestion,
             "The opening tag doesn't start at the right column: 2.".to_string()
         );
     }
