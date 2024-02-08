@@ -9,7 +9,8 @@ use serde_json::Value;
 use crate::file::File;
 use crate::results::Violation;
 
-pub static CODE: &str = "E0007";
+pub(crate) static CODE: &str = "E0007";
+static DESCRIPTION: &str = "Method parameters count";
 
 #[derive(Deserialize, Serialize)]
 pub struct Settings {
@@ -22,18 +23,9 @@ impl Default for Settings {
     }
 }
 
+#[derive(Default)]
 pub struct Rule {
     pub settings: Settings,
-}
-
-impl Default for Rule {
-    fn default() -> Self {
-        Rule {
-            settings: Settings {
-                ..Default::default()
-            },
-        }
-    }
 }
 
 impl crate::rules::Rule for Rule {
@@ -42,7 +34,7 @@ impl crate::rules::Rule for Rule {
     }
 
     fn description(&self) -> String {
-        String::from("Method parameters count")
+        String::from(DESCRIPTION)
     }
 
     fn set_config(&mut self, json: &Value) {
@@ -54,38 +46,35 @@ impl crate::rules::Rule for Rule {
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
         let mut violations = Vec::new();
 
-        let suggestion  = format!("This method has too many parameters. More than {} parameters is considered a too much.", self.settings.max_parameters);
         if let Statement::Class(class) = statement {
             for member in &class.body.members {
                 match member {
-                    ClassMember::ConcreteMethod(concretemethod) => {
+                    ClassMember::ConcreteMethod(method) => {
                         // Detect parameters without type.
                         let FunctionParameterList {
                             comments: _,
                             left_parenthesis: _,
                             right_parenthesis: _,
                             parameters,
-                        } = &concretemethod.parameters;
+                        } = &method.parameters;
                         if parameters.inner.len() > self.settings.max_parameters as usize {
-                            violations.push(self.new_violation(
-                                file,
-                                suggestion.clone(),
-                                concretemethod.function,
-                            ));
+                            let suggestion = format!("Method {} has too many parameters. More than {} parameters is considered a too much.", &method.name.value, self.settings.max_parameters);
+                            violations.push(self.new_violation(file, suggestion, method.function));
                         }
                     }
-                    ClassMember::ConcreteConstructor(concreteconstructor) => {
+                    ClassMember::ConcreteConstructor(constructor) => {
                         let ConstructorParameterList {
                             comments: _,
                             left_parenthesis: _,
                             right_parenthesis: _,
                             parameters,
-                        } = &concreteconstructor.parameters;
+                        } = &constructor.parameters;
                         if parameters.inner.len() > self.settings.max_parameters as usize {
+                            let suggestion  = format!("Constructor has too many parameters. More than {} parameters is considered a too much.", self.settings.max_parameters);
                             violations.push(self.new_violation(
                                 file,
-                                suggestion.clone(),
-                                concreteconstructor.function,
+                                suggestion,
+                                constructor.function,
                             ));
                         }
                     }
@@ -94,5 +83,43 @@ impl crate::rules::Rule for Rule {
             }
         };
         violations
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::rules::tests::analyze_file_for_rule;
+
+    use super::*;
+
+    #[test]
+    fn method_max_params() {
+        let violations = analyze_file_for_rule("e7/method_max_params.php", CODE);
+
+        assert!(violations.len().gt(&0));
+        assert_eq!(
+            violations.first().unwrap().suggestion,
+            "Method test has too many parameters. More than 5 parameters is considered a too much."
+                .to_string()
+        );
+    }
+
+    #[test]
+    fn constructor_max_params() {
+        let violations = analyze_file_for_rule("e7/constructor_max_params.php", CODE);
+
+        assert!(violations.len().gt(&0));
+        assert_eq!(
+            violations.first().unwrap().suggestion,
+            "Constructor has too many parameters. More than 5 parameters is considered a too much."
+                .to_string()
+        );
+    }
+
+    #[test]
+    fn valid_amount_of_params() {
+        let violations = analyze_file_for_rule("e7/valid_amount_of_params.php", CODE);
+
+        assert!(violations.len().eq(&0));
     }
 }

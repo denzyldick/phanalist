@@ -35,7 +35,8 @@ struct Args {
     /// Possible options: text, json
     output_format: String,
     #[arg(long)]
-    output_summary_only: bool,
+    /// Output only summary
+    summary_only: bool,
     #[arg(short, long)]
     /// Do not output the results
     quiet: bool,
@@ -77,7 +78,7 @@ fn main() {
         let results = project.scan(config, is_not_json_format && !quiet);
 
         if !quiet {
-            project.output(results.clone(), format, args.output_summary_only);
+            project.output(results.clone(), format, args.summary_only);
         }
 
         if results.has_any_violations() {
