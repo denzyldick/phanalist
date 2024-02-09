@@ -1,0 +1,7 @@
+FROM --platform=linux/x86_64 alpine:3.14
+RUN apk add --no-cache --upgrade curl  build-base
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+RUN ~/.cargo/bin/rustup target add x86_64-unknown-linux-musl
+WORKDIR /usr/src/phanalist
+COPY . .
+RUN ~/.cargo/bin/cargo build --target x86_64-unknown-linux-musl --release

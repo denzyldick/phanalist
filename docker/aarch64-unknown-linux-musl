@@ -1,0 +1,6 @@
+FROM --platform=linux/aarch64 alpine:3.14
+RUN apk add --no-cache --upgrade curl build-base
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+WORKDIR /usr/src/phanalist
+COPY . .
+RUN ~/.cargo/bin/cargo build --target aarch64-unknown-linux-musl --release
