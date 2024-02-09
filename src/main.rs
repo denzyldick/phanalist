@@ -29,6 +29,8 @@ mod rules;
 struct Args {
     #[arg(short, long, default_value = "./phanalist.yaml")]
     config: String,
+    #[arg(short, long)]
+    default_config: bool,
     #[arg(short, long, default_value = "./src")]
     src: Option<String>,
     #[arg(short, long, default_value = "text")]
@@ -59,7 +61,11 @@ fn main() {
 
         let format = output_format.clone().unwrap();
         let quiet = args.quiet;
-        let mut config = parse_config(PathBuf::from(args.config), format.clone(), quiet);
+        let mut config = if args.default_config {
+            Config::default()
+        } else {
+            parse_config(PathBuf::from(args.config), quiet)
+        };
         if let Some(src) = args.src {
             config.src = src;
         }
@@ -89,7 +95,7 @@ fn main() {
     }
 }
 
-fn parse_config(path: PathBuf, format: Format, quiet: bool) -> Config {
+fn parse_config(path: PathBuf, quiet: bool) -> Config {
     let default_config = Config::default();
 
     match fs::read_to_string(path.clone()) {
@@ -118,7 +124,7 @@ fn parse_config(path: PathBuf, format: Format, quiet: bool) -> Config {
             panic!("{}", e)
         }
         Ok(s) => {
-            if format == Format::text && !quiet {
+            if !quiet {
                 println!("Using configuration file {}", &path.display());
             }
             match serde_yaml::from_str(&s) {
