@@ -16,7 +16,6 @@ use crate::output::Format;
 mod analyse;
 mod config;
 mod file;
-mod language_server_protocol;
 mod output;
 mod project;
 mod results;
@@ -42,56 +41,50 @@ struct Args {
     #[arg(short, long)]
     /// Do not output the results
     quiet: bool,
-    /// Start the LSP server.
-    #[arg(long)]
-    deamon: bool,
 }
 
 fn main() {
     std::env::set_var("RUST_BACKTRACE", "1");
     let args = Args::parse();
-    if args.deamon {
-        language_server_protocol::start();
+
+    let output_format = output::Format::from_str(args.output_format.as_str());
+    if output_format.is_err() {
+        println!("Invalid input format");
+        process::exit(exitcode::USAGE);
+    }
+
+    let format = output_format.clone().unwrap();
+    let quiet = args.quiet;
+    let mut config = if args.default_config {
+        Config::default()
     } else {
-        let output_format = output::Format::from_str(args.output_format.as_str());
-        if output_format.is_err() {
-            println!("Invalid input format");
-            process::exit(exitcode::USAGE);
-        }
+        parse_config(PathBuf::from(args.config), quiet)
+    };
+    if let Some(src) = args.src {
+        config.src = src;
+    }
 
-        let format = output_format.clone().unwrap();
-        let quiet = args.quiet;
-        let mut config = if args.default_config {
-            Config::default()
-        } else {
-            parse_config(PathBuf::from(args.config), quiet)
-        };
-        if let Some(src) = args.src {
-            config.src = src;
-        }
+    if !Path::new(config.src.as_str()).exists() {
+        println!("Path {} does not exist", config.src);
+        process::exit(exitcode::IOERR);
+    }
 
-        if !Path::new(config.src.as_str()).exists() {
-            println!("Path {} does not exist", config.src);
-            process::exit(exitcode::IOERR);
-        }
+    let mut project = Project {};
+    let is_not_json_format = format != Format::json;
+    if is_not_json_format && !quiet {
+        println!();
+        println!("Scanning files ...");
+    }
+    let results = project.scan(config, is_not_json_format && !quiet);
 
-        let mut project = Project {};
-        let is_not_json_format = format != Format::json;
-        if is_not_json_format && !quiet {
-            println!();
-            println!("Scanning files ...");
-        }
-        let results = project.scan(config, is_not_json_format && !quiet);
+    if !quiet {
+        project.output(results.clone(), format, args.summary_only);
+    }
 
-        if !quiet {
-            project.output(results.clone(), format, args.summary_only);
-        }
-
-        if results.has_any_violations() {
-            process::exit(exitcode::SOFTWARE);
-        } else {
-            process::exit(exitcode::OK);
-        }
+    if results.has_any_violations() {
+        process::exit(exitcode::SOFTWARE);
+    } else {
+        process::exit(exitcode::OK);
     }
 }
 
