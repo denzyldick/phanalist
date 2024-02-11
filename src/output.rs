@@ -4,6 +4,9 @@ use cli_table::{format::Justify, Cell, Style, Table};
 use colored::Colorize;
 use serde::{Deserialize, Serialize};
 
+use human_bytes::human_bytes;
+use memory_stats::memory_stats;
+
 use crate::results::Results;
 use crate::rules;
 
@@ -42,6 +45,10 @@ impl OutputFormatter for Text {
             results.total_files_count,
             results.duration.unwrap()
         );
+
+        if let Some(usage) = memory_stats() {
+            println!("Memory usage: {}", human_bytes(usage.physical_mem as f64));
+        }
     }
 }
 
