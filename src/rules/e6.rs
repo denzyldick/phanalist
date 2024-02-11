@@ -26,8 +26,8 @@ impl crate::rules::Rule for Rule {
         if let Statement::Class(class) = statement {
             for member in &class.body.members {
                 if let ClassMember::Property(property) = member {
-                    if Self::property_without_modifiers(property.clone()) {
-                        let name = Self::property_name(property.clone());
+                    if Self::property_without_modifiers(property) {
+                        let name = Self::property_name(property);
                         let suggestion =
                             format!("The variables {} have no modifier.", name.join(", "));
                         violations.push(self.new_violation(file, suggestion, property.end));
@@ -41,11 +41,11 @@ impl crate::rules::Rule for Rule {
 }
 
 impl Rule {
-    fn property_without_modifiers(property: Property) -> bool {
-        let PropertyModifierGroup { modifiers } = property.modifiers;
+    fn property_without_modifiers(property: &Property) -> bool {
+        let PropertyModifierGroup { modifiers } = &property.modifiers;
         modifiers.is_empty()
     }
-    fn property_name(property: Property) -> Vec<std::string::String> {
+    fn property_name(property: &Property) -> Vec<std::string::String> {
         let Property {
             attributes: _,
             modifiers: _,

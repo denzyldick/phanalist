@@ -53,12 +53,12 @@ fn main() {
         process::exit(exitcode::USAGE);
     }
 
-    let format = output_format.clone().unwrap();
+    let format = output_format.unwrap();
     let quiet = args.quiet;
     let mut config = if args.default_config {
         Config::default()
     } else {
-        parse_config(PathBuf::from(args.config), quiet)
+        parse_config(args.config, quiet)
     };
     if let Some(src) = args.src {
         config.src = src;
@@ -75,10 +75,10 @@ fn main() {
         println!();
         println!("Scanning files ...");
     }
-    let results = project.scan(config, is_not_json_format && !quiet);
+    let mut results = project.scan(config, is_not_json_format && !quiet);
 
     if !quiet {
-        project.output(results.clone(), format, args.summary_only);
+        project.output(&mut results, format, args.summary_only);
     }
 
     if results.has_any_violations() {
@@ -88,22 +88,20 @@ fn main() {
     }
 }
 
-fn parse_config(path: PathBuf, quiet: bool) -> Config {
+fn parse_config(config_path: String, quiet: bool) -> Config {
+    let path = PathBuf::from(config_path);
     let default_config = Config::default();
 
-    match fs::read_to_string(path.clone()) {
+    match fs::read_to_string(&path) {
         Err(e) if e.kind() == ErrorKind::NotFound => {
-            println!(
-                "No configuration file {} has been found.",
-                &path.clone().display()
-            );
+            println!("No configuration file {} has been found.", &path.display());
             println!("Do you want to create a configuration file (otherwise defaults will be used)? [Y/n]");
 
             let mut answer = String::new();
             std::io::stdin().read_line(&mut answer).unwrap();
 
             if answer.trim().to_lowercase() == "y" || answer.trim().to_lowercase() == "yes" {
-                default_config.save(path.clone());
+                default_config.save(&path);
                 println!(
                     "The new {} configuration file as been created",
                     &path.display()

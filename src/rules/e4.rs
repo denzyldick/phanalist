@@ -26,7 +26,7 @@ impl crate::rules::Rule for Rule {
             for member in &class.body.members {
                 if let ClassMember::Constant(constant) = member {
                     for entry in &constant.entries {
-                        if !Self::uppercased_constant_name(entry.clone()) {
+                        if !Self::uppercased_constant_name(entry) {
                             let suggestion = format!(
                                 "All letters in a constant({}) should be uppercase.",
                                 entry.name.value
@@ -43,7 +43,7 @@ impl crate::rules::Rule for Rule {
 }
 
 impl Rule {
-    fn uppercased_constant_name(entry: ConstantEntry) -> bool {
+    fn uppercased_constant_name(entry: &ConstantEntry) -> bool {
         let ConstantEntry {
             name,
             equals: _,

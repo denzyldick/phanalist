@@ -31,7 +31,7 @@ pub trait Rule {
 
     fn set_config(&mut self, _json: &Value) {}
 
-    fn read_config(&mut self, config: Config) {
+    fn read_config(&mut self, config: &Config) {
         let code = self.get_code();
         if let Some(rule_config) = config.rules.get(&code) {
             self.set_config(rule_config);
@@ -41,7 +41,7 @@ pub trait Rule {
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation>;
 
     fn new_violation(&self, file: &File, suggestion: String, span: Span) -> Violation {
-        let line = file.content.lines().nth(span.line - 1).unwrap();
+        let line = file.lines.get(span.line - 1).unwrap();
 
         Violation {
             rule: self.get_code(),
@@ -77,8 +77,6 @@ mod tests {
     use std::fs;
     use std::path::PathBuf;
 
-    use php_parser_rs::parser;
-
     use crate::analyse::Analyse;
     use crate::project::Project;
 
@@ -86,15 +84,14 @@ mod tests {
 
     pub(crate) fn analyze_file_for_rule(path: &str, rule_code: &str) -> Vec<Violation> {
         let path = PathBuf::from(format!("./src/rules/examples/{path}"));
-        let content = fs::read_to_string(path.clone()).unwrap();
-        let ast = parser::parse(&content).unwrap();
-        let file = File { path, content, ast };
+        let content = fs::read_to_string(&path).unwrap();
+        let file = File::new(path, content);
 
         let config = Config {
             enabled_rules: vec![rule_code.to_string()],
             ..Default::default()
         };
-        let analyse = Analyse::new(config);
+        let analyse = Analyse::new(&config);
 
         let project = Project {};
         project.analyse_file(&file, &analyse)

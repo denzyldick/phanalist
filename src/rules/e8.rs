@@ -1,3 +1,4 @@
+use php_parser_rs::lexer::token::Span;
 use php_parser_rs::parser::ast::{
     classes::ClassMember, functions::MethodBody, ReturnStatement, Statement,
 };
@@ -24,19 +25,13 @@ impl crate::rules::Rule for Rule {
         if let Statement::Class(class) = statement {
             for member in &class.body.members {
                 if let ClassMember::ConcreteMethod(method) = member {
-                    // Detect return statement without the proper return type signature.
-                    let has_return = Self::method_has_return(method.body.clone());
+                    let return_span = Self::get_return_span(&method.body);
                     let method_name = &method.name.value;
 
-                    if let Some(ReturnStatement {
-                        r#return,
-                        value: _,
-                        ending: _,
-                    }) = has_return
-                    {
+                    if let Some(r) = return_span {
                         if method.return_type.is_none() {
                             let suggestion = format!("The method {} has a return statement but it has no return type signature.", method_name).to_string();
-                            violations.push(self.new_violation(file, suggestion, r#return));
+                            violations.push(self.new_violation(file, suggestion, r));
                         };
                     };
                 }
@@ -47,21 +42,17 @@ impl crate::rules::Rule for Rule {
 }
 
 impl Rule {
-    fn method_has_return(body: MethodBody) -> Option<ReturnStatement> {
-        let mut r: Option<ReturnStatement> = None;
-        for statement in body.statements {
+    fn get_return_span(body: &MethodBody) -> Option<Span> {
+        let mut r: Option<Span> = None;
+        for statement in &body.statements {
             if let Statement::Return(ReturnStatement {
                 r#return,
-                value,
-                ending,
+                value: _,
+                ending: _,
             }) = statement
             {
-                r = Some(ReturnStatement {
-                    r#return,
-                    value,
-                    ending,
-                });
-            };
+                r = Some(*r#return);
+            }
         }
         r
     }
