@@ -101,15 +101,17 @@ impl Text {
             ]);
         }
 
-        let table = rows
-            .table()
-            .title(vec![
-                "Rule Code".cell().bold(true),
-                "Description".cell().bold(true),
-                "Violations".cell().bold(true),
-            ])
-            .bold(true);
-        println!("{}", table.display().unwrap());
+        if !rows.is_empty() {
+            let table = rows
+                .table()
+                .title(vec![
+                    "Rule Code".cell().bold(true),
+                    "Description".cell().bold(true),
+                    "Violations".cell().bold(true),
+                ])
+                .bold(true);
+            println!("{}", table.display().unwrap());
+        }
     }
 }
 
