@@ -1,3 +1,4 @@
+use colored::Colorize;
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
@@ -51,6 +52,12 @@ impl Project {
 
         let (send, recv) = std::sync::mpsc::channel();
         let path = config.src;
+
+        if show_bar {
+            println!();
+            println!("Scanning files in {} ...", &path.to_string().bold());
+        }
+
         std::thread::spawn(move || {
             let path = PathBuf::from(path);
             self::scan_folder(path, send);

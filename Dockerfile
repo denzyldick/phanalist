@@ -7,4 +7,4 @@ RUN cargo build --target aarch64-unknown-linux-musl --release
 
 FROM --platform=linux/aarch64 alpine:3.14
 COPY --from=builder /usr/src/phanalist/target/aarch64-unknown-linux-musl/release/phanalist /usr/local/bin/phanalist
-CMD ["phanalist", "--default-config", "-s", "/var/src"]
+CMD ["phanalist", "-s", "/var/src"]
