@@ -74,11 +74,7 @@ mod tests {
         }
     }
     fn get_file(name: &str) -> File {
-        File {
-            path: PathBuf::from(name),
-            content: "Content".to_string(),
-            ast: vec![],
-        }
+        File::new(PathBuf::from(name), "Content".to_string())
     }
     fn get_violation(rule: &str) -> Violation {
         Violation {

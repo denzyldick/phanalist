@@ -21,7 +21,7 @@ impl crate::rules::Rule for Rule {
         let mut violations = Vec::new();
 
         if let Statement::Class(class) = statement {
-            let name = String::from(class.name.value.clone());
+            let name = class.name.value.to_string();
             if !name.chars().next().unwrap().is_uppercase() {
                 let suggestion = format!("The class name {} is not capitalized. The first letter of the name of the class should be in uppercase.", name);
                 violations.push(self.new_violation(file, suggestion, class.class))

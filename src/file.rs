@@ -8,15 +8,32 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct File {
     pub path: PathBuf,
-    pub content: String,
+    pub lines: Vec<String>,
+    pub namespace: Option<String>,
+    pub class_name: Option<String>,
     #[serde(skip_serializing, skip_deserializing)]
     pub ast: Vec<Statement>,
 }
 
 impl File {
-    fn get_namespace(&self) -> Option<String> {
+    pub fn new(path: PathBuf, content: String) -> Self {
+        let ast = match parser::parse(&content) {
+            Ok(a) => a,
+            Err(_) => vec![],
+        };
+
+        Self {
+            path: path.clone(),
+            lines: content.lines().map(|s| s.to_string()).collect(),
+            namespace: Self::get_namespace(&ast),
+            class_name: Self::get_class_name(&ast),
+            ast,
+        }
+    }
+
+    fn get_namespace(ast: &[Statement]) -> Option<String> {
         let mut namespace: Option<String> = None;
-        self.ast.iter().for_each(|statement| {
+        ast.iter().for_each(|statement| {
             namespace = match statement {
                 Statement::Namespace(parser::ast::namespaces::NamespaceStatement::Braced(n)) => {
                     if n.name.is_some() {
@@ -34,9 +51,9 @@ impl File {
         namespace
     }
 
-    fn get_class_name(&self) -> Option<String> {
+    fn get_class_name(ast: &[Statement]) -> Option<String> {
         let mut class_name: Option<String> = None;
-        for statement in &self.ast {
+        for statement in ast {
             if class_name.is_none() {
                 match statement {
                     Statement::Namespace(parser::ast::namespaces::NamespaceStatement::Braced(
@@ -95,12 +112,12 @@ impl File {
     }
 
     pub fn get_fully_qualified_name(&self) -> Option<String> {
-        match self.get_namespace() {
+        match &self.namespace {
             Some(n) => {
-                let option = self.get_class_name();
+                let option = self.class_name.clone();
                 option.map(|s| format!("{}\\{}", n, s))
             }
-            None => self.get_class_name(),
+            None => self.class_name.clone(),
         }
     }
 }

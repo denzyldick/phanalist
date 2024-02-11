@@ -20,22 +20,22 @@ pub struct Analyse {
 }
 
 impl Analyse {
-    pub fn new(config: Config) -> Self {
+    pub fn new(config: &Config) -> Self {
         Self {
             rules: Self::get_active_rules(config),
         }
     }
 
-    fn get_active_rules(config: Config) -> HashMap<String, Box<dyn Rule>> {
+    fn get_active_rules(config: &Config) -> HashMap<String, Box<dyn Rule>> {
         let active_codes = Self::filter_active_codes(
             rules::all_rules().into_keys().collect(),
-            config.enabled_rules.clone(),
-            config.disable_rules.clone(),
+            &config.enabled_rules,
+            &config.disable_rules,
         );
 
         let mut active_rules = rules::all_rules();
         active_rules.retain(|code, rule| {
-            rule.read_config(config.clone());
+            rule.read_config(config);
 
             active_codes.contains(code)
         });
@@ -44,10 +44,10 @@ impl Analyse {
 
     fn filter_active_codes(
         all_codes: Vec<String>,
-        enabled: Vec<String>,
-        disabled: Vec<String>,
+        enabled: &Vec<String>,
+        disabled: &Vec<String>,
     ) -> Vec<String> {
-        let mut filtered_codes = all_codes.clone();
+        let mut filtered_codes = all_codes;
 
         if !enabled.is_empty() {
             filtered_codes.retain(|x| enabled.contains(x));
@@ -60,11 +60,11 @@ impl Analyse {
         filtered_codes
     }
 
-    pub fn analyse(&self, file: &File, statement: parser::ast::Statement) -> Vec<Violation> {
+    pub fn analyse(&self, file: &File, statement: &parser::ast::Statement) -> Vec<Violation> {
         let mut suggestions = Vec::new();
         let rules = &self.rules;
         for (_, rule) in rules.iter() {
-            suggestions.append(&mut self.expand(&statement, file, rule));
+            suggestions.append(&mut self.expand(statement, file, rule));
         }
         suggestions
     }
@@ -278,7 +278,7 @@ mod tests {
     #[test]
     fn test_filter_active_codes_all_enabled() {
         let all_codes = get_all_codes();
-        let active_codes = Analyse::filter_active_codes(all_codes.clone(), vec![], vec![]);
+        let active_codes = Analyse::filter_active_codes(all_codes.clone(), &vec![], &vec![]);
 
         assert_eq!(all_codes, active_codes);
     }
@@ -287,8 +287,7 @@ mod tests {
     fn test_filter_active_codes_some_enabled() {
         let all_codes = get_all_codes();
         let enabled_codes = get_enabled_codes();
-        let active_codes =
-            Analyse::filter_active_codes(all_codes.clone(), enabled_codes.clone(), vec![]);
+        let active_codes = Analyse::filter_active_codes(all_codes, &enabled_codes, &vec![]);
 
         assert_eq!(vec!["RULE1".to_string(), "RULE3".to_string()], active_codes);
     }
@@ -297,8 +296,7 @@ mod tests {
     fn test_filter_active_codes_some_disabled() {
         let all_codes = get_all_codes();
         let disabled_codes = get_disabled_codes();
-        let active_codes =
-            Analyse::filter_active_codes(all_codes.clone(), vec![], disabled_codes.clone());
+        let active_codes = Analyse::filter_active_codes(all_codes, &vec![], &disabled_codes);
 
         assert_eq!(vec!["RULE1".to_string(), "RULE4".to_string()], active_codes);
     }
@@ -308,11 +306,7 @@ mod tests {
         let all_codes = get_all_codes();
         let disabled_codes = get_disabled_codes();
         let enabled_codes = get_enabled_codes();
-        let active_codes = Analyse::filter_active_codes(
-            all_codes.clone(),
-            enabled_codes.clone(),
-            disabled_codes.clone(),
-        );
+        let active_codes = Analyse::filter_active_codes(all_codes, &enabled_codes, &disabled_codes);
 
         assert_eq!(vec!["RULE1".to_string()], active_codes);
     }

@@ -4,6 +4,9 @@ use cli_table::{format::Justify, Cell, Style, Table};
 use colored::Colorize;
 use serde::{Deserialize, Serialize};
 
+use human_bytes::human_bytes;
+use memory_stats::memory_stats;
+
 use crate::results::Results;
 use crate::rules;
 
@@ -28,26 +31,33 @@ impl FromStr for Format {
 }
 
 pub(crate) trait OutputFormatter {
-    fn output(_results: Results) {}
+    fn output(_results: &mut Results) {}
 }
 
 pub struct Text {}
 impl OutputFormatter for Text {
-    fn output(results: Results) {
-        Self::output_files_with_violations(results.clone());
-        Self::output_summary(results.clone());
+    fn output(results: &mut Results) {
+        Self::output_files_with_violations(results);
+        Self::output_summary(results);
+
+        let memory_usage = if let Some(usage) = memory_stats() {
+            human_bytes(usage.physical_mem as f64)
+        } else {
+            "N/A".to_string()
+        };
 
         println!(
-            "Analysed {} files in : {:.2?}",
+            "Analysed {} files in {:.2?}, memory usage: {}",
             results.total_files_count,
-            results.duration.unwrap()
+            results.duration.unwrap(),
+            memory_usage
         );
     }
 }
 
 impl Text {
-    fn output_files_with_violations(results: Results) {
-        for (path, violations) in results.files.clone() {
+    fn output_files_with_violations(results: &Results) {
+        for (path, violations) in &results.files {
             if !violations.is_empty() {
                 println!(
                     "{}, detected {} violations:",
@@ -55,7 +65,7 @@ impl Text {
                     violations.len().to_string().as_str().red().bold()
                 );
                 let line_symbol = "|".blue().bold();
-                for suggestion in &violations {
+                for suggestion in violations {
                     println!(
                         "  {}:\t{}",
                         suggestion.rule.yellow().bold(),
@@ -75,7 +85,7 @@ impl Text {
         }
     }
 
-    fn output_summary(results: Results) {
+    fn output_summary(results: &Results) {
         let all_rules = rules::all_rules();
         let mut rows = vec![];
 
@@ -105,15 +115,7 @@ impl Text {
 
 pub struct Json {}
 impl OutputFormatter for Json {
-    fn output(results: Results) {
-        let mut output_results = results.clone();
-
-        for (path, violations) in output_results.files.clone() {
-            if violations.is_empty() {
-                output_results.files.remove(&path);
-            }
-        }
-
-        println!("{}", serde_json::to_string_pretty(&output_results).unwrap());
+    fn output(results: &mut Results) {
+        println!("{}", serde_json::to_string_pretty(&results).unwrap());
     }
 }
