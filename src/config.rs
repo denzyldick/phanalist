@@ -40,7 +40,7 @@ impl Default for Config {
 }
 
 impl Config {
-    pub(crate) fn save(&self, path: PathBuf) {
+    pub(crate) fn save(&self, path: &PathBuf) {
         let t = serde_yaml::to_string(&self).unwrap();
 
         let mut file = std::fs::File::create(path).unwrap();

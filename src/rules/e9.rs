@@ -41,8 +41,7 @@ impl crate::rules::Rule for Rule {
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
         let mut violations = Vec::new();
         let mut graph = Graph { n: 0, e: 0, p: 0 };
-        let suggestion =
-            String::from("This method body is too complex. Make it easier to understand.");
+        let suggestion = "This method body is too complex. Make it easier to understand.";
 
         if let Statement::Class(class) = statement {
             for member in &class.body.members {
@@ -52,13 +51,13 @@ impl crate::rules::Rule for Rule {
                         left_brace: _,
                         statements,
                         right_brace: _,
-                    } = concretemethod.body.clone();
+                    } = &concretemethod.body;
                     {
                         let graph = calculate_cyclomatic_complexity(statements.clone(), &mut graph);
                         if graph.calculate() > self.settings.max_complexity {
                             violations.push(self.new_violation(
                                 file,
-                                suggestion.clone(),
+                                suggestion.to_string(),
                                 concretemethod.function,
                             ));
                         }
