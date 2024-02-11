@@ -5,7 +5,6 @@ use std::sync::mpsc::Sender;
 
 use indicatif::ProgressBar;
 use jwalk::WalkDir;
-use php_parser_rs::parser;
 
 use crate::analyse::Analyse;
 use crate::config::Config;
@@ -16,7 +15,7 @@ use crate::results::{Results, Violation};
 pub struct Project {}
 
 pub fn scan_folder(current_dir: PathBuf, sender: Sender<(String, PathBuf)>) {
-    for entry in WalkDir::new(current_dir.clone()).follow_links(false) {
+    for entry in WalkDir::new(current_dir).follow_links(false) {
         let entry = entry.unwrap();
         let path = entry.path();
         let metadata = fs::metadata(&path).unwrap();
@@ -45,16 +44,13 @@ pub fn scan_folder(current_dir: PathBuf, sender: Sender<(String, PathBuf)>) {
 impl Project {
     pub fn scan(&mut self, config: Config, show_bar: bool) -> Results {
         let now = std::time::Instant::now();
-        let analyze = Analyse::new(config.clone());
+        let analyze = Analyse::new(&config);
+
         let mut results = Results::default();
-        let files_count = WalkDir::new(config.src.clone())
-            .follow_links(false)
-            .into_iter()
-            .count();
-        let progress_bar = ProgressBar::new(files_count as u64);
+        let progress_bar = self.get_progress_bar(&config.src);
 
         let (send, recv) = std::sync::mpsc::channel();
-        let path = config.src.clone();
+        let path = config.src;
         std::thread::spawn(move || {
             let path = PathBuf::from(path);
             self::scan_folder(path, send);
@@ -66,16 +62,7 @@ impl Project {
                 progress_bar.inc(1);
             }
 
-            let ast = match parser::parse(&content) {
-                Ok(a) => a,
-                Err(_) => vec![],
-            };
-            let file = File {
-                content,
-                path: path.clone(),
-                ast: ast.clone(),
-            };
-
+            let file = File::new(path, content);
             let violations = self.analyse_file(&file, &analyze);
             results.add_file_violations(&file, violations);
 
@@ -92,10 +79,25 @@ impl Project {
         results
     }
 
-    pub fn output(&mut self, mut results: Results, format: Format, summary_only: bool) {
+    fn get_progress_bar(&self, src_path: &str) -> ProgressBar {
+        let files_count = WalkDir::new(src_path)
+            .follow_links(false)
+            .into_iter()
+            .count();
+
+        ProgressBar::new(files_count as u64)
+    }
+
+    pub fn output(&mut self, results: &mut Results, format: Format, summary_only: bool) {
         if summary_only {
             results.files = HashMap::new();
         };
+
+        for (path, violations) in results.files.clone() {
+            if violations.is_empty() {
+                results.files.remove(&path);
+            }
+        }
 
         match format {
             Format::json => Json::output(results),
@@ -107,7 +109,7 @@ impl Project {
         let mut violations: Vec<Violation> = vec![];
 
         if file.get_fully_qualified_name().is_some() {
-            for statement in file.ast.clone() {
+            for statement in &file.ast {
                 violations.append(&mut analyze.analyse(file, statement));
             }
         };
