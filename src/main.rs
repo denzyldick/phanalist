@@ -1,5 +1,5 @@
 extern crate exitcode;
-
+use colored::Colorize;
 use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
@@ -28,8 +28,6 @@ mod rules;
 struct Args {
     #[arg(short, long, default_value = "./phanalist.yaml")]
     config: String,
-    #[arg(short, long)]
-    default_config: bool,
     #[arg(short, long, default_value = "./src")]
     src: Option<String>,
     #[arg(short, long, default_value = "text")]
@@ -55,11 +53,7 @@ fn main() {
 
     let format = output_format.unwrap();
     let quiet = args.quiet;
-    let mut config = if args.default_config {
-        Config::default()
-    } else {
-        parse_config(args.config, quiet)
-    };
+    let mut config = parse_config(args.config, &format, quiet);
     if let Some(src) = args.src {
         config.src = src;
     }
@@ -70,12 +64,8 @@ fn main() {
     }
 
     let mut project = Project {};
-    let is_not_json_format = format != Format::json;
-    if is_not_json_format && !quiet {
-        println!();
-        println!("Scanning files ...");
-    }
-    let mut results = project.scan(config, is_not_json_format && !quiet);
+    let show_scan_bar = format != Format::json && !quiet;
+    let mut results = project.scan(config, show_scan_bar);
 
     if !quiet {
         project.output(&mut results, format, args.summary_only);
@@ -88,25 +78,21 @@ fn main() {
     }
 }
 
-fn parse_config(config_path: String, quiet: bool) -> Config {
+fn parse_config(config_path: String, output_format: &Format, quiet: bool) -> Config {
     let path = PathBuf::from(config_path);
     let default_config = Config::default();
 
+    let output_hints = !quiet && output_format != &Format::json;
     match fs::read_to_string(&path) {
         Err(e) if e.kind() == ErrorKind::NotFound => {
-            println!("No configuration file {} has been found.", &path.display());
-            println!("Do you want to create a configuration file (otherwise defaults will be used)? [Y/n]");
+            default_config.save(&path);
 
-            let mut answer = String::new();
-            std::io::stdin().read_line(&mut answer).unwrap();
-
-            if answer.trim().to_lowercase() == "y" || answer.trim().to_lowercase() == "yes" {
-                default_config.save(&path);
+            if output_hints {
                 println!(
                     "The new {} configuration file as been created",
-                    &path.display()
+                    &path.display().to_string().bold()
                 );
-            };
+            }
 
             default_config
         }
@@ -115,9 +101,13 @@ fn parse_config(config_path: String, quiet: bool) -> Config {
             panic!("{}", e)
         }
         Ok(s) => {
-            if !quiet {
-                println!("Using configuration file {}", &path.display());
+            if output_hints {
+                println!(
+                    "Using configuration file {}",
+                    &path.display().to_string().bold()
+                );
             }
+
             match serde_yaml::from_str(&s) {
                 Ok(c) => c,
                 Err(e) => {
