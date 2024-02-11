@@ -40,15 +40,18 @@ impl OutputFormatter for Text {
         Self::output_files_with_violations(results);
         Self::output_summary(results);
 
-        println!(
-            "Analysed {} files in : {:.2?}",
-            results.total_files_count,
-            results.duration.unwrap()
-        );
+        let memory_usage = if let Some(usage) = memory_stats() {
+            human_bytes(usage.physical_mem as f64)
+        } else {
+            "N/A".to_string()
+        };
 
-        if let Some(usage) = memory_stats() {
-            println!("Memory usage: {}", human_bytes(usage.physical_mem as f64));
-        }
+        println!(
+            "Analysed {} files in {:.2?}, memory usage: {}",
+            results.total_files_count,
+            results.duration.unwrap(),
+            memory_usage
+        );
     }
 }
 
