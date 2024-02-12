@@ -1,57 +1,112 @@
 <img src="https://raw.githubusercontent.com/denzyldick/phanalist/main/branding/banner-cropped.png"/>
 
-***_TLDR: ⏲️ A static analyzer for PHP. It helps you catch common mistakes in your PHP code._***
+Performant static analyzer for PHP, which is extremely easy to use. It helps you catch common mistakes in your PHP code.
 
-> ***In the early stages of development.***
 
-### :stop_sign: Rules
-These are the current checks implemented.
-- [x] Detect when the cyclomatic complexity of a method is too high. The current threshold is 10. 
-- [ ] Extending undefined classes.
-- [x] Having a try/catch with an empty catch that doesn't do anything. 
-- [x] A method that has more than five parameters. 
-- [x] Methods without modifiers(private, public & protected).
-- [x] Classes that start with a lowercase.
-- [x] Check if a method exists when called inside another method.
-- [x] Methods that return a value without defining a return type.
-- [x] Constants that have all letters in lowercase.
-- [x] Parameters without any type.
-- [x] Correct location for the PHP opening tag.
+### Installation
 
-### 🔗 How to compile and run
-To run this project successfully, you must first install the rust toolchain. If everything was
-installed successfully, you must download this project and run `cargo build.` This command 
-will compile the source code and create an executable. The executable is located inside the 
-`target/debug` folder. You can just run this executable inside of your PHP project.
+#### Download
 
-### :articulated_lorry: Inside a docker container.
+The simplest way is to download compiled executables for your platform:
+- macOS: [aarch64](https://raw.githubusercontent.com/denzyldick/phanalist/main/release/aarch64-apple-darwin/phanalist), [x86_64](https://raw.githubusercontent.com/denzyldick/phanalist/main/release/x86_64-apple-darwin/phanalist)
+- Linux MUSL: [aarch64](https://raw.githubusercontent.com/denzyldick/phanalist/main/release/aarch64-unknown-linux-musl/phanalist), [x86_64](https://raw.githubusercontent.com/denzyldick/phanalist/main/release/x86_64-unknown-linux-musl/phanalist)
+- Linux GNU: [aarch64](https://raw.githubusercontent.com/denzyldick/phanalist/main/release/aarch64-unknown-linux-gnu/phanalist), [x86_64](https://raw.githubusercontent.com/denzyldick/phanalist/main/release/x86_64-unknown-linux-gnu/phanalist) 
 
-The fastest way to run is using the official docker image. Run the command at the root
-of your project. 
+#### Compile
+
+Alternatively, you can compile it from sources on your local:
 ```bash
-$ docker run -it -v $(pwd):/var/src ghcr.io/denzyldick/phanalist:latest
-
+# Install RUST
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+# Get latest sources
+git clone git@github.com:denzyldick/phanalist.git && cd phanalist
+# Compile
+cargo build -r
+# Run compiled executable
+./target/release/phanalist -V
 ```
 
-### 👁 Sneak preview.
+#### Docker
 
-To illustrate the performance, I have decided to clone different random PHP projects from Github. With the 
-current rules implemented, I could scan many files in just a few seconds.  
-
-[![asciicast](https://asciinema.org/a/611811.svg)](https://asciinema.org/a/611811)
-
-### 🛠️ Development
-
-You will need the rust toolchain to contribute or compile from the source. Phanalist also has a dependency that is written in c. So, that means you are also required to install the following packages. 
-
-##### Debian based
+Another option is to use [official docker image](https://github.com/denzyldick/phanalist/pkgs/container/phanalist), by running the command at the root of your project:
 ```bash
-sudo apt install clang
+docker run -it -v $(pwd):/var/src ghcr.io/denzyldick/phanalist:latest
 ```
 
-#### Articles
+### Usage
 
-Read a series of chapters on my [https://dev.to/denzyldick](https://dev.to/denzyldick) account to understand the project's internals. It 
+To analyze your project sources, you just need to run `phanalist`:
+```
+$ phanalist
+The new ./phanalist.yaml configuration file as been created
+
+Scanning files in ./src ...
+██████████████████████████████████████████████████████████████████████████████ 3/3
+./src/rules/examples/e2/empty_catch.php, detected 1 violations:
+  E0002:	There is an empty catch. It's not recommended to catch an Exception without doing anything with it.
+  9:11	|         } catch(Exception $e) {}
+
++-----------+-------------+------------+
+| Rule Code | Description | Violations |
++-----------+-------------+------------+
+| E0002     | Empty catch |          1 |
++-----------+-------------+------------+
+
+Analysed 2 files in 1.31ms, memory usage: 4.6 MiB
+```
+
+On the first run `phanalist.yaml` will be created with the default configurations. And it will be reused on all the following runs.
+
+There are also few additional parameters:
+- `config`: path to the configuration file, `./phanalist.yaml` is default value.
+- `src`: path to project sources, `./src` is default value.
+- `output-format`: format used to output the results. Possible options are `text` (default) and `json`.
+- `summary-only`: output only amounts of found violations for each rule.
+- `quiet`: suppresses all the output.
+
+
+### Configuration
+
+The possible options are:
+- `enabled_rules` contains the list of rules to use. All rules will be used if this list is empty.
+- `disable_rules` contains the list of rules to ignore.
+- `rules` rule specific options.
+
+Default configuration file is:
+```yaml
+enabled_rules: []
+disable_rules: []
+rules:
+  E0007:
+    check_constructor: true
+    max_parameters: 5
+  E0009:
+    max_complexity: 10
+```
+
+### Rules
+
+The following rules are available:
+
+| Code  | Name                    | Default options                            |
+|:-----:|:------------------------|:-------------------------------------------|
+| E0000 | Example rule            |                                            |
+| E0001 | Opening tag position    |                                            |
+| E0002 | Empty catch             |                                            |
+| E0003 | Method modifiers        |                                            |
+| E0004 | Uppercase constants     |                                            |
+| E0005 | Capitalized class name  |                                            |
+| E0006 | Property modifiers      |                                            |
+| E0007 | Method parameters count | check_constructor: true, max_parameters: 5 |
+| E0008 | Return type signature   |                                            |
+| E0009 | Cyclomatic complexity   | max_complexity: 10                         |
+
+Adding a new rule is a simple task, and [this tutorial](./docs/adding_new_rule.md) explains how to do it.
+
+
+### Articles
+
+Read a series of chapters on [https://dev.to/denzyldick](https://dev.to/denzyldick) to understand the project's internals. It 
 is a great, easy-to-read introduction to this project. 
 
 1. [Write your own static analyzer for PHP.](https://dev.to/denzyldick/the-beginning-of-my-php-static-analyzer-in-rust-5bp8)
