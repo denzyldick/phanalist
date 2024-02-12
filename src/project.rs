@@ -1,9 +1,10 @@
-use colored::Colorize;
 use std::collections::HashMap;
 use std::fs;
+use std::io::ErrorKind;
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 
+use colored::Colorize;
 use indicatif::ProgressBar;
 use jwalk::WalkDir;
 
@@ -43,15 +44,14 @@ pub fn scan_folder(current_dir: PathBuf, sender: Sender<(String, PathBuf)>) {
 }
 
 impl Project {
-    pub fn scan(&mut self, config: Config, show_bar: bool) -> Results {
+    pub(crate) fn scan(&self, path: String, config: Config, show_bar: bool) -> Results {
         let now = std::time::Instant::now();
         let analyze = Analyse::new(&config);
 
         let mut results = Results::default();
-        let progress_bar = self.get_progress_bar(&config.src);
+        let progress_bar = self.get_progress_bar(&path);
 
         let (send, recv) = std::sync::mpsc::channel();
-        let path = config.src;
 
         if show_bar {
             println!();
@@ -84,6 +84,52 @@ impl Project {
         results.duration = Some(now.elapsed());
 
         results
+    }
+
+    pub(crate) fn parse_config(
+        &self,
+        config_path: String,
+        output_format: &Format,
+        quiet: bool,
+    ) -> Config {
+        let path = PathBuf::from(config_path);
+        let default_config = Config::default();
+
+        let output_hints = !quiet && output_format != &Format::json;
+        match fs::read_to_string(&path) {
+            Err(e) if e.kind() == ErrorKind::NotFound => {
+                default_config.save(&path);
+
+                if output_hints {
+                    println!(
+                        "The new {} configuration file as been created",
+                        &path.display().to_string().bold()
+                    );
+                }
+
+                default_config
+            }
+
+            Err(e) => {
+                panic!("{}", e)
+            }
+            Ok(s) => {
+                if output_hints {
+                    println!(
+                        "Using configuration file {}",
+                        &path.display().to_string().bold()
+                    );
+                }
+
+                match serde_yaml::from_str(&s) {
+                    Ok(c) => c,
+                    Err(e) => {
+                        println!("Unable to use the config: {}. Ignoring it.", &e);
+                        default_config
+                    }
+                }
+            }
+        }
     }
 
     fn get_progress_bar(&self, src_path: &str) -> ProgressBar {

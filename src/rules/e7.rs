@@ -14,12 +14,16 @@ static DESCRIPTION: &str = "Method parameters count";
 
 #[derive(Deserialize, Serialize)]
 pub struct Settings {
+    pub check_constructor: bool,
     pub max_parameters: i32,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Settings { max_parameters: 5 }
+        Settings {
+            check_constructor: true,
+            max_parameters: 5,
+        }
     }
 }
 
@@ -69,7 +73,9 @@ impl crate::rules::Rule for Rule {
                             right_parenthesis: _,
                             parameters,
                         } = &constructor.parameters;
-                        if parameters.inner.len() > self.settings.max_parameters as usize {
+                        if self.settings.check_constructor
+                            && parameters.inner.len() > self.settings.max_parameters as usize
+                        {
                             let suggestion  = format!("Constructor has too many parameters. More than {} parameters is considered a too much.", self.settings.max_parameters);
                             violations.push(self.new_violation(
                                 file,
