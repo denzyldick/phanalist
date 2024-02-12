@@ -9,7 +9,6 @@ use crate::rules;
 
 #[derive(Serialize, Debug, Deserialize, Clone)]
 pub struct Config {
-    pub src: String,
     pub enabled_rules: Vec<String>,
     pub disable_rules: Vec<String>,
     pub rules: HashMap<String, JsonValue>,
@@ -31,7 +30,6 @@ impl Default for Config {
         );
 
         Config {
-            src: String::from("./"),
             enabled_rules,
             disable_rules,
             rules,

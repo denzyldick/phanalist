@@ -1,16 +1,13 @@
 extern crate exitcode;
-use colored::Colorize;
-use std::fs;
-use std::io::ErrorKind;
-use std::path::{Path, PathBuf};
+
+use std::path::Path;
 use std::process;
 use std::str::FromStr;
 
-use clap::Parser;
+use clap::{arg, Parser};
 
 use project::Project;
 
-use crate::config::Config;
 use crate::output::Format;
 
 mod analyse;
@@ -29,7 +26,7 @@ struct Args {
     #[arg(short, long, default_value = "./phanalist.yaml")]
     config: String,
     #[arg(short, long, default_value = "./src")]
-    src: Option<String>,
+    src: String,
     #[arg(short, long, default_value = "text")]
     /// Possible options: text, json
     output_format: String,
@@ -45,27 +42,25 @@ fn main() {
     std::env::set_var("RUST_BACKTRACE", "1");
     let args = Args::parse();
 
-    let output_format = output::Format::from_str(args.output_format.as_str());
-    if output_format.is_err() {
-        println!("Invalid input format");
-        process::exit(exitcode::USAGE);
-    }
-
-    let format = output_format.unwrap();
     let quiet = args.quiet;
-    let mut config = parse_config(args.config, &format, quiet);
-    if let Some(src) = args.src {
-        config.src = src;
-    }
 
-    if !Path::new(config.src.as_str()).exists() {
-        println!("Path {} does not exist", config.src);
+    let path = args.src;
+    if !Path::new(&path).exists() {
+        println!("Path {} does not exist", path);
         process::exit(exitcode::IOERR);
     }
 
+    let format = match output::Format::from_str(args.output_format.as_str()) {
+        Ok(format) => format,
+        Err(_) => {
+            println!("Invalid input format");
+            process::exit(exitcode::USAGE);
+        }
+    };
+
     let mut project = Project {};
-    let show_scan_bar = format != Format::json && !quiet;
-    let mut results = project.scan(config, show_scan_bar);
+    let config = project.parse_config(args.config, &format, quiet);
+    let mut results = project.scan(path, config, format != Format::json && !quiet);
 
     if !quiet {
         project.output(&mut results, format, args.summary_only);
@@ -75,46 +70,5 @@ fn main() {
         process::exit(exitcode::SOFTWARE);
     } else {
         process::exit(exitcode::OK);
-    }
-}
-
-fn parse_config(config_path: String, output_format: &Format, quiet: bool) -> Config {
-    let path = PathBuf::from(config_path);
-    let default_config = Config::default();
-
-    let output_hints = !quiet && output_format != &Format::json;
-    match fs::read_to_string(&path) {
-        Err(e) if e.kind() == ErrorKind::NotFound => {
-            default_config.save(&path);
-
-            if output_hints {
-                println!(
-                    "The new {} configuration file as been created",
-                    &path.display().to_string().bold()
-                );
-            }
-
-            default_config
-        }
-
-        Err(e) => {
-            panic!("{}", e)
-        }
-        Ok(s) => {
-            if output_hints {
-                println!(
-                    "Using configuration file {}",
-                    &path.display().to_string().bold()
-                );
-            }
-
-            match serde_yaml::from_str(&s) {
-                Ok(c) => c,
-                Err(e) => {
-                    println!("Unable to use the config: {}. Ignoring it.", &e);
-                    default_config
-                }
-            }
-        }
     }
 }
