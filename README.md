@@ -16,7 +16,7 @@ composer require denzyl/phanalist
 
 Another option is to use [official docker image](https://github.com/denzyldick/phanalist/pkgs/container/phanalist), by running the command at the root of your project:
 ```bash
-docker run -it -v $(pwd):/var/src ghcr.io/denzyldick/phanalist:latest
+docker run -it -v $(pwd):/var/src ghcr.io/denzyldick/phanalist:latest phanalist --src=/var/src
 ```
 #### Pre-compiled architecture-specific binary.
 You can also download your platform-specific binary if you aren't using Composer.
