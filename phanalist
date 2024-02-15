@@ -1,4 +1,29 @@
 #!/usr/bin/env php
-<?php 
-
+<?php
 echo "Detecting architecture." . PHP_EOL;
+// @todo add the other architectures and paths.
+$matrix = ["x86_64" => "./release/x86_64-unknown-linux-gnu/phanalist", ];
+$architecture = null;
+$os = strtoupper(substr(PHP_OS, 0, 3));
+if ($os === 'LIN') {
+    // Execute the 'uname' command to get system information
+    $architecture = shell_exec('uname -m');
+} elseif ($os === 'WIN') {
+    // Execute the 'wmic' command to get CPU architecture information
+    $cpuInfo = shell_exec('wmic cpu get caption');
+    // Parse the output to extract the CPU architecture
+    if (preg_match('/\b(x64|x86|ARM)\b/i', $cpuInfo, $matches)) {
+        $architecture = $matches[0];
+    } else {
+        $architecture = "Unknown";
+    }
+} else {
+    $architecture = "Unknown OS";
+}
+// Get and print the CPU architecture
+echo "CPU architecture: " . $architecture;
+echo "Running phanalist on architecture: ";
+$path = $matrix[trim($architecture) ];
+shell_exec($path);
+?>
+
