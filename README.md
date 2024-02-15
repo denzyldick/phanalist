@@ -5,14 +5,27 @@ Performant static analyzer for PHP, which is extremely easy to use. It helps you
 
 ### Installation
 
-#### Download
+#### Composer
 
-The simplest way is to download compiled executables for your platform:
+The simplest way is to install it with Composer.
+
+```bash
+composer require denzyl/phanalist
+```
+#### Docker
+
+Another option is to use [official docker image](https://github.com/denzyldick/phanalist/pkgs/container/phanalist), by running the command at the root of your project:
+```bash
+docker run -it -v $(pwd):/var/src ghcr.io/denzyldick/phanalist:latest
+```
+#### Pre-compiled architecture-specific binary.
+You can also download your platform-specific binary if you aren't using Composer.
+
 - macOS: [aarch64](https://raw.githubusercontent.com/denzyldick/phanalist/main/release/aarch64-apple-darwin/phanalist), [x86_64](https://raw.githubusercontent.com/denzyldick/phanalist/main/release/x86_64-apple-darwin/phanalist)
 - Linux MUSL: [aarch64](https://raw.githubusercontent.com/denzyldick/phanalist/main/release/aarch64-unknown-linux-musl/phanalist), [x86_64](https://raw.githubusercontent.com/denzyldick/phanalist/main/release/x86_64-unknown-linux-musl/phanalist)
 - Linux GNU: [aarch64](https://raw.githubusercontent.com/denzyldick/phanalist/main/release/aarch64-unknown-linux-gnu/phanalist), [x86_64](https://raw.githubusercontent.com/denzyldick/phanalist/main/release/x86_64-unknown-linux-gnu/phanalist) 
 
-#### Compile
+#### Compile from source
 
 Alternatively, you can compile it from sources on your local:
 ```bash
@@ -24,13 +37,6 @@ git clone git@github.com:denzyldick/phanalist.git && cd phanalist
 cargo build -r
 # Run the compiled executable
 ./target/release/phanalist -V
-```
-
-#### Docker
-
-Another option is to use [official docker image](https://github.com/denzyldick/phanalist/pkgs/container/phanalist), by running the command at the root of your project:
-```bash
-docker run -it -v $(pwd):/var/src ghcr.io/denzyldick/phanalist:latest
 ```
 
 ### Usage
