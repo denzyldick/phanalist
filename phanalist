@@ -1,0 +1,4 @@
+#!/usr/bin/env php
+<?php 
+
+echo "Detecting architecture." . PHP_EOL;
