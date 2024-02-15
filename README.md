@@ -8,9 +8,13 @@ Performant static analyzer for PHP, which is extremely easy to use. It helps you
 #### Composer
 
 The simplest way is to install it with Composer.
-
+##### install package
 ```bash
 composer require denzyl/phanalist
+```
+##### 
+```bash
+vendor/bin/phanalist -v 
 ```
 #### Docker
 
