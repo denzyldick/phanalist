@@ -3,6 +3,13 @@
   "description": "Performant static analyzer for PHP, which is extremely easy to use. It helps you catch common mistakes in your PHP code.",
   "type": "library",
   "license": "MIT",
+  "keywords": [
+    "PHP",
+    "Static analyzer",
+    "Cleancode",
+    "Refactoring",
+    "CI/CD"
+  ],
   "authors": [
     {
       "name": "Denzyl Dick",
@@ -13,7 +20,7 @@
       "email": "dolgushev.serhey@gmail.com"
     }
   ],
-  "bin": {
-    "phanalist": "phanalist.sh"
-  }
+  bin: [
+    "phanalist"
+  ],
 }
