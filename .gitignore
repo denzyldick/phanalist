@@ -3,3 +3,5 @@
 .vscode
 phanalist.yaml
 .idea/*
+/vendor
+composer.lock
