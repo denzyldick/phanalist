@@ -20,7 +20,5 @@
       "email": "dolgushev.serhey@gmail.com"
     }
   ],
-  bin: [
-    "phanalist"
-  ],
+  "bin": "phanalist.php"
 }
