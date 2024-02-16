@@ -98,9 +98,13 @@ impl Project {
         let output_hints = !quiet && output_format != &Format::json;
         match fs::read_to_string(&path) {
             Err(e) if e.kind() == ErrorKind::NotFound => {
-                default_config.save(&path);
-
-                if output_hints {
+                if let Err(e) = default_config.save(&path) {
+                    println!(
+                        "Unable to save {} configuration file, error: {}",
+                        &path.display().to_string().bold(),
+                        e
+                    );
+                } else if output_hints {
                     println!(
                         "The new {} configuration file as been created",
                         &path.display().to_string().bold()
@@ -113,6 +117,7 @@ impl Project {
             Err(e) => {
                 panic!("{}", e)
             }
+
             Ok(s) => {
                 if output_hints {
                     println!(

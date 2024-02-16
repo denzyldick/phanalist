@@ -38,10 +38,16 @@ impl Default for Config {
 }
 
 impl Config {
-    pub(crate) fn save(&self, path: &PathBuf) {
+    pub(crate) fn save(&self, path: &PathBuf) -> std::io::Result<()> {
         let t = serde_yaml::to_string(&self).unwrap();
 
-        let mut file = std::fs::File::create(path).unwrap();
-        file.write_all(t.as_bytes()).unwrap();
+        let mut file = match std::fs::File::create(path) {
+            Ok(f) => f,
+            Err(e) => {
+                return Err(e);
+            }
+        };
+
+        file.write_all(t.as_bytes())
     }
 }
