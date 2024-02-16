@@ -1,0 +1,39 @@
+#!/usr/bin/env php
+<?php
+unset($argv[0]);
+echo "Detecting architecture." . PHP_EOL;
+// @todo add the other architectures and paths.
+$matrix = ["x86_64" =>  "./vendor/denzyl/phanalist/release/x86_64-unknown-linux-gnu/phanalist"];
+$architecture = null;
+$os = strtoupper(substr(PHP_OS, 0, 3));
+if ($os === 'LIN') {
+  // Execute the 'uname' command to get system information
+  $architecture = shell_exec('uname -m');
+} elseif ($os === 'WIN') {
+  // Execute the 'wmic' command to get CPU architecture information
+  $cpuInfo = shell_exec('wmic cpu get caption');
+  // Parse the output to extract the CPU architecture
+  if (preg_match('/\b(x64|x86|ARM)\b/i', $cpuInfo, $matches)) {
+    $architecture = $matches[0];
+  } else {
+    $architecture = "Unknown";
+  }
+} else {
+  $architecture = "Unknown OS";
+}
+// Get and print the CPU architecture
+echo "CPU architecture: " . $architecture . PHP_EOL;
+$path = $matrix[trim($architecture)] ?? null;
+
+if($path == null){
+  echo "Unknown architecture." .  PHP_EOL;
+  echo "Open an issue at https://github.com/denzyldick/phanalist." . PHP_EOL;
+  echo "Thank you!.".PHP_EOL;
+  exit(1);
+}
+else{
+echo "Running phanalist on architecture: " . $architecture;
+}
+$parameters = implode(" ", $argv);
+echo shell_exec($path . " " . $parameters);
+?>

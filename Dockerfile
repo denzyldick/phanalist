@@ -1,10 +1,8 @@
-FROM --platform=linux/aarch64 rust:latest as builder
-RUN apt-get update && apt-get install -y clang
-RUN rustup target add aarch64-unknown-linux-musl
-WORKDIR /usr/src/phanalist
-COPY . .
-RUN cargo build --target aarch64-unknown-linux-musl --release
-
-FROM --platform=linux/aarch64 alpine:3.14
-COPY --from=builder /usr/src/phanalist/target/aarch64-unknown-linux-musl/release/phanalist /usr/local/bin/phanalist
-CMD ["phanalist", "-s", "/var/src"]
+FROM rust:slim AS builder
+RUN rustup target add x86_64-unknown-linux-musl
+WORKDIR /usr/phanalist
+COPY . . 
+RUN cargo build --release --target x86_64-unknown-linux-musl
+FROM scratch as phanalist
+COPY --from=builder /usr/phanalist/release/x86_64-unknown-linux-musl/phanalist /bin/phanalist
+CMD [ "phanalist --src=/usr/var" ]
