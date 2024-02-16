@@ -1,4 +1,4 @@
-name: release
+name: "Compile multiple targets" 
 
 on:
   push:

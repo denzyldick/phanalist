@@ -1,14 +1,23 @@
 {
-  "name": "denzyl/phanalist",
-  "description": "A opinionated and fast static analyzer.",
+  "name": "denzyldick/phanalist",
+  "description": "Performant static analyzer for PHP, which is extremely easy to use. It helps you catch common mistakes in your PHP code.",
   "type": "library",
   "license": "MIT",
+  "keywords": [
+    "PHP",
+    "Static analyzer",
+    "Cleancode",
+    "Refactoring"
+  ],
   "authors": [
     {
       "name": "Denzyl Dick",
       "email": "ddenzyl@gmail.com"
+    },
+    {
+      "name": "Sergii Dolgushev",
+      "email": "dolgushev.serhey@gmail.com"
     }
   ],
-  "require": {},
-  "bin": []
+  "bin": "phanalist"
 }
