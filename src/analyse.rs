@@ -44,8 +44,8 @@ impl Analyse {
 
     fn filter_active_codes(
         all_codes: Vec<String>,
-        enabled: &Vec<String>,
-        disabled: &Vec<String>,
+        enabled: &[String],
+        disabled: &[String],
     ) -> Vec<String> {
         let mut filtered_codes = all_codes;
 
@@ -278,7 +278,7 @@ mod tests {
     #[test]
     fn test_filter_active_codes_all_enabled() {
         let all_codes = get_all_codes();
-        let active_codes = Analyse::filter_active_codes(all_codes.clone(), &vec![], &vec![]);
+        let active_codes = Analyse::filter_active_codes(all_codes.clone(), &[], &[]);
 
         assert_eq!(all_codes, active_codes);
     }
@@ -287,7 +287,7 @@ mod tests {
     fn test_filter_active_codes_some_enabled() {
         let all_codes = get_all_codes();
         let enabled_codes = get_enabled_codes();
-        let active_codes = Analyse::filter_active_codes(all_codes, &enabled_codes, &vec![]);
+        let active_codes = Analyse::filter_active_codes(all_codes, &enabled_codes, &[]);
 
         assert_eq!(vec!["RULE1".to_string(), "RULE3".to_string()], active_codes);
     }
@@ -296,7 +296,7 @@ mod tests {
     fn test_filter_active_codes_some_disabled() {
         let all_codes = get_all_codes();
         let disabled_codes = get_disabled_codes();
-        let active_codes = Analyse::filter_active_codes(all_codes, &vec![], &disabled_codes);
+        let active_codes = Analyse::filter_active_codes(all_codes, &[], &disabled_codes);
 
         assert_eq!(vec!["RULE1".to_string(), "RULE4".to_string()], active_codes);
     }
