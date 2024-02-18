@@ -90,7 +90,7 @@ get_architecture() {
 
     case "$_ostype" in
         Linux) _ostype=unknown-linux-$_clibtype;;
-#        Darwin) _ostype=apple-darwin;;
+        Darwin) _ostype=apple-darwin;;
         *) err "Unrecognized OS type: $_ostype"
     esac
 
