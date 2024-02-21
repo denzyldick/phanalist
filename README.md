@@ -88,6 +88,7 @@ The following rules are available:
 | E0007 | Method parameters count | check_constructor: true, max_parameters: 5 |
 | E0008 | Return type signature   |                                            |
 | E0009 | Cyclomatic complexity   | max_complexity: 10                         |
+| E00010 | Npath complexity       | max_complexity: 200                         |
 
 Adding a new rule is a simple task, and [this tutorial](./docs/adding_new_rule.md) explains how to do it.
 
