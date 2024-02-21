@@ -1,61 +1,72 @@
-use std::collections::HashMap;
-use std::default::Default;
+use std::str;
 
-use php_parser_rs::lexer::token::Span;
 use php_parser_rs::parser::ast::classes::ClassStatement;
 use php_parser_rs::parser::ast::control_flow::{IfStatement, IfStatementBody};
+use php_parser_rs::parser::ast::identifiers::Identifier;
 use php_parser_rs::parser::ast::loops::{
     ForStatementBody, ForeachStatement, ForeachStatementBody, WhileStatementBody,
 };
 use php_parser_rs::parser::ast::try_block::CatchBlock;
-use php_parser_rs::parser::ast::{namespaces, BlockStatement, Statement, SwitchStatement};
-use serde_json::Value;
+use php_parser_rs::parser::ast::variables::Variable;
+use php_parser_rs::parser::ast::{
+    namespaces, BlockStatement, Expression, PropertyFetchExpression, Statement, SwitchStatement,
+};
+use serde::{Deserialize, Serialize};
 
-use crate::config::Config;
 use crate::file::File;
 use crate::results::Violation;
 
-pub mod e0;
-pub mod e1;
-pub mod e11;
-pub mod e2;
-pub mod e3;
-pub mod e4;
-pub mod e5;
-pub mod e6;
-pub mod e7;
-pub mod e8;
-pub mod e9;
+static CODE: &str = "E0011";
+static DESCRIPTION: &str = "Service properties";
 
-pub trait Rule {
-    // Would be a good idea to have default implementation which extracts the code from struct name
-    // Haven't found a way to implement it
-    fn get_code(&self) -> String;
+#[derive(Deserialize, Serialize)]
+pub struct Settings {
+    pub include_namespaces: Vec<String>,
+    pub exclude_namespaces: Vec<String>,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Settings {
+            include_namespaces: vec!["App\\Service\\".to_string()],
+            exclude_namespaces: vec![],
+        }
+    }
+}
+
+#[derive(Default)]
+pub struct Rule {
+    pub settings: Settings,
+}
+
+impl crate::rules::Rule for Rule {
+    fn get_code(&self) -> String {
+        String::from(CODE)
+    }
 
     fn description(&self) -> String {
-        String::from("")
+        String::from(DESCRIPTION)
     }
 
-    fn set_config(&mut self, _json: &Value) {}
+    fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
+        let mut violations = Vec::new();
 
-    fn read_config(&mut self, config: &Config) {
-        let code = self.get_code();
-        if let Some(rule_config) = config.rules.get(&code) {
-            self.set_config(rule_config);
+        if let Statement::Expression(expression) = statement {
+            if let Expression::AssignmentOperation(assignment) = &expression.expression {
+                if let Expression::PropertyFetch(property) = &assignment.left() {
+                    if let Expression::Variable(Variable::SimpleVariable(var)) =
+                        &property.target.as_ref()
+                    {
+                        if str::from_utf8(&var.name).unwrap() == "$this" {
+                            let suggestion = format!("Setting service properties leads to issues with Swoole. Trying to set $this->{} property", Self::get_property_identifier(property));
+                            violations.push(self.new_violation(file, suggestion, var.span));
+                        }
+                    }
+                }
+            }
         }
-    }
 
-    fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation>;
-
-    fn new_violation(&self, file: &File, suggestion: String, span: Span) -> Violation {
-        let line = file.lines.get(span.line - 1).unwrap();
-
-        Violation {
-            rule: self.get_code(),
-            line: String::from(line),
-            suggestion,
-            span,
-        }
+        violations
     }
 
     #[allow(clippy::only_used_in_recursion)]
@@ -89,27 +100,15 @@ pub trait Rule {
                 body,
             }) => {
                 for member in &body.members {
-                    match member {
-                        php_parser_rs::parser::ast::classes::ClassMember::ConcreteMethod(
-                            concrete_method,
-                        ) => {
-                            let statements = &concrete_method.body.statements;
-
-                            for statement in statements {
-                                expanded_statements.append(&mut self.flatten_statements(statement));
-                            }
+                    if let php_parser_rs::parser::ast::classes::ClassMember::ConcreteMethod(
+                        concrete_method,
+                    ) = member
+                    {
+                        let statements = &concrete_method.body.statements;
+                        for statement in statements {
+                            expanded_statements.append(&mut self.flatten_statements(statement));
                         }
-                        php_parser_rs::parser::ast::classes::ClassMember::ConcreteConstructor(
-                            concrete_constructor,
-                        ) => {
-                            let statements = &concrete_constructor.body.statements;
-
-                            for statement in statements {
-                                expanded_statements.append(&mut self.flatten_statements(statement));
-                            }
-                        }
-                        _ => {}
-                    };
+                    }
                 }
             }
             Statement::If(if_statement) => {
@@ -236,47 +235,67 @@ pub trait Rule {
     }
 }
 
-fn add_rule(rules: &mut HashMap<String, Box<dyn Rule>>, rule: Box<dyn Rule>) {
-    rules.insert(rule.get_code(), rule as Box<dyn Rule>);
-}
+impl Rule {
+    fn get_property_identifier(property: &PropertyFetchExpression) -> String {
+        if let Expression::Identifier(Identifier::SimpleIdentifier(simple_id)) =
+            property.property.as_ref()
+        {
+            return simple_id.value.to_string();
+        }
 
-pub fn all_rules() -> HashMap<String, Box<dyn Rule>> {
-    let mut rules: HashMap<String, Box<dyn Rule>> = HashMap::new();
-
-    add_rule(&mut rules, Box::new(e1::Rule {}));
-    add_rule(&mut rules, Box::new(e2::Rule {}));
-    add_rule(&mut rules, Box::new(e3::Rule {}));
-    add_rule(&mut rules, Box::new(e4::Rule {}));
-    add_rule(&mut rules, Box::new(e5::Rule {}));
-    add_rule(&mut rules, Box::new(e6::Rule {}));
-    add_rule(&mut rules, Box::default() as Box<e7::Rule>);
-    add_rule(&mut rules, Box::new(e8::Rule {}));
-    add_rule(&mut rules, Box::default() as Box<e9::Rule>);
-    add_rule(&mut rules, Box::default() as Box<e11::Rule>);
-
-    rules
+        "n/a".to_string()
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
-    use std::path::PathBuf;
-
-    use crate::analyse::Analyse;
+    use crate::rules::tests::analyze_file_for_rule;
 
     use super::*;
 
-    pub(crate) fn analyze_file_for_rule(path: &str, rule_code: &str) -> Vec<Violation> {
-        let path = PathBuf::from(format!("./src/rules/examples/{path}"));
-        let content = fs::read_to_string(&path).unwrap();
-        let file = File::new(path, content);
+    #[test]
+    fn define_in_constructor() {
+        let violations = analyze_file_for_rule("e11/define_in_constructor.php", CODE);
 
-        let config = Config {
-            enabled_rules: vec![rule_code.to_string()],
-            ..Default::default()
-        };
-        let analyse = Analyse::new(&config);
+        assert!(violations.len().eq(&0));
+    }
 
-        analyse.analyse_file(&file)
+    #[test]
+    fn set_in_constructor() {
+        let violations = analyze_file_for_rule("e11/set_in_constructor.php", CODE);
+
+        assert!(violations.len().eq(&0));
+    }
+
+    #[test]
+    fn set_in_method() {
+        let violations = analyze_file_for_rule("e11/set_in_method.php", CODE);
+
+        assert!(violations.len().gt(&0));
+        assert_eq!(
+            violations.first().unwrap().suggestion,
+            "Setting service properties leads to issues with Swoole. Trying to set $this->counter property".to_string()
+        );
+    }
+
+    #[test]
+    fn increment_in_method() {
+        let violations = analyze_file_for_rule("e11/increment_in_method.php", CODE);
+
+        assert!(violations.len().eq(&0));
+    }
+
+    #[test]
+    fn set_local_in_method() {
+        let violations = analyze_file_for_rule("e11/set_local_in_method.php", CODE);
+
+        assert!(violations.len().eq(&0));
+    }
+
+    #[test]
+    fn increment_local_in_method() {
+        let violations = analyze_file_for_rule("e11/increment_local_in_method.php", CODE);
+
+        assert!(violations.len().eq(&0));
     }
 }

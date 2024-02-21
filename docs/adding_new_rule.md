@@ -19,7 +19,7 @@
     cp -r src/rules/examples/e0 src/rules/examples/e1234
     ```
 5. Implement `validate` function in `src/rules/e1234.rs`. And cover it with tests in `mod tests`.
-7. Enable the new rule in `src/rules/mod.rs`:
+6. Enable the new rule in `src/rules/mod.rs`:
     ```rust
     ...
     pub mod e1234;
@@ -30,4 +30,5 @@
         ...
     }
     ```
-7. Done! Submit a new PR with new rule.
+7. Update `README.md` with new rule details.
+8. Done! Submit a new PR with new rule.
