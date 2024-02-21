@@ -68,6 +68,8 @@ rules:
     max_parameters: 5
   E0009:
     max_complexity: 10
+  E00010:
+    max_paths: 200
 ```
 
 ### Rules
