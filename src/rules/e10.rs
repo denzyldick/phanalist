@@ -1,11 +1,9 @@
-use php_parser_rs::{
-    parser::ast::{
-        classes::ClassMember,
-        control_flow::{self, IfStatement},
-        functions::MethodBody,
-        loops::{WhileStatement, WhileStatementBody},
-        BlockStatement, Statement,
-    },
+use php_parser_rs::parser::ast::{
+    classes::ClassMember,
+    control_flow::{self, IfStatement},
+    functions::MethodBody,
+    loops::{WhileStatement, WhileStatementBody},
+    BlockStatement, Statement,
 };
 use serde::{Deserialize, Serialize};
 
@@ -58,7 +56,7 @@ impl crate::rules::Rule for Rule {
                         right_brace: _,
                     } = &concretemethod.body;
                     {
-                        calculate_npath(statements.clone(), &mut graph);
+                        Self::calculate_npath(statements.iter().collect(), &mut graph);
                         if graph.calculate() > self.settings.max_paths {
                             violations.push(self.new_violation(
                                 file,
@@ -89,10 +87,15 @@ impl Graph {
     }
 }
 
-fn calculate_npath(mut statements: Vec<Statement>, graph: &mut Graph) -> &mut Graph {
-    if !statements.is_empty() {
-        let statement: Statement = statements.pop().unwrap();
-        let g = match statement {
+impl Rule {
+    fn calculate_npath(statements: Vec<&Statement>, graph: &mut Graph) {
+        for statement in statements {
+            Self::calculate_npath_for_statement(statement, graph);
+        }
+    }
+
+    fn calculate_npath_for_statement(statement: &Statement, graph: &mut Graph) {
+        match statement {
             Statement::If(IfStatement {
                 r#if: _,
                 left_parenthesis: _,
@@ -109,18 +112,16 @@ fn calculate_npath(mut statements: Vec<Statement>, graph: &mut Graph) -> &mut Gr
                         r#else: _,
                         endif: _,
                         ending: _,
-                    } => calculate_npath(statements, graph),
+                    } => Self::calculate_npath(statements.iter().collect(), graph),
                     control_flow::IfStatementBody::Statement {
                         statement,
                         elseifs: _,
                         r#else: else_statement,
                     } => {
-                        calculate_npath(vec![*statement], graph);
+                        Self::calculate_npath(vec![statement.as_ref()], graph);
                         if let Some(e) = else_statement {
                             graph.increase_edge();
-                            calculate_npath(vec![*e.statement], graph)
-                        } else {
-                            graph
+                            Self::calculate_npath(vec![e.statement.as_ref()], graph);
                         }
                     }
                 }
@@ -139,27 +140,21 @@ fn calculate_npath(mut statements: Vec<Statement>, graph: &mut Graph) -> &mut Gr
                         statements,
                         endwhile: _,
                         ending: _,
-                    } => calculate_npath(statements, graph),
+                    } => Self::calculate_npath(statements.iter().collect(), graph),
                     WhileStatementBody::Statement { statement } => {
-                        calculate_npath(vec![*statement], graph)
+                        Self::calculate_npath(vec![statement.as_ref()], graph);
                     }
                 };
-                graph
             }
             Statement::Block(BlockStatement {
                 left_brace: _,
                 statements,
                 right_brace: _,
             }) => {
-                calculate_npath(statements, graph);
-                graph
+                Self::calculate_npath(statements.iter().collect(), graph);
             }
-            _ => graph,
+            _ => {}
         };
-
-        calculate_npath(statements, g)
-    } else {
-        graph
     }
 }
 
