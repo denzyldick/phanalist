@@ -4,9 +4,8 @@ use php_parser_rs::{
         control_flow::{self, IfStatement},
         functions::MethodBody,
         loops::{WhileStatement, WhileStatementBody},
-        BlockStatement, ExpressionStatement, Statement,
+        BlockStatement, Statement,
     },
-    printer::print,
 };
 use serde::{Deserialize, Serialize};
 
@@ -93,7 +92,7 @@ impl Graph {
 fn calculate_npath(mut statements: Vec<Statement>, graph: &mut Graph) -> &mut Graph {
     if !statements.is_empty() {
         let statement: Statement = statements.pop().unwrap();
-        let mut g = match statement {
+        let g = match statement {
             Statement::If(IfStatement {
                 r#if: _,
                 left_parenthesis: _,
@@ -148,9 +147,9 @@ fn calculate_npath(mut statements: Vec<Statement>, graph: &mut Graph) -> &mut Gr
                 graph
             }
             Statement::Block(BlockStatement {
-                left_brace,
+                left_brace: _,
                 statements,
-                right_brace,
+                right_brace: _,
             }) => {
                 calculate_npath(statements, graph);
                 graph
