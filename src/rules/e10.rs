@@ -8,8 +8,11 @@ use php_parser_rs::parser::ast::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::file::File;
 use crate::results::Violation;
+use crate::{
+    file::File,
+    traverse::{self, Traverse},
+};
 
 pub(crate) static CODE: &str = "E00010";
 static DESCRIPTION: &str = "Npath complexity";
@@ -45,6 +48,22 @@ impl crate::rules::Rule for Rule {
         }
     }
 
+    fn callback() {
+        let mut violations = Vec::new();
+        let mut graph = Graph { e: 0 };
+        let suggestion = format!(
+            "This method body have more than {} paths. Reduce the amount of paths.",
+            self.settings.max_paths
+        );
+        Self::calculate_npath(statements.iter().collect(), &mut graph);
+        if graph.calculate() > self.settings.max_paths {
+            violations.push(self.new_violation(
+                file,
+                suggestion.to_string(),
+                concretemethod.function,
+            ));
+        }
+    }
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
         let mut violations = Vec::new();
         let mut graph = Graph { e: 0 };
@@ -53,6 +72,8 @@ impl crate::rules::Rule for Rule {
             self.settings.max_paths
         );
 
+        let traverse = traverse::Traverse::new(statement.to_owned());
+        traverse.find_class_members(false, Self::callback());
         if let Statement::Class(class) = statement {
             for member in &class.body.members {
                 if let ClassMember::ConcreteMethod(concretemethod) = member {

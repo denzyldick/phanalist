@@ -17,6 +17,7 @@ mod output;
 mod project;
 mod results;
 mod rules;
+mod traverse;
 
 ///
 /// A static analyser for your PHP project.
