@@ -5,3 +5,4 @@ phanalist.yaml
 .idea/*
 /vendor
 composer.lock
+bad-source-target
