@@ -17,6 +17,7 @@ use crate::results::Violation;
 
 pub mod e0;
 pub mod e1;
+pub mod e10;
 pub mod e11;
 pub mod e2;
 pub mod e3;
@@ -252,6 +253,7 @@ pub fn all_rules() -> HashMap<String, Box<dyn Rule>> {
     add_rule(&mut rules, Box::default() as Box<e7::Rule>);
     add_rule(&mut rules, Box::new(e8::Rule {}));
     add_rule(&mut rules, Box::default() as Box<e9::Rule>);
+    add_rule(&mut rules, Box::default() as Box<e10::Rule>);
     add_rule(&mut rules, Box::default() as Box<e11::Rule>);
 
     rules
