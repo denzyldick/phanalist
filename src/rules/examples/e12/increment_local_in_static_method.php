@@ -1,8 +1,8 @@
 <?php
 
-namespace Test\e11;
+namespace App\Service\e12;
 
-class IncrementInMethod {
+class IncrementLocalInStaticMethod {
 
     private function __construct(private bool $debug = false) {
     }

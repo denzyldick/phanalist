@@ -21,8 +21,8 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Settings {
-            check_constructor: true,
-            max_parameters: 5,
+            check_constructor: false,
+            max_parameters: 8,
         }
     }
 }
@@ -105,7 +105,7 @@ mod tests {
         assert!(violations.len().gt(&0));
         assert_eq!(
             violations.first().unwrap().suggestion,
-            "Method test has too many parameters. More than 5 parameters is considered a too much."
+            "Method test has too many parameters. More than 8 parameters is considered a too much."
                 .to_string()
         );
     }
@@ -114,12 +114,7 @@ mod tests {
     fn constructor_max_params() {
         let violations = analyze_file_for_rule("e7/constructor_max_params.php", CODE);
 
-        assert!(violations.len().gt(&0));
-        assert_eq!(
-            violations.first().unwrap().suggestion,
-            "Constructor has too many parameters. More than 5 parameters is considered a too much."
-                .to_string()
-        );
+        assert!(violations.len().eq(&0));
     }
 
     #[test]

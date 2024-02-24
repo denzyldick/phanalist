@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use php_parser_rs::parser;
 use php_parser_rs::parser::ast::classes::ClassStatement;
+use php_parser_rs::parser::ast::namespaces::NamespaceStatement;
 use php_parser_rs::parser::ast::Statement;
 use serde::{Deserialize, Serialize};
 
@@ -56,54 +57,23 @@ impl File {
         for statement in ast {
             if class_name.is_none() {
                 match statement {
-                    Statement::Namespace(parser::ast::namespaces::NamespaceStatement::Braced(
-                        n,
-                    )) => {
+                    Statement::Namespace(NamespaceStatement::Braced(n)) => {
                         for statement in &n.body.statements {
-                            if let Statement::Class(ClassStatement {
-                                attributes: _,
-                                modifiers: _,
-                                class: _,
-                                name,
-                                extends: _,
-                                implements: _,
-                                body: _,
-                            }) = statement
-                            {
+                            if let Statement::Class(ClassStatement { name, .. }) = statement {
                                 class_name = Some(name.value.to_string());
                             }
                         }
                     }
-                    Statement::Namespace(
-                        parser::ast::namespaces::NamespaceStatement::Unbraced(n),
-                    ) => {
+                    Statement::Namespace(NamespaceStatement::Unbraced(n)) => {
                         for statement in &n.statements {
-                            if let Statement::Class(ClassStatement {
-                                attributes: _,
-                                modifiers: _,
-                                class: _,
-                                name,
-                                extends: _,
-                                implements: _,
-                                body: _,
-                            }) = statement
-                            {
+                            if let Statement::Class(ClassStatement { name, .. }) = statement {
                                 class_name = Some(name.value.to_string());
                             }
                         }
                     }
                     _ => {}
                 };
-                if let Statement::Class(ClassStatement {
-                    attributes: _,
-                    modifiers: _,
-                    class: _,
-                    name,
-                    extends: _,
-                    implements: _,
-                    body: _,
-                }) = statement
-                {
+                if let Statement::Class(ClassStatement { name, .. }) = statement {
                     class_name = Some(name.value.to_string());
                 }
             }

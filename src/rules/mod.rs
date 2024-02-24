@@ -18,7 +18,7 @@ use crate::results::Violation;
 pub mod e0;
 pub mod e1;
 pub mod e10;
-pub mod e11;
+pub mod e12;
 pub mod e2;
 pub mod e3;
 pub mod e4;
@@ -46,6 +46,10 @@ pub trait Rule {
         }
     }
 
+    fn do_validate(&self, file: &File) -> bool {
+        file.get_fully_qualified_name().is_some()
+    }
+
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation>;
 
     fn new_violation(&self, file: &File, suggestion: String, span: Span) -> Violation {
@@ -59,54 +63,34 @@ pub trait Rule {
         }
     }
 
-    #[allow(clippy::only_used_in_recursion)]
-    #[allow(clippy::borrowed_box)]
     fn flatten_statements<'a>(&'a self, statement: &'a Statement) -> Vec<&Statement> {
-        let mut expanded_statements: Vec<&Statement> = Vec::new();
-        expanded_statements.push(statement);
+        let mut flatten_statements: Vec<&Statement> = Vec::new();
+        flatten_statements.push(statement);
 
         match statement {
-            Statement::Try(s) => {
-                for catch in &s.catches {
-                    let CatchBlock {
-                        start: _,
-                        end: _,
-                        types: _,
-                        var: _,
-                        body,
-                    } = catch;
+            Statement::Try(try_statement) => {
+                for catch in &try_statement.catches {
+                    let CatchBlock { body, .. } = catch;
                     for statement in body {
-                        expanded_statements.append(&mut self.flatten_statements(statement));
+                        flatten_statements.append(&mut self.flatten_statements(statement));
                     }
                 }
             }
-            Statement::Class(ClassStatement {
-                attributes: _,
-                modifiers: _,
-                class: _,
-                name: _,
-                extends: _,
-                implements: _,
-                body,
-            }) => {
+            Statement::Class(ClassStatement { body, .. }) => {
                 for member in &body.members {
                     match member {
                         php_parser_rs::parser::ast::classes::ClassMember::ConcreteMethod(
-                            concrete_method,
+                            method,
                         ) => {
-                            let statements = &concrete_method.body.statements;
-
-                            for statement in statements {
-                                expanded_statements.append(&mut self.flatten_statements(statement));
+                            for statement in &method.body.statements {
+                                flatten_statements.append(&mut self.flatten_statements(statement));
                             }
                         }
                         php_parser_rs::parser::ast::classes::ClassMember::ConcreteConstructor(
-                            concrete_constructor,
+                            constructor,
                         ) => {
-                            let statements = &concrete_constructor.body.statements;
-
-                            for statement in statements {
-                                expanded_statements.append(&mut self.flatten_statements(statement));
+                            for statement in &constructor.body.statements {
+                                flatten_statements.append(&mut self.flatten_statements(statement));
                             }
                         }
                         _ => {}
@@ -114,127 +98,103 @@ pub trait Rule {
                 }
             }
             Statement::If(if_statement) => {
-                let IfStatement {
-                    r#if: _,
-                    left_parenthesis: _,
-                    condition: _,
-                    right_parenthesis: _,
-                    body,
-                } = if_statement;
+                let IfStatement { body, .. } = if_statement;
                 {
                     match body {
-                        IfStatementBody::Block {
-                            colon: _,
-                            statements,
-                            elseifs: _,
-                            r#else: _,
-                            endif: _,
-                            ending: _,
-                        } => {
+                        IfStatementBody::Block { statements, .. } => {
                             for statement in statements {
-                                expanded_statements.append(&mut self.flatten_statements(statement));
+                                flatten_statements.append(&mut self.flatten_statements(statement));
                             }
                         }
-                        IfStatementBody::Statement {
-                            statement,
-                            elseifs: _,
-                            r#else: _,
-                        } => expanded_statements.append(&mut self.flatten_statements(statement)),
+                        IfStatementBody::Statement { statement, .. } => {
+                            flatten_statements.append(&mut self.flatten_statements(statement))
+                        }
                     };
                 }
             }
             Statement::While(while_statement) => match &while_statement.body {
-                WhileStatementBody::Block {
-                    colon: _,
-                    statements,
-                    endwhile: _,
-                    ending: _,
-                } => {
+                WhileStatementBody::Block { statements, .. } => {
                     for statement in statements {
-                        expanded_statements.append(&mut self.flatten_statements(statement));
+                        flatten_statements.append(&mut self.flatten_statements(statement));
                     }
                 }
                 WhileStatementBody::Statement { statement } => {
-                    expanded_statements.append(&mut self.flatten_statements(statement));
+                    flatten_statements.append(&mut self.flatten_statements(statement));
                 }
             },
-            Statement::Switch(SwitchStatement {
-                switch: _,
-                left_parenthesis: _,
-                condition: _,
-                right_parenthesis: _,
-                cases,
-            }) => {
+            Statement::Switch(SwitchStatement { cases, .. }) => {
                 for case in cases {
                     for statement in &case.body {
-                        expanded_statements.append(&mut self.flatten_statements(statement))
+                        flatten_statements.append(&mut self.flatten_statements(statement))
                     }
                 }
             }
-            Statement::Foreach(ForeachStatement {
-                foreach: _,
-                left_parenthesis: _,
-                iterator: _,
-                right_parenthesis: _,
-                body,
-            }) => match body {
-                ForeachStatementBody::Block {
-                    colon: _,
-                    statements,
-                    endforeach: _,
-                    ending: _,
-                } => {
+            Statement::Foreach(ForeachStatement { body, .. }) => match body {
+                ForeachStatementBody::Block { statements, .. } => {
                     for statement in statements {
-                        expanded_statements.append(&mut self.flatten_statements(statement));
+                        flatten_statements.append(&mut self.flatten_statements(statement));
                     }
                 }
                 ForeachStatementBody::Statement { statement } => {
-                    expanded_statements.append(&mut self.flatten_statements(statement));
+                    flatten_statements.append(&mut self.flatten_statements(statement));
                 }
             },
             Statement::For(for_statement_body) => match &for_statement_body.body {
-                ForStatementBody::Block {
-                    colon: _,
-                    statements,
-                    endfor: _,
-                    ending: _,
-                } => {
+                ForStatementBody::Block { statements, .. } => {
                     for statement in statements {
-                        expanded_statements.append(&mut self.flatten_statements(statement));
+                        flatten_statements.append(&mut self.flatten_statements(statement));
                     }
                 }
                 ForStatementBody::Statement { statement } => {
-                    expanded_statements.append(&mut self.flatten_statements(statement));
+                    flatten_statements.append(&mut self.flatten_statements(statement));
                 }
             },
-            Statement::Block(BlockStatement {
-                left_brace: _,
-                statements,
-                right_brace: _,
-            }) => {
+            Statement::Block(BlockStatement { statements, .. }) => {
                 for statement in statements {
-                    expanded_statements.append(&mut self.flatten_statements(statement));
+                    flatten_statements.append(&mut self.flatten_statements(statement));
                 }
             }
-
             Statement::Namespace(namespace) => match &namespace {
                 namespaces::NamespaceStatement::Unbraced(unbraced) => {
                     for statement in &unbraced.statements {
-                        expanded_statements.append(&mut self.flatten_statements(statement));
+                        flatten_statements.append(&mut self.flatten_statements(statement));
                     }
                 }
                 namespaces::NamespaceStatement::Braced(braced) => {
                     for statement in &braced.body.statements {
-                        expanded_statements.append(&mut self.flatten_statements(statement));
+                        flatten_statements.append(&mut self.flatten_statements(statement));
                     }
                 }
             },
-
             _ => {}
         };
 
-        expanded_statements
+        flatten_statements
     }
+}
+
+pub(crate) fn do_validate_namespace(
+    ns: String,
+    include: &Vec<String>,
+    exclude: &Vec<String>,
+) -> bool {
+    for exclude_ns in exclude {
+        if ns.contains(exclude_ns) {
+            return false;
+        }
+    }
+
+    if !include.is_empty() {
+        for include_ns in include {
+            if ns.contains(include_ns) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    true
 }
 
 fn add_rule(rules: &mut HashMap<String, Box<dyn Rule>>, rule: Box<dyn Rule>) {
@@ -254,7 +214,7 @@ pub fn all_rules() -> HashMap<String, Box<dyn Rule>> {
     add_rule(&mut rules, Box::new(e8::Rule {}));
     add_rule(&mut rules, Box::default() as Box<e9::Rule>);
     add_rule(&mut rules, Box::default() as Box<e10::Rule>);
-    add_rule(&mut rules, Box::default() as Box<e11::Rule>);
+    add_rule(&mut rules, Box::default() as Box<e12::Rule>);
 
     rules
 }
@@ -280,5 +240,56 @@ mod tests {
         let analyse = Analyse::new(&config);
 
         analyse.analyse_file(&file)
+    }
+
+    fn get_ns() -> String {
+        "App\\Service\\Search".to_string()
+    }
+
+    #[test]
+    fn do_validate_namespace_empty_include_and_exclude() {
+        assert!(do_validate_namespace(get_ns(), &vec![], &vec![]));
+    }
+
+    #[test]
+    fn do_validate_namespace_include_contains() {
+        assert!(do_validate_namespace(
+            get_ns(),
+            &vec!["\\Service\\".to_string()],
+            &vec![]
+        ));
+    }
+
+    #[test]
+    fn do_validate_namespace_include_not_contains() {
+        assert!(!do_validate_namespace(
+            get_ns(),
+            &vec!["\\Service2\\".to_string()],
+            &vec![]
+        ));
+    }
+
+    #[test]
+    fn do_validate_namespace_exclude_contains() {
+        assert!(!do_validate_namespace(
+            get_ns(),
+            &vec![],
+            &vec!["\\Service\\".to_string()],
+        ));
+    }
+
+    #[test]
+    fn do_validate_namespace_exclude_not_contains() {
+        assert!(do_validate_namespace(
+            get_ns(),
+            &vec![],
+            &vec!["\\Service2\\".to_string()],
+        ));
+    }
+
+    #[test]
+    fn do_validate_namespace_include_contains_exclude_contains() {
+        let namespaces = &vec!["\\Service\\".to_string()];
+        assert!(!do_validate_namespace(get_ns(), namespaces, namespaces));
     }
 }

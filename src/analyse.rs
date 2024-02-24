@@ -1,16 +1,17 @@
-use crate::output::OutputFormatter;
-use colored::Colorize;
-use indicatif::ProgressBar;
-use jwalk::WalkDir;
-use php_parser_rs::parser;
 use std::collections::HashMap;
 use std::fs;
 use std::io::ErrorKind;
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 
+use colored::Colorize;
+use indicatif::ProgressBar;
+use jwalk::WalkDir;
+use php_parser_rs::parser;
+
 use crate::config::Config;
 use crate::file::File;
+use crate::output::OutputFormatter;
 use crate::output::{Format, Json, Text};
 use crate::results::{Results, Violation};
 use crate::rules::Rule;
@@ -52,40 +53,6 @@ impl Analyse {
         Self {
             rules: Self::get_active_rules(config),
         }
-    }
-
-    fn get_active_rules(config: &Config) -> HashMap<String, Box<dyn Rule>> {
-        let active_codes = Self::filter_active_codes(
-            rules::all_rules().into_keys().collect(),
-            &config.enabled_rules,
-            &config.disable_rules,
-        );
-
-        let mut active_rules = rules::all_rules();
-        active_rules.retain(|code, rule| {
-            rule.read_config(config);
-
-            active_codes.contains(code)
-        });
-        active_rules
-    }
-
-    fn filter_active_codes(
-        all_codes: Vec<String>,
-        enabled: &[String],
-        disabled: &[String],
-    ) -> Vec<String> {
-        let mut filtered_codes = all_codes;
-
-        if !enabled.is_empty() {
-            filtered_codes.retain(|x| enabled.contains(x));
-        }
-
-        if !disabled.is_empty() {
-            filtered_codes.retain(|x| !disabled.contains(x));
-        }
-
-        filtered_codes
     }
 
     pub(crate) fn scan(&self, path: String, _config: Config, show_bar: bool) -> Results {
@@ -174,16 +141,7 @@ impl Analyse {
         }
     }
 
-    fn get_progress_bar(&self, src_path: &str) -> ProgressBar {
-        let files_count = WalkDir::new(src_path)
-            .follow_links(false)
-            .into_iter()
-            .count();
-
-        ProgressBar::new(files_count as u64)
-    }
-
-    pub fn output(&mut self, results: &mut Results, format: Format, summary_only: bool) {
+    pub(crate) fn output(&mut self, results: &mut Results, format: Format, summary_only: bool) {
         if summary_only {
             results.files = HashMap::new();
         };
@@ -203,26 +161,72 @@ impl Analyse {
     pub(crate) fn analyse_file(&self, file: &File) -> Vec<Violation> {
         let mut violations: Vec<Violation> = vec![];
 
-        if file.get_fully_qualified_name().is_some() {
-            for statement in &file.ast {
-                violations.append(&mut self.analyse(file, statement));
-            }
-        };
+        for statement in &file.ast {
+            violations.append(&mut self.analyse_file_statement(file, statement));
+        }
 
         violations
     }
 
-    pub fn analyse(&self, file: &File, statement: &parser::ast::Statement) -> Vec<Violation> {
-        let mut suggestions = Vec::new();
-        let rules = &self.rules;
+    fn get_active_rules(config: &Config) -> HashMap<String, Box<dyn Rule>> {
+        let active_codes = Self::filter_active_codes(
+            rules::all_rules().into_keys().collect(),
+            &config.enabled_rules,
+            &config.disable_rules,
+        );
 
-        for (_, rule) in rules.iter() {
-            for statement in rule.flatten_statements(statement) {
-                suggestions.append(&mut rule.validate(file, statement));
+        let mut active_rules = rules::all_rules();
+        active_rules.retain(|code, rule| {
+            rule.read_config(config);
+
+            active_codes.contains(code)
+        });
+        active_rules
+    }
+
+    fn filter_active_codes(
+        all_codes: Vec<String>,
+        enabled: &[String],
+        disabled: &[String],
+    ) -> Vec<String> {
+        let mut filtered_codes = all_codes;
+
+        if !enabled.is_empty() {
+            filtered_codes.retain(|x| enabled.contains(x));
+        }
+
+        if !disabled.is_empty() {
+            filtered_codes.retain(|x| !disabled.contains(x));
+        }
+
+        filtered_codes
+    }
+
+    fn get_progress_bar(&self, src_path: &str) -> ProgressBar {
+        let files_count = WalkDir::new(src_path)
+            .follow_links(false)
+            .into_iter()
+            .count();
+
+        ProgressBar::new(files_count as u64)
+    }
+
+    pub fn analyse_file_statement(
+        &self,
+        file: &File,
+        statement: &parser::ast::Statement,
+    ) -> Vec<Violation> {
+        let mut violations = Vec::new();
+
+        for rule in self.rules.values() {
+            if rule.do_validate(file) {
+                for statement in rule.flatten_statements(statement) {
+                    violations.append(&mut rule.validate(file, statement));
+                }
             }
         }
 
-        suggestions
+        violations
     }
 }
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace Test\e11;
+namespace App\Service\e12;
 
 class SetLocalInMethod {
 
