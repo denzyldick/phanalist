@@ -1,6 +1,6 @@
 <?php
 
-namespace Test\e11;
+namespace App\Service\e12;
 
 class IncrementInMethod {
 
@@ -9,7 +9,7 @@ class IncrementInMethod {
     private function __construct(private bool $debug = false) {
     }
 
-    public function incrementCounter(): void {
-        $this->counter++;
+    public static function incrementCounter(): void {
+        self::$counter++;
     }
 }

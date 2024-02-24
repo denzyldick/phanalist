@@ -11,7 +11,7 @@ use serde_json::Value;
 use crate::file::File;
 use crate::results::Violation;
 
-pub(crate) static CODE: &str = "E00010";
+pub(crate) static CODE: &str = "E0010";
 static DESCRIPTION: &str = "Npath complexity";
 
 #[derive(Deserialize, Serialize)]
@@ -47,30 +47,26 @@ impl crate::rules::Rule for Rule {
 
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
         let mut violations = Vec::new();
-        let mut graph = Graph { e: 0 };
-        let suggestion = format!(
-            "This method body have more than {} paths. Reduce the amount of paths.",
-            self.settings.max_paths
-        );
 
         if let Statement::Class(class) = statement {
             for member in &class.body.members {
-                if let ClassMember::ConcreteMethod(concretemethod) = member {
-                    let MethodBody {
-                        comments: _,
-                        left_brace: _,
-                        statements,
-                        right_brace: _,
-                    } = &concretemethod.body;
-                    {
-                        Self::calculate_npath(statements.iter().collect(), &mut graph);
-                        if graph.calculate() > self.settings.max_paths {
-                            violations.push(self.new_violation(
-                                file,
-                                suggestion.to_string(),
-                                concretemethod.function,
-                            ));
-                        }
+                let mut graph = Graph { e: 0 };
+
+                if let ClassMember::ConcreteMethod(method) = member {
+                    let MethodBody { statements, .. } = &method.body;
+                    Self::calculate_npath(statements.iter().collect(), &mut graph);
+                    if graph.calculate() > self.settings.max_paths {
+                        let suggestion = format!(
+                            "The body of {} method has {} paths. Reduce the amount of paths.",
+                            method.name.value,
+                            graph.calculate(),
+                        );
+
+                        violations.push(self.new_violation(
+                            file,
+                            suggestion.to_string(),
+                            method.function,
+                        ));
                     }
                 }
             }
@@ -103,23 +99,12 @@ impl Rule {
 
     fn calculate_npath_for_statement(statement: &Statement, graph: &mut Graph) {
         match statement {
-            Statement::If(IfStatement {
-                r#if: _,
-                left_parenthesis: _,
-                condition: _,
-                right_parenthesis: _,
-                body,
-            }) => {
+            Statement::If(IfStatement { body, .. }) => {
                 graph.increase_edge();
                 match body {
-                    control_flow::IfStatementBody::Block {
-                        colon: _,
-                        statements,
-                        elseifs: _,
-                        r#else: _,
-                        endif: _,
-                        ending: _,
-                    } => Self::calculate_npath(statements.iter().collect(), graph),
+                    control_flow::IfStatementBody::Block { statements, .. } => {
+                        Self::calculate_npath(statements.iter().collect(), graph)
+                    }
                     control_flow::IfStatementBody::Statement {
                         statement,
                         elseifs: _,
@@ -133,31 +118,18 @@ impl Rule {
                     }
                 }
             }
-            Statement::While(WhileStatement {
-                r#while: _,
-                left_parenthesis: _,
-                condition: _,
-                right_parenthesis: _,
-                body,
-            }) => {
+            Statement::While(WhileStatement { body, .. }) => {
                 graph.increase_edge();
                 match body {
-                    WhileStatementBody::Block {
-                        colon: _,
-                        statements,
-                        endwhile: _,
-                        ending: _,
-                    } => Self::calculate_npath(statements.iter().collect(), graph),
+                    WhileStatementBody::Block { statements, .. } => {
+                        Self::calculate_npath(statements.iter().collect(), graph);
+                    }
                     WhileStatementBody::Statement { statement } => {
                         Self::calculate_npath(vec![statement.as_ref()], graph);
                     }
                 };
             }
-            Statement::Block(BlockStatement {
-                left_brace: _,
-                statements,
-                right_brace: _,
-            }) => {
+            Statement::Block(BlockStatement { statements, .. }) => {
                 Self::calculate_npath(statements.iter().collect(), graph);
             }
             _ => {}
@@ -184,12 +156,11 @@ mod tests {
     #[test]
     fn complex() {
         let violations = analyze_file_for_rule("e10/npath.php", CODE);
+        assert!(violations.len().eq(&1));
         assert_eq!(
             violations.first().unwrap().suggestion,
-            format!(
-                "This method body have more than {} paths. Reduce the amount of paths.",
-                200
-            )
+            "The body of tooManyPaths method has 319 paths. Reduce the amount of paths."
+                .to_string()
         );
     }
 }
