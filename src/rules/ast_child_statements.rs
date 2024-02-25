@@ -9,6 +9,7 @@ use php_parser_rs::parser::ast::loops::{
 };
 use php_parser_rs::parser::ast::namespaces::NamespaceStatement;
 use php_parser_rs::parser::ast::traits::{TraitMember, TraitStatement};
+use php_parser_rs::parser::ast::try_block::TryStatement;
 use php_parser_rs::parser::ast::{BlockStatement, Statement, SwitchStatement};
 
 pub struct AstChildStatements<'a> {
@@ -183,5 +184,29 @@ impl<'a> From<&'a ForStatement> for AstChildStatements<'a> {
         Self {
             statements: child_statements,
         }
+    }
+}
+
+impl<'a> From<&'a TryStatement> for AstChildStatements<'a> {
+    fn from(try_statement: &'a TryStatement) -> Self {
+        let mut statements = vec![];
+
+        for statement in &try_statement.body {
+            statements.push(statement);
+        }
+
+        for catch in &try_statement.catches {
+            for statement in &catch.body {
+                statements.push(statement);
+            }
+        }
+
+        if let Some(finally_block) = &try_statement.finally {
+            for statement in &finally_block.body {
+                statements.push(statement);
+            }
+        }
+
+        Self { statements }
     }
 }

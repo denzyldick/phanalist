@@ -82,6 +82,7 @@ pub trait Rule {
             Statement::While(statement) => statement.into(),
             Statement::Foreach(statement) => statement.into(),
             Statement::For(statement) => statement.into(),
+            Statement::Try(statement) => statement.into(),
             _ => AstChildStatements { statements: vec![] },
         };
 

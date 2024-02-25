@@ -142,6 +142,7 @@ impl crate::rules::Rule for Rule {
             Statement::While(statement) => statement.into(),
             Statement::Foreach(statement) => statement.into(),
             Statement::For(statement) => statement.into(),
+            Statement::Try(statement) => statement.into(),
             _ => AstChildStatements { statements: vec![] },
         };
 
@@ -293,6 +294,39 @@ mod tests {
         assert_eq!(
             violations.first().unwrap().suggestion,
             "Setting service properties leads to issues with Swoole. Trying to set static $counter property".to_string()
+        );
+    }
+
+    #[test]
+    fn set_in_method_try() {
+        let violations = analyze_file_for_rule("e12/set_in_method_try.php", CODE);
+
+        assert!(violations.len().gt(&0));
+        assert_eq!(
+            violations.first().unwrap().suggestion,
+            "Setting service properties leads to issues with Swoole. Trying to set $this->counter property".to_string()
+        );
+    }
+
+    #[test]
+    fn set_in_method_catch() {
+        let violations = analyze_file_for_rule("e12/set_in_method_catch.php", CODE);
+
+        assert!(violations.len().gt(&0));
+        assert_eq!(
+            violations.first().unwrap().suggestion,
+            "Setting service properties leads to issues with Swoole. Trying to set $this->counter property".to_string()
+        );
+    }
+
+    #[test]
+    fn set_in_method_finalliy() {
+        let violations = analyze_file_for_rule("e12/set_in_method_finalliy.php", CODE);
+
+        assert!(violations.len().gt(&0));
+        assert_eq!(
+            violations.first().unwrap().suggestion,
+            "Setting service properties leads to issues with Swoole. Trying to set $this->counter property".to_string()
         );
     }
 }
