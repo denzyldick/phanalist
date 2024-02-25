@@ -72,7 +72,7 @@ rules:
     max_paths: 200
   E0012: 
     include_namespaces: 
-      - "App\Service\"
+      - "App\\Service\\"
     excldue_namespaces: []
 ```
 
