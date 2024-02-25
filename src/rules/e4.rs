@@ -28,7 +28,7 @@ impl crate::rules::Rule for Rule {
                     for entry in &constant.entries {
                         if !Self::uppercased_constant_name(entry) {
                             let suggestion = format!(
-                                "All letters in a constant({}) should be uppercase.",
+                                "All letters in a constant \"{}\" should be uppercase.",
                                 entry.name.value
                             );
                             violations.push(self.new_violation(file, suggestion, entry.name.span))
@@ -40,15 +40,19 @@ impl crate::rules::Rule for Rule {
 
         violations
     }
+
+    fn travers_statements_to_validate<'a>(
+        &'a self,
+        flatten_statements: Vec<&'a Statement>,
+        statement: &'a Statement,
+    ) -> Vec<&Statement> {
+        self.class_statements_only_to_validate(flatten_statements, statement)
+    }
 }
 
 impl Rule {
     fn uppercased_constant_name(entry: &ConstantEntry) -> bool {
-        let ConstantEntry {
-            name,
-            equals: _,
-            value: _,
-        } = entry;
+        let ConstantEntry { name, .. } = entry;
 
         let mut is_uppercase = true;
         for l in name.value.to_string().chars() {
@@ -74,7 +78,7 @@ mod tests {
         assert!(violations.len().gt(&0));
         assert_eq!(
             violations.first().unwrap().suggestion,
-            "All letters in a constant(TeST) should be uppercase.".to_string()
+            "All letters in a constant \"TeST\" should be uppercase.".to_string()
         );
     }
 

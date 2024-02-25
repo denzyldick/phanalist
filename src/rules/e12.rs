@@ -1,24 +1,18 @@
 use std::str;
 
-use php_parser_rs::parser::ast::classes::ClassStatement;
-use php_parser_rs::parser::ast::control_flow::{IfStatement, IfStatementBody};
+use php_parser_rs::parser::ast::classes::{ClassMember, ClassStatement};
 use php_parser_rs::parser::ast::identifiers::Identifier;
-use php_parser_rs::parser::ast::loops::{
-    ForStatementBody, ForeachStatement, ForeachStatementBody, WhileStatementBody,
-};
 use php_parser_rs::parser::ast::operators::ArithmeticOperationExpression;
-use php_parser_rs::parser::ast::traits::TraitStatement;
-use php_parser_rs::parser::ast::try_block::CatchBlock;
 use php_parser_rs::parser::ast::variables::Variable;
 use php_parser_rs::parser::ast::{
-    namespaces, BlockStatement, Expression, PropertyFetchExpression, Statement,
-    StaticPropertyFetchExpression, SwitchStatement,
+    Expression, PropertyFetchExpression, Statement, StaticPropertyFetchExpression,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::file::File;
 use crate::results::Violation;
+use crate::rules::ast_child_statements::AstChildStatements;
 use crate::rules::do_validate_namespace;
 
 pub static CODE: &str = "E0012";
@@ -127,114 +121,33 @@ impl crate::rules::Rule for Rule {
         violations
     }
 
-    fn flatten_statements<'a>(&'a self, statement: &'a Statement) -> Vec<&Statement> {
-        let mut flatten_statements: Vec<&Statement> = Vec::new();
-        flatten_statements.push(statement);
-
-        match statement {
-            Statement::Try(try_statement) => {
-                for catch in &try_statement.catches {
-                    let CatchBlock { body, .. } = catch;
-                    for statement in body {
-                        flatten_statements.append(&mut self.flatten_statements(statement));
-                    }
-                }
-            }
-            Statement::Class(ClassStatement { body, .. }) => {
-                for member in &body.members {
-                    if let php_parser_rs::parser::ast::classes::ClassMember::ConcreteMethod(
-                        concrete_method,
-                    ) = member
-                    {
-                        for statement in &concrete_method.body.statements {
-                            flatten_statements.append(&mut self.flatten_statements(statement));
-                        }
-                    }
-                }
-            }
-            Statement::Trait(TraitStatement { body, .. }) => {
-                for member in &body.members {
-                    if let php_parser_rs::parser::ast::traits::TraitMember::ConcreteMethod(
-                        concrete_method,
-                    ) = member
-                    {
-                        for statement in &concrete_method.body.statements {
-                            flatten_statements.append(&mut self.flatten_statements(statement));
-                        }
-                    }
-                }
-            }
-            Statement::If(if_statement) => {
-                let IfStatement { body, .. } = if_statement;
-                {
-                    match body {
-                        IfStatementBody::Block { statements, .. } => {
-                            for statement in statements {
-                                flatten_statements.append(&mut self.flatten_statements(statement));
-                            }
-                        }
-                        IfStatementBody::Statement { statement, .. } => {
-                            flatten_statements.append(&mut self.flatten_statements(statement))
-                        }
-                    };
-                }
-            }
-            Statement::While(while_statement) => match &while_statement.body {
-                WhileStatementBody::Block { statements, .. } => {
-                    for statement in statements {
-                        flatten_statements.append(&mut self.flatten_statements(statement));
-                    }
-                }
-                WhileStatementBody::Statement { statement } => {
-                    flatten_statements.append(&mut self.flatten_statements(statement));
-                }
-            },
-            Statement::Switch(SwitchStatement { cases, .. }) => {
-                for case in cases {
-                    for statement in &case.body {
-                        flatten_statements.append(&mut self.flatten_statements(statement))
-                    }
-                }
-            }
-            Statement::Foreach(ForeachStatement { body, .. }) => match body {
-                ForeachStatementBody::Block { statements, .. } => {
-                    for statement in statements {
-                        flatten_statements.append(&mut self.flatten_statements(statement));
-                    }
-                }
-                ForeachStatementBody::Statement { statement } => {
-                    flatten_statements.append(&mut self.flatten_statements(statement));
-                }
-            },
-            Statement::For(for_statement_body) => match &for_statement_body.body {
-                ForStatementBody::Block { statements, .. } => {
-                    for statement in statements {
-                        flatten_statements.append(&mut self.flatten_statements(statement));
-                    }
-                }
-                ForStatementBody::Statement { statement } => {
-                    flatten_statements.append(&mut self.flatten_statements(statement));
-                }
-            },
-            Statement::Block(BlockStatement { statements, .. }) => {
-                for statement in statements {
-                    flatten_statements.append(&mut self.flatten_statements(statement));
-                }
-            }
-            Statement::Namespace(namespace) => match &namespace {
-                namespaces::NamespaceStatement::Unbraced(unbraced) => {
-                    for statement in &unbraced.statements {
-                        flatten_statements.append(&mut self.flatten_statements(statement));
-                    }
-                }
-                namespaces::NamespaceStatement::Braced(braced) => {
-                    for statement in &braced.body.statements {
-                        flatten_statements.append(&mut self.flatten_statements(statement));
-                    }
-                }
-            },
-            _ => {}
+    fn travers_statements_to_validate<'a>(
+        &'a self,
+        mut flatten_statements: Vec<&'a Statement>,
+        statement: &'a Statement,
+    ) -> Vec<&Statement> {
+        if let Statement::Expression(_) = &statement {
+            flatten_statements.push(statement);
         };
+
+        let child_statements: AstChildStatements = match statement {
+            Statement::Namespace(statement) => statement.into(),
+            Statement::Trait(statement) => statement.into(),
+            Statement::Class(statement) => {
+                crate::rules::e12::Rule::class_statements_ignore_constructor(statement)
+            }
+            Statement::Block(statement) => statement.into(),
+            Statement::If(statement) => statement.into(),
+            Statement::Switch(statement) => statement.into(),
+            Statement::While(statement) => statement.into(),
+            Statement::Foreach(statement) => statement.into(),
+            Statement::For(statement) => statement.into(),
+            _ => AstChildStatements { statements: vec![] },
+        };
+
+        for statement in child_statements.statements {
+            flatten_statements.append(&mut self.flatten_statements_to_validate(statement));
+        }
 
         flatten_statements
     }
@@ -249,6 +162,20 @@ impl Rule {
         }
 
         "n/a".to_string()
+    }
+
+    fn class_statements_ignore_constructor(statement: &ClassStatement) -> AstChildStatements<'_> {
+        let mut statements = vec![];
+
+        for member in &statement.body.members {
+            if let ClassMember::ConcreteMethod(method) = member {
+                for body_statement in &method.body.statements {
+                    statements.push(body_statement);
+                }
+            }
+        }
+
+        AstChildStatements { statements }
     }
 }
 
