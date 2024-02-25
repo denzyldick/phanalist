@@ -220,7 +220,7 @@ impl Analyse {
 
         for rule in self.rules.values() {
             if rule.do_validate(file) {
-                for statement in rule.flatten_statements(statement) {
+                for statement in rule.flatten_statements_to_validate(statement) {
                     violations.append(&mut rule.validate(file, statement));
                 }
             }

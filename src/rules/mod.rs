@@ -2,19 +2,15 @@ use std::collections::HashMap;
 use std::default::Default;
 
 use php_parser_rs::lexer::token::Span;
-use php_parser_rs::parser::ast::classes::ClassStatement;
-use php_parser_rs::parser::ast::control_flow::{IfStatement, IfStatementBody};
-use php_parser_rs::parser::ast::loops::{
-    ForStatementBody, ForeachStatement, ForeachStatementBody, WhileStatementBody,
-};
-use php_parser_rs::parser::ast::try_block::CatchBlock;
-use php_parser_rs::parser::ast::{namespaces, BlockStatement, Statement, SwitchStatement};
+use php_parser_rs::parser::ast::Statement;
 use serde_json::Value;
 
 use crate::config::Config;
 use crate::file::File;
 use crate::results::Violation;
+use crate::rules::ast_child_statements::AstChildStatements;
 
+mod ast_child_statements;
 pub mod e0;
 pub mod e1;
 pub mod e10;
@@ -63,111 +59,56 @@ pub trait Rule {
         }
     }
 
-    fn flatten_statements<'a>(&'a self, statement: &'a Statement) -> Vec<&Statement> {
-        let mut flatten_statements: Vec<&Statement> = Vec::new();
+    fn flatten_statements_to_validate<'a>(&'a self, statement: &'a Statement) -> Vec<&Statement> {
+        let flatten_statements: Vec<&Statement> = Vec::new();
+
+        self.travers_statements_to_validate(flatten_statements, statement)
+    }
+
+    fn travers_statements_to_validate<'a>(
+        &'a self,
+        mut flatten_statements: Vec<&'a Statement>,
+        statement: &'a Statement,
+    ) -> Vec<&Statement> {
         flatten_statements.push(statement);
 
-        match statement {
-            Statement::Try(try_statement) => {
-                for catch in &try_statement.catches {
-                    let CatchBlock { body, .. } = catch;
-                    for statement in body {
-                        flatten_statements.append(&mut self.flatten_statements(statement));
-                    }
-                }
-            }
-            Statement::Class(ClassStatement { body, .. }) => {
-                for member in &body.members {
-                    match member {
-                        php_parser_rs::parser::ast::classes::ClassMember::ConcreteMethod(
-                            method,
-                        ) => {
-                            for statement in &method.body.statements {
-                                flatten_statements.append(&mut self.flatten_statements(statement));
-                            }
-                        }
-                        php_parser_rs::parser::ast::classes::ClassMember::ConcreteConstructor(
-                            constructor,
-                        ) => {
-                            for statement in &constructor.body.statements {
-                                flatten_statements.append(&mut self.flatten_statements(statement));
-                            }
-                        }
-                        _ => {}
-                    };
-                }
-            }
-            Statement::If(if_statement) => {
-                let IfStatement { body, .. } = if_statement;
-                {
-                    match body {
-                        IfStatementBody::Block { statements, .. } => {
-                            for statement in statements {
-                                flatten_statements.append(&mut self.flatten_statements(statement));
-                            }
-                        }
-                        IfStatementBody::Statement { statement, .. } => {
-                            flatten_statements.append(&mut self.flatten_statements(statement))
-                        }
-                    };
-                }
-            }
-            Statement::While(while_statement) => match &while_statement.body {
-                WhileStatementBody::Block { statements, .. } => {
-                    for statement in statements {
-                        flatten_statements.append(&mut self.flatten_statements(statement));
-                    }
-                }
-                WhileStatementBody::Statement { statement } => {
-                    flatten_statements.append(&mut self.flatten_statements(statement));
-                }
-            },
-            Statement::Switch(SwitchStatement { cases, .. }) => {
-                for case in cases {
-                    for statement in &case.body {
-                        flatten_statements.append(&mut self.flatten_statements(statement))
-                    }
-                }
-            }
-            Statement::Foreach(ForeachStatement { body, .. }) => match body {
-                ForeachStatementBody::Block { statements, .. } => {
-                    for statement in statements {
-                        flatten_statements.append(&mut self.flatten_statements(statement));
-                    }
-                }
-                ForeachStatementBody::Statement { statement } => {
-                    flatten_statements.append(&mut self.flatten_statements(statement));
-                }
-            },
-            Statement::For(for_statement_body) => match &for_statement_body.body {
-                ForStatementBody::Block { statements, .. } => {
-                    for statement in statements {
-                        flatten_statements.append(&mut self.flatten_statements(statement));
-                    }
-                }
-                ForStatementBody::Statement { statement } => {
-                    flatten_statements.append(&mut self.flatten_statements(statement));
-                }
-            },
-            Statement::Block(BlockStatement { statements, .. }) => {
-                for statement in statements {
-                    flatten_statements.append(&mut self.flatten_statements(statement));
-                }
-            }
-            Statement::Namespace(namespace) => match &namespace {
-                namespaces::NamespaceStatement::Unbraced(unbraced) => {
-                    for statement in &unbraced.statements {
-                        flatten_statements.append(&mut self.flatten_statements(statement));
-                    }
-                }
-                namespaces::NamespaceStatement::Braced(braced) => {
-                    for statement in &braced.body.statements {
-                        flatten_statements.append(&mut self.flatten_statements(statement));
-                    }
-                }
-            },
-            _ => {}
+        let child_statements: AstChildStatements = match statement {
+            Statement::Namespace(statement) => statement.into(),
+            Statement::Trait(statement) => statement.into(),
+            Statement::Class(statement) => statement.into(),
+            Statement::Block(statement) => statement.into(),
+            Statement::If(statement) => statement.into(),
+            Statement::Switch(statement) => statement.into(),
+            Statement::While(statement) => statement.into(),
+            Statement::Foreach(statement) => statement.into(),
+            Statement::For(statement) => statement.into(),
+            _ => AstChildStatements { statements: vec![] },
         };
+
+        for statement in child_statements.statements {
+            flatten_statements.append(&mut self.flatten_statements_to_validate(statement));
+        }
+
+        flatten_statements
+    }
+
+    fn class_statements_only_to_validate<'a>(
+        &'a self,
+        mut flatten_statements: Vec<&'a Statement>,
+        statement: &'a Statement,
+    ) -> Vec<&Statement> {
+        if let Statement::Class(_) = &statement {
+            flatten_statements.push(statement);
+        };
+
+        let child_statements: AstChildStatements = match statement {
+            Statement::Namespace(statement) => statement.into(),
+            _ => AstChildStatements { statements: vec![] },
+        };
+
+        for statement in &child_statements.statements {
+            flatten_statements.append(&mut self.flatten_statements_to_validate(statement));
+        }
 
         flatten_statements
     }

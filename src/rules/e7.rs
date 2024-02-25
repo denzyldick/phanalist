@@ -55,24 +55,14 @@ impl crate::rules::Rule for Rule {
                 match member {
                     ClassMember::ConcreteMethod(method) => {
                         // Detect parameters without type.
-                        let FunctionParameterList {
-                            comments: _,
-                            left_parenthesis: _,
-                            right_parenthesis: _,
-                            parameters,
-                        } = &method.parameters;
+                        let FunctionParameterList { parameters, .. } = &method.parameters;
                         if parameters.inner.len() > self.settings.max_parameters as usize {
                             let suggestion = format!("Method {} has too many parameters. More than {} parameters is considered a too much.", &method.name.value, self.settings.max_parameters);
                             violations.push(self.new_violation(file, suggestion, method.function));
                         }
                     }
                     ClassMember::ConcreteConstructor(constructor) => {
-                        let ConstructorParameterList {
-                            comments: _,
-                            left_parenthesis: _,
-                            right_parenthesis: _,
-                            parameters,
-                        } = &constructor.parameters;
+                        let ConstructorParameterList { parameters, .. } = &constructor.parameters;
                         if self.settings.check_constructor
                             && parameters.inner.len() > self.settings.max_parameters as usize
                         {
@@ -89,6 +79,14 @@ impl crate::rules::Rule for Rule {
             }
         };
         violations
+    }
+
+    fn travers_statements_to_validate<'a>(
+        &'a self,
+        flatten_statements: Vec<&'a Statement>,
+        statement: &'a Statement,
+    ) -> Vec<&Statement> {
+        self.class_statements_only_to_validate(flatten_statements, statement)
     }
 }
 
