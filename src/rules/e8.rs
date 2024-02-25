@@ -39,6 +39,14 @@ impl crate::rules::Rule for Rule {
         };
         violations
     }
+
+    fn travers_statements_to_validate<'a>(
+        &'a self,
+        flatten_statements: Vec<&'a Statement>,
+        statement: &'a Statement,
+    ) -> Vec<&Statement> {
+        self.class_statements_only_to_validate(flatten_statements, statement)
+    }
 }
 
 impl Rule {

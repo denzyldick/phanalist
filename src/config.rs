@@ -32,6 +32,10 @@ impl Default for Config {
             String::from(rules::e10::CODE),
             serde_json::to_value(rules::e10::Settings::default()).unwrap(),
         );
+        rules.insert(
+            String::from(rules::e12::CODE),
+            serde_json::to_value(rules::e12::Settings::default()).unwrap(),
+        );
 
         Config {
             enabled_rules,

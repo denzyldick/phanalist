@@ -26,20 +26,20 @@ impl crate::rules::Rule for Rule {
             for member in &class.body.members {
                 match member {
                     ClassMember::ConcreteMethod(method) => {
-                        let method_name = &method.name.value;
                         let MethodModifierGroup { modifiers } = &method.modifiers;
                         if modifiers.is_empty() {
                             let suggestion =
-                                format!("The method {} has no modifiers.", method_name);
+                                format!("The method {} has no modifiers.", &method.name.value);
                             violations.push(self.new_violation(file, suggestion, method.function))
                         };
                     }
                     ClassMember::ConcreteConstructor(constructor) => {
-                        let method_name = &constructor.name.value;
                         let MethodModifierGroup { modifiers } = &constructor.modifiers;
                         if modifiers.is_empty() {
-                            let suggestion =
-                                format!("This method {} has no modifiers.", method_name);
+                            let suggestion = format!(
+                                "This method {} has no modifiers.",
+                                &constructor.name.value
+                            );
                             violations.push(self.new_violation(
                                 file,
                                 suggestion,
@@ -53,6 +53,13 @@ impl crate::rules::Rule for Rule {
         };
 
         violations
+    }
+    fn travers_statements_to_validate<'a>(
+        &'a self,
+        flatten_statements: Vec<&'a Statement>,
+        statement: &'a Statement,
+    ) -> Vec<&Statement> {
+        self.class_statements_only_to_validate(flatten_statements, statement)
     }
 }
 

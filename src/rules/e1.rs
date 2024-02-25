@@ -20,6 +20,12 @@ impl crate::rules::Rule for Rule {
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
         let mut violations = Vec::new();
 
+        if let Some(line) = file.lines.first() {
+            if line.trim() == "#!/usr/bin/env php" {
+                return violations;
+            }
+        }
+
         match statement {
             Statement::FullOpeningTag(tag) => {
                 let span = tag.span;
@@ -56,6 +62,24 @@ impl crate::rules::Rule for Rule {
         };
 
         violations
+    }
+
+    fn travers_statements_to_validate<'a>(
+        &'a self,
+        mut flatten_statements: Vec<&'a Statement>,
+        statement: &'a Statement,
+    ) -> Vec<&Statement> {
+        match statement {
+            Statement::FullOpeningTag(_tag) => {
+                flatten_statements.push(statement);
+            }
+            Statement::ShortOpeningTag(_tag) => {
+                flatten_statements.push(statement);
+            }
+            _ => {}
+        };
+
+        flatten_statements
     }
 }
 
@@ -115,5 +139,12 @@ mod tests {
             violations.first().unwrap().suggestion,
             "The opening tag doesn't start at the right column: 2.".to_string()
         );
+    }
+
+    #[test]
+    fn bin_with_valid_openning_tag() {
+        let violations = analyze_file_for_rule("e1/bin_with_valid_openning_tag.php", CODE);
+
+        assert!(violations.len().eq(&0));
     }
 }

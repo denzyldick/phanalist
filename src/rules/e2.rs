@@ -24,13 +24,7 @@ impl crate::rules::Rule for Rule {
 
         if let Statement::Try(s) = statement {
             for catch in &s.catches {
-                let CatchBlock {
-                    start,
-                    end: _,
-                    types: _,
-                    var: _,
-                    body,
-                } = catch;
+                let CatchBlock { start, body, .. } = catch;
                 if body.is_empty() {
                     violations.push(self.new_violation(file, SUGGESTION.to_string(), *start));
                 }
