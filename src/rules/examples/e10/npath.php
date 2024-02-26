@@ -751,4 +751,8 @@ class Complex
 
 
   }
+
+  public function valid(): void
+  {
+  }
 }
