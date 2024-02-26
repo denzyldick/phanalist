@@ -6,15 +6,13 @@ use std::str::FromStr;
 
 use clap::{arg, Parser};
 
-use project::Project;
-
+use crate::analyse::Analyse;
 use crate::output::Format;
 
 mod analyse;
 mod config;
 mod file;
 mod output;
-mod project;
 mod results;
 mod rules;
 
@@ -58,12 +56,12 @@ fn main() {
         }
     };
 
-    let mut project = Project {};
-    let config = project.parse_config(args.config, &format, quiet);
-    let mut results = project.scan(path, config, format != Format::json && !quiet);
+    let config = Analyse::parse_config(args.config, &format, quiet);
+    let mut analyze = Analyse::new(&config);
+    let mut results = analyze.scan(path, config, format != Format::json && !quiet);
 
     if !quiet {
-        project.output(&mut results, format, args.summary_only);
+        analyze.output(&mut results, format, args.summary_only);
     }
 
     if results.has_any_violations() {

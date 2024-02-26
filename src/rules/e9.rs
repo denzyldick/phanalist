@@ -40,32 +40,38 @@ impl crate::rules::Rule for Rule {
 
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
         let mut violations = Vec::new();
-        let mut graph = Graph { n: 0, e: 0, p: 0 };
-        let suggestion = "This method body is too complex. Make it easier to understand.";
 
         if let Statement::Class(class) = statement {
             for member in &class.body.members {
-                if let ClassMember::ConcreteMethod(concretemethod) = member {
-                    let MethodBody {
-                        comments: _,
-                        left_brace: _,
-                        statements,
-                        right_brace: _,
-                    } = &concretemethod.body;
-                    {
-                        let graph = calculate_cyclomatic_complexity(statements.clone(), &mut graph);
-                        if graph.calculate() > self.settings.max_complexity {
-                            violations.push(self.new_violation(
-                                file,
-                                suggestion.to_string(),
-                                concretemethod.function,
-                            ));
-                        }
+                let mut graph = Graph { n: 0, e: 0, p: 0 };
+
+                if let ClassMember::ConcreteMethod(method) = member {
+                    let MethodBody { statements, .. } = &method.body;
+                    let graph = calculate_cyclomatic_complexity(statements.clone(), &mut graph);
+                    if graph.calculate() > self.settings.max_complexity {
+                        let suggestion = format!(
+                            "The body of {} method has {} complexity. Make it easier to understand.",
+                            method.name.value,
+                            graph.calculate(),
+                        );
+                        violations.push(self.new_violation(
+                            file,
+                            suggestion.to_string(),
+                            method.function,
+                        ));
                     }
                 }
             }
         }
         violations
+    }
+
+    fn travers_statements_to_validate<'a>(
+        &'a self,
+        flatten_statements: Vec<&'a Statement>,
+        statement: &'a Statement,
+    ) -> Vec<&Statement> {
+        self.class_statements_only_to_validate(flatten_statements, statement)
     }
 }
 
@@ -203,7 +209,8 @@ mod tests {
         assert!(violations.len().gt(&0));
         assert_eq!(
             violations.first().unwrap().suggestion,
-            "This method body is too complex. Make it easier to understand.".to_string()
+            "The body of complexMethod method has 11 complexity. Make it easier to understand."
+                .to_string()
         );
     }
 

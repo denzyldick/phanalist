@@ -21,8 +21,8 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Settings {
-            check_constructor: true,
-            max_parameters: 5,
+            check_constructor: false,
+            max_parameters: 8,
         }
     }
 }
@@ -55,24 +55,14 @@ impl crate::rules::Rule for Rule {
                 match member {
                     ClassMember::ConcreteMethod(method) => {
                         // Detect parameters without type.
-                        let FunctionParameterList {
-                            comments: _,
-                            left_parenthesis: _,
-                            right_parenthesis: _,
-                            parameters,
-                        } = &method.parameters;
+                        let FunctionParameterList { parameters, .. } = &method.parameters;
                         if parameters.inner.len() > self.settings.max_parameters as usize {
                             let suggestion = format!("Method {} has too many parameters. More than {} parameters is considered a too much.", &method.name.value, self.settings.max_parameters);
                             violations.push(self.new_violation(file, suggestion, method.function));
                         }
                     }
                     ClassMember::ConcreteConstructor(constructor) => {
-                        let ConstructorParameterList {
-                            comments: _,
-                            left_parenthesis: _,
-                            right_parenthesis: _,
-                            parameters,
-                        } = &constructor.parameters;
+                        let ConstructorParameterList { parameters, .. } = &constructor.parameters;
                         if self.settings.check_constructor
                             && parameters.inner.len() > self.settings.max_parameters as usize
                         {
@@ -90,6 +80,14 @@ impl crate::rules::Rule for Rule {
         };
         violations
     }
+
+    fn travers_statements_to_validate<'a>(
+        &'a self,
+        flatten_statements: Vec<&'a Statement>,
+        statement: &'a Statement,
+    ) -> Vec<&Statement> {
+        self.class_statements_only_to_validate(flatten_statements, statement)
+    }
 }
 
 #[cfg(test)]
@@ -105,7 +103,7 @@ mod tests {
         assert!(violations.len().gt(&0));
         assert_eq!(
             violations.first().unwrap().suggestion,
-            "Method test has too many parameters. More than 5 parameters is considered a too much."
+            "Method test has too many parameters. More than 8 parameters is considered a too much."
                 .to_string()
         );
     }
@@ -114,12 +112,7 @@ mod tests {
     fn constructor_max_params() {
         let violations = analyze_file_for_rule("e7/constructor_max_params.php", CODE);
 
-        assert!(violations.len().gt(&0));
-        assert_eq!(
-            violations.first().unwrap().suggestion,
-            "Constructor has too many parameters. More than 5 parameters is considered a too much."
-                .to_string()
-        );
+        assert!(violations.len().eq(&0));
     }
 
     #[test]

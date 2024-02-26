@@ -8,11 +8,13 @@ use serde_json::Value;
 use crate::config::Config;
 use crate::file::File;
 use crate::results::Violation;
+use crate::rules::ast_child_statements::AstChildStatements;
 
+mod ast_child_statements;
 pub mod e0;
 pub mod e1;
 pub mod e10;
-pub mod e11;
+pub mod e12;
 pub mod e2;
 pub mod e3;
 pub mod e4;
@@ -40,6 +42,10 @@ pub trait Rule {
         }
     }
 
+    fn do_validate(&self, file: &File) -> bool {
+        file.get_fully_qualified_name().is_some()
+    }
+
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation>;
 
     fn new_violation(&self, file: &File, suggestion: String, span: Span) -> Violation {
@@ -52,6 +58,85 @@ pub trait Rule {
             span,
         }
     }
+
+    fn flatten_statements_to_validate<'a>(&'a self, statement: &'a Statement) -> Vec<&Statement> {
+        let flatten_statements: Vec<&Statement> = Vec::new();
+
+        self.travers_statements_to_validate(flatten_statements, statement)
+    }
+
+    fn travers_statements_to_validate<'a>(
+        &'a self,
+        mut flatten_statements: Vec<&'a Statement>,
+        statement: &'a Statement,
+    ) -> Vec<&Statement> {
+        flatten_statements.push(statement);
+
+        let child_statements: AstChildStatements = match statement {
+            Statement::Namespace(statement) => statement.into(),
+            Statement::Trait(statement) => statement.into(),
+            Statement::Class(statement) => statement.into(),
+            Statement::Block(statement) => statement.into(),
+            Statement::If(statement) => statement.into(),
+            Statement::Switch(statement) => statement.into(),
+            Statement::While(statement) => statement.into(),
+            Statement::Foreach(statement) => statement.into(),
+            Statement::For(statement) => statement.into(),
+            Statement::Try(statement) => statement.into(),
+            _ => AstChildStatements { statements: vec![] },
+        };
+
+        for statement in child_statements.statements {
+            flatten_statements.append(&mut self.flatten_statements_to_validate(statement));
+        }
+
+        flatten_statements
+    }
+
+    fn class_statements_only_to_validate<'a>(
+        &'a self,
+        mut flatten_statements: Vec<&'a Statement>,
+        statement: &'a Statement,
+    ) -> Vec<&Statement> {
+        if let Statement::Class(_) = &statement {
+            flatten_statements.push(statement);
+        };
+
+        let child_statements: AstChildStatements = match statement {
+            Statement::Namespace(statement) => statement.into(),
+            _ => AstChildStatements { statements: vec![] },
+        };
+
+        for statement in &child_statements.statements {
+            flatten_statements.append(&mut self.flatten_statements_to_validate(statement));
+        }
+
+        flatten_statements
+    }
+}
+
+pub(crate) fn do_validate_namespace(
+    ns: String,
+    include: &Vec<String>,
+    exclude: &Vec<String>,
+) -> bool {
+    for exclude_ns in exclude {
+        if ns.contains(exclude_ns) {
+            return false;
+        }
+    }
+
+    if !include.is_empty() {
+        for include_ns in include {
+            if ns.contains(include_ns) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    true
 }
 
 fn add_rule(rules: &mut HashMap<String, Box<dyn Rule>>, rule: Box<dyn Rule>) {
@@ -71,7 +156,8 @@ pub fn all_rules() -> HashMap<String, Box<dyn Rule>> {
     add_rule(&mut rules, Box::new(e8::Rule {}));
     add_rule(&mut rules, Box::default() as Box<e9::Rule>);
     add_rule(&mut rules, Box::default() as Box<e10::Rule>);
-    add_rule(&mut rules, Box::default() as Box<e11::Rule>);
+    add_rule(&mut rules, Box::default() as Box<e12::Rule>);
+
     rules
 }
 
@@ -81,7 +167,6 @@ mod tests {
     use std::path::PathBuf;
 
     use crate::analyse::Analyse;
-    use crate::project::Project;
 
     use super::*;
 
@@ -96,7 +181,57 @@ mod tests {
         };
         let analyse = Analyse::new(&config);
 
-        let project = Project {};
-        project.analyse_file(&file, &analyse)
+        analyse.analyse_file(&file)
+    }
+
+    fn get_ns() -> String {
+        "App\\Service\\Search".to_string()
+    }
+
+    #[test]
+    fn do_validate_namespace_empty_include_and_exclude() {
+        assert!(do_validate_namespace(get_ns(), &vec![], &vec![]));
+    }
+
+    #[test]
+    fn do_validate_namespace_include_contains() {
+        assert!(do_validate_namespace(
+            get_ns(),
+            &vec!["\\Service\\".to_string()],
+            &vec![]
+        ));
+    }
+
+    #[test]
+    fn do_validate_namespace_include_not_contains() {
+        assert!(!do_validate_namespace(
+            get_ns(),
+            &vec!["\\Service2\\".to_string()],
+            &vec![]
+        ));
+    }
+
+    #[test]
+    fn do_validate_namespace_exclude_contains() {
+        assert!(!do_validate_namespace(
+            get_ns(),
+            &vec![],
+            &vec!["\\Service\\".to_string()],
+        ));
+    }
+
+    #[test]
+    fn do_validate_namespace_exclude_not_contains() {
+        assert!(do_validate_namespace(
+            get_ns(),
+            &vec![],
+            &vec!["\\Service2\\".to_string()],
+        ));
+    }
+
+    #[test]
+    fn do_validate_namespace_include_contains_exclude_contains() {
+        let namespaces = &vec!["\\Service\\".to_string()];
+        assert!(!do_validate_namespace(get_ns(), namespaces, namespaces));
     }
 }
