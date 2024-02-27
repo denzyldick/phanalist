@@ -24,22 +24,9 @@ There are also [multiple other installation options](./docs/installation.md).
 To analyze your project sources, you just need to run `phanalist`:
 ```
 $ ~/phanalist
-The new ./phanalist.yaml configuration file as been created
-
-Scanning files in ./src ...
-██████████████████████████████████████████████████████████████████████████████ 3/3
-./src/rules/examples/e2/empty_catch.php, detected 1 violation:
-  E0002:	There is an empty catch. It's not recommended to catch an Exception without doing anything with it.
-  9:11	|         } catch(Exception $e) {}
-
-+-----------+-------------+------------+
-| Rule Code | Description | Violations |
-+-----------+-------------+------------+
-| E0002     | Empty catch |          1 |
-+-----------+-------------+------------+
-
-Analysed 2 files in 1.31ms, memory usage: 4.6 MiB
 ```
+#### Example
+![Example](docs/branding/example.gif)
 
 On the first run `phanalist.yaml` will be created with the default configurations. And it will be reused on all the following runs.
 
