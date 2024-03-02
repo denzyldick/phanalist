@@ -25,6 +25,9 @@ struct Args {
     config: String,
     #[arg(short, long, default_value = "./src")]
     src: String,
+    #[arg(short, long)]
+    /// The list of rules to use (by default it is used from config)
+    rules: Option<Vec<String>>,
     #[arg(short, long, default_value = "text")]
     /// Possible options: text, json
     output_format: String,
@@ -56,7 +59,10 @@ fn main() {
         }
     };
 
-    let config = Analyse::parse_config(args.config, &format, quiet);
+    let mut config = Analyse::parse_config(args.config, &format, quiet);
+    if let Some(rules) = args.rules {
+        config.enabled_rules = rules;
+    }
     let mut analyze = Analyse::new(&config);
     let mut results = analyze.scan(path, config, format != Format::json && !quiet);
 
