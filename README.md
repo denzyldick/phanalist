@@ -60,6 +60,7 @@ rules:
   E0012: 
     include_namespaces: 
       - "App\\Service\\"
+      - "App\\Controller\\"
     excldue_namespaces: []
 ```
 
@@ -67,20 +68,20 @@ rules:
 
 The following rules are available:
 
-| Code  | Name                     | Default options                                                |
-|:-----:|:-------------------------|:---------------------------------------------------------------|
-| E0000 | Example rule             |                                                                |
-| E0001 | Opening tag position     |                                                                |
-| E0002 | Empty catch              |                                                                |
-| E0003 | Method modifiers         |                                                                |
-| E0004 | Uppercase constants      |                                                                |
-| E0005 | Capitalized class name   |                                                                |
-| E0006 | Property modifiers       |                                                                |
-| E0007 | Method parameters count  | check_constructor: true, max_parameters: 5                     |
-| E0008 | Return type signature    |                                                                |
-| E0009 | Cyclomatic complexity    | max_complexity: 10                                             |
-| E0010 | Npath complexity         | max_complexity: 200                         |
-| E0012 | Service properties       | include_namespaces: ["App\\Service\\"], excldue_namespaces: [] |
+| Code  | Name                                           | Default options                                                                                              |
+|:-----:|:-----------------------------------------------|:-------------------------------------------------------------------------------------------------------------|
+| E0000 | Example rule                                   |                                                                                                              |
+| E0001 | Opening tag position                           |                                                                                                              |
+| E0002 | Empty catch                                    |                                                                                                              |
+| E0003 | Method modifiers                               |                                                                                                              |
+| E0004 | Uppercase constants                            |                                                                                                              |
+| E0005 | Capitalized class name                         |                                                                                                              |
+| E0006 | Property modifiers                             |                                                                                                              |
+| E0007 | Method parameters count                        | check_constructor: true, max_parameters: 5                                                                   |
+| E0008 | Return type signature                          |                                                                                                              |
+| E0009 | Cyclomatic complexity                          | max_complexity: 10                                                                                           |
+| E0010 | Npath complexity                               | max_complexity: 200                                                                                          |
+| E0012 | Service compatibility with Shared Memory Model | include_namespaces: ["App\\Service\\"],<br/>excldue_namespaces: [],<br/>reset_interfaces: ["ResetInterface"] |
 
 Adding a new rule is a simple task, and [this tutorial](./docs/adding_new_rule.md) explains how to do it.
 
