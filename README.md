@@ -61,7 +61,7 @@ rules:
     include_namespaces: 
       - "App\\Service\\"
       - "App\\Controller\\"
-    excldue_namespaces: []
+    exclude_namespaces: []
 ```
 
 ### Rules
