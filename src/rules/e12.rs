@@ -79,7 +79,10 @@ impl crate::rules::Rule for Rule {
             Statement::Expression(expression) => Some(&expression.expression),
             Statement::Return(return_statement) => {
                 if let Some(return_value) = &return_statement.value {
-                    Some(return_value)
+                    match &return_value {
+                        Expression::PropertyFetch(_) => None,
+                        _ => Some(return_value),
+                    }
                 } else {
                     None
                 }
@@ -215,7 +218,21 @@ impl Rule {
 
         let expressions = match expression {
             Expression::AssignmentOperation(assignment) => {
-                vec![assignment.left(), assignment.right()]
+                let mut assigment_expressions = vec![assignment.left()];
+
+                let right = assignment.right();
+                match right {
+                    Expression::PropertyFetch(_) => None,
+                    Expression::ShortArray(_) => None,
+                    Expression::Array(_) => None,
+                    Expression::List(_) => None,
+                    _ => {
+                        assigment_expressions.push(right);
+                        Some(())
+                    }
+                };
+
+                assigment_expressions
             }
             Expression::Concat(concat) => vec![concat.left.as_ref(), concat.right.as_ref()],
             Expression::Parenthesized(parenthesized) => vec![parenthesized.expr.as_ref()],
@@ -266,12 +283,15 @@ impl Rule {
         let mut expressions = vec![];
 
         for argument in method_call.arguments.iter().clone() {
-            let mut argument_expressions = match &argument {
-                Argument::Positional(PositionalArgument { value, .. }) => vec![value],
-                Argument::Named(NamedArgument { value, .. }) => vec![value],
+            let argument_expression = match &argument {
+                Argument::Positional(PositionalArgument { value, .. }) => value,
+                Argument::Named(NamedArgument { value, .. }) => value,
             };
 
-            expressions.append(&mut argument_expressions);
+            match &argument_expression {
+                Expression::PropertyFetch(_) => {}
+                _ => expressions.push(argument_expression),
+            };
         }
 
         expressions
@@ -350,6 +370,27 @@ mod tests {
     #[test]
     fn set_in_method_wth_reset_interface() {
         let violations = analyze_file_for_rule("e12/set_in_method_wth_reset_interface.php", CODE);
+
+        assert!(violations.len().eq(&0));
+    }
+
+    #[test]
+    fn read_in_method_call() {
+        let violations = analyze_file_for_rule("e12/read_in_method_call.php", CODE);
+
+        assert!(violations.len().eq(&0));
+    }
+
+    #[test]
+    fn read_in_return() {
+        let violations = analyze_file_for_rule("e12/read_in_return.php", CODE);
+
+        assert!(violations.len().eq(&0));
+    }
+
+    #[test]
+    fn read_local_set() {
+        let violations = analyze_file_for_rule("e12/read_local_set.php", CODE);
 
         assert!(violations.len().eq(&0));
     }
