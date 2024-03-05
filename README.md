@@ -61,7 +61,7 @@ rules:
     include_namespaces: 
       - "App\\Service\\"
       - "App\\Controller\\"
-    excldue_namespaces: []
+    exclude_namespaces: []
 ```
 
 ### Rules
@@ -81,7 +81,7 @@ The following rules are available:
 | E0008 | Return type signature                          |                                                                                                              |
 | E0009 | Cyclomatic complexity                          | max_complexity: 10                                                                                           |
 | E0010 | Npath complexity                               | max_complexity: 200                                                                                          |
-| E0012 | Service compatibility with Shared Memory Model | include_namespaces: ["App\\Service\\"],<br/>excldue_namespaces: [],<br/>reset_interfaces: ["ResetInterface"] |
+| E0012 | Service compatibility with Shared Memory Model | include_namespaces: ["App\\Service\\"],<br/>exclude_namespaces: [],<br/>reset_interfaces: ["ResetInterface"] |
 
 Adding a new rule is a simple task, and [this tutorial](./docs/adding_new_rule.md) explains how to do it.
 
