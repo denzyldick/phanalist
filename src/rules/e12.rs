@@ -223,9 +223,6 @@ impl Rule {
                 let right = assignment.right();
                 match right {
                     Expression::PropertyFetch(_) => None,
-                    Expression::ShortArray(_) => None,
-                    Expression::Array(_) => None,
-                    Expression::List(_) => None,
                     _ => {
                         assigment_expressions.push(right);
                         Some(())
