@@ -40,9 +40,10 @@ impl crate::rules::Rule for Rule {
     }
 
     fn set_config(&mut self, json: &Value) {
-        if let Ok(settings) = serde_json::from_value(json.to_owned()) {
-            self.settings = settings;
-        }
+        match serde_json::from_value(json.to_owned()) {
+            Ok(settings) => self.settings = settings,
+            Err(e) => self.output_error(e.into()),
+        };
     }
 
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {

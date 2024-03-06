@@ -1,5 +1,7 @@
+use colored::Colorize;
 use std::collections::HashMap;
 use std::default::Default;
+use std::error::Error;
 
 use php_parser_rs::lexer::token::Span;
 use php_parser_rs::parser::ast::Statement;
@@ -40,6 +42,19 @@ pub trait Rule {
         if let Some(rule_config) = config.rules.get(&code) {
             self.set_config(rule_config);
         }
+    }
+
+    fn output_error(&self, e: Box<dyn Error>) {
+        println!(
+            "{}",
+            format!(
+                "Unable to parse config for rule #{}, so default values will be used. Parsing error: {}",
+                self.get_code(),
+                e
+            )
+            .red()
+            .bold()
+        );
     }
 
     fn do_validate(&self, file: &File) -> bool {
