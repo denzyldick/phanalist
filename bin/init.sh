@@ -1,6 +1,6 @@
 #!/bin/sh
 # shellcheck shell=dash
-# based of https://github.com/rust-lang/rustup/blob/master/rustup-init.sh
+# based on https://github.com/rust-lang/rustup/blob/master/rustup-init.sh
 
 set -u
 
@@ -43,29 +43,30 @@ main() {
     fi
 
     if $_ansi_escapes_are_valid; then
-        printf "\33[1minfo:\33[0m Downloading ${_url} ...\n" 1>&2
+        printf "\33[1minfo:\33[0m Downloading ${_url} ...\n" >&2
     else
-        printf '%s\n' 'info: Downloading ${_url} ...' 1>&2
+        printf '%s\n' "info: Downloading ${_url} ..." >&2
     fi
 
     ensure downloader "$_url" "$_file" "$_arch"
 
-    local _bin="$(realpath ~)/${PHANALIST_BIN}"
+    local _bin
+    _bin="$(realpath ~ | { read h; [ "$h" = "/" ] && echo "." || echo "$h"; })/${PHANALIST_BIN}"
     ensure mv "$_file" "$_bin"
     ignore rmdir "$_dir"
 
     ensure chmod u+x "$_bin"
 
     if [ ! -x "$_bin" ]; then
-        printf '%s\n' "$_bin is not executable." 1>&2
-        printf '%s\n' "Please copy the file to a location where you can execute binaries and run ./rustup-init${_ext}." 1>&2
+        printf '%s\n' "$_bin is not executable." >&2
+        printf '%s\n' "Please copy the file to a location where you can execute binaries and run ./rustup-init${_ext}." >&2
         exit 1
     fi
 
     if $_ansi_escapes_are_valid; then
-        printf "\33[1minfo:\33[0m Saved ${_bin}\n" 1>&2
+        printf "\33[1minfo:\33[0m Saved ${_bin}\n" >&2
     else
-        printf '%s\n' 'info: Saved ${_bin}' 1>&2
+        printf '%s\n' "info: Saved ${_bin}" >&2
     fi
 }
 
@@ -91,13 +92,13 @@ get_architecture() {
     case "$_ostype" in
         Linux) _ostype=unknown-linux-$_clibtype;;
         Darwin) _ostype=apple-darwin;;
-        *) err "Unrecognized OS type: $_ostype"
+        *) err "Unrecognized OS type: $_ostype";;
     esac
 
     case "$_cputype" in
         aarch64 | arm64) _cputype=aarch64 ;;
         x86_64 | x86-64 | x64 | amd64) _cputype=x86_64 ;;
-        *) err "Unknown CPU type: $_cputype"
+        *) err "Unknown CPU type: $_cputype";;
     esac
 
     _arch="${_cputype}-${_ostype}"
