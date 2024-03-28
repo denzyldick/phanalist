@@ -68,20 +68,20 @@ rules:
 
 The following rules are available:
 
-| Code  | Name                                           | Default options                                                                                              |
-|:-----:|:-----------------------------------------------|:-------------------------------------------------------------------------------------------------------------|
-| E0000 | Example rule                                   |                                                                                                              |
-| E0001 | Opening tag position                           |                                                                                                              |
-| E0002 | Empty catch                                    |                                                                                                              |
-| E0003 | Method modifiers                               |                                                                                                              |
-| E0004 | Uppercase constants                            |                                                                                                              |
-| E0005 | Capitalized class name                         |                                                                                                              |
-| E0006 | Property modifiers                             |                                                                                                              |
-| E0007 | Method parameters count                        | check_constructor: true, max_parameters: 5                                                                   |
-| E0008 | Return type signature                          |                                                                                                              |
-| E0009 | Cyclomatic complexity                          | max_complexity: 10                                                                                           |
-| E0010 | Npath complexity                               | max_complexity: 200                                                                                          |
-| E0012 | Service compatibility with Shared Memory Model | include_namespaces: ["App\\Service\\"],<br/>exclude_namespaces: [],<br/>reset_interfaces: ["ResetInterface"] |
+|                  Code                  | Name                                           | Default options                                                                                              |
+|:--------------------------------------:|:-----------------------------------------------|:-------------------------------------------------------------------------------------------------------------|
+|                 E0000                  | Example rule                                   |                                                                                                              |
+| [E0001](/src/rules/examples/e1/e1.md)  | Opening tag position                           |                                                                                                              |
+| [E0002](/src/rules/examples/e2/e2.md)  | Empty catch                                    |                                                                                                              |
+| [E0003](/src/rules/examples/e3/e3.md)  | Method modifiers                               |                                                                                                              |
+|   [E0004](src/rules/examples/e4.md)    | Uppercase constants                            |                                                                                                              |
+|   [E0005](src/rules/examples/e5.md)    | Capitalized class name                         |                                                                                                              |
+| [E0006](/src/rules/examples/e6/e6.md)  | Property modifiers                             |                                                                                                              |
+| [E0007](/src/rules/examples/e7/e7.md)  | Method parameters count                        | check_constructor: true, max_parameters: 5                                                                   |
+|  [E0008](src/rules/examples/e8/e8.md)  | Return type signature                          |                                                                                                              |
+| [E0009](/src/rules/examples/e9/e9.md)  | Cyclomatic complexity                          | max_complexity: 10                                                                                           |
+| [E0010](src/rules/examples/e10/e10.md) | Npath complexity                               | max_complexity: 200                                                                                          |
+|                 E0012                  | Service compatibility with Shared Memory Model | include_namespaces: ["App\\Service\\"],<br/>exclude_namespaces: [],<br/>reset_interfaces: ["ResetInterface"] |
 
 Adding a new rule is a simple task, and [this tutorial](./docs/adding_new_rule.md) explains how to do it.
 
