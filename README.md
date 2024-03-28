@@ -11,7 +11,7 @@ The simplest way to install phanalist is to use the installation script.
 curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/denzyldick/phanalist/main/bin/init.sh | sh
 ```
 
-It will automatically download executable for your platform:
+It will automatically download the executable for your platform:
 ```bash
 $ ~/phanalist -V
 phanalist 1.0.0
