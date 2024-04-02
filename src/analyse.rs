@@ -54,8 +54,7 @@ impl Analyse {
             rules: Self::get_active_rules(config),
         }
     }
-
-    pub(crate) fn scan(&self, path: String, _config: Config, show_bar: bool) -> Results {
+    pub(crate) fn scan(&self, path: String, _config: &Config, show_bar: bool) -> Results {
         let now = std::time::Instant::now();
         let mut results = Results::default();
         let progress_bar = self.get_progress_bar(&path);
