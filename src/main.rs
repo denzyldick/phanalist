@@ -23,8 +23,8 @@ mod rules;
 struct Args {
     #[arg(short, long, default_value = "./phanalist.yaml")]
     config: String,
-    #[arg(short, long, default_value = "./src")]
-    src: String,
+    #[arg(short, long, default_values_t = ["./src".to_string()])]
+    src: Vec<String>,
     #[arg(short, long)]
     /// The list of rules to use (by default it is used from config)
     rules: Option<Vec<String>>,
@@ -45,10 +45,12 @@ fn main() {
 
     let quiet = args.quiet;
 
-    let path = args.src;
-    if !Path::new(&path).exists() {
-        println!("Path {} does not exist", path);
-        process::exit(exitcode::IOERR);
+    let paths = args.src;
+    for path in paths.iter() {
+        if !Path::new(&path).exists() {
+            println!("Path {} does not exist", path);
+            process::exit(exitcode::IOERR);
+        }
     }
 
     let format = match output::Format::from_str(args.output_format.as_str()) {
@@ -64,13 +66,18 @@ fn main() {
         config.enabled_rules = rules;
     }
     let mut analyze = Analyse::new(&config);
-    let mut results = analyze.scan(path, config, format != Format::json && !quiet);
 
-    if !quiet {
-        analyze.output(&mut results, format, args.summary_only);
+    let mut has_violations = false;
+
+    for path in paths.iter() {
+        let mut results = analyze.scan(path.clone(), &config, format != Format::json && !quiet);
+        if !quiet {
+            analyze.output(&mut results, format.clone(), args.summary_only);
+        }
+        has_violations = has_violations || results.has_any_violations();
     }
 
-    if results.has_any_violations() {
+    if has_violations {
         process::exit(exitcode::SOFTWARE);
     } else {
         process::exit(exitcode::OK);
