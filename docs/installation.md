@@ -53,3 +53,11 @@ Another option is to use [official docker image](https://github.com/denzyldick/p
 ```bash
 docker run -it -v $(pwd):/var/src ghcr.io/denzyldick/phanalist:latest phanalist --src=/var/src
 ```
+### Github action 
+
+Phanalist is also listed on the Github action marketplace.
+```yaml
+              - name: Phanalist
+                uses: denzyldick/phanalist-action@v0.1.21
+            
+```
