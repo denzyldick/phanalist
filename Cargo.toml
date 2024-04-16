@@ -1,7 +1,20 @@
 [package]
 name = "phanalist"
-version = "1.0.0"
+version = "0.1.21"
 edition = "2021"
+lincese = "MIT"
+description = "Performant static analyzer for PHP, which is extremely easy to use. It helps you catch common mistakes in your PHP code."
+readme = "./README.md"
+categories = ["development-tools"]
+include = [
+  "/Cargo.toml",
+  "/LICENSE",
+  "/README.md",
+  "/src/**",
+]
+keywords = ["PHP", "static analyzer", "code quality", "code review"]
+license = "MIT"
+repository = "https://github.com/denzyldick/phanalist"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
