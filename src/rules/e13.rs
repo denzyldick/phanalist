@@ -6,7 +6,6 @@ use php_parser_rs::parser::ast::modifiers::MethodModifierGroup;
 use php_parser_rs::parser::ast::{
      ExpressionStatement, Statement,
 };
-use php_parser_rs::printer::print;
 use std::collections::HashMap;
 
 use crate::file::File;
