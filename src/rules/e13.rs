@@ -41,17 +41,17 @@ impl crate::rules::Rule for Rule {
         if let Statement::Class(class) = statement {
             for member in &class.body.members {
                 if let ClassMember::ConcreteMethod(method) = member {
-                    let mut r = false;
+                    let mut is_private = false;
                     if let MethodModifierGroup { modifiers } = &method.modifiers {
                         for m in modifiers {
                             if let php_parser_rs::parser::ast::modifiers::MethodModifier::Private(
                                 _,
                             ) = *m
                             {
-                                r = true;
-                                for i in modifiers {
-                                    if let Static(_) = *i {
-                                        r = true;
+                                is_private = true;
+                                for modifier in modifiers {
+                                    if let Static(_) = *modifier {
+                                        is_private = true;
                                     };
                                 }
                             };
