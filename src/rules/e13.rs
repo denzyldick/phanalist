@@ -38,7 +38,7 @@ impl crate::rules::Rule for Rule {
             for member in &class.body.members {
                 if let ClassMember::ConcreteMethod(method) = member {
                     let mut is_private = false;
-                    if let MethodModifierGroup { modifiers } = &method.modifiers {
+                    let MethodModifierGroup { modifiers } = &method.modifiers {
                         for m in modifiers {
                             if let php_parser_rs::parser::ast::modifiers::MethodModifier::Private(
                                 _,
