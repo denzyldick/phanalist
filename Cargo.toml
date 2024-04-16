@@ -12,7 +12,7 @@ include = [
   "/README.md",
   "/src/**",
 ]
-keywords = ["PHP", "Refactoring", "code review"]
+keywords = ["PHP", "Refactoring", "Phanalist"]
 license = "MIT"
 repository = "https://github.com/denzyldick/phanalist"
 
