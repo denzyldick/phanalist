@@ -70,7 +70,7 @@ impl crate::rules::Rule for Rule {
                     }
                 }
                 if let ClassMember::ConcreteConstructor(constructor) = member {
-                    let MethodBody {
+                   if let MethodBody {
                         statements,
                         comments,
                         left_brace,
