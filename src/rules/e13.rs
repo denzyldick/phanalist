@@ -1,7 +1,7 @@
 use php_parser_rs::lexer::byte_string::ByteString;
 use php_parser_rs::parser::ast::classes::ClassMember;
-use php_parser_rs::parser::ast::identifiers::{Identifier, SimpleIdentifier};
-use php_parser_rs::parser::ast::MethodCallExpression;
+use php_parser_rs::parser::ast::identifiers::{Identifier};
+
 use php_parser_rs::parser::ast::{
     functions::MethodBody,
     modifiers::{MethodModifier::Static, MethodModifierGroup},
@@ -9,7 +9,7 @@ use php_parser_rs::parser::ast::{
 };
 use std::collections::HashMap;
 use std::ops::Add;
-use std::rc::Rc;
+
 
 use crate::file::File;
 use crate::results::Violation;
@@ -33,7 +33,7 @@ impl crate::rules::Rule for Rule {
     }
 
     fn validate(&self, _file: &File, statement: &Statement) -> Vec<Violation> {
-        let mut violations = Vec::new();
+        let violations = Vec::new();
         let mut rc = RC {
             methods: HashMap::new(),
         };
@@ -76,13 +76,12 @@ impl crate::rules::Rule for Rule {
                                     {
                                         match identifier {
                                             Identifier::SimpleIdentifier(name) => {
-                                                let method = ByteString::from(name.value);
+                                                let method = name.value;
 
                                                 if let Some(entry) = rc.methods.get(&method.to_owned()) {
 
                                                     rc.methods.insert(method,entry.add(1));
-                                                } else {
-                                                };
+                                                } ;
                                             }
                                             Identifier::DynamicIdentifier(_) => {},
                                         };
@@ -100,7 +99,7 @@ impl crate::rules::Rule for Rule {
                         right_brace: _,
                     }: &MethodBody = &constructor.body;
 
-                    let exists = statements.iter().filter(|statements| {
+                    let _exists = statements.iter().filter(|statements| {
                         println!("{:#?}", statements);
                         rc.methods.insert("".into(), 0);
 
