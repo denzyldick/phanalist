@@ -1,14 +1,12 @@
 use php_parser_rs::lexer::byte_string::ByteString;
 use php_parser_rs::parser::ast::classes::ClassMember;
 use php_parser_rs::parser::ast::functions::MethodBody;
-use php_parser_rs::parser::ast::identifiers::Identifier;
 use php_parser_rs::parser::ast::modifiers::MethodModifier::Static;
 use php_parser_rs::parser::ast::modifiers::MethodModifierGroup;
 use php_parser_rs::parser::ast::{
     comments, Expression, ExpressionStatement, MethodCallExpression, Statement,
 };
 use php_parser_rs::printer::print;
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 
 use crate::file::File;
