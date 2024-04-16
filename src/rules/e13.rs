@@ -53,7 +53,7 @@ impl crate::rules::Rule for Rule {
                             };
                         }
                     }
-                    if r {
+                    if is_private {
                         let scope_name = &method.name;
                         rc.methods
                             .insert(ByteString::from(scope_name.to_string()), 0);
