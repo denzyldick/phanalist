@@ -4,7 +4,7 @@ use php_parser_rs::parser::ast::functions::MethodBody;
 use php_parser_rs::parser::ast::modifiers::MethodModifier::Static;
 use php_parser_rs::parser::ast::modifiers::MethodModifierGroup;
 use php_parser_rs::parser::ast::{
-    comments, Expression, ExpressionStatement, MethodCallExpression, Statement,
+     ExpressionStatement, Statement,
 };
 use php_parser_rs::printer::print;
 use std::collections::HashMap;
