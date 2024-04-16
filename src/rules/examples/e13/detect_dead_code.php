@@ -14,10 +14,15 @@ namespace DeadCode {
     }
 
     private static function test() {
-      $this->isNotCalled();
     }
 
-    public function test2() {
+    private function test2() {
+
+      static::test();
+      $this->test2();
+    }
+
+    public function ignore() {
     }
   }
 }

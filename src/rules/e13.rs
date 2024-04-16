@@ -1,18 +1,21 @@
 use php_parser_rs::lexer::byte_string::ByteString;
 use php_parser_rs::parser::ast::classes::ClassMember;
-use php_parser_rs::parser::ast::functions::MethodBody;
-use php_parser_rs::parser::ast::modifiers::MethodModifier::Static;
-use php_parser_rs::parser::ast::modifiers::MethodModifierGroup;
+use php_parser_rs::parser::ast::identifiers::{Identifier, SimpleIdentifier};
+use php_parser_rs::parser::ast::MethodCallExpression;
 use php_parser_rs::parser::ast::{
-     ExpressionStatement, Statement
+    functions::MethodBody,
+    modifiers::{MethodModifier::Static, MethodModifierGroup},
+    ExpressionStatement, Statement,
 };
 use std::collections::HashMap;
+use std::ops::Add;
+use std::rc::Rc;
 
 use crate::file::File;
 use crate::results::Violation;
 
 static CODE: &str = "E0013";
-static DESCRIPTION: &str = "Unused private method.";
+static DESCRIPTION: &str = "Detect dead code.";
 
 pub struct Rule {}
 
@@ -37,23 +40,23 @@ impl crate::rules::Rule for Rule {
         if let Statement::Class(class) = statement {
             for member in &class.body.members {
                 if let ClassMember::ConcreteMethod(method) = member {
-                    let mut is_private = false;
-                    let MethodModifierGroup { modifiers } = &method.modifiers {
-                        for m in modifiers {
+                    let mut r = false;
+                    if let MethodModifierGroup { modifiers } = &method.modifiers {
+                        for modifier in modifiers {
                             if let php_parser_rs::parser::ast::modifiers::MethodModifier::Private(
                                 _,
-                            ) = *m
+                            ) = *modifier
                             {
-                                is_private = true;
-                                for modifier in modifiers {
-                                    if let Static(_) = *modifier {
-                                        is_private = true;
+                                r = true;
+                                for i in modifiers {
+                                    if let Static(_) = *i {
+                                        r = true;
                                     };
                                 }
                             };
                         }
                     }
-                    if is_private {
+                    if r {
                         let scope_name = &method.name;
                         rc.methods
                             .insert(ByteString::from(scope_name.to_string()), 0);
@@ -64,17 +67,37 @@ impl crate::rules::Rule for Rule {
                                 ending: _,
                             }) = statement
                             {
-                                
+                                if let php_parser_rs::parser::ast::Expression::MethodCall(call) =
+                                    &expression
+                                {
+                                    if let php_parser_rs::parser::ast::Expression::Identifier(
+                                        identifier,
+                                    ) = *call.method.to_owned()
+                                    {
+                                        match identifier {
+                                            Identifier::SimpleIdentifier(name) => {
+                                                let method = ByteString::from(name.value);
+
+                                                if let Some(entry) = rc.methods.get(&method.to_owned()) {
+
+                                                    rc.methods.insert(method,entry.add(1));
+                                                } else {
+                                                };
+                                            }
+                                            Identifier::DynamicIdentifier(_) => {},
+                                        };
+                                    };
+                                };
                             }
                         }
                     }
                 }
                 if let ClassMember::ConcreteConstructor(constructor) = member {
-                   if let MethodBody {
+                    let MethodBody {
                         statements,
-                        comments,
-                        left_brace,
-                        right_brace,
+                        comments: _,
+                        left_brace: _,
+                        right_brace: _,
                     }: &MethodBody = &constructor.body;
 
                     let exists = statements.iter().filter(|statements| {
