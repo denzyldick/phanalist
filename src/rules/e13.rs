@@ -10,7 +10,6 @@ use php_parser_rs::parser::ast::{
 use php_parser_rs::printer::print;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
-use termimad::crossterm::style::PrintStyledContent;
 
 use crate::file::File;
 use crate::results::Violation;
