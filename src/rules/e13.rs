@@ -1,6 +1,6 @@
 use php_parser_rs::lexer::byte_string::ByteString;
 use php_parser_rs::parser::ast::classes::ClassMember;
-use php_parser_rs::parser::ast::identifiers::{Identifier};
+use php_parser_rs::parser::ast::identifiers::Identifier;
 
 use php_parser_rs::parser::ast::{
     functions::MethodBody,
@@ -9,7 +9,6 @@ use php_parser_rs::parser::ast::{
 };
 use std::collections::HashMap;
 use std::ops::Add;
-
 
 use crate::file::File;
 use crate::results::Violation;
@@ -34,6 +33,7 @@ impl crate::rules::Rule for Rule {
 
     fn validate(&self, _file: &File, statement: &Statement) -> Vec<Violation> {
         let violations = Vec::new();
+        dbg!("HERE");
         let mut rc = RC {
             methods: HashMap::new(),
         };
@@ -43,51 +43,49 @@ impl crate::rules::Rule for Rule {
                     let mut r = false;
                     if let MethodModifierGroup { modifiers } = &method.modifiers {
                         for modifier in modifiers {
-                            if let php_parser_rs::parser::ast::modifiers::MethodModifier::Private(
-                                _,
-                            ) = *modifier
-                            {
-                                r = true;
-                                for i in modifiers {
-                                    if let Static(_) = *i {
-                                        r = true;
-                                    };
-                                }
-                            };
+                            Self::skip_if_public(modifier, &mut r, modifiers);
                         }
                     }
                     if r {
-                        let scope_name = &method.name;
-                        rc.methods
-                            .insert(ByteString::from(scope_name.to_string()), 0);
+                        Self::create_reference(method, &mut rc);
                         let MethodBody { statements, .. } = &method.body;
                         for statement in statements {
-                            if let Statement::Expression(ExpressionStatement {
+                            let Statement::Expression(ExpressionStatement {
                                 expression,
                                 ending: _,
                             }) = statement
+                            else {
+                                continue;
+                            };
+                            if let php_parser_rs::parser::ast::Expression::MethodCall(call) =
+                                &expression
                             {
-                                if let php_parser_rs::parser::ast::Expression::MethodCall(call) =
-                                    &expression
+                                if let php_parser_rs::parser::ast::Expression::Identifier(
+                                    identifier,
+                                ) = *call.method.to_owned()
                                 {
-                                    if let php_parser_rs::parser::ast::Expression::Identifier(
-                                        identifier,
-                                    ) = *call.method.to_owned()
-                                    {
-                                        match identifier {
-                                            Identifier::SimpleIdentifier(name) => {
-                                                let method = name.value;
+                                    match identifier {
+                                        Identifier::SimpleIdentifier(name) => {
+                                            let method = name.value;
 
-                                                if let Some(entry) = rc.methods.get(&method.to_owned()) {
-
-                                                    rc.methods.insert(method,entry.add(1));
-                                                } ;
-                                            }
-                                            Identifier::DynamicIdentifier(_) => {},
-                                        };
+                                            dbg!(&method);
+                                            match rc.methods.get(&method.to_owned()) {
+                                                Some(entry) => {
+                                                    let n = entry.add(1);
+                                                    dbg!(&n);
+                                                    rc.methods.insert(method, n);
+                                                }
+                                                None => {
+                                                    rc.methods.insert(method, 1);
+                                                }
+                                            };
+                                        }
+                                        Identifier::DynamicIdentifier(dynamic_identifier) => {
+                                            dbg!(dynamic_identifier);
+                                        }
                                     };
                                 };
-                            }
+                            };
                         }
                     }
                 }
@@ -108,9 +106,37 @@ impl crate::rules::Rule for Rule {
                 }
             }
         }
-        println!("{:#?}", rc);
+        dbg!(rc);
 
         violations
+    }
+}
+
+impl Rule {
+    fn create_reference(method: &php_parser_rs::parser::ast::functions::ConcreteMethod, rc: &mut RC) {
+        let scope_name = &method.name;
+        rc.methods
+            .insert(ByteString::from(scope_name.to_string()), 0);
+    }
+    fn skip_if_public(
+        modifier: &php_parser_rs::parser::ast::modifiers::MethodModifier,
+        r: &mut bool,
+        modifiers: &Vec<php_parser_rs::parser::ast::modifiers::MethodModifier>,
+    ) {
+        if let php_parser_rs::parser::ast::modifiers::MethodModifier::Private(_) = *modifier {
+            *r = true;
+            for i in modifiers {
+                match *i {
+                    Static(_) => {
+                        *r = true;
+                    }
+                    php_parser_rs::parser::ast::modifiers::MethodModifier::Private(_) => {
+                        *r = true;
+                    }
+                    _ => {}
+                };
+            }
+        };
     }
 }
 

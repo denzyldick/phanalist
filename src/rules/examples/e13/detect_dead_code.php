@@ -10,6 +10,7 @@ namespace DeadCode {
     private function isNotCalled(): bool {
 
       $this->test2();
+      $this->test2();
       return true;
     }
 
