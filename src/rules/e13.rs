@@ -16,7 +16,7 @@ use crate::file::File;
 use crate::results::Violation;
 
 static CODE: &str = "E0013";
-static DESCRIPTION: &str = "Detect dead code.";
+static DESCRIPTION: &str = "Unused private method.";
 
 pub struct Rule {}
 
