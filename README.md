@@ -5,7 +5,7 @@ Performant static analyzer for PHP, which is extremely easy to use. It helps you
 
 ### Installation
 
-The simplest way to install phanalist is to use the installation script.
+The simplest way to install Phanalist is to use the installation script.
 
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/denzyldick/phanalist/main/bin/init.sh | sh
