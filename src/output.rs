@@ -12,7 +12,6 @@ use crate::rules;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[allow(non_camel_case_types)]
-
 pub enum Format {
     text,
     json,
