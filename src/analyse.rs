@@ -12,7 +12,7 @@ use php_parser_rs::parser;
 use crate::config::Config;
 use crate::file::File;
 use crate::output::OutputFormatter;
-use crate::output::{Format, Json, Text};
+use crate::output::{Format, Json, Sarif, Text};
 use crate::results::{Results, Violation};
 use crate::rules::Rule;
 use crate::rules::{self};
@@ -153,6 +153,7 @@ impl Analyse {
 
         match format {
             Format::json => Json::output(results),
+            Format::sarif => Sarif::output(results),
             _ => Text::output(results),
         };
     }
