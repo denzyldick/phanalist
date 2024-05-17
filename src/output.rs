@@ -154,9 +154,9 @@ impl OutputFormatter for Sarif {
                 deprecated_guids: None,
                 deprecated_ids: None,
                 deprecated_names: None,
-                full_description: Some(multiformat_message.clone()),
                 guid: None,
                 help: Some(multiformat_message.clone()),
+                full_description: Some(multiformat_message.clone()),
                 help_uri: None,
                 id: rule.0.clone(),
                 message_strings: None,
@@ -206,8 +206,8 @@ impl OutputFormatter for Sarif {
         for (key, violations) in &results.files {
             for violation in violations {
                 let mut analysis_target = ArtifactLocation::default();
-
                 analysis_target.uri = Some(String::from(key));
+
                 let mut message = Message::default();
                 message.text = Some(String::from(&violation.suggestion));
 
@@ -216,12 +216,12 @@ impl OutputFormatter for Sarif {
                     byte_offset: None,
                     char_length: None,
                     char_offset: None,
-                    end_column: Some(violation.span.column as i64 + 10),
-                    end_line: Some(violation.span.line as i64 + 10),
+                    end_column: Some(violation.span.column as i64 + violation.span.position as i64),
+                    end_line: Some(violation.span.line as i64 + violation.span.position as i64),
                     message: None,
                     properties: None,
                     snippet: None,
-                    source_language: None,
+                    source_language: Some("PHP".to_string()),
                     start_column: Some(violation.span.column as i64),
                     start_line: Some(violation.span.line as i64),
                 };
