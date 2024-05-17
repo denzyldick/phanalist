@@ -1,9 +1,7 @@
 on:
-  workflow_run:
-    workflows: ["main"]
-    branches: [main]
-    types: [completed]
-
+  push:
+    branches:
+      - "sarif"
 name: sarif
 
 jobs:
