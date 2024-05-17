@@ -209,7 +209,7 @@ impl OutputFormatter for Sarif {
             inline_external_properties: None,
             properties: None,
             runs,
-            version: serde_json::Value::String(VERSION.to_string()),
+            version: serde_json::Value::String("2.1.0".to_string()),
         };
         let message = serde_json::json!(s);
         println!("{}", message);
