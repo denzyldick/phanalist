@@ -132,7 +132,7 @@ impl OutputFormatter for Sarif {
     fn output(results: &mut Results) {
         let mut runs = vec![];
 
-        const VERSION: &str = env!("CARGO_PKG_VERSION");
+        const VERSION: &str = "v0.1.21";
         let description = MultiformatMessageString {
             markdown: None,
             properties: None,

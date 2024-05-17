@@ -5,3 +5,6 @@
 /vendor
 composer.lock
 bad-source-target
+.results.sarif
+src/rules/examples/phanalist.yml
+src/rules/examples/*/phanalist.yml
