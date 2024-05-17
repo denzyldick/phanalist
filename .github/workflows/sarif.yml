@@ -2,7 +2,7 @@ on:
   push:
     branches:
       - "sarif"
-name: sarif
+name: Sarif
 
 jobs:
   upload-sarif:
