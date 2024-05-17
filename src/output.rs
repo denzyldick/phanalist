@@ -126,7 +126,7 @@ impl OutputFormatter for Json {
 
 use serde_sarif::sarif::{
     self, ArtifactLocation, Fix, Location, Message, MessageBuilder, MultiformatMessageString,
-    ResultBuilder, Run, Sarif as StandardSarif, Tool, ToolComponent,
+    PhysicalLocation, ResultBuilder, Run, Sarif as StandardSarif, Tool, ToolComponent,
 };
 pub struct Sarif {}
 impl OutputFormatter for Sarif {
@@ -198,12 +198,21 @@ impl OutputFormatter for Sarif {
                     start_column: None,
                     start_line: None,
                 };
+
+                let physical_location = PhysicalLocation {
+                    address: None,
+                    artifact_location: Some(analysis_target.clone()),
+                    context_region: None,
+                    properties: None,
+                    region: Some(region.clone()),
+                };
+
                 let location = sarif::Location {
                     annotations: Some(vec![region]),
                     id: None,
                     logical_locations: None,
                     message: None,
-                    physical_location: None,
+                    physical_location: Some(physical_location),
                     properties: None,
                     relationships: None,
                 };
