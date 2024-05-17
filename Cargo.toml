@@ -33,6 +33,7 @@ indicatif = "0.17.7"
 exitcode = "1.1.2"
 memory-stats = "1.0.0"
 human_bytes = "0.4"
+serde-sarif = "=0.4.2"
 
 
 [build-dependencies]
