@@ -1,4 +1,4 @@
-use std::{str::FromStr};
+use std::str::FromStr;
 
 use cli_table::{format::Justify, Cell, Style, Table};
 use colored::Colorize;
@@ -125,8 +125,8 @@ impl OutputFormatter for Json {
 }
 
 use serde_sarif::sarif::{
-    self, ArtifactLocation, Message, MultiformatMessageString,
-    PhysicalLocation, Run, Sarif as StandardSarif, Tool, ToolComponent,
+    self, ArtifactLocation, Message, MultiformatMessageString, PhysicalLocation, Run,
+    Sarif as StandardSarif, Tool, ToolComponent,
 };
 pub struct Sarif {}
 impl OutputFormatter for Sarif {
@@ -138,7 +138,7 @@ impl OutputFormatter for Sarif {
             text: String::from("Performant static analyzer for PHP, which is extremely easy to use. It helps you catch common mistakes in your PHP code."),
         };
 
-        let sarif_rules = vec![];
+        let mut sarif_rules = vec![];
         let rules = rules::all_rules();
         for rule in rules {
             let r = rule.1.description();
@@ -149,7 +149,7 @@ impl OutputFormatter for Sarif {
                 properties: None,
                 text: description,
             };
-            let _d = sarif::ReportingDescriptor {
+            sarif_rules.push(sarif::ReportingDescriptor {
                 default_configuration: None,
                 deprecated_guids: None,
                 deprecated_ids: None,
@@ -164,7 +164,7 @@ impl OutputFormatter for Sarif {
                 properties: None,
                 relationships: None,
                 short_description: Some(multiformat_message),
-            };
+            });
         }
         let tool_component = ToolComponent {
             associated_component: None,
