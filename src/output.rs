@@ -125,8 +125,8 @@ impl OutputFormatter for Json {
 }
 
 use serde_sarif::sarif::{
-    ArtifactLocation, Fix, Message, MessageBuilder, MultiformatMessageString, ResultBuilder, Run,
-    Sarif as StandardSarif, Tool, ToolComponent,
+    self, ArtifactLocation, Fix, Location, Message, MessageBuilder, MultiformatMessageString,
+    ResultBuilder, Run, Sarif as StandardSarif, Tool, ToolComponent,
 };
 pub struct Sarif {}
 impl OutputFormatter for Sarif {
@@ -174,48 +174,78 @@ impl OutputFormatter for Sarif {
             extensions: None,
             properties: None,
         };
+
         let mut t = vec![];
+        for (key, violations) in &results.files {
+            for violation in violations {
+                let mut analysis_target = ArtifactLocation::default();
+                analysis_target.uri = Some(String::from(key));
 
-        let mut analysis_target = ArtifactLocation::default();
-        analysis_target.uri = Some(String::from("./src/rules/test.php"));
-        let mut message = Message::default();
-        message.text = Some(String::from("Fix this"));
+                let mut message = Message::default();
+                message.text = Some(String::from(&violation.suggestion));
 
-        let var_name = serde_sarif::sarif::Result {
-            analysis_target: Some(analysis_target),
-            attachments: None,
-            baseline_state: None,
-            code_flows: None,
-            correlation_guid: None,
-            fingerprints: None,
-            fixes: None,
-            graph_traversals: None,
-            graphs: None,
-            guid: None,
-            hosted_viewer_uri: None,
-            kind: None,
-            level: None,
-            locations: None,
-            message,
-            occurrence_count: None,
-            partial_fingerprints: None,
-            properties: None,
-            provenance: None,
-            rank: None,
-            related_locations: None,
-            rule: None,
-            rule_id: None,
-            rule_index: None,
-            stacks: None,
-            suppressions: None,
-            taxa: None,
-            web_request: None,
-            web_response: None,
-            work_item_uris: None,
-        };
-        let r = var_name;
+                let region = sarif::Region {
+                    byte_length: None,
+                    byte_offset: None,
+                    char_length: None,
+                    char_offset: None,
+                    end_column: None,
+                    end_line: None,
+                    message: None,
+                    properties: None,
+                    snippet: None,
+                    source_language: None,
+                    start_column: None,
+                    start_line: None,
+                };
+                let location = sarif::Location {
+                    annotations: Some(vec![region]),
+                    id: None,
+                    logical_locations: None,
+                    message: None,
+                    physical_location: None,
+                    properties: None,
+                    relationships: None,
+                };
+                let var_name = serde_sarif::sarif::Result {
+                    analysis_target: Some(analysis_target),
+                    attachments: None,
+                    baseline_state: None,
+                    code_flows: None,
+                    correlation_guid: None,
+                    fingerprints: None,
+                    fixes: None,
+                    graph_traversals: None,
+                    graphs: None,
+                    guid: None,
+                    hosted_viewer_uri: None,
+                    kind: None,
+                    level: None,
+                    locations: Some(vec![location]),
+                    message,
+                    occurrence_count: None,
+                    partial_fingerprints: None,
+                    properties: None,
+                    provenance: None,
+                    rank: None,
+                    related_locations: None,
+                    rule: None,
+                    rule_id: Some(String::from(&violation.rule.to_string())),
+                    rule_index: None,
+                    stacks: None,
+                    suppressions: None,
+                    taxa: None,
+                    web_request: None,
+                    web_response: None,
+                    work_item_uris: None,
+                };
+                let r = var_name;
 
-        t.push(r);
+                t.push(r);
+            }
+        }
+
+        /// Here
         runs.push(Run {
             addresses: None,
             artifacts: None,
