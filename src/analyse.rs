@@ -57,7 +57,7 @@ impl Analyse {
     pub(crate) fn scan(&self, path: String, _config: &Config, show_bar: bool) -> Results {
         let now = std::time::Instant::now();
         let mut results = Results::default();
-        let progress_bar = self.get_progress_bar(&path);
+        let _progress_bar = self.get_progress_bar(&path);
 
         let (send, recv) = std::sync::mpsc::channel();
 
@@ -109,13 +109,11 @@ impl Analyse {
                             e
                         );
                     }
-                } else if output_hints {
-                    if output_format == &Format::text {
-                        println!(
-                            "The new {} configuration file as been created",
-                            &path.display().to_string().bold()
-                        );
-                    }
+                } else if output_hints && output_format == &Format::text {
+                    println!(
+                        "The new {} configuration file as been created",
+                        &path.display().to_string().bold()
+                    );
                 }
 
                 default_config
