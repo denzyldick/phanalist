@@ -1,8 +1,8 @@
-use std::{collections::HashMap, str::FromStr};
+use std::{str::FromStr};
 
 use cli_table::{format::Justify, Cell, Style, Table};
 use colored::Colorize;
-use php_parser_rs::parser::ast::{arguments, properties};
+
 use serde::{Deserialize, Serialize};
 
 use human_bytes::human_bytes;
@@ -125,8 +125,8 @@ impl OutputFormatter for Json {
 }
 
 use serde_sarif::sarif::{
-    self, ArtifactLocation, Fix, Location, Message, MessageBuilder, MultiformatMessageString,
-    PhysicalLocation, ResultBuilder, Run, Sarif as StandardSarif, Tool, ToolComponent,
+    self, ArtifactLocation, Message, MultiformatMessageString,
+    PhysicalLocation, Run, Sarif as StandardSarif, Tool, ToolComponent,
 };
 pub struct Sarif {}
 impl OutputFormatter for Sarif {
@@ -138,7 +138,7 @@ impl OutputFormatter for Sarif {
             text: String::from("Performant static analyzer for PHP, which is extremely easy to use. It helps you catch common mistakes in your PHP code."),
         };
 
-        let mut sarif_rules = vec![];
+        let sarif_rules = vec![];
         let rules = rules::all_rules();
         for rule in rules {
             let r = rule.1.description();
@@ -149,7 +149,7 @@ impl OutputFormatter for Sarif {
                 properties: None,
                 text: description,
             };
-            let d = sarif::ReportingDescriptor {
+            let _d = sarif::ReportingDescriptor {
                 default_configuration: None,
                 deprecated_guids: None,
                 deprecated_ids: None,
