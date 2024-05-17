@@ -131,14 +131,41 @@ use serde_sarif::sarif::{
 pub struct Sarif {}
 impl OutputFormatter for Sarif {
     fn output(results: &mut Results) {
-        let mut runs = vec![];
-
         const VERSION: &str = "v0.1.21";
         let description = MultiformatMessageString {
             markdown: None,
             properties: None,
             text: String::from("Performant static analyzer for PHP, which is extremely easy to use. It helps you catch common mistakes in your PHP code."),
         };
+
+        let mut sarif_rules = vec![];
+        let rules = rules::all_rules();
+        for rule in rules {
+            let r = rule.1.description();
+            let description = r;
+
+            let multiformat_message = MultiformatMessageString {
+                markdown: None,
+                properties: None,
+                text: description,
+            };
+            let d = sarif::ReportingDescriptor {
+                default_configuration: None,
+                deprecated_guids: None,
+                deprecated_ids: None,
+                deprecated_names: None,
+                full_description: Some(multiformat_message.clone()),
+                guid: None,
+                help: Some(multiformat_message.clone()),
+                help_uri: None,
+                id: rule.0.clone(),
+                message_strings: None,
+                name: Some(rule.0),
+                properties: None,
+                relationships: None,
+                short_description: Some(multiformat_message),
+            };
+        }
         let tool_component = ToolComponent {
             associated_component: None,
             contents: None,
@@ -161,7 +188,7 @@ impl OutputFormatter for Sarif {
             product_suite: None,
             properties: None,
             release_date_utc: None,
-            rules: None,
+            rules: Some(sarif_rules),
             semantic_version: Some(VERSION.to_string()),
             short_description: Some(description),
             supported_taxonomies: None,
@@ -179,8 +206,8 @@ impl OutputFormatter for Sarif {
         for (key, violations) in &results.files {
             for violation in violations {
                 let mut analysis_target = ArtifactLocation::default();
-                analysis_target.uri = Some(String::from(key));
 
+                analysis_target.uri = Some(String::from(key));
                 let mut message = Message::default();
                 message.text = Some(String::from(&violation.suggestion));
 
@@ -189,14 +216,14 @@ impl OutputFormatter for Sarif {
                     byte_offset: None,
                     char_length: None,
                     char_offset: None,
-                    end_column: None,
-                    end_line: None,
+                    end_column: Some(violation.span.column as i64 + 10),
+                    end_line: Some(violation.span.line as i64 + 10),
                     message: None,
                     properties: None,
                     snippet: None,
                     source_language: None,
-                    start_column: None,
-                    start_line: None,
+                    start_column: Some(violation.span.column as i64),
+                    start_line: Some(violation.span.line as i64),
                 };
 
                 let physical_location = PhysicalLocation {
@@ -208,7 +235,7 @@ impl OutputFormatter for Sarif {
                 };
 
                 let location = sarif::Location {
-                    annotations: Some(vec![region]),
+                    annotations: None,
                     id: None,
                     logical_locations: None,
                     message: None,
@@ -216,6 +243,7 @@ impl OutputFormatter for Sarif {
                     properties: None,
                     relationships: None,
                 };
+
                 let var_name = serde_sarif::sarif::Result {
                     analysis_target: Some(analysis_target),
                     attachments: None,
@@ -239,7 +267,7 @@ impl OutputFormatter for Sarif {
                     rank: None,
                     related_locations: None,
                     rule: None,
-                    rule_id: Some(String::from(&violation.rule.to_string())),
+                    rule_id: None,
                     rule_index: None,
                     stacks: None,
                     suppressions: None,
@@ -254,6 +282,7 @@ impl OutputFormatter for Sarif {
             }
         }
 
+        let mut runs = vec![];
         /// Here
         runs.push(Run {
             addresses: None,
@@ -287,7 +316,7 @@ impl OutputFormatter for Sarif {
         });
 
         let s = StandardSarif {
-            schema: None,
+            schema: Some(String::from("https://json.schemastore.org/sarif-2.1.0")),
             inline_external_properties: None,
             properties: None,
             runs,
