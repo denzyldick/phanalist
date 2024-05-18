@@ -244,7 +244,7 @@ impl OutputFormatter for Sarif {
                     relationships: None,
                 };
 
-                let var_name = serde_sarif::sarif::Result {
+                t.push(serde_sarif::sarif::Result {
                     analysis_target: Some(analysis_target),
                     attachments: None,
                     baseline_state: None,
@@ -275,16 +275,11 @@ impl OutputFormatter for Sarif {
                     web_request: None,
                     web_response: None,
                     work_item_uris: None,
-                };
-                let r = var_name;
-
-                t.push(r);
+                });
             }
         }
 
-        let mut runs = vec![];
-        /// Here
-        runs.push(Run {
+        let mut runs = vec![Run {
             addresses: None,
             artifacts: None,
             automation_details: None,
@@ -313,8 +308,7 @@ impl OutputFormatter for Sarif {
             version_control_provenance: None,
             web_requests: None,
             web_responses: None,
-        });
-
+        }];
         let s = StandardSarif {
             schema: Some(String::from("https://json.schemastore.org/sarif-2.1.0")),
             inline_external_properties: None,
