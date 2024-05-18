@@ -145,7 +145,7 @@ impl OutputFormatter for Sarif {
             let description = r;
 
             let multiformat_message = MultiformatMessageString {
-                markdown: None,
+                markdown: rule.1.get_detailed_explanation(),
                 properties: None,
                 text: description,
             };
