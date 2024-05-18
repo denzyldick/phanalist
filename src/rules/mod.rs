@@ -2,6 +2,8 @@ use colored::Colorize;
 use std::collections::HashMap;
 use std::default::Default;
 use std::error::Error;
+use std::fs;
+use std::path::Path;
 
 use php_parser_rs::lexer::token::Span;
 use php_parser_rs::parser::ast::Statement;
@@ -33,6 +35,25 @@ pub trait Rule {
 
     fn description(&self) -> String {
         String::from("")
+    }
+    // Every rule has a detailed explenation.
+    // They are writting in markdown and are located in
+    // the examples directory.
+    fn get_detailed_explanation(&self) -> Option<String> {
+        let code = self.get_code().replace("000", "");
+        let c: Vec<char> = code.chars().collect();
+        let rule_number = c.get(1).unwrap();
+
+        let markdown = format!("./src/rules/examples/e{}/e{}.md", rule_number, rule_number);
+        let path = Path::new(&markdown);
+
+        if path.exists() {
+            let text = fs::read_to_string(path);
+            if let Ok(text) = text {
+                return Some(text.to_string());
+            }
+        }
+        None
     }
 
     fn set_config(&mut self, _json: &Value) {}
@@ -248,5 +269,16 @@ mod tests {
     fn do_validate_namespace_include_contains_exclude_contains() {
         let namespaces = &vec!["\\Service\\".to_string()];
         assert!(!do_validate_namespace(get_ns(), namespaces, namespaces));
+    }
+
+    #[test]
+    fn validate_markdown() {
+        let rule = e1::Rule {};
+
+        let markdown = rule.get_detailed_explanation().unwrap();
+
+        let e1_markdown = fs::read_to_string(Path::new("./src/rules/examples/e1/e1.md")).unwrap();
+
+        assert_eq!(e1_markdown, markdown);
     }
 }
