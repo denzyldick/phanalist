@@ -206,11 +206,10 @@ impl OutputFormatter for Sarif {
         for (key, violations) in &results.files {
             for violation in violations {
                 let mut analysis_target = ArtifactLocation::default();
-                analysis_target.uri = Some(String::from(key).replace(".", ""));
+                analysis_target.uri = Some(String::from(key).replace("./", ""));
 
                 let mut message = Message::default();
                 message.text = Some(String::from(&violation.suggestion));
-                message.markdown = Some("# TEst".to_string());
 
                 let region = sarif::Region {
                     byte_length: None,
@@ -268,7 +267,7 @@ impl OutputFormatter for Sarif {
                     rank: None,
                     related_locations: None,
                     rule: None,
-                    rule_id: None,
+                    rule_id: Some(violation.rule.clone()),
                     rule_index: None,
                     stacks: None,
                     suppressions: None,
