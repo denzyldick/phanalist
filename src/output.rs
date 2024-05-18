@@ -206,7 +206,7 @@ impl OutputFormatter for Sarif {
         for (key, violations) in &results.files {
             for violation in violations {
                 let mut analysis_target = ArtifactLocation::default();
-                analysis_target.uri = Some(String::from(key));
+                analysis_target.uri = Some(String::from(key).replace(".", ""));
 
                 let mut message = Message::default();
                 message.text = Some(String::from(&violation.suggestion));
@@ -280,7 +280,7 @@ impl OutputFormatter for Sarif {
             }
         }
 
-        let mut runs = vec![Run {
+        let runs = vec![Run {
             addresses: None,
             artifacts: None,
             automation_details: None,
