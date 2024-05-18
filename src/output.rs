@@ -210,6 +210,7 @@ impl OutputFormatter for Sarif {
 
                 let mut message = Message::default();
                 message.text = Some(String::from(&violation.suggestion));
+                message.markdown = Some("# TEst".to_string());
 
                 let region = sarif::Region {
                     byte_length: None,
