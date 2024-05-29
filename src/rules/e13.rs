@@ -1,16 +1,6 @@
-use php_parser_rs::lexer::byte_string::ByteString;
-use php_parser_rs::parser::ast::classes::ClassMember;
-use php_parser_rs::parser::ast::identifiers::Identifier;
+use php_parser_rs::parser::ast::{modifiers::MethodModifier::Static, Statement};
 
-use php_parser_rs::parser::ast::{
-    functions::MethodBody,
-    modifiers::{MethodModifier::Static, MethodModifierGroup},
-    ExpressionStatement, Statement,
-};
-use std::collections::HashMap;
-use std::ops::Add;
-
-use crate::file::File;
+use crate::file::{self, File};
 use crate::results::Violation;
 
 static CODE: &str = "E0013";
@@ -18,10 +8,6 @@ static DESCRIPTION: &str = "Detect dead code.";
 
 pub struct Rule {}
 
-#[derive(Debug)]
-struct RC {
-    methods: HashMap<ByteString, isize>,
-}
 impl crate::rules::Rule for Rule {
     fn get_code(&self) -> String {
         String::from(CODE)
@@ -31,92 +17,94 @@ impl crate::rules::Rule for Rule {
         String::from(DESCRIPTION)
     }
 
-    fn validate(&self, _file: &File, statement: &Statement) -> Vec<Violation> {
+    fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
         let violations = Vec::new();
-        dbg!("HERE");
-        let mut rc = RC {
-            methods: HashMap::new(),
-        };
-        if let Statement::Class(class) = statement {
-            for member in &class.body.members {
-                if let ClassMember::ConcreteMethod(method) = member {
-                    let mut r = false;
-                    if let MethodModifierGroup { modifiers } = &method.modifiers {
-                        for modifier in modifiers {
-                            Self::skip_if_public(modifier, &mut r, modifiers);
-                        }
-                    }
-                    if r {
-                        Self::create_reference(method, &mut rc);
-                        let MethodBody { statements, .. } = &method.body;
-                        for statement in statements {
-                            let Statement::Expression(ExpressionStatement {
-                                expression,
-                                ending: _,
-                            }) = statement
-                            else {
-                                continue;
-                            };
-                            if let php_parser_rs::parser::ast::Expression::MethodCall(call) =
-                                &expression
-                            {
-                                if let php_parser_rs::parser::ast::Expression::Identifier(
-                                    identifier,
-                                ) = *call.method.to_owned()
-                                {
-                                    match identifier {
-                                        Identifier::SimpleIdentifier(name) => {
-                                            let method = name.value;
-
-                                            dbg!(&method);
-                                            match rc.methods.get(&method.to_owned()) {
-                                                Some(entry) => {
-                                                    let n = entry.add(1);
-                                                    dbg!(&n);
-                                                    rc.methods.insert(method, n);
-                                                }
-                                                None => {
-                                                    rc.methods.insert(method, 1);
-                                                }
-                                            };
-                                        }
-                                        Identifier::DynamicIdentifier(dynamic_identifier) => {
-                                            dbg!(dynamic_identifier);
-                                        }
-                                    };
-                                };
-                            };
-                        }
-                    }
-                }
-                if let ClassMember::ConcreteConstructor(constructor) = member {
-                    let MethodBody {
-                        statements,
-                        comments: _,
-                        left_brace: _,
-                        right_brace: _,
-                    }: &MethodBody = &constructor.body;
-
-                    let _exists = statements.iter().filter(|statements| {
-                        println!("{:#?}", statements);
-                        rc.methods.insert("".into(), 0);
-
-                        true
-                    });
-                }
-            }
-        }
-        dbg!(rc);
 
         violations
+    }
+    fn do_validate(&self, file: &File) -> bool {
+        file.get_fully_qualified_name().is_some()
+    }
+
+    fn new_violation(
+        &self,
+        file: &File,
+        suggestion: String,
+        span: php_parser_rs::lexer::token::Span,
+    ) -> Violation {
+        let line = file.lines.get(span.line - 1).unwrap();
+
+        Violation {
+            rule: self.get_code(),
+            line: String::from(line),
+            suggestion,
+            span,
+        }
+    }
+
+    fn flatten_statements_to_validate<'a>(&'a self, statement: &'a Statement) -> Vec<&Statement> {
+        let flatten_statements: Vec<&Statement> = Vec::new();
+
+        self.travers_statements_to_validate(flatten_statements, statement)
+    }
+
+    fn travers_statements_to_validate<'a>(
+        &'a self,
+        mut flatten_statements: Vec<&'a Statement>,
+        statement: &'a Statement,
+    ) -> Vec<&Statement> {
+        flatten_statements.push(statement);
+
+        let child_statements: super::ast_child_statements::AstChildStatements = match statement {
+            Statement::Namespace(statement) => statement.into(),
+            Statement::Trait(statement) => statement.into(),
+            Statement::Class(statement) => statement.into(),
+            Statement::Block(statement) => statement.into(),
+            Statement::If(statement) => statement.into(),
+            Statement::Switch(statement) => statement.into(),
+            Statement::While(statement) => statement.into(),
+            Statement::Foreach(statement) => statement.into(),
+            Statement::For(statement) => statement.into(),
+            Statement::Try(statement) => statement.into(),
+            _ => super::ast_child_statements::AstChildStatements { statements: vec![] },
+        };
+
+        for statement in child_statements.statements {
+            flatten_statements.append(&mut self.flatten_statements_to_validate(statement));
+        }
+
+        flatten_statements
+    }
+
+    fn class_statements_only_to_validate<'a>(
+        &'a self,
+        mut flatten_statements: Vec<&'a Statement>,
+        statement: &'a Statement,
+    ) -> Vec<&Statement> {
+        if let Statement::Class(_) = &statement {
+            flatten_statements.push(statement);
+        };
+
+        let child_statements: super::ast_child_statements::AstChildStatements = match statement {
+            Statement::Namespace(statement) => statement.into(),
+            _ => super::ast_child_statements::AstChildStatements { statements: vec![] },
+        };
+
+        for statement in &child_statements.statements {
+            flatten_statements.append(&mut self.flatten_statements_to_validate(statement));
+        }
+
+        flatten_statements
     }
 }
 
 impl Rule {
-    fn create_reference(method: &php_parser_rs::parser::ast::functions::ConcreteMethod, rc: &mut RC) {
+    fn create_reference(
+        method: &php_parser_rs::parser::ast::functions::ConcreteMethod,
+        rc: &mut file::RC,
+    ) {
         let scope_name = &method.name;
-        rc.methods
-            .insert(ByteString::from(scope_name.to_string()), 0);
+        rc.add_reference(scope_name.value.clone());
     }
     fn skip_if_public(
         modifier: &php_parser_rs::parser::ast::modifiers::MethodModifier,

@@ -6,3 +6,4 @@ phanalist.yaml
 /vendor
 composer.lock
 bad-source-target
+results.sarif

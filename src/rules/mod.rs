@@ -190,7 +190,7 @@ mod tests {
     pub(crate) fn analyze_file_for_rule(path: &str, rule_code: &str) -> Vec<Violation> {
         let path = PathBuf::from(format!("./src/rules/examples/{path}"));
         let content = fs::read_to_string(&path).unwrap();
-        let file = File::new(path, content);
+        let mut file = File::new(path, content);
 
         let config = Config {
             enabled_rules: vec![rule_code.to_string()],
@@ -198,7 +198,7 @@ mod tests {
         };
         let analyse = Analyse::new(&config);
 
-        analyse.analyse_file(&file)
+        analyse.analyse_file(&mut file)
     }
 
     fn get_ns() -> String {
