@@ -1,9 +1,12 @@
 /target
 /test
 .vscode
-phanalist.yaml
 .idea/*
 /vendor
 composer.lock
 bad-source-target
-results.sarif
+.results.sarif
+src/rules/examples/phanalist.yml
+src/rules/examples/*/phanalist.yml
+*.yaml
+
