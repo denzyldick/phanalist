@@ -8,6 +8,7 @@ use colored::Colorize;
 use indicatif::ProgressBar;
 use jwalk::WalkDir;
 use php_parser_rs::parser;
+use php_parser_rs::parser::ast::namespaces::NamespaceStatement;
 
 use crate::config::Config;
 use crate::file::File;
@@ -77,8 +78,8 @@ impl Analyse {
                 progress_bar.inc(1);
             }
 
-            let file = File::new(path, content);
-            let violations = self.analyse_file(&file);
+            let mut file = File::new(path, content);
+            let violations = self.analyse_file(&mut file);
             results.add_file_violations(&file, violations);
 
             files += 1;
@@ -157,9 +158,12 @@ impl Analyse {
         };
     }
 
-    pub(crate) fn analyse_file(&self, file: &File) -> Vec<Violation> {
+    pub(crate) fn analyse_file(&self, file: &mut File) -> Vec<Violation> {
         let mut violations: Vec<Violation> = vec![];
 
+        /// @todo transform the iterator into a namaspace statement .
+        let statements = file.get_class(&file);
+        file.reference_counter.build_reference_counter(&file.ast);
         for statement in &file.ast {
             violations.append(&mut self.analyse_file_statement(file, statement));
         }
