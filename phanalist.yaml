@@ -1,0 +1,17 @@
+enabled_rules: []
+disable_rules: []
+rules:
+  E0009:
+    max_complexity: 10
+  E0010:
+    max_paths: 200
+  E0007:
+    check_constructor: false
+    max_parameters: 8
+  E0012:
+    exclude_namespaces: []
+    include_namespaces:
+    - App\Service\
+    - App\Controller\
+    reset_interfaces:
+    - ResetInterface

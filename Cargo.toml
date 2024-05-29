@@ -1,7 +1,20 @@
 [package]
 name = "phanalist"
-version = "1.0.0"
+version = "0.1.21"
 edition = "2021"
+lincese = "MIT"
+description = "Performant static analyzer for PHP, which is extremely easy to use. It helps you catch common mistakes in your PHP code."
+readme = "./README.md"
+categories = ["development-tools"]
+include = [
+  "/Cargo.toml",
+  "/LICENSE",
+  "/README.md",
+  "/src/**",
+]
+keywords = ["PHP", "Refactoring", "Phanalist"]
+license = "MIT"
+repository = "https://github.com/denzyldick/phanalist"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -20,6 +33,8 @@ indicatif = "0.17.7"
 exitcode = "1.1.2"
 memory-stats = "1.0.0"
 human_bytes = "0.4"
+serde-sarif = "=0.4.2"
+
 
 [build-dependencies]
 bindgen = "0.65.1"

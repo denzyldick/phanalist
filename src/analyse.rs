@@ -13,7 +13,7 @@ use php_parser_rs::parser::ast::namespaces::NamespaceStatement;
 use crate::config::Config;
 use crate::file::File;
 use crate::output::OutputFormatter;
-use crate::output::{Format, Json, Text};
+use crate::output::{Format, Json, Sarif, Text};
 use crate::results::{Results, Violation};
 use crate::rules::Rule;
 use crate::rules::{self};
@@ -58,13 +58,13 @@ impl Analyse {
     pub(crate) fn scan(&self, path: String, _config: &Config, show_bar: bool) -> Results {
         let now = std::time::Instant::now();
         let mut results = Results::default();
-        let progress_bar = self.get_progress_bar(&path);
+        let _progress_bar = self.get_progress_bar(&path);
 
         let (send, recv) = std::sync::mpsc::channel();
 
         if show_bar {
-            println!();
-            println!("Scanning files in {} ...", &path.to_string().bold());
+            //            println!();
+            //           println!("Scanning files in {} ...", &path.to_string().bold());
         }
 
         std::thread::spawn(move || {
@@ -75,7 +75,7 @@ impl Analyse {
         let mut files = 0;
         for (content, path) in recv {
             if show_bar {
-                progress_bar.inc(1);
+                //  progress_bar.inc(1);
             }
 
             let mut file = File::new(path, content);
@@ -86,7 +86,7 @@ impl Analyse {
         }
 
         if show_bar {
-            progress_bar.finish();
+            //            progress_bar.finish();
         }
 
         results.total_files_count = files;
@@ -103,12 +103,14 @@ impl Analyse {
         match fs::read_to_string(&path) {
             Err(e) if e.kind() == ErrorKind::NotFound => {
                 if let Err(e) = default_config.save(&path) {
-                    println!(
-                        "Unable to save {} configuration file, error: {}",
-                        &path.display().to_string().bold(),
-                        e
-                    );
-                } else if output_hints {
+                    if output_format == &Format::text {
+                        println!(
+                            "Unable to save {} configuration file, error: {}",
+                            &path.display().to_string().bold(),
+                            e
+                        );
+                    }
+                } else if output_hints && output_format == &Format::text {
                     println!(
                         "The new {} configuration file as been created",
                         &path.display().to_string().bold()
@@ -123,7 +125,7 @@ impl Analyse {
             }
 
             Ok(s) => {
-                if output_hints {
+                if output_hints && output_format == &Format::text {
                     println!(
                         "Using configuration file {}",
                         &path.display().to_string().bold()
@@ -133,7 +135,9 @@ impl Analyse {
                 match serde_yaml::from_str(&s) {
                     Ok(c) => c,
                     Err(e) => {
-                        println!("Unable to use the config: {}. Ignoring it.", &e);
+                        if output_format == &Format::text {
+                            println!("Unable to use the config: {}. Ignoring it.", &e);
+                        }
                         default_config
                     }
                 }
@@ -154,6 +158,7 @@ impl Analyse {
 
         match format {
             Format::json => Json::output(results),
+            Format::sarif => Sarif::output(results),
             _ => Text::output(results),
         };
     }
