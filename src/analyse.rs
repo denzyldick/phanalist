@@ -9,6 +9,7 @@ use indicatif::ProgressBar;
 use jwalk::WalkDir;
 use php_parser_rs::parser;
 use php_parser_rs::parser::ast::namespaces::NamespaceStatement;
+use php_parser_rs::printer::print;
 
 use crate::config::Config;
 use crate::file::File;
@@ -58,13 +59,13 @@ impl Analyse {
     pub(crate) fn scan(&self, path: String, _config: &Config, show_bar: bool) -> Results {
         let now = std::time::Instant::now();
         let mut results = Results::default();
-        let _progress_bar = self.get_progress_bar(&path);
+        let progress_bar = self.get_progress_bar(&path);
 
         let (send, recv) = std::sync::mpsc::channel();
 
         if show_bar {
-            //            println!();
-            //           println!("Scanning files in {} ...", &path.to_string().bold());
+            println!();
+            println!("Scanning files in {} ...", &path.to_string().bold());
         }
 
         std::thread::spawn(move || {
@@ -75,7 +76,7 @@ impl Analyse {
         let mut files = 0;
         for (content, path) in recv {
             if show_bar {
-                //  progress_bar.inc(1);
+                progress_bar.inc(1);
             }
 
             let mut file = File::new(path, content);
@@ -86,7 +87,7 @@ impl Analyse {
         }
 
         if show_bar {
-            //            progress_bar.finish();
+            progress_bar.finish();
         }
 
         results.total_files_count = files;
@@ -166,13 +167,13 @@ impl Analyse {
     pub(crate) fn analyse_file(&self, file: &mut File) -> Vec<Violation> {
         let mut violations: Vec<Violation> = vec![];
 
-        /// @todo transform the iterator into a namaspace statement .
-        let statements = file.get_class(&file);
-        file.reference_counter.build_reference_counter(&file.ast);
+        let statements = file.get_class();
+        if let Some(statements) = statements {
+            file.reference_counter.build_reference_counter(&statements);
+        }
         for statement in &file.ast {
             violations.append(&mut self.analyse_file_statement(file, statement));
         }
-
         violations
     }
 
@@ -189,6 +190,7 @@ impl Analyse {
 
             active_codes.contains(code)
         });
+
         active_rules
     }
 
