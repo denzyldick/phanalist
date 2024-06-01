@@ -1,10 +1,11 @@
 use php_parser_rs::parser::ast::{modifiers::MethodModifier::Static, Statement};
+use php_parser_rs::printer::print;
 
 use crate::file::{self, File};
 use crate::results::Violation;
 
 static CODE: &str = "E0013";
-static DESCRIPTION: &str = "Detect dead code.";
+static DESCRIPTION: &str = "Private method not being called.";
 
 pub struct Rule {}
 
@@ -18,8 +19,19 @@ impl crate::rules::Rule for Rule {
     }
 
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
-        let violations = Vec::new();
-
+        let mut violations = Vec::new();
+        if let Statement::Class(e) = statement {
+            for (key, value) in &file.reference_counter.methods {
+                let zero: isize = 0;
+                let message = format!(
+                    "The private method {} is not being called. ",
+                    value.name.to_string()
+                );
+                if &value.counter == &zero {
+                    violations.push(self.new_violation(file, String::from(message), value.span));
+                }
+            }
+        }
         violations
     }
     fn do_validate(&self, file: &File) -> bool {
@@ -41,91 +53,6 @@ impl crate::rules::Rule for Rule {
             span,
         }
     }
-
-    fn flatten_statements_to_validate<'a>(&'a self, statement: &'a Statement) -> Vec<&Statement> {
-        let flatten_statements: Vec<&Statement> = Vec::new();
-
-        self.travers_statements_to_validate(flatten_statements, statement)
-    }
-
-    fn travers_statements_to_validate<'a>(
-        &'a self,
-        mut flatten_statements: Vec<&'a Statement>,
-        statement: &'a Statement,
-    ) -> Vec<&Statement> {
-        flatten_statements.push(statement);
-
-        let child_statements: super::ast_child_statements::AstChildStatements = match statement {
-            Statement::Namespace(statement) => statement.into(),
-            Statement::Trait(statement) => statement.into(),
-            Statement::Class(statement) => statement.into(),
-            Statement::Block(statement) => statement.into(),
-            Statement::If(statement) => statement.into(),
-            Statement::Switch(statement) => statement.into(),
-            Statement::While(statement) => statement.into(),
-            Statement::Foreach(statement) => statement.into(),
-            Statement::For(statement) => statement.into(),
-            Statement::Try(statement) => statement.into(),
-            _ => super::ast_child_statements::AstChildStatements { statements: vec![] },
-        };
-
-        for statement in child_statements.statements {
-            flatten_statements.append(&mut self.flatten_statements_to_validate(statement));
-        }
-
-        flatten_statements
-    }
-
-    fn class_statements_only_to_validate<'a>(
-        &'a self,
-        mut flatten_statements: Vec<&'a Statement>,
-        statement: &'a Statement,
-    ) -> Vec<&Statement> {
-        if let Statement::Class(_) = &statement {
-            flatten_statements.push(statement);
-        };
-
-        let child_statements: super::ast_child_statements::AstChildStatements = match statement {
-            Statement::Namespace(statement) => statement.into(),
-            _ => super::ast_child_statements::AstChildStatements { statements: vec![] },
-        };
-
-        for statement in &child_statements.statements {
-            flatten_statements.append(&mut self.flatten_statements_to_validate(statement));
-        }
-
-        flatten_statements
-    }
-}
-
-impl Rule {
-    fn create_reference(
-        method: &php_parser_rs::parser::ast::functions::ConcreteMethod,
-        rc: &mut file::RC,
-    ) {
-        let scope_name = &method.name;
-        rc.add_reference(scope_name.value.clone());
-    }
-    fn skip_if_public(
-        modifier: &php_parser_rs::parser::ast::modifiers::MethodModifier,
-        r: &mut bool,
-        modifiers: &Vec<php_parser_rs::parser::ast::modifiers::MethodModifier>,
-    ) {
-        if let php_parser_rs::parser::ast::modifiers::MethodModifier::Private(_) = *modifier {
-            *r = true;
-            for i in modifiers {
-                match *i {
-                    Static(_) => {
-                        *r = true;
-                    }
-                    php_parser_rs::parser::ast::modifiers::MethodModifier::Private(_) => {
-                        *r = true;
-                    }
-                    _ => {}
-                };
-            }
-        };
-    }
 }
 
 #[cfg(test)]
@@ -136,9 +63,9 @@ mod tests {
 
     #[test]
     fn example() {
-        let violations = analyze_file_for_rule("e13/detect_dead_code.php", CODE);
+        let violations = analyze_file_for_rule("e13/private_method_not_being_called.php", CODE);
 
-        assert!(violations.len().eq(&0));
-        assert!(false);
+        println!("{}", violations.len());
+        assert!(violations.len().eq(&1));
     }
 }

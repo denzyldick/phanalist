@@ -1,13 +1,15 @@
 use std::{collections::HashMap, path::PathBuf};
 
+use php_parser_rs::lexer::token::Span;
 use php_parser_rs::parser::ast::classes::{ClassMember, ClassStatement};
 use php_parser_rs::parser::ast::functions::MethodBody;
-use php_parser_rs::parser::ast::identifiers::Identifier;
+use php_parser_rs::parser::ast::identifiers::{Identifier, SimpleIdentifier};
 use php_parser_rs::parser::ast::modifiers::MethodModifierGroup;
 use php_parser_rs::parser::ast::namespaces::{
-    BracedNamespace, NamespaceStatement, UnbracedNamespace,
+    self, BracedNamespace, NamespaceStatement, UnbracedNamespace,
 };
 use php_parser_rs::parser::ast::{ExpressionStatement, MethodCallExpression, Statement};
+use php_parser_rs::printer::print;
 use php_parser_rs::{lexer::byte_string::ByteString, parser};
 use serde::{Deserialize, Serialize};
 
@@ -23,23 +25,41 @@ pub struct File {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RC {
-    methods: HashMap<ByteString, isize>,
+    pub methods: HashMap<ByteString, Method>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Method {
+    pub name: ByteString,
+    pub span: Span,
+    pub counter: isize,
+}
+
+impl Method {
+    pub fn increase_counter(&mut self) {
+        self.counter = self.counter + 1;
+    }
+}
 impl RC {
     ///
     /// Increase the refrence of the the method.
-    pub fn add_reference(&mut self, name: ByteString) {
-        let value = self.methods.get(&name);
+    pub fn add_reference(&mut self, identifier: SimpleIdentifier) {
+        let value = self.methods.get(&identifier.value);
 
-        if let Some(size) = value {
-            let increased = size.clone() + 1;
-
-            self.methods.insert(name.clone(), increased);
+        if let Some(method) = value.clone() {
+            let mut m = method.clone();
+            m.increase_counter();
+            self.methods.insert(identifier.value, m);
+        } else {
+            let method = Method {
+                name: identifier.value.clone(),
+                span: identifier.span,
+                counter: 0 as isize,
+            };
+            self.methods.insert(identifier.value, method);
         }
-
-        self.methods.insert(name, 1);
     }
+
     /// The idea is to traverse the ast an build a reference counter for the methods.
     ///
     pub fn build_reference_counter(&mut self, ast: &[Statement]) -> Option<RC> {
@@ -47,13 +67,19 @@ impl RC {
             if let Statement::Class(class) = statement {
                 for member in &class.body.members {
                     if let ClassMember::ConcreteMethod(method) = member {
-                        self.add_reference(method.name.value.clone());
-                        let mut r = false;
-                        match &method.modifiers {
-                            MethodModifierGroup { modifiers } => for modifier in modifiers {},
-                            _ => (),
+                        self.add_reference(method.name.clone());
+                        let mut is_private = false;
+                        if let MethodModifierGroup { modifiers } = &method.modifiers {
+                            for modifier in modifiers {
+                                if let parser::ast::modifiers::MethodModifier::Private(_m) =
+                                    modifier
+                                {
+                                    is_private = true;
+                                }
+                            }
                         }
-                        if r {
+                        println!("{}", is_private);
+                        if is_private {
                             let MethodBody { statements, .. } = &method.body;
                             self.build_reference_counter(statements);
                         }
@@ -68,49 +94,41 @@ impl RC {
 
                         let _exists = statements.iter().filter(|statements| true);
                     }
-                    if let Statement::Expression(ExpressionStatement {
-                        expression,
-                        ending: _,
-                    }) = statement
-                    {
-                        if let php_parser_rs::parser::ast::Expression::MethodCall(call) =
-                            &expression
-                        {
-                            match *call.method.clone() {
-                                parser::ast::Expression::MethodCall(MethodCallExpression {
-                                    target,
-                                    arrow,
-                                    method,
-                                    arguments,
-                                }) => {
-                                    dbg!(*method);
-                                }
-
-                                parser::ast::Expression::StaticMethodCall(_) => todo!(),
-
-                                parser::ast::Expression::StaticVariableMethodCall(_) => {
-                                    todo!()
-                                }
-                                _ => {}
-                            };
+                }
+            }
+            if let Statement::Expression(ExpressionStatement {
+                expression,
+                ending: _,
+            }) = statement
+            {
+                let name = match expression {
+                    parser::ast::Expression::MethodCall(MethodCallExpression {
+                        target,
+                        arrow,
+                        method,
+                        arguments,
+                    }) => match *method.clone() {
+                        parser::ast::Expression::Identifier(Identifier::SimpleIdentifier(s)) => {
+                            Some(s)
                         }
-                    }
+                        _ => None,
+                    },
+                    parser::ast::Expression::MethodClosureCreation(_) => None,
+                    parser::ast::Expression::NullsafeMethodCall(_) => None,
+                    parser::ast::Expression::StaticMethodCall(_) => None,
+                    parser::ast::Expression::StaticVariableMethodCall(_) => None,
+                    parser::ast::Expression::StaticMethodClosureCreation(_) => None,
+                    parser::ast::Expression::StaticVariableMethodClosureCreation(_) => None,
+                    _ => None,
+                };
+
+                if let Some(name) = name {
+                    self.add_reference(name);
                 }
             }
         }
+
         None
-    }
-
-    // get the current amount
-    pub fn get_counter(&mut self, name: ByteString) -> isize {
-        let counter = self.methods.get(&name);
-
-        if let Some(value) = counter {
-            return *value;
-        }
-
-        self.methods.insert(name, 0);
-        return 0;
     }
 
     fn new() -> Self {
@@ -135,27 +153,36 @@ impl File {
             ast,
         }
     }
-    /// .
-    pub fn get_class(self, namespace: NamespaceStatement) -> Vec<Statement> {
-        if let NamespaceStatement::Braced(BracedNamespace {
-            namespace,
-            name,
-            body,
-        }) = &namespace
-        {
-            return body.statements.clone();
+    ///
+    /// Return the statements in a class.
+    pub fn get_class(&self) -> Option<Vec<Statement>> {
+        let namespace = self
+            .ast
+            .iter()
+            .filter(|statement| {
+                if let Statement::Namespace(_) = statement {
+                    return true;
+                }
+                false
+            })
+            .next();
+
+        if let Some(Statement::Namespace(n)) = namespace {
+            return match n {
+                NamespaceStatement::Unbraced(UnbracedNamespace {
+                    start,
+                    name,
+                    end,
+                    statements,
+                }) => Some(statements.clone()),
+                NamespaceStatement::Braced(BracedNamespace {
+                    namespace,
+                    name,
+                    body,
+                }) => Some(body.statements.clone()),
+            };
         }
-        if let NamespaceStatement::Unbraced(UnbracedNamespace {
-            start,
-            name,
-            end,
-            statements,
-        }) = &namespace
-        {
-            return statements.clone();
-        } else {
-            return vec![];
-        }
+        None
     }
     fn get_namespace(ast: &[Statement]) -> Option<String> {
         let mut namespace: Option<String> = None;
