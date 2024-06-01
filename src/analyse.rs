@@ -8,8 +8,8 @@ use colored::Colorize;
 use indicatif::ProgressBar;
 use jwalk::WalkDir;
 use php_parser_rs::parser;
-use php_parser_rs::parser::ast::namespaces::NamespaceStatement;
-use php_parser_rs::printer::print;
+
+
 
 use crate::config::Config;
 use crate::file::File;

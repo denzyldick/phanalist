@@ -6,10 +6,10 @@ use php_parser_rs::parser::ast::functions::MethodBody;
 use php_parser_rs::parser::ast::identifiers::{Identifier, SimpleIdentifier};
 use php_parser_rs::parser::ast::modifiers::MethodModifierGroup;
 use php_parser_rs::parser::ast::namespaces::{
-    self, BracedNamespace, NamespaceStatement, UnbracedNamespace,
+    BracedNamespace, NamespaceStatement, UnbracedNamespace,
 };
 use php_parser_rs::parser::ast::{ExpressionStatement, MethodCallExpression, Statement};
-use php_parser_rs::printer::print;
+
 use php_parser_rs::{lexer::byte_string::ByteString, parser};
 use serde::{Deserialize, Serialize};
 
@@ -37,7 +37,7 @@ pub struct Method {
 
 impl Method {
     pub fn increase_counter(&mut self) {
-        self.counter = self.counter + 1;
+        self.counter += 1;
     }
 }
 impl RC {
@@ -46,7 +46,7 @@ impl RC {
     pub fn add_reference(&mut self, identifier: SimpleIdentifier) {
         let value = self.methods.get(&identifier.value);
 
-        if let Some(method) = value.clone() {
+        if let Some(method) = value {
             let mut m = method.clone();
             m.increase_counter();
             self.methods.insert(identifier.value, m);
@@ -54,7 +54,7 @@ impl RC {
             let method = Method {
                 name: identifier.value.clone(),
                 span: identifier.span,
-                counter: 0 as isize,
+                counter: 0_isize,
             };
             self.methods.insert(identifier.value, method);
         }
@@ -92,7 +92,7 @@ impl RC {
                             right_brace: _,
                         }: &MethodBody = &constructor.body;
 
-                        let _exists = statements.iter().filter(|statements| true);
+                        let _exists = statements.iter().filter(|_statements| true);
                     }
                 }
             }
@@ -103,10 +103,10 @@ impl RC {
             {
                 let name = match expression {
                     parser::ast::Expression::MethodCall(MethodCallExpression {
-                        target,
-                        arrow,
+                        target: _,
+                        arrow: _,
                         method,
-                        arguments,
+                        arguments: _,
                     }) => match *method.clone() {
                         parser::ast::Expression::Identifier(Identifier::SimpleIdentifier(s)) => {
                             Some(s)
@@ -170,14 +170,14 @@ impl File {
         if let Some(Statement::Namespace(n)) = namespace {
             return match n {
                 NamespaceStatement::Unbraced(UnbracedNamespace {
-                    start,
-                    name,
-                    end,
+                    start: _,
+                    name: _,
+                    end: _,
                     statements,
                 }) => Some(statements.clone()),
                 NamespaceStatement::Braced(BracedNamespace {
-                    namespace,
-                    name,
+                    namespace: _,
+                    name: _,
                     body,
                 }) => Some(body.statements.clone()),
             };

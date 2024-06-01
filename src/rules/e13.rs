@@ -1,7 +1,7 @@
-use php_parser_rs::parser::ast::{modifiers::MethodModifier::Static, Statement};
-use php_parser_rs::printer::print;
+use php_parser_rs::parser::ast::{Statement};
 
-use crate::file::{self, File};
+
+use crate::file::{File};
 use crate::results::Violation;
 
 static CODE: &str = "E0013";
@@ -20,15 +20,15 @@ impl crate::rules::Rule for Rule {
 
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
         let mut violations = Vec::new();
-        if let Statement::Class(e) = statement {
-            for (key, value) in &file.reference_counter.methods {
+        if let Statement::Class(_e) = statement {
+            for (_key, value) in &file.reference_counter.methods {
                 let zero: isize = 0;
                 let message = format!(
                     "The private method {} is not being called. ",
-                    value.name.to_string()
+                    value.name
                 );
                 if &value.counter == &zero {
-                    violations.push(self.new_violation(file, String::from(message), value.span));
+                    violations.push(self.new_violation(file, message, value.span));
                 }
             }
         }
