@@ -67,18 +67,15 @@ impl RC {
             if let Statement::Class(class) = statement {
                 for member in &class.body.members {
                     if let ClassMember::ConcreteMethod(method) = member {
-                        self.add_reference(method.name.clone());
                         let mut is_private = false;
-                        if let MethodModifierGroup { modifiers } = &method.modifiers {
-                            for modifier in modifiers {
-                                if let parser::ast::modifiers::MethodModifier::Private(_m) =
-                                    modifier
-                                {
-                                    is_private = true;
-                                }
+                        let MethodModifierGroup { modifiers } = &method.modifiers;
+                        for modifier in modifiers {
+                            if let parser::ast::modifiers::MethodModifier::Private(_m) = modifier {
+                                is_private = true;
+                                dbg!(is_private);
+                                self.add_reference(method.name.clone());
                             }
                         }
-                        println!("{}", is_private);
                         if is_private {
                             let MethodBody { statements, .. } = &method.body;
                             self.build_reference_counter(statements);
