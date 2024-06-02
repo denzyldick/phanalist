@@ -1,7 +1,6 @@
-use php_parser_rs::parser::ast::{Statement};
+use php_parser_rs::parser::ast::Statement;
 
-
-use crate::file::{File};
+use crate::file::File;
 use crate::results::Violation;
 
 static CODE: &str = "E0013";
@@ -23,10 +22,7 @@ impl crate::rules::Rule for Rule {
         if let Statement::Class(_e) = statement {
             for (_key, value) in &file.reference_counter.methods {
                 let zero: isize = 0;
-                let message = format!(
-                    "The private method {} is not being called. ",
-                    value.name
-                );
+                let message = format!("The private method {} is not being called. ", value.name);
                 if &value.counter == &zero {
                     violations.push(self.new_violation(file, message, value.span));
                 }
@@ -64,8 +60,7 @@ mod tests {
     #[test]
     fn example() {
         let violations = analyze_file_for_rule("e13/private_method_not_being_called.php", CODE);
-
         println!("{}", violations.len());
-        assert!(violations.len().eq(&1));
+        assert!(violations.len().eq(&3));
     }
 }

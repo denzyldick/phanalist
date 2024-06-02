@@ -24,7 +24,7 @@ There are also [multiple other installation options](./docs/installation.md).
 To analyze your project sources, you just need to run `phanalist`:
 
 ```bash
-$ ~/phanalist
+~/phanalist
 ```
 
 #### Example
@@ -87,6 +87,8 @@ The following rules are available:
 | [E0009](/src/rules/examples/e9/e9.md)  | Cyclomatic complexity                          | max_complexity: 10                                                                                           |
 | [E0010](src/rules/examples/e10/e10.md) | Npath complexity                               | max_complexity: 200                                                                                          |
 |                 E0012                  | Service compatibility with Shared Memory Model | include_namespaces: ["App\\Service\\"],<br/>exclude_namespaces: [],<br/>reset_interfaces: ["ResetInterface"] |
+
+    R
 
 Adding a new rule is a simple task, and [this tutorial](./docs/adding_new_rule.md) explains how to do it.
 
