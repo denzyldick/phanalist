@@ -13,7 +13,7 @@ pub fn scan(path: String) -> results::Results {
 
     let analyze: Analyse = Analyse::new(&config);
 
-    analyze.scan("./".to_string(), &config, false)
+    analyze.scan("./".to_string(), &config, false, &output_format)
 }
 
 #[test]

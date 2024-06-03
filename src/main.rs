@@ -70,7 +70,12 @@ fn main() {
     let mut has_violations = false;
 
     for path in paths.iter() {
-        let mut results = analyze.scan(path.clone(), &config, format != Format::json && !quiet);
+        let mut results = analyze.scan(
+            path.clone(),
+            &config,
+            format != Format::json && !quiet,
+            &format,
+        );
         if !quiet {
             analyze.output(&mut results, format.clone(), args.summary_only);
         }

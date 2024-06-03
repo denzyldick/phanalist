@@ -9,8 +9,6 @@ use indicatif::ProgressBar;
 use jwalk::WalkDir;
 use php_parser_rs::parser;
 
-
-
 use crate::config::Config;
 use crate::file::File;
 use crate::output::OutputFormatter;
@@ -56,14 +54,20 @@ impl Analyse {
             rules: Self::get_active_rules(config),
         }
     }
-    pub(crate) fn scan(&self, path: String, _config: &Config, show_bar: bool) -> Results {
+    pub(crate) fn scan(
+        &self,
+        path: String,
+        _config: &Config,
+        show_bar: bool,
+        format: &Format,
+    ) -> Results {
         let now = std::time::Instant::now();
         let mut results = Results::default();
         let progress_bar = self.get_progress_bar(&path);
 
         let (send, recv) = std::sync::mpsc::channel();
 
-        if show_bar {
+        if show_bar && format == &Format::text {
             println!();
             println!("Scanning files in {} ...", &path.to_string().bold());
         }
@@ -75,7 +79,7 @@ impl Analyse {
 
         let mut files = 0;
         for (content, path) in recv {
-            if show_bar {
+            if show_bar && format == &Format::text {
                 progress_bar.inc(1);
             }
 
@@ -86,7 +90,7 @@ impl Analyse {
             files += 1;
         }
 
-        if show_bar {
+        if show_bar && format == &Format::text {
             progress_bar.finish();
         }
 
