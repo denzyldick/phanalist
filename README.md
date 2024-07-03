@@ -86,7 +86,8 @@ The following rules are available:
 |  [E0008](src/rules/examples/e8/e8.md)  | Return type signature                          |                                                                                                              |
 | [E0009](/src/rules/examples/e9/e9.md)  | Cyclomatic complexity                          | max_complexity: 10                                                                                           |
 | [E0010](src/rules/examples/e10/e10.md) | Npath complexity                               | max_complexity: 200                                                                                          |
-|  [E0012](src/rules/examples/e12/e12.md)                 | Service compatibility with Shared Memory Model | include_namespaces: ["App\\Service\\"],<br/>exclude_namespaces: [],<br/>reset_interfaces: ["ResetInterface"] |
+| [E0011](src/rules/examples/e11/e11.md) | Detect error supression symbol(@)              |                                                                                                              |
+|  [E0012](src/rules/examples/e12/e12.md)| Service compatibility with Shared Memory Model | include_namespaces: ["App\\Service\\"],<br/>exclude_namespaces: [],<br/>reset_interfaces: ["ResetInterface"] |
 | [E0013](/src/rules/examples/e13/e13.md) | Private method not being used |
 
 Adding a new rule is a simple task, and [this tutorial](./docs/adding_new_rule.md) explains how to do it.
