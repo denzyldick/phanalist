@@ -12,7 +12,7 @@ use php_parser_rs::parser;
 use crate::config::Config;
 use crate::file::File;
 use crate::output::OutputFormatter;
-use crate::output::{Format, Json, Text};
+use crate::output::{Format, Json, Sarif, Text};
 use crate::results::{Results, Violation};
 use crate::rules::Rule;
 use crate::rules::{self};
@@ -54,15 +54,20 @@ impl Analyse {
             rules: Self::get_active_rules(config),
         }
     }
-
-    pub(crate) fn scan(&self, path: String, _config: Config, show_bar: bool) -> Results {
+    pub(crate) fn scan(
+        &self,
+        path: String,
+        _config: &Config,
+        show_bar: bool,
+        format: &Format,
+    ) -> Results {
         let now = std::time::Instant::now();
         let mut results = Results::default();
         let progress_bar = self.get_progress_bar(&path);
 
         let (send, recv) = std::sync::mpsc::channel();
 
-        if show_bar {
+        if show_bar && format == &Format::text {
             println!();
             println!("Scanning files in {} ...", &path.to_string().bold());
         }
@@ -74,18 +79,18 @@ impl Analyse {
 
         let mut files = 0;
         for (content, path) in recv {
-            if show_bar {
+            if show_bar && format == &Format::text {
                 progress_bar.inc(1);
             }
 
-            let file = File::new(path, content);
-            let violations = self.analyse_file(&file);
+            let mut file = File::new(path, content);
+            let violations = self.analyse_file(&mut file);
             results.add_file_violations(&file, violations);
 
             files += 1;
         }
 
-        if show_bar {
+        if show_bar && format == &Format::text {
             progress_bar.finish();
         }
 
@@ -103,12 +108,14 @@ impl Analyse {
         match fs::read_to_string(&path) {
             Err(e) if e.kind() == ErrorKind::NotFound => {
                 if let Err(e) = default_config.save(&path) {
-                    println!(
-                        "Unable to save {} configuration file, error: {}",
-                        &path.display().to_string().bold(),
-                        e
-                    );
-                } else if output_hints {
+                    if output_format == &Format::text {
+                        println!(
+                            "Unable to save {} configuration file, error: {}",
+                            &path.display().to_string().bold(),
+                            e
+                        );
+                    }
+                } else if output_hints && output_format == &Format::text {
                     println!(
                         "The new {} configuration file as been created",
                         &path.display().to_string().bold()
@@ -123,7 +130,7 @@ impl Analyse {
             }
 
             Ok(s) => {
-                if output_hints {
+                if output_hints && output_format == &Format::text {
                     println!(
                         "Using configuration file {}",
                         &path.display().to_string().bold()
@@ -133,7 +140,9 @@ impl Analyse {
                 match serde_yaml::from_str(&s) {
                     Ok(c) => c,
                     Err(e) => {
-                        println!("Unable to use the config: {}. Ignoring it.", &e);
+                        if output_format == &Format::text {
+                            println!("Unable to use the config: {}. Ignoring it.", &e);
+                        }
                         default_config
                     }
                 }
@@ -154,17 +163,21 @@ impl Analyse {
 
         match format {
             Format::json => Json::output(results),
+            Format::sarif => Sarif::output(results),
             _ => Text::output(results),
         };
     }
 
-    pub(crate) fn analyse_file(&self, file: &File) -> Vec<Violation> {
+    pub(crate) fn analyse_file(&self, file: &mut File) -> Vec<Violation> {
         let mut violations: Vec<Violation> = vec![];
 
+        let statements = file.get_class();
+        if let Some(statements) = statements {
+            file.reference_counter.build_reference_counter(&statements);
+        }
         for statement in &file.ast {
             violations.append(&mut self.analyse_file_statement(file, statement));
         }
-
         violations
     }
 
@@ -181,6 +194,7 @@ impl Analyse {
 
             active_codes.contains(code)
         });
+
         active_rules
     }
 

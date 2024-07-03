@@ -1,5 +1,9 @@
+use colored::Colorize;
 use std::collections::HashMap;
 use std::default::Default;
+use std::error::Error;
+use std::fs;
+use std::path::Path;
 
 use php_parser_rs::lexer::token::Span;
 use php_parser_rs::parser::ast::Statement;
@@ -16,6 +20,7 @@ pub mod e1;
 pub mod e10;
 pub mod e11;
 pub mod e12;
+pub mod e13;
 pub mod e2;
 pub mod e3;
 pub mod e4;
@@ -33,6 +38,25 @@ pub trait Rule {
     fn description(&self) -> String {
         String::from("")
     }
+    // Every rule has a detailed explenation.
+    // They are writting in markdown and are located in
+    // the examples directory.
+    fn get_detailed_explanation(&self) -> Option<String> {
+        let code = self.get_code().replace("000", "");
+        let c: Vec<char> = code.chars().collect();
+        let rule_number = c.get(1).unwrap();
+
+        let markdown = format!("./src/rules/examples/e{}/e{}.md", rule_number, rule_number);
+        let path = Path::new(&markdown);
+
+        if path.exists() {
+            let text = fs::read_to_string(path);
+            if let Ok(text) = text {
+                return Some(text.to_string());
+            }
+        }
+        None
+    }
 
     fn set_config(&mut self, _json: &Value) {}
 
@@ -41,6 +65,19 @@ pub trait Rule {
         if let Some(rule_config) = config.rules.get(&code) {
             self.set_config(rule_config);
         }
+    }
+
+    fn output_error(&self, e: Box<dyn Error>) {
+        println!(
+            "{}",
+            format!(
+                "Unable to parse config for rule #{}, so default values will be used. Parsing error: {}",
+                self.get_code(),
+                e
+            )
+            .red()
+            .bold()
+        );
     }
 
     fn do_validate(&self, file: &File) -> bool {
@@ -159,6 +196,7 @@ pub fn all_rules() -> HashMap<String, Box<dyn Rule>> {
     add_rule(&mut rules, Box::default() as Box<e10::Rule>);
     add_rule(&mut rules, Box::default() as Box<e11::Rule>);
     add_rule(&mut rules, Box::default() as Box<e12::Rule>);
+    add_rule(&mut rules, Box::new(e13::Rule {}));
 
     rules
 }
@@ -175,7 +213,7 @@ mod tests {
     pub(crate) fn analyze_file_for_rule(path: &str, rule_code: &str) -> Vec<Violation> {
         let path = PathBuf::from(format!("./src/rules/examples/{path}"));
         let content = fs::read_to_string(&path).unwrap();
-        let file = File::new(path, content);
+        let mut file = File::new(path, content);
 
         let config = Config {
             enabled_rules: vec![rule_code.to_string()],
@@ -183,7 +221,7 @@ mod tests {
         };
         let analyse = Analyse::new(&config);
 
-        analyse.analyse_file(&file)
+        analyse.analyse_file(&mut file)
     }
 
     fn get_ns() -> String {
@@ -235,5 +273,16 @@ mod tests {
     fn do_validate_namespace_include_contains_exclude_contains() {
         let namespaces = &vec!["\\Service\\".to_string()];
         assert!(!do_validate_namespace(get_ns(), namespaces, namespaces));
+    }
+
+    #[test]
+    fn validate_markdown() {
+        let rule = e1::Rule {};
+
+        let markdown = rule.get_detailed_explanation().unwrap();
+
+        let e1_markdown = fs::read_to_string(Path::new("./src/rules/examples/e1/e1.md")).unwrap();
+
+        assert_eq!(e1_markdown, markdown);
     }
 }

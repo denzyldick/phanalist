@@ -6,6 +6,7 @@ use php_parser_rs::parser::ast::{
     BlockStatement, ExpressionStatement, Statement,
 };
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use crate::file::File;
 use crate::results::Violation;
@@ -36,6 +37,13 @@ impl crate::rules::Rule for Rule {
 
     fn description(&self) -> String {
         String::from(DESCRIPTION)
+    }
+
+    fn set_config(&mut self, json: &Value) {
+        match serde_json::from_value(json.to_owned()) {
+            Ok(settings) => self.settings = settings,
+            Err(e) => self.output_error(e.into()),
+        };
     }
 
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
