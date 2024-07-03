@@ -3,7 +3,10 @@
 unset($argv[0]);
 echo "Detecting architecture." . PHP_EOL;
 // @todo add the other architectures and paths.
-$matrix = ["x86_64" =>  "./vendor/denzyl/phanalist/release/x86_64-unknown-linux-gnu/phanalist"];
+$matrix = [
+  "x86_64" =>  "./vendor/denzyl/phanalist/release/x86_64-unknown-linux-musl/phanalist"
+];
+
 $architecture = null;
 $os = strtoupper(substr(PHP_OS, 0, 3));
 if ($os === 'LIN') {
