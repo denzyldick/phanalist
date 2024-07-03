@@ -17,6 +17,7 @@ pub struct AstChildStatements<'a> {
 }
 
 impl<'a> From<&'a NamespaceStatement> for AstChildStatements<'a> {
+    /// Traverse the statements inside of a namespace block.
     fn from(statement: &'a NamespaceStatement) -> Self {
         let mut statements = vec![];
 
