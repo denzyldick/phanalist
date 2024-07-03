@@ -4,7 +4,6 @@ use php_parser_rs::parser::ast::{
 
 use crate::file::File;
 use crate::results::Violation;
-use crate::rules::ast_child_statements::AstChildStatements;
 
 static CODE: &str = "E0011";
 static DESCRIPTION: &str = "Detect the error suppression symbol: @";
@@ -29,12 +28,12 @@ impl crate::rules::Rule for Rule {
                 Statement::Expression(ExpressionStatement { expression, ending }) => {
                     match expression {
                         Expression::ErrorSuppress(ErrorSuppressExpression { at, expr }) => {
-                            let suggestion = format!("Error supression(@) symbol found. Remove it.",);
+                            let suggestion = "Error supression(@) symbol found. Remove it.".to_string();
                             violation.push(Violation {
                                 rule: String::from(CODE),
                                 line: at.line.to_string(),
                                 suggestion,
-                                span: at.clone(),
+                                span: *at,
                             });
                         }
                         _ => {}
@@ -46,12 +45,12 @@ impl crate::rules::Rule for Rule {
                     ending,
                 }) => match value {
                     Some(Expression::ErrorSuppress(ErrorSuppressExpression { at, expr })) => {
-                        let suggestion = format!("Error supression(@) symbol found. Remove it. ",);
+                        let suggestion = "Error supression(@) symbol found. Remove it. ".to_string();
                         violation.push(Violation {
                             rule: String::from(CODE),
                             line: at.line.to_string(),
                             suggestion,
-                            span: at.clone(),
+                            span: *at,
                         });
                     }
                     _ => {}
