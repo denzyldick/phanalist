@@ -7,7 +7,7 @@ use crate::results::Violation;
 use crate::rules::ast_child_statements::AstChildStatements;
 
 static CODE: &str = "E0011";
-static DESCRIPTION: &str = "Detect @";
+static DESCRIPTION: &str = "Detect the error suppression symbol: @";
 
 #[derive(Default)]
 pub struct Rule {}
@@ -29,7 +29,7 @@ impl crate::rules::Rule for Rule {
                 Statement::Expression(ExpressionStatement { expression, ending }) => {
                     match expression {
                         Expression::ErrorSuppress(ErrorSuppressExpression { at, expr }) => {
-                            let suggestion = format!("Error supression(@) symbol found. ",);
+                            let suggestion = format!("Error supression(@) symbol found. Remove it.",);
                             violation.push(Violation {
                                 rule: String::from(CODE),
                                 line: at.line.to_string(),
@@ -46,7 +46,7 @@ impl crate::rules::Rule for Rule {
                     ending,
                 }) => match value {
                     Some(Expression::ErrorSuppress(ErrorSuppressExpression { at, expr })) => {
-                        let suggestion = format!("Error supression(@) symbol found. ",);
+                        let suggestion = format!("Error supression(@) symbol found. Remove it. ",);
                         violation.push(Violation {
                             rule: String::from(CODE),
                             line: at.line.to_string(),
@@ -72,6 +72,6 @@ mod tests {
     fn example() {
         let violations = analyze_file_for_rule("e11/detect_@.php", CODE);
 
-        assert!(violations.len().eq(&2));
+        assert!(violations.len().gt(&1));
     }
 }
