@@ -128,9 +128,7 @@ impl crate::rules::Rule for Rule {
                         }
                     }
                 }
-                _ => {
-                    dbg!(property_expression);
-                }
+                _ => {}
             };
         }
 
