@@ -116,7 +116,22 @@ impl crate::rules::Rule for Rule {
                         }
                     }
                 }
-                _ => {}
+                // TODO: Match array push or assignment, ex: $this->counter[] = 1 or $this->counter[$key] = 1
+                Expression::ArrayIndex(property) => {
+                    if let Expression::PropertyFetch(property) = property.array.as_ref() {
+                        if let Expression::Variable(Variable::SimpleVariable(var)) =
+                            &property.target.as_ref()
+                        {
+                            if str::from_utf8(&var.name).unwrap() == "$this" {
+                                let suggestion = format!("Setting service properties leads to issues with Shared Memory Model (FrankenPHP/Swoole/RoadRunner). Trying to set $this->{}[] property", Self::get_property_identifier(property));
+                                violations.push(self.new_violation(file, suggestion, var.span));
+                            }
+                        }
+                    }
+                }
+                _ => {
+                    dbg!(property_expression);
+                }
             };
         }
 
@@ -231,7 +246,7 @@ impl Rule {
                 };
 
                 assigment_expressions
-            },
+            }
             Expression::Coalesce(coalesce) => vec![coalesce.lhs.as_ref(), coalesce.rhs.as_ref()],
             Expression::Concat(concat) => vec![concat.left.as_ref(), concat.right.as_ref()],
             Expression::Parenthesized(parenthesized) => vec![parenthesized.expr.as_ref()],
@@ -299,7 +314,7 @@ impl Rule {
     fn is_property(&self, expression: &Expression) -> bool {
         matches!(
             expression,
-            Expression::PropertyFetch(_) | Expression::StaticPropertyFetch(_)
+            Expression::PropertyFetch(_) | Expression::StaticPropertyFetch(_) | Expression::ArrayIndex(_)
         )
     }
 }
@@ -516,7 +531,7 @@ mod tests {
     }
 
     #[test]
-    fn set_in_null_coalescing(){
+    fn set_in_null_coalescing() {
         let violations = analyze_file_for_rule("e12/set_in_null_coalescing.php", CODE);
 
         assert!(violations.len().gt(&0));
@@ -524,8 +539,36 @@ mod tests {
             violations.first().unwrap().suggestion,
             "Setting service properties leads to issues with Shared Memory Model (FrankenPHP/Swoole/RoadRunner). Trying to set $this->counter property".to_string()
         );
-        
     }
 
+    #[test]
+    fn set_array_in_method() {
+        let violations = analyze_file_for_rule("e12/set_array_in_method.php", CODE);
 
+        assert!(violations.len().gt(&0));
+        assert_eq!(
+            violations.first().unwrap().suggestion,
+            "Setting service properties leads to issues with Shared Memory Model (FrankenPHP/Swoole/RoadRunner). Trying to set $this->counter[] property".to_string()
+        );
+    }
+
+    #[test]
+    fn set_array_in_null_coalescing(){
+        let violations = analyze_file_for_rule("e12/set_array_in_null_coalescing.php", CODE);
+
+        assert!(violations.len().gt(&0));
+        assert_eq!(
+            violations.first().unwrap().suggestion,
+            "Setting service properties leads to issues with Shared Memory Model (FrankenPHP/Swoole/RoadRunner). Trying to set $this->counter[] property".to_string()
+        );
+    }
+
+    #[test]
+    fn increment_array_in_method(){
+        let violations = analyze_file_for_rule("e12/increment_array_in_method.php", CODE);
+
+        assert!(violations.len().gt(&0));
+    }
+
+    
 }
