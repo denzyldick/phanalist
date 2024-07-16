@@ -116,7 +116,6 @@ impl crate::rules::Rule for Rule {
                         }
                     }
                 }
-                // TODO: Match array push or assignment, ex: $this->counter[] = 1 or $this->counter[$key] = 1
                 Expression::ArrayIndex(property) => {
                     if let Expression::PropertyFetch(property) = property.array.as_ref() {
                         if let Expression::Variable(Variable::SimpleVariable(var)) =
