@@ -231,7 +231,8 @@ impl Rule {
                 };
 
                 assigment_expressions
-            }
+            },
+            Expression::Coalesce(coalesce) => vec![coalesce.lhs.as_ref(), coalesce.rhs.as_ref()],
             Expression::Concat(concat) => vec![concat.left.as_ref(), concat.right.as_ref()],
             Expression::Parenthesized(parenthesized) => vec![parenthesized.expr.as_ref()],
             Expression::ArithmeticOperation(arithmetic) => match arithmetic {
@@ -513,4 +514,18 @@ mod tests {
             "Setting service properties leads to issues with Shared Memory Model (FrankenPHP/Swoole/RoadRunner). Trying to set $this->counter property".to_string()
         );
     }
+
+    #[test]
+    fn set_in_null_coalescing(){
+        let violations = analyze_file_for_rule("e12/set_in_null_coalescing.php", CODE);
+
+        assert!(violations.len().gt(&0));
+        assert_eq!(
+            violations.first().unwrap().suggestion,
+            "Setting service properties leads to issues with Shared Memory Model (FrankenPHP/Swoole/RoadRunner). Trying to set $this->counter property".to_string()
+        );
+        
+    }
+
+
 }
