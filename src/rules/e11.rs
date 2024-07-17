@@ -25,28 +25,31 @@ impl crate::rules::Rule for Rule {
         let flatten_statements = self.travers_statements_to_validate(vec![].clone(), statement);
         for statement in flatten_statements {
             match statement {
-                Statement::Expression(ExpressionStatement { expression: Expression::ErrorSuppress(ErrorSuppressExpression { at, expr: _ }), ending: _ }) => {
-                     let suggestion = "Error supression(@) symbol found. Remove it.".to_string();
-                     violation.push(Violation {
-                         rule: String::from(CODE),
-                         line: at.line.to_string(),
-                         suggestion,
-                         span: *at,
-                     });
+                Statement::Expression(ExpressionStatement {
+                    expression: Expression::ErrorSuppress(ErrorSuppressExpression { at, expr: _ }),
+                    ending: _,
+                }) => {
+                    let suggestion = "Error supression(@) symbol found. Remove it.".to_string();
+                    violation.push(Violation {
+                        rule: String::from(CODE),
+                        line: at.line.to_string(),
+                        suggestion,
+                        span: *at,
+                    });
                 }
                 Statement::Return(ReturnStatement {
                     r#return: _,
                     value: Some(Expression::ErrorSuppress(ErrorSuppressExpression { at, expr: _ })),
                     ending: _,
                 }) => {
-                     let suggestion = "Error supression(@) symbol found. Remove it. ".to_string();
-                     violation.push(Violation {
-                         rule: String::from(CODE),
-                         line: at.line.to_string(),
-                         suggestion,
-                         span: *at,
-                     });
-                 },
+                    let suggestion = "Error supression(@) symbol found. Remove it. ".to_string();
+                    violation.push(Violation {
+                        rule: String::from(CODE),
+                        line: at.line.to_string(),
+                        suggestion,
+                        span: *at,
+                    });
+                }
                 _ => {}
             };
         }
