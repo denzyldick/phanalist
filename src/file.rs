@@ -72,7 +72,6 @@ impl RC {
                         for modifier in modifiers {
                             if let parser::ast::modifiers::MethodModifier::Private(_m) = modifier {
                                 is_private = true;
-                                dbg!(is_private);
                                 self.add_reference(method.name.clone());
                             }
                         }

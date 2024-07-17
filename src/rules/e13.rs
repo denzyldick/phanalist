@@ -20,10 +20,10 @@ impl crate::rules::Rule for Rule {
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
         let mut violations = Vec::new();
         if let Statement::Class(_e) = statement {
-            for (_key, value) in &file.reference_counter.methods {
+            for value in file.reference_counter.methods.values() {
                 let zero: isize = 0;
                 let message = format!("The private method {} is not being called. ", value.name);
-                if &value.counter == &zero {
+                if value.counter == zero {
                     violations.push(self.new_violation(file, message, value.span));
                 }
             }
