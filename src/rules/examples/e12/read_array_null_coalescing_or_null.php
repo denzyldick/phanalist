@@ -2,7 +2,7 @@
 
 namespace App\Service\e12;
 
-class ArrayNullCoalescingOrNull
+class ReadArrayNullCoalescingOrNull
 {
     private array $variables = [
         'var1' => 'test1',

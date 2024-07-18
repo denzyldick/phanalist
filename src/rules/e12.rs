@@ -221,11 +221,26 @@ impl Rule {
         }
 
         let expressions = match expression {
-            Expression::AssignmentOperation(assignment) => self.get_assignment_expression(assignment),
-            Expression::Coalesce(coalesce) => vec![coalesce.lhs.as_ref(), coalesce.rhs.as_ref()],
+            Expression::AssignmentOperation(assignment) => {
+                self.get_assignment_expression(assignment)
+            }
+            Expression::Coalesce(coalesce) => {
+                let mut coalesce_expressions = vec![coalesce.rhs.as_ref()];
+                match coalesce.lhs.as_ref() {
+                    Expression::PropertyFetch(_) => None,
+                    Expression::StaticPropertyFetch(_) => None,
+                    _ => {
+                        coalesce_expressions.push(coalesce.lhs.as_ref());
+                        Some(())
+                    }
+                };
+                coalesce_expressions
+            }
             Expression::Concat(concat) => vec![concat.left.as_ref(), concat.right.as_ref()],
             Expression::Parenthesized(parenthesized) => vec![parenthesized.expr.as_ref()],
-            Expression::ArithmeticOperation(arithmetic) =>  self.get_arithmetic_expressions(arithmetic),
+            Expression::ArithmeticOperation(arithmetic) => {
+                self.get_arithmetic_expressions(arithmetic)
+            }
             Expression::ShortArray(short_array) => self.get_short_array_expressions(short_array),
             Expression::MethodCall(method_call) => self.get_method_expressions(method_call),
             _ => vec![],
@@ -615,15 +630,46 @@ mod tests {
     }
 
     #[test]
-    fn array_null_coalescing_or_null() {
-        let violations = analyze_file_for_rule("e12/array_null_coalescing_or_null.php", CODE);
+    fn read_array_null_coalescing_or_null() {
+        let violations = analyze_file_for_rule("e12/read_array_null_coalescing_or_null.php", CODE);
 
         assert!(violations.len().eq(&0));
     }
 
     #[test]
-    fn array_null_coalescing_or_array() {
-        let violations = analyze_file_for_rule("e12/array_null_coalescing_or_array.php", CODE);
+    fn read_array_null_coalescing_or_array() {
+        let violations = analyze_file_for_rule("e12/read_array_null_coalescing_or_array.php", CODE);
+
+        assert!(violations.len().eq(&0));
+    }
+
+    #[test]
+    fn read_null_coalescing_or_throw() {
+        let violations = analyze_file_for_rule("e12/read_null_coalescing_or_throw.php", CODE);
+
+        assert!(violations.len().eq(&0));
+    }
+
+    #[test]
+    fn read_static_null_coalescing_or_throw() {
+        let violations =
+            analyze_file_for_rule("e12/read_static_null_coalescing_or_throw.php", CODE);
+
+        assert!(violations.len().eq(&0));
+    }
+
+    #[test]
+    fn read_static_array_null_coalescing_or_null() {
+        let violations =
+            analyze_file_for_rule("e12/read_static_array_null_coalescing_or_null.php", CODE);
+
+        assert!(violations.len().eq(&0));
+    }
+
+    #[test]
+    fn read_static_array_null_coalescing_or_array() {
+        let violations =
+            analyze_file_for_rule("e12/read_static_array_null_coalescing_or_array.php", CODE);
 
         assert!(violations.len().eq(&0));
     }
