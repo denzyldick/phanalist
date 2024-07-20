@@ -205,11 +205,15 @@ impl OutputFormatter for Sarif {
         let mut t = vec![];
         for (key, violations) in &results.files {
             for violation in violations {
-                let mut analysis_target = ArtifactLocation::default();
-                analysis_target.uri = Some(String::from(key).replace("./", ""));
+                let analysis_target = ArtifactLocation {
+                    uri: Some(String::from(key).replace("./", "")),
+                    ..Default::default()
+                };
 
-                let mut message = Message::default();
-                message.text = Some(String::from(&violation.suggestion));
+                let message = Message {
+                    text: Some(String::from(&violation.suggestion)),
+                    ..Default::default()
+                };
 
                 let region = sarif::Region {
                     byte_length: None,

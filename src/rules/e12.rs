@@ -3,7 +3,9 @@ use std::str;
 use php_parser_rs::parser::ast::arguments::{Argument, NamedArgument, PositionalArgument};
 use php_parser_rs::parser::ast::classes::{ClassMember, ClassStatement};
 use php_parser_rs::parser::ast::identifiers::Identifier;
-use php_parser_rs::parser::ast::operators::ArithmeticOperationExpression;
+use php_parser_rs::parser::ast::operators::{
+    ArithmeticOperationExpression, AssignmentOperationExpression,
+};
 use php_parser_rs::parser::ast::variables::Variable;
 use php_parser_rs::parser::ast::{
     ArrayItem, Expression, MethodCallExpression, PropertyFetchExpression, ShortArrayExpression,
@@ -90,6 +92,7 @@ impl crate::rules::Rule for Rule {
             }
             _ => None,
         };
+
         let mut flatten_property_expressions: Vec<&Expression> = Vec::new();
         if let Some(expression) = expression {
             flatten_property_expressions =
@@ -219,26 +222,25 @@ impl Rule {
 
         let expressions = match expression {
             Expression::AssignmentOperation(assignment) => {
-                let mut assigment_expressions = vec![assignment.left()];
-
-                let right = assignment.right();
-                match right {
+                self.get_assignment_expression(assignment)
+            }
+            Expression::Coalesce(coalesce) => {
+                let mut coalesce_expressions = vec![coalesce.rhs.as_ref()];
+                match coalesce.lhs.as_ref() {
                     Expression::PropertyFetch(_) => None,
+                    Expression::StaticPropertyFetch(_) => None,
                     _ => {
-                        assigment_expressions.push(right);
+                        coalesce_expressions.push(coalesce.lhs.as_ref());
                         Some(())
                     }
                 };
-
-                assigment_expressions
+                coalesce_expressions
             }
             Expression::Concat(concat) => vec![concat.left.as_ref(), concat.right.as_ref()],
             Expression::Parenthesized(parenthesized) => vec![parenthesized.expr.as_ref()],
-            Expression::ArithmeticOperation(arithmetic) => match arithmetic {
-                ArithmeticOperationExpression::PreIncrement { right, .. } => vec![right.as_ref()],
-                ArithmeticOperationExpression::PostIncrement { left, .. } => vec![left.as_ref()],
-                _ => vec![],
-            },
+            Expression::ArithmeticOperation(arithmetic) => {
+                self.get_arithmetic_expressions(arithmetic)
+            }
             Expression::ShortArray(short_array) => self.get_short_array_expressions(short_array),
             Expression::MethodCall(method_call) => self.get_method_expressions(method_call),
             _ => vec![],
@@ -269,6 +271,79 @@ impl Rule {
             };
 
             expressions.append(&mut item_expressions);
+        }
+
+        expressions
+    }
+
+    fn get_assignment_expression<'a>(
+        &'a self,
+        assignment: &'a AssignmentOperationExpression,
+    ) -> Vec<&Expression> {
+        let mut assigment_expressions = vec![];
+
+        let left = assignment.left();
+        match left {
+            Expression::ArrayIndex(array) => match array.array.as_ref() {
+                Expression::PropertyFetch(_) => {
+                    assigment_expressions.push(array.array.as_ref());
+                    Some(())
+                }
+                _ => None,
+            },
+            Expression::Coalesce(coalesce) => match coalesce.lhs.as_ref() {
+                Expression::ArrayIndex(array) => match array.array.as_ref() {
+                    Expression::PropertyFetch(_) => {
+                        assigment_expressions.push(array.array.as_ref());
+                        Some(())
+                    }
+                    _ => None,
+                },
+                _ => {
+                    assigment_expressions.push(coalesce.lhs.as_ref());
+                    Some(())
+                }
+            },
+            _ => {
+                assigment_expressions.push(&left);
+                Some(())
+            }
+        };
+
+        let right = assignment.right();
+        match right {
+            Expression::PropertyFetch(_) => None,
+            _ => {
+                assigment_expressions.push(&right);
+                Some(())
+            }
+        };
+
+        assigment_expressions
+    }
+
+    fn get_arithmetic_expressions<'a>(
+        &'a self,
+        arithmetic: &'a ArithmeticOperationExpression,
+    ) -> Vec<&Expression> {
+        let mut expressions = vec![];
+
+        match arithmetic {
+            ArithmeticOperationExpression::PreIncrement { right, .. } => match right.as_ref() {
+                Expression::ArrayIndex(array) => match array.array.as_ref() {
+                    Expression::PropertyFetch(_) => expressions.push(array.array.as_ref()),
+                    _ => {}
+                },
+                _ => expressions.push(right.as_ref()),
+            },
+            ArithmeticOperationExpression::PostIncrement { left, .. } => match left.as_ref() {
+                Expression::ArrayIndex(array) => match array.array.as_ref() {
+                    Expression::PropertyFetch(_) => expressions.push(array.array.as_ref()),
+                    _ => {}
+                },
+                _ => expressions.push(left.as_ref()),
+            },
+            _ => {}
         }
 
         expressions
@@ -512,5 +587,90 @@ mod tests {
             violations.first().unwrap().suggestion,
             "Setting service properties leads to issues with Shared Memory Model (FrankenPHP/Swoole/RoadRunner). Trying to set $this->counter property".to_string()
         );
+    }
+
+    #[test]
+    fn set_in_null_coalescing() {
+        let violations = analyze_file_for_rule("e12/set_in_null_coalescing.php", CODE);
+
+        assert!(violations.len().gt(&0));
+        assert_eq!(
+            violations.first().unwrap().suggestion,
+            "Setting service properties leads to issues with Shared Memory Model (FrankenPHP/Swoole/RoadRunner). Trying to set $this->counter property".to_string()
+        );
+    }
+
+    #[test]
+    fn set_array_in_method() {
+        let violations = analyze_file_for_rule("e12/set_array_in_method.php", CODE);
+
+        assert!(violations.len().gt(&0));
+        assert_eq!(
+            violations.first().unwrap().suggestion,
+            "Setting service properties leads to issues with Shared Memory Model (FrankenPHP/Swoole/RoadRunner). Trying to set $this->counter property".to_string()
+        );
+    }
+
+    #[test]
+    fn set_array_in_null_coalescing() {
+        let violations = analyze_file_for_rule("e12/set_array_in_null_coalescing.php", CODE);
+
+        assert!(violations.len().gt(&0));
+        assert_eq!(
+            violations.first().unwrap().suggestion,
+            "Setting service properties leads to issues with Shared Memory Model (FrankenPHP/Swoole/RoadRunner). Trying to set $this->counter property".to_string()
+        );
+    }
+
+    #[test]
+    fn increment_array_in_method() {
+        let violations = analyze_file_for_rule("e12/increment_array_in_method.php", CODE);
+
+        assert!(violations.len().gt(&0));
+    }
+
+    #[test]
+    fn read_array_null_coalescing_or_null() {
+        let violations = analyze_file_for_rule("e12/read_array_null_coalescing_or_null.php", CODE);
+
+        assert!(violations.len().eq(&0));
+    }
+
+    #[test]
+    fn read_array_null_coalescing_or_array() {
+        let violations = analyze_file_for_rule("e12/read_array_null_coalescing_or_array.php", CODE);
+
+        assert!(violations.len().eq(&0));
+    }
+
+    #[test]
+    fn read_null_coalescing_or_throw() {
+        let violations = analyze_file_for_rule("e12/read_null_coalescing_or_throw.php", CODE);
+
+        assert!(violations.len().eq(&0));
+    }
+
+    #[test]
+    fn read_static_null_coalescing_or_throw() {
+        let violations =
+            analyze_file_for_rule("e12/read_static_null_coalescing_or_throw.php", CODE);
+
+        assert!(violations.len().eq(&0));
+    }
+
+    #[test]
+    fn read_static_array_null_coalescing_or_null() {
+        let violations =
+            analyze_file_for_rule("e12/read_static_array_null_coalescing_or_null.php", CODE);
+
+        assert!(violations.len().eq(&0));
+    }
+
+    #[test]
+    fn read_static_array_null_coalescing_or_array() {
+        let violations =
+            analyze_file_for_rule("e12/read_static_array_null_coalescing_or_array.php", CODE);
+
+        assert!(violations.len().eq(&0));
     }
 }
