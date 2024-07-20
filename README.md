@@ -102,3 +102,5 @@ is a great, easy-to-read introduction to this project.
 3. [Detecting spaghetti code in AST of a PHP source code.](https://dev.to/denzyldick/traversing-an-ast-of-php-source-code-2kee)
 4. [Getting Symfony app ready for Swoole, RoadRunner, and FrankenPHP (no AI involved).](https://dev.to/sergiid/getting-symfony-app-ready-for-swoole-roadrunner-and-frankenphp-no-ai-involved-2d0g)
 5. [Improve your CI output](https://dev.to/denzyldick/improve-your-ci-output-2eg)
+6. [Why using unserialize in PHP is a bad idea](https://dev.to/denzyldick/why-is-unserializing-an-object-in-php-a-bad-idea-3odl)
+
