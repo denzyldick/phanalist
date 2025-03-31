@@ -11,7 +11,7 @@ use php_parser_rs::parser;
 
 use crate::config::Config;
 use crate::file::File;
-use crate::outputs::gitlab::GitlabFormat;
+use crate::outputs::codeclimate::CodeClimate;
 use crate::outputs::Format;
 use crate::outputs::json::Json;
 use crate::outputs::sarif::Sarif;
@@ -168,7 +168,7 @@ impl Analyse {
         match format {
             Format::json => Json::output(results),
             Format::sarif => Sarif::output(results),
-            Format::gitlab => GitlabFormat::output(results),
+            Format::codeclimate => CodeClimate::output(results),
             _ => Text::output(results),
         };
     }
