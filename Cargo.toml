@@ -2,13 +2,12 @@
 name = "phanalist"
 version = "0.1.21"
 edition = "2021"
-lincese = "MIT"
+license = "MIT"
 description = "Performant static analyzer for PHP, which is extremely easy to use. It helps you catch common mistakes in your PHP code."
 readme = "./README.md"
 categories = ["development-tools"]
 include = ["/Cargo.toml", "/LICENSE", "/README.md", "/src/**"]
 keywords = ["PHP", "Refactoring", "Phanalist"]
-license = "MIT"
 repository = "https://github.com/denzyldick/phanalist"
 
 [dependencies]
