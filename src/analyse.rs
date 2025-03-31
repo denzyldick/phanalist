@@ -11,8 +11,12 @@ use php_parser_rs::parser;
 
 use crate::config::Config;
 use crate::file::File;
-use crate::output::OutputFormatter;
-use crate::output::{Format, Json, Sarif, Text};
+use crate::outputs::gitlab::GitlabFormat;
+use crate::outputs::Format;
+use crate::outputs::json::Json;
+use crate::outputs::sarif::Sarif;
+use crate::outputs::text::Text;
+use crate::outputs::OutputFormatter;
 use crate::results::{Results, Violation};
 use crate::rules::Rule;
 use crate::rules::{self};
@@ -164,6 +168,7 @@ impl Analyse {
         match format {
             Format::json => Json::output(results),
             Format::sarif => Sarif::output(results),
+            Format::gitlab => GitlabFormat::output(results),
             _ => Text::output(results),
         };
     }
