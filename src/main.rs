@@ -7,12 +7,12 @@ use std::str::FromStr;
 use clap::{arg, Parser};
 
 use crate::analyse::Analyse;
-use crate::output::Format;
+use crate::outputs::Format;
 
 mod analyse;
 mod config;
 mod file;
-mod output;
+mod outputs;
 mod results;
 mod rules;
 
@@ -29,7 +29,7 @@ struct Args {
     /// The list of rules to use (by default it is used from config)
     rules: Option<Vec<String>>,
     #[arg(short, long, default_value = "text")]
-    /// Possible options: text, json
+    /// Possible options: text, json, gitlab
     output_format: String,
     #[arg(long)]
     /// Output only summary
@@ -53,10 +53,10 @@ fn main() {
         }
     }
 
-    let format = match output::Format::from_str(args.output_format.as_str()) {
+    let format = match outputs::Format::from_str(args.output_format.as_str()) {
         Ok(format) => format,
         Err(_) => {
-            println!("Invalid input format");
+            println!("Invalid input format ({})", args.output_format.as_str());
             process::exit(exitcode::USAGE);
         }
     };

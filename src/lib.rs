@@ -1,9 +1,9 @@
 use analyse::Analyse;
-use output::Format;
+use outputs::Format;
 mod analyse;
 mod config;
 mod file;
-mod output;
+mod outputs;
 mod results;
 mod rules;
 
