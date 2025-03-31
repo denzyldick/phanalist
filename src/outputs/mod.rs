@@ -2,7 +2,7 @@ use crate::results::Results;
 use std::str::FromStr;
 use serde::{Deserialize, Serialize};
 
-pub mod gitlab;
+pub mod codeclimate;
 pub mod text;
 pub mod json;
 pub mod sarif;
@@ -18,7 +18,7 @@ pub enum Format {
     text,
     json,
     sarif,
-    gitlab,
+    codeclimate,
 }
 
 impl FromStr for Format {
@@ -29,7 +29,7 @@ impl FromStr for Format {
             "text" => Ok(Format::text),
             "json" => Ok(Format::json),
             "sarif" => Ok(Format::sarif),
-            "gitlab" => Ok(Format::gitlab),
+            "codeclimate" => Ok(Format::codeclimate),
             _ => Err(()),
         }
     }
