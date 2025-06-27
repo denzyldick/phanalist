@@ -3,6 +3,7 @@ use outputs::Format;
 mod analyse;
 mod config;
 mod file;
+mod indexer;
 mod outputs;
 mod results;
 mod rules;
