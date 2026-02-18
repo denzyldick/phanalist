@@ -1,15 +1,14 @@
-use php_parser_rs::parser::ast::{
-    classes::ClassMember,
-    control_flow::{self, IfStatement},
-    functions::MethodBody,
-    loops::{WhileStatement, WhileStatementBody},
-    BlockStatement, Statement,
-};
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
-
 use crate::file::File;
 use crate::results::Violation;
+use mago_ast::ast::class_like::member::ClassLikeMember;
+use mago_ast::ast::control_flow::r#if::IfBody;
+use mago_ast::ast::r#loop::foreach::ForeachBody;
+use mago_ast::ast::r#loop::r#for::ForBody;
+use mago_ast::ast::r#loop::r#while::WhileBody;
+use mago_ast::*;
+use mago_span::HasSpan;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 pub(crate) static CODE: &str = "E0010";
 static DESCRIPTION: &str = "Npath complexity";
@@ -39,6 +38,10 @@ impl crate::rules::Rule for Rule {
         String::from(DESCRIPTION)
     }
 
+    fn do_validate(&self, _file: &File) -> bool {
+        true
+    }
+
     fn set_config(&mut self, json: &Value) {
         match serde_json::from_value(json.to_owned()) {
             Ok(settings) => self.settings = settings,
@@ -50,100 +53,150 @@ impl crate::rules::Rule for Rule {
         let mut violations = Vec::new();
 
         if let Statement::Class(class) = statement {
-            for member in &class.body.members {
-                let mut graph = Graph { e: 0 };
-
-                if let ClassMember::ConcreteMethod(method) = member {
-                    let MethodBody { statements, .. } = &method.body;
-                    Self::calculate_npath(statements.iter().collect(), &mut graph);
-                    if graph.calculate() > self.settings.max_paths {
-                        let suggestion = format!(
-                            "The body of {} method has {} paths. Reduce the amount of paths.",
-                            method.name.value,
-                            graph.calculate(),
-                        );
-
-                        violations.push(self.new_violation(
-                            file,
-                            suggestion.to_string(),
-                            method.function,
-                        ));
+            for member in class.members.iter() {
+                if let ClassLikeMember::Method(method) = member {
+                    match &method.body {
+                        MethodBody::Concrete(block) => {
+                            let npath = calculate_npath(&block.statements);
+                            if npath > self.settings.max_paths {
+                                let name = file.interner.lookup(&method.name.value);
+                                let suggestion = format!(
+                                     "The body of {} method has {} paths. Reduce the amount of paths.",
+                                     name,
+                                     npath,
+                                 );
+                                violations.push(self.new_violation(
+                                    file,
+                                    suggestion,
+                                    method.span(),
+                                ));
+                            }
+                        }
+                        _ => {}
                     }
                 }
             }
         }
         violations
     }
-
-    fn travers_statements_to_validate<'a>(
-        &'a self,
-        flatten_statements: Vec<&'a Statement>,
-        statement: &'a Statement,
-    ) -> Vec<&Statement> {
-        self.class_statements_only_to_validate(flatten_statements, statement)
-    }
 }
 
-#[derive(Debug, Copy, Clone)]
-struct Graph {
-    e: i64,
+fn calculate_npath(statements: &Sequence<Statement>) -> i64 {
+    let mut npath = 0;
+    for statement in statements.iter() {
+        npath += calculate_statement_npath(statement);
+    }
+    npath
 }
 
-impl Graph {
-    fn calculate(&self) -> i64 {
-        self.e
-    }
-
-    fn increase_edge(&mut self) {
-        self.e += 1;
-    }
-}
-
-impl Rule {
-    fn calculate_npath(statements: Vec<&Statement>, graph: &mut Graph) {
-        for statement in statements {
-            Self::calculate_npath_for_statement(statement, graph);
-        }
-    }
-
-    fn calculate_npath_for_statement(statement: &Statement, graph: &mut Graph) {
-        match statement {
-            Statement::If(IfStatement { body, .. }) => {
-                graph.increase_edge();
-                match body {
-                    control_flow::IfStatementBody::Block { statements, .. } => {
-                        Self::calculate_npath(statements.iter().collect(), graph)
+fn calculate_statement_npath(statement: &Statement) -> i64 {
+    let mut npath = 0;
+    match statement {
+        Statement::If(if_stmt) => {
+            npath += 1;
+            match &if_stmt.body {
+                IfBody::Statement(body) => {
+                    npath += calculate_statement_npath(&body.statement);
+                    for clause in body.else_if_clauses.iter() {
+                        npath += 1;
+                        npath += calculate_statement_npath(&clause.statement);
                     }
-                    control_flow::IfStatementBody::Statement {
-                        statement,
-                        elseifs: _,
-                        r#else: else_statement,
-                    } => {
-                        Self::calculate_npath(vec![statement.as_ref()], graph);
-                        if let Some(e) = else_statement {
-                            graph.increase_edge();
-                            Self::calculate_npath(vec![e.statement.as_ref()], graph);
+                    if let Some(else_clause) = &body.else_clause {
+                        npath += 1;
+                        npath += calculate_statement_npath(&else_clause.statement);
+                    }
+                }
+                IfBody::ColonDelimited(body) => {
+                    npath += calculate_npath(&body.statements);
+                    for clause in body.else_if_clauses.iter() {
+                        npath += 1; // elseif
+                        for s in clause.statements.iter() {
+                            npath += calculate_statement_npath(s);
+                        }
+                    }
+                    if let Some(else_clause) = &body.else_clause {
+                        npath += 1;
+                        for s in else_clause.statements.iter() {
+                            npath += calculate_statement_npath(s);
                         }
                     }
                 }
             }
-            Statement::While(WhileStatement { body, .. }) => {
-                graph.increase_edge();
-                match body {
-                    WhileStatementBody::Block { statements, .. } => {
-                        Self::calculate_npath(statements.iter().collect(), graph);
-                    }
-                    WhileStatementBody::Statement { statement } => {
-                        Self::calculate_npath(vec![statement.as_ref()], graph);
-                    }
-                };
+        }
+        Statement::While(while_stmt) => {
+            npath += 1;
+            match &while_stmt.body {
+                WhileBody::Statement(body) => {
+                    npath += calculate_statement_npath(body);
+                }
+                WhileBody::ColonDelimited(body) => {
+                    npath += calculate_npath(&body.statements);
+                }
             }
-            Statement::Block(BlockStatement { statements, .. }) => {
-                Self::calculate_npath(statements.iter().collect(), graph);
+        }
+        Statement::DoWhile(do_while_stmt) => {
+            npath += 1;
+            npath += calculate_statement_npath(&do_while_stmt.statement);
+        }
+        Statement::For(for_stmt) => {
+            npath += 1;
+            match &for_stmt.body {
+                ForBody::Statement(body) => {
+                    npath += calculate_statement_npath(body);
+                }
+                ForBody::ColonDelimited(body) => {
+                    npath += calculate_npath(&body.statements);
+                }
             }
-            _ => {}
-        };
+        }
+        Statement::Foreach(foreach_stmt) => {
+            npath += 1;
+            match &foreach_stmt.body {
+                ForeachBody::Statement(body) => {
+                    npath += calculate_statement_npath(body);
+                }
+                ForeachBody::ColonDelimited(body) => {
+                    npath += calculate_npath(&body.statements);
+                }
+            }
+        }
+        Statement::Switch(switch_stmt) => {
+            let cases = match &switch_stmt.body {
+                mago_ast::ast::control_flow::switch::SwitchBody::BraceDelimited(body) => {
+                    &body.cases
+                }
+                mago_ast::ast::control_flow::switch::SwitchBody::ColonDelimited(body) => {
+                    &body.cases
+                }
+            };
+            for case in cases.iter() {
+                match case {
+                    mago_ast::ast::control_flow::switch::SwitchCase::Expression(c) => {
+                        npath += 1;
+                        npath += calculate_npath(&c.statements);
+                    }
+                    mago_ast::ast::control_flow::switch::SwitchCase::Default(c) => {
+                        npath += calculate_npath(&c.statements);
+                    }
+                }
+            }
+        }
+        Statement::Try(try_stmt) => {
+            npath += calculate_npath(&try_stmt.block.statements);
+            for catch in try_stmt.catch_clauses.iter() {
+                npath += 1;
+                npath += calculate_npath(&catch.block.statements);
+            }
+            if let Some(finally) = &try_stmt.finally_clause {
+                npath += calculate_npath(&finally.block.statements);
+            }
+        }
+        Statement::Block(block) => {
+            npath += calculate_npath(&block.statements);
+        }
+        _ => {}
     }
+    npath
 }
 
 #[cfg(test)]
@@ -151,16 +204,6 @@ mod tests {
     use crate::rules::tests::analyze_file_for_rule;
 
     use super::*;
-
-    #[test]
-    pub fn graph_calculate() {
-        let mut g = Graph { e: 0 };
-        g.increase_edge();
-        g.increase_edge();
-        let result = g.calculate();
-
-        assert_eq!(2, result);
-    }
 
     #[test]
     fn complex() {
