@@ -1,13 +1,10 @@
-use php_parser_rs::parser::ast::{
-    classes::ClassMember,
-    functions::{ConstructorParameterList, FunctionParameterList},
-    Statement,
-};
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
-
 use crate::file::File;
 use crate::results::Violation;
+use mago_ast::ast::class_like::member::ClassLikeMember;
+use mago_ast::Statement;
+use mago_span::HasSpan;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 pub(crate) static CODE: &str = "E0007";
 static DESCRIPTION: &str = "Method parameters count";
@@ -41,6 +38,10 @@ impl crate::rules::Rule for Rule {
         String::from(DESCRIPTION)
     }
 
+    fn do_validate(&self, _file: &File) -> bool {
+        true
+    }
+
     fn set_config(&mut self, json: &Value) {
         match serde_json::from_value(json.to_owned()) {
             Ok(settings) => self.settings = settings,
@@ -52,42 +53,33 @@ impl crate::rules::Rule for Rule {
         let mut violations = Vec::new();
 
         if let Statement::Class(class) = statement {
-            for member in &class.body.members {
-                match member {
-                    ClassMember::ConcreteMethod(method) => {
-                        // Detect parameters without type.
-                        let FunctionParameterList { parameters, .. } = &method.parameters;
-                        if parameters.inner.len() > self.settings.max_parameters as usize {
-                            let suggestion = format!("Method {} has too many parameters. More than {} parameters is considered a too much.", &method.name.value, self.settings.max_parameters);
-                            violations.push(self.new_violation(file, suggestion, method.function));
-                        }
-                    }
-                    ClassMember::ConcreteConstructor(constructor) => {
-                        let ConstructorParameterList { parameters, .. } = &constructor.parameters;
+            for member in class.members.iter() {
+                if let ClassLikeMember::Method(method) = member {
+                    let name = file.interner.lookup(&method.name.value);
+                    let parameters_count = method.parameter_list.parameters.len();
+
+                    if name == "__construct" {
                         if self.settings.check_constructor
-                            && parameters.inner.len() > self.settings.max_parameters as usize
+                            && parameters_count > self.settings.max_parameters as usize
                         {
-                            let suggestion  = format!("Constructor has too many parameters. More than {} parameters is considered a too much.", self.settings.max_parameters);
-                            violations.push(self.new_violation(
-                                file,
-                                suggestion,
-                                constructor.function,
-                            ));
+                            let suggestion = format!(
+                                "Constructor has too many parameters. More than {} parameters is considered a too much.",
+                                self.settings.max_parameters
+                            );
+                            violations.push(self.new_violation(file, suggestion, method.span()));
                         }
+                    } else if parameters_count > self.settings.max_parameters as usize {
+                        let suggestion = format!(
+                            "Method {} has too many parameters. More than {} parameters is considered a too much.",
+                            name, self.settings.max_parameters
+                        );
+                        violations.push(self.new_violation(file, suggestion, method.span()));
                     }
-                    _ => {}
                 }
             }
-        };
-        violations
-    }
+        }
 
-    fn travers_statements_to_validate<'a>(
-        &'a self,
-        flatten_statements: Vec<&'a Statement>,
-        statement: &'a Statement,
-    ) -> Vec<&Statement> {
-        self.class_statements_only_to_validate(flatten_statements, statement)
+        violations
     }
 }
 

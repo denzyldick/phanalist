@@ -1,15 +1,14 @@
-use php_parser_rs::parser::ast::{
-    classes::ClassMember,
-    control_flow::{self, IfStatement},
-    functions::MethodBody,
-    loops::{WhileStatement, WhileStatementBody},
-    BlockStatement, ExpressionStatement, Statement,
-};
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
-
 use crate::file::File;
 use crate::results::Violation;
+use mago_ast::ast::class_like::member::ClassLikeMember;
+use mago_ast::ast::control_flow::r#if::IfBody;
+use mago_ast::ast::r#loop::foreach::ForeachBody;
+use mago_ast::ast::r#loop::r#for::ForBody;
+use mago_ast::ast::r#loop::r#while::WhileBody;
+use mago_ast::*;
+use mago_span::HasSpan;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 pub(crate) static CODE: &str = "E0009";
 static DESCRIPTION: &str = "Cyclomatic complexity";
@@ -39,6 +38,10 @@ impl crate::rules::Rule for Rule {
         String::from(DESCRIPTION)
     }
 
+    fn do_validate(&self, _file: &File) -> bool {
+        true
+    }
+
     fn set_config(&mut self, json: &Value) {
         match serde_json::from_value(json.to_owned()) {
             Ok(settings) => self.settings = settings,
@@ -50,152 +53,153 @@ impl crate::rules::Rule for Rule {
         let mut violations = Vec::new();
 
         if let Statement::Class(class) = statement {
-            for member in &class.body.members {
-                let mut graph = Graph { n: 0, e: 0, p: 0 };
+            for member in class.members.iter() {
+                if let ClassLikeMember::Method(method) = member {
+                    match &method.body {
+                        MethodBody::Concrete(block) => {
+                            // Base complexity is 1 for the method itself
+                            let complexity = 1 + calculate_complexity(&block.statements);
 
-                if let ClassMember::ConcreteMethod(method) = member {
-                    let MethodBody { statements, .. } = &method.body;
-                    let graph = calculate_cyclomatic_complexity(statements.clone(), &mut graph);
-                    if graph.calculate() > self.settings.max_complexity {
-                        let suggestion = format!(
-                            "The body of {} method has {} complexity. Make it easier to understand.",
-                            method.name.value,
-                            graph.calculate(),
-                        );
-                        violations.push(self.new_violation(
-                            file,
-                            suggestion.to_string(),
-                            method.function,
-                        ));
+                            if complexity > self.settings.max_complexity {
+                                let name = file.interner.lookup(&method.name.value);
+                                let suggestion = format!(
+                                     "The body of {} method has {} complexity. Make it easier to understand.",
+                                     name,
+                                     complexity,
+                                 );
+                                violations.push(self.new_violation(
+                                    file,
+                                    suggestion,
+                                    method.span(),
+                                ));
+                            }
+                        }
+                        _ => {}
                     }
                 }
             }
         }
         violations
     }
-
-    fn travers_statements_to_validate<'a>(
-        &'a self,
-        flatten_statements: Vec<&'a Statement>,
-        statement: &'a Statement,
-    ) -> Vec<&Statement> {
-        self.class_statements_only_to_validate(flatten_statements, statement)
-    }
 }
 
-#[derive(Debug)]
-struct Graph {
-    n: i64,
-    e: i64,
-    p: i64,
+fn calculate_complexity(statements: &Sequence<Statement>) -> i64 {
+    let mut complexity = 0;
+    for statement in statements.iter() {
+        complexity += calculate_statement_complexity(statement);
+    }
+    complexity
 }
 
-impl Graph {
-    fn calculate(&self) -> i64 {
-        self.n - self.e + (2 * self.p)
-    }
-
-    fn increase_node(&mut self) {
-        self.n += 1;
-    }
-
-    fn increase_edge(&mut self) {
-        self.e += 1;
-    }
-
-    #[allow(dead_code)]
-    fn increase_exit_node(&mut self) {
-        self.p += 1;
-    }
-
-    #[allow(dead_code)]
-    fn merge(&mut self, c: &mut Graph) {
-        self.n += c.n;
-        self.e += c.e;
-        self.p += c.p
-    }
-}
-
-fn calculate_cyclomatic_complexity(
-    mut statements: Vec<Statement>,
-    graph: &mut Graph,
-) -> &mut Graph {
-    if !statements.is_empty() {
-        let statement: Statement = statements.pop().unwrap();
-        return match statement {
-            Statement::Expression(ExpressionStatement {
-                expression: _,
-                ending: _,
-            }) => {
-                graph.increase_edge();
-                graph
-            }
-            Statement::If(IfStatement {
-                r#if: _,
-                left_parenthesis: _,
-                condition: _,
-                right_parenthesis: _,
-                body,
-            }) => {
-                graph.increase_node();
-                let c = match body {
-                    control_flow::IfStatementBody::Block {
-                        colon: _,
-                        statements,
-                        elseifs: _,
-                        r#else: _,
-                        endif: _,
-                        ending: _,
-                    } => calculate_cyclomatic_complexity(statements, graph),
-                    control_flow::IfStatementBody::Statement {
-                        statement,
-                        elseifs: _,
-                        r#else: else_statement,
-                    } => {
-                        graph.increase_node();
-                        let g = calculate_cyclomatic_complexity(vec![*statement], graph);
-                        match else_statement {
-                            Some(e) => calculate_cyclomatic_complexity(vec![*e.statement], g),
-                            None => g,
+fn calculate_statement_complexity(statement: &Statement) -> i64 {
+    let mut complexity = 0;
+    match statement {
+        Statement::If(if_stmt) => {
+            complexity += 1; // if
+            match &if_stmt.body {
+                IfBody::Statement(body) => {
+                    complexity += calculate_statement_complexity(&body.statement);
+                    for clause in body.else_if_clauses.iter() {
+                        complexity += 1; // elseif
+                        complexity += calculate_statement_complexity(&clause.statement);
+                    }
+                    if let Some(else_clause) = &body.else_clause {
+                        complexity += calculate_statement_complexity(&else_clause.statement);
+                    }
+                }
+                IfBody::ColonDelimited(body) => {
+                    complexity += calculate_complexity(&body.statements);
+                    for clause in body.else_if_clauses.iter() {
+                        complexity += 1; // elseif
+                        for s in clause.statements.iter() {
+                            complexity += calculate_statement_complexity(s);
                         }
                     }
-                };
-                c
-            }
-            Statement::While(WhileStatement {
-                r#while: _,
-                left_parenthesis: _,
-                condition: _,
-                right_parenthesis: _,
-                body,
-            }) => {
-                graph.increase_node();
-
-                match body {
-                    WhileStatementBody::Block {
-                        colon: _,
-                        statements,
-                        endwhile: _,
-                        ending: _,
-                    } => calculate_cyclomatic_complexity(statements, graph),
-                    WhileStatementBody::Statement { statement } => {
-                        calculate_cyclomatic_complexity(vec![*statement], graph)
+                    if let Some(else_clause) = &body.else_clause {
+                        for s in else_clause.statements.iter() {
+                            complexity += calculate_statement_complexity(s);
+                        }
                     }
-                };
-                graph
+                }
             }
-            Statement::Block(BlockStatement {
-                left_brace: _,
-                statements,
-                right_brace: _,
-            }) => calculate_cyclomatic_complexity(statements, graph),
-            _ => {
-                graph.increase_edge();
-                graph
+        }
+        Statement::While(while_stmt) => {
+            complexity += 1;
+            match &while_stmt.body {
+                WhileBody::Statement(body) => {
+                    complexity += calculate_statement_complexity(body);
+                }
+                WhileBody::ColonDelimited(body) => {
+                    complexity += calculate_complexity(&body.statements);
+                }
             }
-        };
+        }
+        Statement::DoWhile(do_while_stmt) => {
+            complexity += 1;
+            complexity += calculate_statement_complexity(&do_while_stmt.statement);
+        }
+        Statement::For(for_stmt) => {
+            complexity += 1;
+            match &for_stmt.body {
+                ForBody::Statement(body) => {
+                    complexity += calculate_statement_complexity(body);
+                }
+                ForBody::ColonDelimited(body) => {
+                    complexity += calculate_complexity(&body.statements);
+                }
+            }
+        }
+        Statement::Foreach(foreach_stmt) => {
+            complexity += 1;
+            match &foreach_stmt.body {
+                ForeachBody::Statement(body) => {
+                    complexity += calculate_statement_complexity(body);
+                }
+                ForeachBody::ColonDelimited(body) => {
+                    complexity += calculate_complexity(&body.statements);
+                }
+            }
+        }
+        Statement::Switch(switch_stmt) => {
+            let cases = match &switch_stmt.body {
+                mago_ast::ast::control_flow::switch::SwitchBody::BraceDelimited(body) => {
+                    &body.cases
+                }
+                mago_ast::ast::control_flow::switch::SwitchBody::ColonDelimited(body) => {
+                    &body.cases
+                }
+            };
+            for case in cases.iter() {
+                match case {
+                    mago_ast::ast::control_flow::switch::SwitchCase::Expression(c) => {
+                        complexity += 1;
+                        complexity += calculate_complexity(&c.statements);
+                    }
+                    mago_ast::ast::control_flow::switch::SwitchCase::Default(c) => {
+                        // Default case does not increase complexity usually? Or does it?
+                        // McCabe says number of branches. Default is the "else".
+                        // Usually 'case' adds 1. Default doesn't.
+                        complexity += calculate_complexity(&c.statements);
+                    }
+                }
+            }
+        }
+        Statement::Try(try_stmt) => {
+            complexity += calculate_complexity(&try_stmt.block.statements);
+            for catch in try_stmt.catch_clauses.iter() {
+                complexity += 1;
+                complexity += calculate_complexity(&catch.block.statements);
+            }
+            if let Some(finally) = &try_stmt.finally_clause {
+                complexity += calculate_complexity(&finally.block.statements);
+            }
+        }
+        Statement::Block(block) => {
+            complexity += calculate_complexity(&block.statements);
+        }
+        _ => {}
     }
-    graph
+    complexity
 }
 
 #[cfg(test)]
@@ -203,12 +207,6 @@ mod tests {
     use crate::rules::tests::analyze_file_for_rule;
 
     use super::*;
-
-    #[test]
-    pub fn graph_calculate() {
-        let g = Graph { n: 8, e: 9, p: 3 };
-        assert_eq!(g.calculate(), 5);
-    }
 
     #[test]
     fn complex() {

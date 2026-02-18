@@ -1,7 +1,8 @@
-use php_parser_rs::parser::ast::classes::ClassMember;
-use php_parser_rs::parser::ast::modifiers::PropertyModifierGroup;
-use php_parser_rs::parser::ast::properties::{Property, PropertyEntry};
-use php_parser_rs::parser::ast::Statement;
+use mago_ast::ast::class_like::member::ClassLikeMember;
+use mago_ast::ast::class_like::property::Property;
+use mago_ast::ast::modifier::Modifier;
+use mago_ast::ast::Statement;
+use mago_span::HasSpan;
 
 use crate::file::File;
 use crate::results::Violation;
@@ -20,52 +21,43 @@ impl crate::rules::Rule for Rule {
         String::from(DESCRIPTION)
     }
 
+    fn do_validate(&self, _file: &File) -> bool {
+        true
+    }
+
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
         let mut violations = Vec::new();
 
         if let Statement::Class(class) = statement {
-            for member in &class.body.members {
-                if let ClassMember::Property(property) = member {
-                    if Self::property_without_modifiers(property) {
-                        let name = Self::property_name(property);
+            for member in class.members.iter() {
+                if let ClassLikeMember::Property(property) = member {
+                    if Self::property_without_visibility(property) {
+                        let names: Vec<String> = property
+                            .variables()
+                            .iter()
+                            .map(|v| file.interner.lookup(&v.name).to_string())
+                            .collect();
+
                         let suggestion =
-                            format!("The variables {} have no modifier.", name.join(", "));
-                        violations.push(self.new_violation(file, suggestion, property.end));
+                            format!("The variables {} have no modifier.", names.join(", "));
+                        violations.push(self.new_violation(file, suggestion, property.span()));
                     }
                 }
             }
-        };
+        }
 
         violations
-    }
-
-    fn travers_statements_to_validate<'a>(
-        &'a self,
-        flatten_statements: Vec<&'a Statement>,
-        statement: &'a Statement,
-    ) -> Vec<&Statement> {
-        self.class_statements_only_to_validate(flatten_statements, statement)
     }
 }
 
 impl Rule {
-    fn property_without_modifiers(property: &Property) -> bool {
-        let PropertyModifierGroup { modifiers } = &property.modifiers;
-        modifiers.is_empty()
-    }
-    fn property_name(property: &Property) -> Vec<std::string::String> {
-        let Property { entries, .. } = property;
-        {
-            let mut names: Vec<String> = Vec::new();
-            for entry in entries {
-                let name = match entry {
-                    PropertyEntry::Initialized { variable, .. } => variable.name.to_string(),
-                    PropertyEntry::Uninitialized { variable } => variable.to_string(),
-                };
-                names.push(name);
-            }
-            names
-        }
+    fn property_without_visibility(property: &Property) -> bool {
+        !property.modifiers().iter().any(|m| {
+            matches!(
+                m,
+                Modifier::Public(_) | Modifier::Protected(_) | Modifier::Private(_)
+            )
+        })
     }
 }
 

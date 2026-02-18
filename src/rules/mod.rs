@@ -1,20 +1,27 @@
 use colored::Colorize;
 use std::collections::HashMap;
-use std::default::Default;
+// use std::default::Default;
+// use indicatif::ProgressBar;
+// use jwalk::WalkDir;
 use std::error::Error;
 use std::fs;
 use std::path::Path;
 
-use php_parser_rs::lexer::token::Span;
-use php_parser_rs::parser::ast::Statement;
+use mago_ast::ast::control_flow::r#if::IfBody;
+use mago_ast::ast::r#loop::foreach::ForeachBody;
+use mago_ast::ast::r#loop::r#for::ForBody;
+use mago_ast::ast::r#loop::r#while::WhileBody;
+// use mago_ast::Program;
+use mago_ast::Statement;
+use mago_span::Span;
 use serde_json::Value;
 
 use crate::config::Config;
 use crate::file::File;
 use crate::results::Violation;
-use crate::rules::ast_child_statements::AstChildStatements;
+// use crate::rules::ast_child_statements::AstChildStatements;
 
-mod ast_child_statements;
+// mod ast_child_statements;
 pub mod e0;
 pub mod e1;
 pub mod e10;
@@ -22,6 +29,8 @@ pub mod e11;
 pub mod e12;
 pub mod e13;
 pub mod e2;
+// pub mod e1;
+// pub mod e2;
 pub mod e3;
 pub mod e4;
 pub mod e5;
@@ -87,69 +96,202 @@ pub trait Rule {
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation>;
 
     fn new_violation(&self, file: &File, suggestion: String, span: Span) -> Violation {
-        let line = file.lines.get(span.line - 1).unwrap();
+        let (line, start_line, start_column, end_line, end_column) =
+            if let Ok(source) = file.source_manager.load(&span.start.source) {
+                let start_line = source.line_number(span.start.offset);
+                let start_column = source.column_number(span.start.offset);
+                let end_line = source.line_number(span.end.offset);
+                let end_column = source.column_number(span.end.offset);
+                (
+                    start_line.to_string(),
+                    start_line,
+                    start_column,
+                    end_line,
+                    end_column,
+                )
+            } else {
+                (String::from(""), 0, 0, 0, 0)
+            };
 
         Violation {
             rule: self.get_code(),
-            line: String::from(line),
+            line,
             suggestion,
-            span,
+            // span,
+            start_line,
+            start_column,
+            end_line,
+            end_column,
         }
     }
 
     fn flatten_statements_to_validate<'a>(&'a self, statement: &'a Statement) -> Vec<&Statement> {
-        let flatten_statements: Vec<&Statement> = Vec::new();
-
-        self.travers_statements_to_validate(flatten_statements, statement)
+        let mut flatten_statements: Vec<&Statement> = Vec::new();
+        self.travers_statements_to_validate(&mut flatten_statements, statement);
+        flatten_statements
     }
 
     fn travers_statements_to_validate<'a>(
         &'a self,
-        mut flatten_statements: Vec<&'a Statement>,
+        flatten_statements: &mut Vec<&'a Statement>,
         statement: &'a Statement,
-    ) -> Vec<&Statement> {
+    ) {
         flatten_statements.push(statement);
 
-        let child_statements: AstChildStatements = match statement {
-            Statement::Namespace(statement) => statement.into(),
-            Statement::Trait(statement) => statement.into(),
-            Statement::Class(statement) => statement.into(),
-            Statement::Block(statement) => statement.into(),
-            Statement::If(statement) => statement.into(),
-            Statement::Switch(statement) => statement.into(),
-            Statement::While(statement) => statement.into(),
-            Statement::Foreach(statement) => statement.into(),
-            Statement::For(statement) => statement.into(),
-            Statement::Try(statement) => statement.into(),
-            _ => AstChildStatements { statements: vec![] },
-        };
-
-        for statement in child_statements.statements {
-            flatten_statements.append(&mut self.flatten_statements_to_validate(statement));
+        match statement {
+            Statement::Block(block) => {
+                for s in block.statements.iter() {
+                    self.travers_statements_to_validate(flatten_statements, s);
+                }
+            }
+            Statement::If(if_stmt) => match &if_stmt.body {
+                IfBody::Statement(body) => {
+                    self.travers_statements_to_validate(flatten_statements, &body.statement);
+                    for clauses in body.else_if_clauses.iter() {
+                        self.travers_statements_to_validate(flatten_statements, &clauses.statement);
+                    }
+                    if let Some(else_clause) = &body.else_clause {
+                        self.travers_statements_to_validate(
+                            flatten_statements,
+                            &else_clause.statement,
+                        );
+                    }
+                }
+                IfBody::ColonDelimited(body) => {
+                    for s in body.statements.iter() {
+                        self.travers_statements_to_validate(flatten_statements, s);
+                    }
+                    for clauses in body.else_if_clauses.iter() {
+                        for s in clauses.statements.iter() {
+                            self.travers_statements_to_validate(flatten_statements, s);
+                        }
+                    }
+                    if let Some(else_clause) = &body.else_clause {
+                        for s in else_clause.statements.iter() {
+                            self.travers_statements_to_validate(flatten_statements, s);
+                        }
+                    }
+                }
+            },
+            Statement::While(while_stmt) => match &while_stmt.body {
+                WhileBody::Statement(body) => {
+                    self.travers_statements_to_validate(flatten_statements, body);
+                }
+                WhileBody::ColonDelimited(body) => {
+                    for s in body.statements.iter() {
+                        self.travers_statements_to_validate(flatten_statements, s);
+                    }
+                }
+            },
+            Statement::DoWhile(do_while_stmt) => {
+                self.travers_statements_to_validate(flatten_statements, &do_while_stmt.statement);
+            }
+            Statement::Foreach(foreach_stmt) => match &foreach_stmt.body {
+                ForeachBody::Statement(body) => {
+                    self.travers_statements_to_validate(flatten_statements, body);
+                }
+                ForeachBody::ColonDelimited(body) => {
+                    for s in body.statements.iter() {
+                        self.travers_statements_to_validate(flatten_statements, s);
+                    }
+                }
+            },
+            Statement::For(for_stmt) => match &for_stmt.body {
+                ForBody::Statement(body) => {
+                    self.travers_statements_to_validate(flatten_statements, body);
+                }
+                ForBody::ColonDelimited(body) => {
+                    for s in body.statements.iter() {
+                        self.travers_statements_to_validate(flatten_statements, s);
+                    }
+                }
+            },
+            Statement::Try(try_stmt) => {
+                for s in try_stmt.block.statements.iter() {
+                    self.travers_statements_to_validate(flatten_statements, s);
+                }
+                for catch in try_stmt.catch_clauses.iter() {
+                    for s in catch.block.statements.iter() {
+                        self.travers_statements_to_validate(flatten_statements, s);
+                    }
+                }
+                if let Some(finally) = &try_stmt.finally_clause {
+                    for s in finally.block.statements.iter() {
+                        self.travers_statements_to_validate(flatten_statements, s);
+                    }
+                }
+            }
+            Statement::Namespace(namespace) => {
+                for s in namespace.statements().iter() {
+                    self.travers_statements_to_validate(flatten_statements, s);
+                }
+            }
+            Statement::Class(class) => {
+                for member in class.members.iter() {
+                    if let mago_ast::ast::class_like::member::ClassLikeMember::Method(method) =
+                        member
+                    {
+                        match &method.body {
+                            mago_ast::MethodBody::Concrete(block) => {
+                                for s in block.statements.iter() {
+                                    self.travers_statements_to_validate(flatten_statements, s);
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }
+            Statement::Interface(interface) => {
+                for member in interface.members.iter() {
+                    if let mago_ast::ast::class_like::member::ClassLikeMember::Method(method) =
+                        member
+                    {
+                        match &method.body {
+                            mago_ast::MethodBody::Concrete(block) => {
+                                for s in block.statements.iter() {
+                                    self.travers_statements_to_validate(flatten_statements, s);
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }
+            Statement::Trait(t) => {
+                for member in t.members.iter() {
+                    if let mago_ast::ast::class_like::member::ClassLikeMember::Method(method) =
+                        member
+                    {
+                        match &method.body {
+                            mago_ast::MethodBody::Concrete(block) => {
+                                for s in block.statements.iter() {
+                                    self.travers_statements_to_validate(flatten_statements, s);
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }
+            Statement::Enum(e) => {
+                for member in e.members.iter() {
+                    if let mago_ast::ast::class_like::member::ClassLikeMember::Method(method) =
+                        member
+                    {
+                        match &method.body {
+                            mago_ast::MethodBody::Concrete(block) => {
+                                for s in block.statements.iter() {
+                                    self.travers_statements_to_validate(flatten_statements, s);
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            }
+            _ => {}
         }
-
-        flatten_statements
-    }
-
-    fn class_statements_only_to_validate<'a>(
-        &'a self,
-        mut flatten_statements: Vec<&'a Statement>,
-        statement: &'a Statement,
-    ) -> Vec<&Statement> {
-        if let Statement::Class(_) = &statement {
-            flatten_statements.push(statement);
-        };
-
-        let child_statements: AstChildStatements = match statement {
-            Statement::Namespace(statement) => statement.into(),
-            _ => AstChildStatements { statements: vec![] },
-        };
-
-        for statement in &child_statements.statements {
-            flatten_statements.append(&mut self.flatten_statements_to_validate(statement));
-        }
-
-        flatten_statements
     }
 }
 
@@ -194,7 +336,7 @@ pub fn all_rules() -> HashMap<String, Box<dyn Rule>> {
     add_rule(&mut rules, Box::new(e8::Rule {}));
     add_rule(&mut rules, Box::default() as Box<e9::Rule>);
     add_rule(&mut rules, Box::default() as Box<e10::Rule>);
-    add_rule(&mut rules, Box::default() as Box<e11::Rule>);
+    add_rule(&mut rules, Box::new(e11::Rule {}));
     add_rule(&mut rules, Box::default() as Box<e12::Rule>);
     add_rule(&mut rules, Box::new(e13::Rule {}));
 

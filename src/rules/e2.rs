@@ -1,5 +1,5 @@
-use php_parser_rs::parser::ast::try_block::CatchBlock;
-use php_parser_rs::parser::ast::Statement;
+use mago_ast::Statement;
+use mago_span::HasSpan;
 
 use crate::file::File;
 use crate::results::Violation;
@@ -19,14 +19,17 @@ impl crate::rules::Rule for Rule {
         String::from(DESCRIPTION)
     }
 
+    fn do_validate(&self, _file: &File) -> bool {
+        true
+    }
+
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
         let mut violations = Vec::new();
 
         if let Statement::Try(s) = statement {
-            for catch in &s.catches {
-                let CatchBlock { start, body, .. } = catch;
-                if body.is_empty() {
-                    violations.push(self.new_violation(file, SUGGESTION.to_string(), *start));
+            for catch in s.catch_clauses.iter() {
+                if catch.block.statements.is_empty() {
+                    violations.push(self.new_violation(file, SUGGESTION.to_string(), catch.span()));
                 }
             }
         };

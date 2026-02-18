@@ -1,7 +1,7 @@
-use php_parser_rs::lexer::token::Span;
-use php_parser_rs::parser::ast::{
-    classes::ClassMember, functions::MethodBody, ReturnStatement, Statement,
-};
+use mago_ast::ast::class_like::member::ClassLikeMember;
+use mago_ast::ast::class_like::method::MethodBody;
+use mago_ast::ast::Statement;
+use mago_span::HasSpan;
 
 use crate::file::File;
 use crate::results::Violation;
@@ -20,49 +20,38 @@ impl crate::rules::Rule for Rule {
         String::from(DESCRIPTION)
     }
 
+    fn do_validate(&self, _file: &File) -> bool {
+        true
+    }
+
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
         let mut violations = Vec::new();
-        if let Statement::Class(class) = statement {
-            for member in &class.body.members {
-                if let ClassMember::ConcreteMethod(method) = member {
-                    let return_span = Self::get_return_span(&method.body);
-                    let method_name = &method.name.value;
 
-                    if let Some(r) = return_span {
-                        if method.return_type.is_none() {
-                            let suggestion = format!("The method {} has a return statement but it has no return type signature.", method_name).to_string();
-                            violations.push(self.new_violation(file, suggestion, r));
-                        };
-                    };
+        if let Statement::Class(class) = statement {
+            for member in class.members.iter() {
+                if let ClassLikeMember::Method(method) = member {
+                    // Only check concrete methods (not abstract)
+                    if let MethodBody::Concrete(block) = &method.body {
+                        // Check if method has a return statement
+                        let has_return = block
+                            .statements
+                            .iter()
+                            .any(|s| matches!(s, Statement::Return(_)));
+
+                        if has_return && method.return_type_hint.is_none() {
+                            let method_name = file.interner.lookup(&method.name.value);
+                            let suggestion = format!(
+                                "The method {} has a return statement but it has no return type signature.",
+                                method_name
+                            );
+                            violations.push(self.new_violation(file, suggestion, method.span()));
+                        }
+                    }
                 }
             }
-        };
-        violations
-    }
-
-    fn travers_statements_to_validate<'a>(
-        &'a self,
-        flatten_statements: Vec<&'a Statement>,
-        statement: &'a Statement,
-    ) -> Vec<&Statement> {
-        self.class_statements_only_to_validate(flatten_statements, statement)
-    }
-}
-
-impl Rule {
-    fn get_return_span(body: &MethodBody) -> Option<Span> {
-        let mut r: Option<Span> = None;
-        for statement in &body.statements {
-            if let Statement::Return(ReturnStatement {
-                r#return,
-                value: _,
-                ending: _,
-            }) = statement
-            {
-                r = Some(*r#return);
-            }
         }
-        r
+
+        violations
     }
 }
 
