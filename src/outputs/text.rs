@@ -48,13 +48,9 @@ impl Text {
                     );
                     println!(
                         "  {}\t{} {}",
-                        format!(
-                            "{}:{}",
-                            suggestion.span.line.max(1),
-                            suggestion.span.column.max(1)
-                        )
-                        .blue()
-                        .bold(),
+                        format!("{}:{}", suggestion.start_line, suggestion.start_column + 1)
+                            .blue()
+                            .bold(),
                         line_symbol,
                         suggestion.line
                     );

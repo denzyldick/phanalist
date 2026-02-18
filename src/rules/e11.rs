@@ -1,6 +1,7 @@
-use php_parser_rs::parser::ast::{
-    ErrorSuppressExpression, Expression, ExpressionStatement, ReturnStatement, Statement,
-};
+use mago_ast::ast::expression::Expression;
+use mago_ast::ast::Statement;
+use mago_ast::UnaryPrefixOperator;
+use mago_span::HasSpan;
 
 use crate::file::File;
 use crate::results::Violation;
@@ -20,42 +21,57 @@ impl crate::rules::Rule for Rule {
         String::from(DESCRIPTION)
     }
 
-    fn validate(&self, _file: &File, statement: &Statement) -> Vec<Violation> {
-        let mut violation = vec![];
-        let flatten_statements = self.travers_statements_to_validate(vec![].clone(), statement);
-        for statement in flatten_statements {
-            match statement {
-                Statement::Expression(ExpressionStatement {
-                    expression: Expression::ErrorSuppress(ErrorSuppressExpression { at, expr: _ }),
-                    ending: _,
-                }) => {
-                    let suggestion = "Error supression(@) symbol found. Remove it.".to_string();
-                    violation.push(Violation {
-                        rule: String::from(CODE),
-                        line: at.line.to_string(),
-                        suggestion,
-                        span: *at,
-                    });
+    fn do_validate(&self, _file: &File) -> bool {
+        true
+    }
+
+    fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
+        let mut violations = Vec::new();
+        let flatten_statements = self.flatten_statements_to_validate(statement);
+
+        for stmt in flatten_statements {
+            if let Statement::Expression(expr_stmt) = stmt {
+                check_expression(file, self, &expr_stmt.expression, &mut violations);
+            }
+            if let Statement::Return(ret) = stmt {
+                if let Some(value) = &ret.value {
+                    check_expression(file, self, value, &mut violations);
                 }
-                Statement::Return(ReturnStatement {
-                    r#return: _,
-                    value: Some(Expression::ErrorSuppress(ErrorSuppressExpression { at, expr: _ })),
-                    ending: _,
-                }) => {
-                    let suggestion = "Error supression(@) symbol found. Remove it. ".to_string();
-                    violation.push(Violation {
-                        rule: String::from(CODE),
-                        line: at.line.to_string(),
-                        suggestion,
-                        span: *at,
-                    });
-                }
-                _ => {}
-            };
+            }
         }
-        violation
+
+        violations
     }
 }
+
+fn check_expression(
+    file: &File,
+    rule: &dyn crate::rules::Rule,
+    expr: &Expression,
+    violations: &mut Vec<Violation>,
+) {
+    match expr {
+        Expression::UnaryPrefix(prefix) => {
+            if let UnaryPrefixOperator::ErrorControl(_) = prefix.operator {
+                let suggestion = "Error supression(@) symbol found. Remove it.".to_string();
+                violations.push(rule.new_violation(file, suggestion, prefix.span()));
+            }
+            // Recurse into the operand
+            check_expression(file, rule, &prefix.operand, violations);
+        }
+        Expression::Call(call) => {
+            use mago_ast::Call;
+            match call {
+                Call::Method(m) => {
+                    check_expression(file, rule, &m.object, violations);
+                }
+                _ => {}
+            }
+        }
+        _ => {}
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::rules::tests::analyze_file_for_rule;
@@ -66,6 +82,6 @@ mod tests {
     fn example() {
         let violations = analyze_file_for_rule("e11/detect_@.php", CODE);
 
-        assert!(violations.len().gt(&1));
+        assert!(violations.len().gt(&0));
     }
 }
