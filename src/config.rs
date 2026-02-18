@@ -20,22 +20,27 @@ impl Default for Config {
         let disable_rules: Vec<String> = vec![];
 
         let mut rules = HashMap::new();
-        rules.insert(
-            String::from(rules::e7::CODE),
-            serde_json::to_value(rules::e7::Settings::default()).unwrap(),
-        );
-        rules.insert(
-            String::from(rules::e9::CODE),
-            serde_json::to_value(rules::e9::Settings::default()).unwrap(),
-        );
-        rules.insert(
-            String::from(rules::e10::CODE),
-            serde_json::to_value(rules::e10::Settings::default()).unwrap(),
-        );
-        rules.insert(
-            String::from(rules::e12::CODE),
-            serde_json::to_value(rules::e12::Settings::default()).unwrap(),
-        );
+        // rules.insert(
+        //     String::from(rules::e7::CODE),
+        //     serde_json::to_value(rules::e7::Settings::default()).unwrap(),
+        // );
+        // rules.insert(
+        //     String::from(rules::e9::CODE),
+        //     serde_json::to_value(rules::e9::Settings::default()).unwrap(),
+        // );
+        // rules.insert("E7".to_string(), Value::Null);
+        // rules.insert("E9".to_string(), Value::Null);
+        // rules.insert("E10".to_string(), Value::Null);
+        // rules.insert("E11".to_string(), Value::Null);
+        // rules.insert("E12".to_string(), Value::Null);
+        // rules.insert(
+        //     String::from(rules::e10::CODE),
+        //     serde_json::to_value(rules::e10::Settings::default()).unwrap(),
+        // );
+        // rules.insert(
+        //     String::from(rules::e12::CODE),
+        //     serde_json::to_value(rules::e12::Settings::default()).unwrap(),
+        // );
 
         Config {
             enabled_rules,
