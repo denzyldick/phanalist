@@ -7,15 +7,16 @@ use std::sync::mpsc::Sender;
 use colored::Colorize;
 use indicatif::ProgressBar;
 use jwalk::WalkDir;
-use php_parser_rs::parser;
+// use mago_ast::Program;
+use mago_ast::Statement;
 
 use crate::config::Config;
 use crate::file::File;
 use crate::outputs::codeclimate::CodeClimate;
-use crate::outputs::Format;
 use crate::outputs::json::Json;
 use crate::outputs::sarif::Sarif;
 use crate::outputs::text::Text;
+use crate::outputs::Format;
 use crate::outputs::OutputFormatter;
 use crate::results::{Results, Violation};
 use crate::rules::Rule;
@@ -25,7 +26,10 @@ pub fn scan_folder(current_dir: PathBuf, sender: Sender<(String, PathBuf)>) {
     for entry in WalkDir::new(current_dir).follow_links(false) {
         let entry = entry.unwrap();
         let path = entry.path();
-        let metadata = fs::metadata(&path).unwrap();
+        let metadata = match fs::metadata(&path) {
+            Ok(m) => m,
+            Err(_) => continue,
+        };
         let file_name = match path.file_name() {
             Some(f) => String::from(f.to_str().unwrap()),
             None => String::from(""),
@@ -176,12 +180,11 @@ impl Analyse {
     pub(crate) fn analyse_file(&self, file: &mut File) -> Vec<Violation> {
         let mut violations: Vec<Violation> = vec![];
 
-        let statements = file.get_class();
-        if let Some(statements) = statements {
-            file.reference_counter.build_reference_counter(&statements);
-        }
-        for statement in &file.ast {
-            violations.append(&mut self.analyse_file_statement(file, statement));
+        if let Some(program) = &file.ast {
+            file.reference_counter.build_reference_counter(program);
+            for statement in program.statements.iter() {
+                violations.append(&mut self.analyse_file_statement(file, statement));
+            }
         }
         violations
     }
@@ -230,11 +233,7 @@ impl Analyse {
         ProgressBar::new(files_count as u64)
     }
 
-    pub fn analyse_file_statement(
-        &self,
-        file: &File,
-        statement: &parser::ast::Statement,
-    ) -> Vec<Violation> {
+    pub fn analyse_file_statement(&self, file: &File, statement: &Statement) -> Vec<Violation> {
         let mut violations = Vec::new();
 
         for rule in self.rules.values() {
