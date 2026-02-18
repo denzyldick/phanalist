@@ -48,7 +48,7 @@ impl Text {
                     );
                     println!(
                         "  {}\t{} {}",
-                        format!("{}:{}", suggestion.span.line, suggestion.span.column)
+                        format!("{}:{}", suggestion.start_line, suggestion.start_column + 1)
                             .blue()
                             .bold(),
                         line_symbol,

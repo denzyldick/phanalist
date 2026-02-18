@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-use php_parser_rs::lexer::token::Span;
+// use mago_source::SourceIdentifier;
+// use mago_span::{Span, Position};
 use serde::{Deserialize, Serialize};
 
 use crate::file::File;
@@ -11,7 +12,11 @@ pub struct Violation {
     pub rule: String,
     pub line: String,
     pub suggestion: String,
-    pub span: Span,
+    // pub span: Span,
+    pub start_line: usize,
+    pub start_column: usize,
+    pub end_line: usize,
+    pub end_column: usize,
 }
 
 #[derive(Serialize, Debug, Deserialize, Clone, Default)]
@@ -81,11 +86,20 @@ mod tests {
             rule: rule.to_string(),
             line: "Line".to_string(),
             suggestion: "Suggestion".to_string(),
-            span: Span {
-                line: 0,
-                column: 0,
-                position: 0,
-            },
+            // span: Span {
+            //     start: Position {
+            //         source: SourceIdentifier::default(),
+            //         offset: 0,
+            //     },
+            //     end: Position {
+            //         source: SourceIdentifier::default(),
+            //         offset: 0,
+            //     },
+            // },
+            start_line: 0,
+            start_column: 0,
+            end_line: 0,
+            end_column: 0,
         }
     }
 

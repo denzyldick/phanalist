@@ -10,7 +10,15 @@ class Complex {
                     if (4 === 4) {
                         if (5 === 5) {
                             if (6 === 6) {
-                                return true;
+                                if (7 === 7) {
+                                    if (8 === 8) {
+                                        if (9 === 9) {
+                                            if (10 === 10) {
+                                                return true;
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
