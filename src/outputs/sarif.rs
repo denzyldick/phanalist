@@ -98,14 +98,14 @@ impl OutputFormatter for Sarif {
                     byte_offset: None,
                     char_length: None,
                     char_offset: None,
-                    end_column: Some(violation.end_column as i64),
-                    end_line: Some(violation.end_line as i64),
+                    end_column: Some((violation.end_column as i64).max(1)),
+                    end_line: Some((violation.end_line as i64).max(1)),
                     message: None,
                     properties: None,
                     snippet: None,
                     source_language: Some("PHP".to_string()),
-                    start_column: Some(violation.start_column as i64),
-                    start_line: Some(violation.start_line as i64),
+                    start_column: Some((violation.start_column as i64).max(1)),
+                    start_line: Some((violation.start_line as i64).max(1)),
                 };
 
                 let physical_location = PhysicalLocation {
