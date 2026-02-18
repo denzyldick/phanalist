@@ -1,14 +1,13 @@
-use php_parser_rs::parser::ast::classes::ClassMember;
-use php_parser_rs::parser::ast::constant::ConstantEntry;
-use php_parser_rs::parser::ast::Statement;
-
 use crate::file::File;
 use crate::results::Violation;
-
-static CODE: &str = "E0004";
-static DESCRIPTION: &str = "Uppercase constants";
+use mago_ast::ast::class_like::member::ClassLikeMember;
+use mago_ast::Statement;
+use mago_span::HasSpan;
 
 pub struct Rule {}
+
+const CODE: &str = "E0004";
+const DESCRIPTION: &str = "Uppercase constants";
 
 impl crate::rules::Rule for Rule {
     fn get_code(&self) -> String {
@@ -19,49 +18,99 @@ impl crate::rules::Rule for Rule {
         String::from(DESCRIPTION)
     }
 
+    fn do_validate(&self, _file: &File) -> bool {
+        true
+    }
+
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
         let mut violations = Vec::new();
 
-        if let Statement::Class(class) = statement {
-            for member in &class.body.members {
-                if let ClassMember::Constant(constant) = member {
-                    for entry in &constant.entries {
-                        if !Self::uppercased_constant_name(entry) {
-                            let suggestion = format!(
-                                "All letters in a constant \"{}\" should be uppercase.",
-                                entry.name.value
-                            );
-                            violations.push(self.new_violation(file, suggestion, entry.name.span))
+        match statement {
+            Statement::Constant(c) => {
+                for item in c.items.iter() {
+                    let name = file.interner.lookup(&item.name.value);
+                    if name != name.to_uppercase() {
+                        let suggestion = format!("The constant {} should be uppercase.", name);
+                        violations.push(self.new_violation(file, suggestion, item.name.span()));
+                    }
+                }
+            }
+            Statement::Class(c) => {
+                for member in c.members.iter() {
+                    if let ClassLikeMember::Constant(const_member) = member {
+                        for item in const_member.items.iter() {
+                            let name = file.interner.lookup(&item.name.value);
+                            if name != name.to_uppercase() {
+                                let suggestion =
+                                    format!("The constant {} should be uppercase.", name);
+                                violations.push(self.new_violation(
+                                    file,
+                                    suggestion,
+                                    item.name.span(),
+                                ));
+                            }
                         }
                     }
                 }
             }
-        };
-
-        violations
-    }
-
-    fn travers_statements_to_validate<'a>(
-        &'a self,
-        flatten_statements: Vec<&'a Statement>,
-        statement: &'a Statement,
-    ) -> Vec<&Statement> {
-        self.class_statements_only_to_validate(flatten_statements, statement)
-    }
-}
-
-impl Rule {
-    fn uppercased_constant_name(entry: &ConstantEntry) -> bool {
-        let ConstantEntry { name, .. } = entry;
-
-        let mut is_uppercase = true;
-        for l in name.value.to_string().chars() {
-            if !l.is_uppercase() && l.is_alphabetic() {
-                is_uppercase = l.is_uppercase()
+            Statement::Interface(i) => {
+                for member in i.members.iter() {
+                    if let ClassLikeMember::Constant(const_member) = member {
+                        for item in const_member.items.iter() {
+                            let name = file.interner.lookup(&item.name.value);
+                            if name != name.to_uppercase() {
+                                let suggestion =
+                                    format!("The constant {} should be uppercase.", name);
+                                violations.push(self.new_violation(
+                                    file,
+                                    suggestion,
+                                    item.name.span(),
+                                ));
+                            }
+                        }
+                    }
+                }
             }
+            Statement::Trait(t) => {
+                for member in t.members.iter() {
+                    if let ClassLikeMember::Constant(const_member) = member {
+                        for item in const_member.items.iter() {
+                            let name = file.interner.lookup(&item.name.value);
+                            if name != name.to_uppercase() {
+                                let suggestion =
+                                    format!("The constant {} should be uppercase.", name);
+                                violations.push(self.new_violation(
+                                    file,
+                                    suggestion,
+                                    item.name.span(),
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+            Statement::Enum(e) => {
+                for member in e.members.iter() {
+                    if let ClassLikeMember::Constant(const_member) = member {
+                        for item in const_member.items.iter() {
+                            let name = file.interner.lookup(&item.name.value);
+                            if name != name.to_uppercase() {
+                                let suggestion =
+                                    format!("The constant {} should be uppercase.", name);
+                                violations.push(self.new_violation(
+                                    file,
+                                    suggestion,
+                                    item.name.span(),
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+            _ => {}
         }
 
-        is_uppercase
+        violations
     }
 }
 
@@ -78,7 +127,7 @@ mod tests {
         assert!(violations.len().gt(&0));
         assert_eq!(
             violations.first().unwrap().suggestion,
-            "All letters in a constant \"TeST\" should be uppercase.".to_string()
+            "The constant TeST should be uppercase.".to_string()
         );
     }
 

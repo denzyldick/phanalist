@@ -1,4 +1,4 @@
-use php_parser_rs::parser::ast::Statement;
+use mago_ast::ast::Statement;
 
 use crate::file::File;
 use crate::results::Violation;
