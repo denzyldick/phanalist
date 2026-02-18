@@ -35,8 +35,8 @@ impl OutputFormatter for CodeClimate {
                     "location": {
                         "path": &key,
                         "lines": {
-                            "begin": violation.span.line,
-                            "end": violation.span.line,
+                            "begin": violation.span.line.max(1),
+                            "end": violation.span.line.max(1),
                         }
                     }
                 }));
