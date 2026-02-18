@@ -4,7 +4,8 @@ unset($argv[0]);
 echo "Detecting architecture." . PHP_EOL;
 // @todo add the other architectures and paths.
 $matrix = [
-  "x86_64" =>  "./vendor/denzyl/phanalist/release/x86_64-unknown-linux-musl/phanalist"
+  "x86_64" =>  "./vendor/denzyl/phanalist/release/x86_64-unknown-linux-musl/phanalist",
+  "aarch64" => "./vendor/denzyl/phanalist/release/aarch64-unknown-linux-musl/phanalist"
 ];
 
 $architecture = null;
