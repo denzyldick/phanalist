@@ -1,14 +1,14 @@
-use php_parser_rs::parser::ast::classes::ClassMember;
-use php_parser_rs::parser::ast::modifiers::MethodModifierGroup;
-use php_parser_rs::parser::ast::Statement;
-
+use crate::config::Config;
 use crate::file::File;
 use crate::results::Violation;
-
-static CODE: &str = "E0003";
-static DESCRIPTION: &str = "Method modifiers";
+use mago_ast::ast::class_like::member::ClassLikeMember;
+use mago_ast::{Modifier, Statement};
+use mago_span::HasSpan;
 
 pub struct Rule {}
+
+const CODE: &str = "E0003";
+const DESCRIPTION: &str = "Method modifiers";
 
 impl crate::rules::Rule for Rule {
     fn get_code(&self) -> String {
@@ -19,47 +19,72 @@ impl crate::rules::Rule for Rule {
         String::from(DESCRIPTION)
     }
 
+    fn do_validate(&self, _file: &File) -> bool {
+        true
+    }
+
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
         let mut violations = Vec::new();
 
-        if let Statement::Class(class) = statement {
-            for member in &class.body.members {
-                match member {
-                    ClassMember::ConcreteMethod(method) => {
-                        let MethodModifierGroup { modifiers } = &method.modifiers;
-                        if modifiers.is_empty() {
-                            let suggestion =
-                                format!("The method {} has no modifiers.", &method.name.value);
-                            violations.push(self.new_violation(file, suggestion, method.function))
-                        };
-                    }
-                    ClassMember::ConcreteConstructor(constructor) => {
-                        let MethodModifierGroup { modifiers } = &constructor.modifiers;
-                        if modifiers.is_empty() {
+        match statement {
+            Statement::Class(class) => {
+                for member in class.members.iter() {
+                    if let ClassLikeMember::Method(method) = member {
+                        if !self.has_visibility_modifier(&method.modifiers) {
+                            let method_name = file.interner.lookup(&method.name.value);
                             let suggestion = format!(
-                                "This method {} has no modifiers.",
-                                &constructor.name.value
+                                "Method name \"{}\" should be declared with a visibility modifier.",
+                                method_name
                             );
-                            violations.push(self.new_violation(
-                                file,
-                                suggestion,
-                                constructor.function,
-                            ))
-                        };
+                            violations.push(self.new_violation(file, suggestion, method.span()));
+                        }
                     }
-                    _ => {}
                 }
             }
-        };
+            Statement::Interface(interface) => {
+                for member in interface.members.iter() {
+                    if let ClassLikeMember::Method(method) = member {
+                        if !self.has_visibility_modifier(&method.modifiers) {
+                            let method_name = file.interner.lookup(&method.name.value);
+                            let suggestion = format!(
+                                "Method name \"{}\" should be declared with a visibility modifier.",
+                                method_name
+                            );
+                            violations.push(self.new_violation(file, suggestion, method.span()));
+                        }
+                    }
+                }
+            }
+            Statement::Trait(t) => {
+                for member in t.members.iter() {
+                    if let ClassLikeMember::Method(method) = member {
+                        if !self.has_visibility_modifier(&method.modifiers) {
+                            let method_name = file.interner.lookup(&method.name.value);
+                            let suggestion = format!(
+                                "Method name \"{}\" should be declared with a visibility modifier.",
+                                method_name
+                            );
+                            violations.push(self.new_violation(file, suggestion, method.span()));
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
 
         violations
     }
-    fn travers_statements_to_validate<'a>(
-        &'a self,
-        flatten_statements: Vec<&'a Statement>,
-        statement: &'a Statement,
-    ) -> Vec<&Statement> {
-        self.class_statements_only_to_validate(flatten_statements, statement)
+}
+
+impl Rule {
+    fn has_visibility_modifier(&self, modifiers: &mago_ast::Sequence<Modifier>) -> bool {
+        for modifier in modifiers.iter() {
+            match modifier {
+                Modifier::Public(_) | Modifier::Protected(_) | Modifier::Private(_) => return true,
+                _ => {}
+            }
+        }
+        false
     }
 }
 
@@ -76,7 +101,8 @@ mod tests {
         assert!(violations.len().gt(&0));
         assert_eq!(
             violations.first().unwrap().suggestion,
-            "The method methodWithoutModifier has no modifiers.".to_string()
+            "Method name \"methodWithoutModifier\" should be declared with a visibility modifier."
+                .to_string()
         );
     }
 
@@ -87,7 +113,8 @@ mod tests {
         assert!(violations.len().gt(&0));
         assert_eq!(
             violations.first().unwrap().suggestion,
-            "This method __construct has no modifiers.".to_string()
+            "Method name \"__construct\" should be declared with a visibility modifier."
+                .to_string()
         );
     }
 

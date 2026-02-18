@@ -1,4 +1,5 @@
-use php_parser_rs::parser::ast::Statement;
+use mago_ast::ast::tag::OpeningTag;
+use mago_ast::Statement;
 
 use crate::file::File;
 use crate::results::Violation;
@@ -17,47 +18,45 @@ impl crate::rules::Rule for Rule {
         String::from(DESCRIPTION)
     }
 
+    fn do_validate(&self, _file: &File) -> bool {
+        true
+    }
+
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
         let mut violations = Vec::new();
 
         if let Some(line) = file.lines.first() {
-            if line.trim() == "#!/usr/bin/env php" {
+            if line.trim().starts_with("#!") {
                 return violations;
             }
         }
 
         match statement {
-            Statement::FullOpeningTag(tag) => {
-                let span = tag.span;
-                if span.line > 1 {
-                    let suggestion= String::from("The opening tag is not on the right line. This should always be the first line in a PHP file.");
-                    violations.push(self.new_violation(file, suggestion, span));
-                }
+            Statement::OpeningTag(tag) => {
+                let span = match tag {
+                    OpeningTag::Full(t) => t.span,
+                    OpeningTag::Short(t) => t.span,
+                    _ => return violations,
+                };
 
-                if span.column > 1 {
-                    let suggestion = format!(
-                        "The opening tag doesn't start at the right column: {}.",
-                        span.column
-                    );
-                    violations.push(self.new_violation(file, suggestion, span));
+                if let Ok(source) = file.source_manager.load(&span.start.source) {
+                    let line = source.line_number(span.start.offset);
+                    let column = source.column_number(span.start.offset);
+
+                    if line > 0 {
+                        let suggestion = String::from("The opening tag is not on the right line. This should always be the first line in a PHP file.");
+                        violations.push(self.new_violation(file, suggestion, span));
+                    }
+
+                    if column > 0 {
+                        let suggestion = format!(
+                            "The opening tag doesn't start at the right column: {}.",
+                            column + 1
+                        );
+                        violations.push(self.new_violation(file, suggestion, span));
+                    }
                 }
             }
-            Statement::ShortOpeningTag(tag) => {
-                let span = tag.span;
-                if span.line > 1 {
-                    let suggestion= String::from("The opening tag is not on the right line. This should always be the first line in a PHP file.");
-                    violations.push(self.new_violation(file, suggestion, span));
-                }
-
-                if span.column > 1 {
-                    let suggestion = format!(
-                        "The opening tag doesn't start at the right column: {}.",
-                        span.column
-                    );
-                    violations.push(self.new_violation(file, suggestion, span));
-                }
-            }
-
             _ => {}
         };
 
@@ -66,20 +65,15 @@ impl crate::rules::Rule for Rule {
 
     fn travers_statements_to_validate<'a>(
         &'a self,
-        mut flatten_statements: Vec<&'a Statement>,
+        flatten_statements: &mut Vec<&'a Statement>,
         statement: &'a Statement,
-    ) -> Vec<&Statement> {
+    ) {
         match statement {
-            Statement::FullOpeningTag(_tag) => {
-                flatten_statements.push(statement);
-            }
-            Statement::ShortOpeningTag(_tag) => {
+            Statement::OpeningTag(_) => {
                 flatten_statements.push(statement);
             }
             _ => {}
         };
-
-        flatten_statements
     }
 }
 

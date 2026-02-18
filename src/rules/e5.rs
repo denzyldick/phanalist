@@ -1,7 +1,7 @@
-use php_parser_rs::parser::ast::Statement;
-
 use crate::file::File;
 use crate::results::Violation;
+use mago_ast::Statement;
+use mago_span::HasSpan;
 
 static CODE: &str = "E0005";
 static DESCRIPTION: &str = "Capitalized class name";
@@ -17,26 +17,22 @@ impl crate::rules::Rule for Rule {
         String::from(DESCRIPTION)
     }
 
+    fn do_validate(&self, _file: &File) -> bool {
+        true
+    }
+
     fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
         let mut violations = Vec::new();
 
         if let Statement::Class(class) = statement {
-            let name = class.name.value.to_string();
+            let name = file.interner.lookup(&class.name.value);
             if !name.chars().next().unwrap().is_uppercase() {
                 let suggestion = format!("The class name {} is not capitalized. The first letter of the name of the class should be in uppercase.", name);
-                violations.push(self.new_violation(file, suggestion, class.class))
+                violations.push(self.new_violation(file, suggestion, class.name.span()))
             }
         };
 
         violations
-    }
-
-    fn travers_statements_to_validate<'a>(
-        &'a self,
-        flatten_statements: Vec<&'a Statement>,
-        statement: &'a Statement,
-    ) -> Vec<&Statement> {
-        self.class_statements_only_to_validate(flatten_statements, statement)
     }
 }
 
