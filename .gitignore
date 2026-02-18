@@ -10,3 +10,8 @@ src/rules/examples/phanalist.yml
 src/rules/examples/*/phanalist.yml
 *.yaml
 
+
+# Debug/scratch files from mago-parser migration
+*.txt
+examples/
+e12_debug.txt
