@@ -88,7 +88,8 @@ The following rules are available:
 | [E0010](src/rules/examples/e10/e10.md) | Npath complexity                               | max_complexity: 200                                                                                          |
 | [E0011](src/rules/examples/e11/e11.md) | Detect error supression symbol(@)              |                                                                                                              |
 |  [E0012](src/rules/examples/e12/e12.md)| Service compatibility with Shared Memory Model | include_namespaces: ["App\\Service\\"],<br/>exclude_namespaces: [],<br/>reset_interfaces: ["ResetInterface"] |
-| [E0013](/src/rules/examples/e13/e13.md) | Private method not being used |
+| [E0013](/src/rules/examples/e13/e13.md) | Private method not being used                  |                                                                                                              |
+| [E0014](/src/rules/examples/e14/e14.md) | Law of Demeter                                 |                                                                                                              |
 
 Adding a new rule is a simple task, and [this tutorial](./docs/adding_new_rule.md) explains how to do it.
 
