@@ -21,14 +21,48 @@ static CODE: &str = "E0014";
 static DESCRIPTION: &str =
     "Law of Demeter violation. Method chaining should be avoided unless returning the same object type.";
 
-/// Maps class/trait/interface name → (method_name → return_type_string)
-type TypeRegistry = HashMap<String, HashMap<String, String>>;
+/// Contains all collected types: methods, properties, and interface identities.
+#[derive(Default, Clone)]
+pub struct TypeRegistry {
+    pub methods: HashMap<String, HashMap<String, String>>,
+    pub properties: HashMap<String, HashMap<String, String>>,
+    pub interfaces: std::collections::HashSet<String>,
+}
+
 /// Maps local variable name → resolved type string
 type VarTypes = HashMap<String, String>;
 
-pub struct Rule {}
+#[derive(Default)]
+pub struct Rule {
+    pub global_registry: std::sync::Mutex<TypeRegistry>,
+}
 
 impl crate::rules::Rule for Rule {
+    fn index_file(&self, file: &File) {
+        if let Some(program) = &file.ast {
+            let mut file_registry = TypeRegistry::default();
+            for statement in program.statements.iter() {
+                self.collect_types(file, statement, &mut file_registry);
+            }
+            if let Ok(mut global) = self.global_registry.lock() {
+                for (class_name, methods) in file_registry.methods {
+                    global
+                        .methods
+                        .entry(class_name)
+                        .or_default()
+                        .extend(methods);
+                }
+                for (class_name, props) in file_registry.properties {
+                    global
+                        .properties
+                        .entry(class_name)
+                        .or_default()
+                        .extend(props);
+                }
+                global.interfaces.extend(file_registry.interfaces);
+            }
+        }
+    }
     fn get_code(&self) -> String {
         String::from(CODE)
     }
@@ -47,7 +81,7 @@ impl crate::rules::Rule for Rule {
         // Build the type registry from ALL statements in the file so that cross-file
         // references (e.g. a class using a trait defined elsewhere in the same file)
         // are resolvable. Fall back to building from just this statement if no AST.
-        let mut registry = TypeRegistry::new();
+        let mut registry = TypeRegistry::default();
         if let Some(program) = &file.ast {
             for s in program.statements.iter() {
                 self.collect_types(file, s, &mut registry);
@@ -64,6 +98,24 @@ impl crate::rules::Rule for Rule {
                     self.collect_types(file, statement, &mut registry);
                 }
             }
+        }
+
+        if let Ok(global) = self.global_registry.lock() {
+            for (class_name, methods) in global.methods.iter() {
+                registry
+                    .methods
+                    .entry(class_name.clone())
+                    .or_default()
+                    .extend(methods.clone());
+            }
+            for (class_name, props) in global.properties.iter() {
+                registry
+                    .properties
+                    .entry(class_name.clone())
+                    .or_default()
+                    .extend(props.clone());
+            }
+            registry.interfaces.extend(global.interfaces.clone());
         }
 
         match statement {
@@ -104,48 +156,79 @@ impl Rule {
             }
             Statement::Class(class) => {
                 let name = file.interner.lookup(&class.name.value).to_string();
-                let mut map = HashMap::new();
+                let mut method_map = HashMap::new();
+                let mut prop_map = HashMap::new();
                 for member in class.members.iter() {
                     if let ClassLikeMember::Method(m) = member {
                         let method_name = file.interner.lookup(&m.name.value).to_string();
                         if let Some(hint) = &m.return_type_hint {
                             if let Some(t) = self.extract_type_hint(file, &hint.hint) {
-                                map.insert(method_name, t);
+                                method_map.insert(method_name, t);
+                            }
+                        }
+                    } else if let ClassLikeMember::Property(p) = member {
+                        if let Some(hint) = p.hint() {
+                            if let Some(t) = self.extract_type_hint(file, hint) {
+                                for var in p.variables() {
+                                    let prop_name = file
+                                        .interner
+                                        .lookup(&var.name)
+                                        .trim_start_matches('$')
+                                        .to_string();
+                                    prop_map.insert(prop_name, t.clone());
+                                }
                             }
                         }
                     }
                 }
-                registry.insert(name, map);
+                registry.methods.insert(name.clone(), method_map);
+                registry.properties.insert(name, prop_map);
             }
             Statement::Trait(trait_def) => {
                 let name = file.interner.lookup(&trait_def.name.value).to_string();
-                let mut map = HashMap::new();
+                let mut method_map = HashMap::new();
+                let mut prop_map = HashMap::new();
                 for member in trait_def.members.iter() {
                     if let ClassLikeMember::Method(m) = member {
                         let method_name = file.interner.lookup(&m.name.value).to_string();
                         if let Some(hint) = &m.return_type_hint {
                             if let Some(t) = self.extract_type_hint(file, &hint.hint) {
-                                map.insert(method_name, t);
+                                method_map.insert(method_name, t);
+                            }
+                        }
+                    } else if let ClassLikeMember::Property(p) = member {
+                        if let Some(hint) = p.hint() {
+                            if let Some(t) = self.extract_type_hint(file, hint) {
+                                for var in p.variables() {
+                                    let prop_name = file
+                                        .interner
+                                        .lookup(&var.name)
+                                        .trim_start_matches('$')
+                                        .to_string();
+                                    prop_map.insert(prop_name, t.clone());
+                                }
                             }
                         }
                     }
                 }
-                registry.insert(name, map);
+                registry.methods.insert(name.clone(), method_map);
+                registry.properties.insert(name, prop_map);
             }
             Statement::Interface(iface) => {
                 let name = file.interner.lookup(&iface.name.value).to_string();
-                let mut map = HashMap::new();
+                let mut method_map = HashMap::new();
                 for member in iface.members.iter() {
                     if let ClassLikeMember::Method(m) = member {
                         let method_name = file.interner.lookup(&m.name.value).to_string();
                         if let Some(hint) = &m.return_type_hint {
                             if let Some(t) = self.extract_type_hint(file, &hint.hint) {
-                                map.insert(method_name, t);
+                                method_map.insert(method_name, t);
                             }
                         }
                     }
                 }
-                registry.insert(name, map);
+                registry.interfaces.insert(name.clone());
+                registry.methods.insert(name, method_map);
             }
             _ => {}
         }
@@ -179,7 +262,7 @@ impl Rule {
                     // Merge methods from used traits
                     for trait_name_id in trait_use.trait_names.iter() {
                         let trait_name = self.lookup_identifier(file, trait_name_id);
-                        if let Some(trait_map) = registry.get(&trait_name) {
+                        if let Some(trait_map) = registry.methods.get(&trait_name) {
                             for (method_name, ret_type) in trait_map {
                                 // Don't override class's own method definitions
                                 map.entry(method_name.clone())
@@ -193,12 +276,14 @@ impl Rule {
         }
 
         // Normalize "self" in return types: if a method says it returns the class name itself,
-        // treat it as "self" for the lookup later.
-        // (This handles trait methods that say `return_type = ClassName` explicitly.)
+        // treat it as "self" for the lookup later ONLY within the same class context.
+        // Actually, it's better to keep it as "self" and contextualize it during resolution,
+        // or just leave the class name.
         let class_owned = class_name.to_string();
         for val in map.values_mut() {
-            if *val == class_owned {
-                *val = "self".to_string();
+            if *val == "self" || *val == "static" {
+                // Contextualize "self" to the actual class name to prevent false positives across classes
+                *val = class_owned.clone();
             }
         }
 
@@ -226,6 +311,7 @@ impl Rule {
                     if let ClassLikeMember::Method(method) = member {
                         if let MethodBody::Concrete(block) = &method.body {
                             let mut var_types = VarTypes::new();
+                            self.track_parameters(file, &method.parameter_list, &mut var_types);
                             for stmt in block.statements.iter() {
                                 self.check_statement(
                                     file,
@@ -250,6 +336,7 @@ impl Rule {
                     if let ClassLikeMember::Method(method) = member {
                         if let MethodBody::Concrete(block) = &method.body {
                             let mut var_types = VarTypes::new();
+                            self.track_parameters(file, &method.parameter_list, &mut var_types);
                             for stmt in block.statements.iter() {
                                 self.check_statement(
                                     file,
@@ -265,8 +352,23 @@ impl Rule {
                     }
                 }
             }
+            Statement::Function(func) => {
+                let mut var_types = VarTypes::new();
+                self.track_parameters(file, &func.parameter_list, &mut var_types);
+                for stmt in func.body.statements.iter() {
+                    self.check_statement(
+                        file,
+                        stmt,
+                        &HashMap::new(),
+                        "",
+                        registry,
+                        &mut var_types,
+                        violations,
+                    );
+                }
+            }
             _ => {
-                // For standalone functions or procedural code, check without class context
+                // For standalone procedural code, check without class context
                 let mut var_types = VarTypes::new();
                 self.check_statement(
                     file,
@@ -965,9 +1067,69 @@ impl Rule {
         // Determine if chaining on this object is safe
         let method_name = self.member_selector_name(file, method_selector);
 
+        // Determine if this is a method chain (`$a->b()->c()`) or a valid first call (`$a->b()`, `$this->foo->b()`)
+        let is_chain = match object {
+            Expression::Call(_) => true,
+            Expression::Parenthesized(p) => match p.expression.as_ref() {
+                Expression::Call(_) => true,
+                _ => false,
+            },
+            _ => false,
+        };
+
+        if !is_chain {
+            // First method call on a base object (property, variable, new, etc.) is allowed.
+            // We just resolve its return type for any subsequent chains.
+            return self.resolve_method_return(
+                object_type.as_deref(),
+                &method_name,
+                current_class,
+                method_map,
+                registry,
+            );
+        }
+
+        // It is a chain. We allow chaining if it results in the current class,
+        // or an interface, or if it's a fluent call on a foreign object.
+        let is_fluent_on_foreign = match object {
+            Expression::Call(call) => {
+                let prev_object = match call {
+                    Call::Method(mc) => Some(mc.object.as_ref()),
+                    Call::NullSafeMethod(mc) => Some(mc.object.as_ref()),
+                    _ => None,
+                };
+                if let Some(prev_obj) = prev_object {
+                    let prev_type = self.resolve_object_type(
+                        file,
+                        prev_obj,
+                        method_map,
+                        current_class,
+                        registry,
+                        var_types,
+                        &mut Vec::new(), // dummy to avoid duplicates
+                    );
+                    prev_type == object_type
+                } else {
+                    false
+                }
+            }
+            _ => false,
+        };
+
         match &object_type {
-            Some(t) if self.is_own_type(t, current_class) => {
+            Some(t) if self.is_own_type(t, current_class) || is_fluent_on_foreign => {
                 // Safe: look up return type of this method
+                self.resolve_method_return(
+                    Some(t),
+                    &method_name,
+                    current_class,
+                    method_map,
+                    registry,
+                )
+            }
+            Some(t) if registry.interfaces.contains(t) => {
+                // Interfaces define contracts; returning a valid interface object is safe
+                // to chain on, as per Law of Demeter extensions.
                 self.resolve_method_return(
                     Some(t),
                     &method_name,
@@ -1069,7 +1231,23 @@ impl Rule {
                     );
                     if let Some(t) = &obj_type {
                         if self.is_own_type(t, current_class) {
-                            // Accessing own property is fine; but its TYPE is unknown → None
+                            // Accessing own property is fine. Look up its type from registry:
+                            let lookup_type = if t == "self" || t == "static" {
+                                current_class
+                            } else {
+                                t
+                            };
+                            if let Some(mut prop_type) =
+                                registry.properties.get(lookup_type).and_then(|props| {
+                                    let prop_name = self.member_selector_name(file, &pa.property);
+                                    props.get(prop_name.trim_start_matches('$')).cloned()
+                                })
+                            {
+                                if prop_type == current_class {
+                                    prop_type = "self".to_string();
+                                }
+                                return Some(prop_type);
+                            }
                             return None;
                         }
                     }
@@ -1089,6 +1267,22 @@ impl Rule {
                     );
                     if let Some(t) = &obj_type {
                         if self.is_own_type(t, current_class) {
+                            let lookup_type = if t == "self" || t == "static" {
+                                current_class
+                            } else {
+                                t
+                            };
+                            if let Some(mut prop_type) =
+                                registry.properties.get(lookup_type).and_then(|props| {
+                                    let prop_name = self.member_selector_name(file, &pa.property);
+                                    props.get(prop_name.trim_start_matches('$')).cloned()
+                                })
+                            {
+                                if prop_type == current_class {
+                                    prop_type = "self".to_string();
+                                }
+                                return Some(prop_type);
+                            }
                             return None;
                         }
                     }
@@ -1217,15 +1411,24 @@ impl Rule {
         method_map: &HashMap<String, String>,
         registry: &TypeRegistry,
     ) -> Option<String> {
-        if let Some(t) = object_type {
+        if let Some(mut t) = object_type {
+            if t == "self" || t == "static" {
+                t = current_class;
+            }
             if self.is_own_type(t, current_class) {
                 // Look up in the current class's method map
                 if let Some(ret) = method_map.get(method_name) {
                     return Some(ret.clone());
                 }
+                // Fallback to registry if not found directly
+                if let Some(type_map) = registry.methods.get(t) {
+                    if let Some(ret) = type_map.get(method_name) {
+                        return Some(ret.clone());
+                    }
+                }
             } else {
                 // Look up in the type registry for cross-class resolution
-                if let Some(type_map) = registry.get(t) {
+                if let Some(type_map) = registry.methods.get(t) {
                     if let Some(ret) = type_map.get(method_name) {
                         return Some(ret.clone());
                     }
@@ -1233,6 +1436,23 @@ impl Rule {
             }
         }
         None
+    }
+
+    /// Extract parameter types into tracking map
+    fn track_parameters(
+        &self,
+        file: &File,
+        parameters: &mago_ast::ast::FunctionLikeParameterList,
+        var_types: &mut VarTypes,
+    ) {
+        for param in parameters.parameters.iter() {
+            if let Some(hint) = &param.hint {
+                if let Some(t) = self.extract_type_hint(file, hint) {
+                    let param_name = file.interner.lookup(&param.variable.name).to_string();
+                    var_types.insert(param_name, t);
+                }
+            }
+        }
     }
 
     /// Returns true if `t` represents the current class (self, static, or by name).
@@ -1394,6 +1614,57 @@ mod tests {
         assert!(
             !violations.is_empty(),
             "Expected violations for property access LoD chaining, got none"
+        );
+    }
+
+    #[test]
+    fn valid_property_typed() {
+        let violations = analyze_file_for_rule("e14/valid_property_typed.php", CODE);
+        assert!(
+            violations.is_empty(),
+            "Expected no violations for property type chaining, got: {:?}",
+            violations
+        );
+    }
+
+    #[test]
+    fn valid_interface_chain() {
+        let violations = analyze_file_for_rule("e14/valid_interface_chain.php", CODE);
+        assert!(
+            violations.is_empty(),
+            "Expected no violations for interface chaining, got: {:?}",
+            violations
+        );
+    }
+
+    #[test]
+    fn valid_cross_file() {
+        let rule = Rule::default();
+
+        // File 1: Dependency
+        let path1 = std::path::PathBuf::from("./src/rules/examples/e14/dependency.php");
+        let content1 =
+            "<?php class DB { public function query(): DB { return $this; } }".to_string();
+        let file1 = crate::file::File::new(path1, content1);
+
+        // File 2: Usage
+        let path2 = std::path::PathBuf::from("./src/rules/examples/e14/usage.php");
+        let content2 = "<?php class App { public function run(DB $db) { $db->query()->query(); } }"
+            .to_string();
+        let file2 = crate::file::File::new(path2, content2);
+
+        crate::rules::Rule::index_file(&rule, &file1);
+        crate::rules::Rule::index_file(&rule, &file2);
+
+        let violations = crate::rules::Rule::validate(
+            &rule,
+            &file2,
+            file2.ast.as_ref().unwrap().statements.first().unwrap(),
+        );
+        assert!(
+            violations.is_empty(),
+            "Expected no violations for cross-file injection, got: {:?}",
+            violations
         );
     }
 }

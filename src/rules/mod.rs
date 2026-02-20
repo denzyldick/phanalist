@@ -41,6 +41,10 @@ pub mod e8;
 pub mod e9;
 
 pub trait Rule {
+    // Optional hook for cross-file type resolution or indexing.
+    // Called once for every file before main validation pass.
+    fn index_file(&self, _file: &File) {}
+
     // Would be a good idea to have default implementation which extracts the code from struct name
     // Haven't found a way to implement it
     fn get_code(&self) -> String;
@@ -340,7 +344,7 @@ pub fn all_rules() -> HashMap<String, Box<dyn Rule>> {
     add_rule(&mut rules, Box::new(e11::Rule {}));
     add_rule(&mut rules, Box::default() as Box<e12::Rule>);
     add_rule(&mut rules, Box::new(e13::Rule {}));
-    add_rule(&mut rules, Box::new(e14::Rule {}));
+    add_rule(&mut rules, Box::new(e14::Rule::default()));
 
     rules
 }

@@ -85,13 +85,26 @@ impl Analyse {
             self::scan_folder(path, send);
         });
 
-        let mut files = 0;
+        // 1. Collect all files
+        let mut scanned_files = Vec::new();
         for (content, path) in recv {
+            scanned_files.push(File::new(path, content));
+        }
+
+        // 2. Pre-pass (indexing)
+        for file in &scanned_files {
+            for rule in self.rules.values() {
+                rule.index_file(file);
+            }
+        }
+
+        // 3. Main pass
+        let mut files = 0;
+        for mut file in scanned_files {
             if show_bar && format == &Format::text {
                 progress_bar.inc(1);
             }
 
-            let mut file = File::new(path, content);
             let violations = self.analyse_file(&mut file);
             results.add_file_violations(&file, violations);
 
