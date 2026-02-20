@@ -28,6 +28,7 @@ pub mod e10;
 pub mod e11;
 pub mod e12;
 pub mod e13;
+pub mod e14;
 pub mod e2;
 // pub mod e1;
 // pub mod e2;
@@ -339,6 +340,7 @@ pub fn all_rules() -> HashMap<String, Box<dyn Rule>> {
     add_rule(&mut rules, Box::new(e11::Rule {}));
     add_rule(&mut rules, Box::default() as Box<e12::Rule>);
     add_rule(&mut rules, Box::new(e13::Rule {}));
+    add_rule(&mut rules, Box::new(e14::Rule {}));
 
     rules
 }
