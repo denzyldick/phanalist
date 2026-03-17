@@ -5,8 +5,8 @@
 set -u
 
 PHANALIST_BIN="${PHANALIST_BIN:-phanalist}"
-PHANALIST_RELEASE_ROOT="${PHANALIST_RELEASE_ROOT:-https://raw.githubusercontent.com/denzyldick/phanalist/main/release/}"
-PHANALIST_MANUAL_DOWNLOAD="${PHANALIST_INSTALL_COMPILE:-https://github.com/denzyldick/phanalist/blob/main/docs/installation.md#pre-compiled-architecture-specific-binary}"
+PHANALIST_RELEASE_ROOT="${PHANALIST_RELEASE_ROOT:-https://github.com/denzyldick/phanalist/releases/latest/download/}"
+PHANALIST_MANUAL_DOWNLOAD="${PHANALIST_INSTALL_COMPILE:-https://github.com/denzyldick/phanalist/releases}"
 PHANALIST_COMPILE="${PHANALIST_INSTALL_COMPILE:-https://github.com/denzyldick/phanalist/blob/main/docs/installation.md#compile-from-source}"
 
 main() {
@@ -17,19 +17,19 @@ main() {
     need_cmd mkdir
     need_cmd rm
     need_cmd rmdir
+    need_cmd tar
+    need_cmd gzip
 
     get_architecture || return 1
     local _arch="$RETVAL"
 
-    local _url="${PHANALIST_RELEASE_ROOT}${_arch}/${PHANALIST_BIN}"
+    local _url="${PHANALIST_RELEASE_ROOT}phanalist-${_arch}.tar.gz"
 
     local _dir
     if ! _dir="$(ensure mktemp -d)"; then
-        # Because the previous command ran in a subshell, we must manually
-        # propagate exit status.
         exit 1
     fi
-    local _file="${_dir}/${PHANALIST_BIN}"
+    local _file="${_dir}/phanalist.tar.gz"
 
     local _ansi_escapes_are_valid=false
     if [ -t 2 ]; then
@@ -50,10 +50,20 @@ main() {
 
     ensure downloader "$_url" "$_file" "$_arch"
 
+    # Extract the binary from the tarball
+    ensure tar -xzf "$_file" -C "$_dir"
+
     local _bin
     _bin="$(realpath ~ | { read h; [ "$h" = "/" ] && echo "." || echo "$h"; })/${PHANALIST_BIN}"
-    ensure mv "$_file" "$_bin"
-    ignore rmdir "$_dir"
+    
+    # The binary might be in the root of the archive or in a subfolder named phanalist-$arch
+    if [ -f "$_dir/phanalist" ]; then
+        ensure mv "$_dir/phanalist" "$_bin"
+    else
+        ensure mv "$_dir/phanalist-${_arch}/phanalist" "$_bin"
+    fi
+    
+    ignore rm -rf "$_dir"
 
     ensure chmod u+x "$_bin"
 
