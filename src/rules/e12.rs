@@ -53,13 +53,15 @@ impl RuleTrait for Rule {
         };
     }
 
-    fn do_validate(&self, _file: &File) -> bool {
-        // For simplicity, always return true and let logic handle it,
-        // or strictly follow namespace settings.
-        // Given refactoring context, enabling it for all files (returning true)
-        // and relying on namespace checks inside validate or filtering is safer for now.
-        // But original code used do_validate_namespace.
-        // I'll stick to true for now to ensure it runs during testing.
+    fn do_validate(&self, file: &File) -> bool {
+        if let Some(ns) = &file.namespace {
+            return crate::rules::do_validate_namespace(
+                ns.clone(),
+                &self.settings.include_namespaces,
+                &self.settings.exclude_namespaces,
+            );
+        }
+
         true
     }
 
