@@ -75,4 +75,5 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           tar: unix
           zip: windows
-          use-cross: ${{ matrix.use-cross || false }}
+          build-tool: ${{ matrix.use-cross && 'cross' || 'cargo' }}
+          all-features: false
