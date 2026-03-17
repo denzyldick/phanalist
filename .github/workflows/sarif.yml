@@ -16,6 +16,8 @@ jobs:
           toolchain: stable
           override: true
       - run: cargo run --release -- --src=. --output-format=sarif | tee results.sarif
+        env:
+          RUST_MIN_STACK: 8388608
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@v3
         with:

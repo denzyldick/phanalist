@@ -47,6 +47,8 @@ jobs:
           --all-features
           --message-format=json | clippy-sarif | tee rust-clippy-results.sarif | sarif-fmt
         continue-on-error: true
+        env:
+          RUST_MIN_STACK: 8388608
 
       - name: Upload analysis results to GitHub
         uses: github/codeql-action/upload-sarif@v1
