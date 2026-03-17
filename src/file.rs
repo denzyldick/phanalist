@@ -1,6 +1,6 @@
 use std::{collections::HashMap, path::PathBuf};
 
-use mago_ast::Program;
+use mago_ast::{Program, Statement};
 use mago_interner::ThreadedInterner;
 use mago_lexer::input::Input;
 use mago_source::{SourceCategory, SourceIdentifier, SourceManager};
@@ -85,11 +85,38 @@ impl File {
         // Parse
         let (program, _errors) = mago_parser::parse(&interner, input);
 
+        let mut namespace = None;
+        let mut class_name = None;
+
+        for statement in program.statements.iter() {
+            match statement {
+                Statement::Namespace(ns) => {
+                    if let Some(name) = &ns.name {
+                        namespace = Some(interner.lookup(&name.value()).to_string());
+                    }
+                    for s in ns.statements().iter() {
+                        if let Statement::Class(class) = s {
+                            class_name = Some(interner.lookup(&class.name.value).to_string());
+                            break;
+                        }
+                    }
+                }
+                Statement::Class(class) => {
+                    class_name = Some(interner.lookup(&class.name.value).to_string());
+                }
+                _ => {}
+            }
+
+            if class_name.is_some() {
+                break;
+            }
+        }
+
         Self {
             path: path.clone(),
             lines: content.lines().map(|s| s.to_string()).collect(),
-            namespace: None,  // TODO
-            class_name: None, // TODO
+            namespace,
+            class_name,
             reference_counter: RC::new(),
             ast: Some(program),
             interner,
