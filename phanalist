@@ -1,43 +1,100 @@
 #!/usr/bin/env php
 <?php
-unset($argv[0]);
-echo "Detecting architecture." . PHP_EOL;
-// @todo add the other architectures and paths.
-$matrix = [
-  "x86_64" =>  "./vendor/denzyl/phanalist/release/x86_64-unknown-linux-musl/phanalist",
-  "aarch64" => "./vendor/denzyl/phanalist/release/aarch64-unknown-linux-musl/phanalist"
-];
 
-$architecture = null;
-$os = strtoupper(substr(PHP_OS, 0, 3));
-if ($os === 'LIN') {
-  // Execute the 'uname' command to get system information
-  $architecture = shell_exec('uname -m');
-} elseif ($os === 'WIN') {
-  // Execute the 'wmic' command to get CPU architecture information
-  $cpuInfo = shell_exec('wmic cpu get caption');
-  // Parse the output to extract the CPU architecture
-  if (preg_match('/\b(x64|x86|ARM)\b/i', $cpuInfo, $matches)) {
-    $architecture = $matches[0];
-  } else {
-    $architecture = "Unknown";
-  }
-} else {
-  $architecture = "Unknown OS";
+function get_project_version() {
+    $cargoPath = __DIR__ . '/Cargo.toml';
+    if (file_exists($cargoPath)) {
+        $content = file_get_contents($cargoPath);
+        if (preg_match('/^version = "([^"]+)"/m', $content, $matches)) {
+            return $matches[1];
+        }
+    }
+    return 'latest'; // Fallback
 }
-// Get and print the CPU architecture
-echo "CPU architecture: " . $architecture . PHP_EOL;
-$path = $matrix[trim($architecture)] ?? null;
 
-if($path == null){
-  echo "Unknown architecture." .  PHP_EOL;
-  echo "Open an issue at https://github.com/denzyldick/phanalist." . PHP_EOL;
-  echo "Thank you!.".PHP_EOL;
-  exit(1);
+$version = get_project_version();
+$binDir = __DIR__ . '/bin';
+$executableName = (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') ? 'phanalist.exe' : 'phanalist';
+
+// 1. Detect Architecture and OS
+function get_target() {
+    $os = PHP_OS;
+    $arch = php_uname('m');
+
+    if (strpos(strtoupper($os), 'WIN') !== false) {
+        return 'x86_64-pc-windows-msvc';
+    }
+
+    if (strpos(strtoupper($os), 'DARWIN') !== false) {
+        if ($arch === 'arm64' || $arch === 'aarch64') {
+            return 'aarch64-apple-darwin';
+        }
+        return 'x86_64-apple-darwin';
+    }
+
+    if (strpos(strtoupper($os), 'LINUX') !== false) {
+        $isMusl = strpos(shell_exec('ldd --version 2>&1') ?? '', 'musl') !== false;
+        $libc = $isMusl ? 'musl' : 'gnu';
+
+        if ($arch === 'arm64' || $arch === 'aarch64') {
+            return "aarch64-unknown-linux-$libc";
+        }
+        return "x86_64-unknown-linux-$libc";
+    }
+
+    return null;
 }
-else{
-echo "Running phanalist on architecture: " . $architecture;
+
+$target = get_target();
+if (!$target) {
+    echo "Unsupported OS/Architecture: " . PHP_OS . " (" . php_uname('m') . ")" . PHP_EOL;
+    exit(1);
 }
-$parameters = implode(" ", $argv);
-echo shell_exec($path . " " . $parameters);
-?>
+
+$binPath = "$binDir/$target/$executableName";
+
+// 2. Auto-download if missing
+if (!file_exists($binPath)) {
+    if (!is_dir(dirname($binPath))) {
+        mkdir(dirname($binPath), 0755, true);
+    }
+
+    echo "Phanalist binary not found for $target. Downloading..." . PHP_EOL;
+    
+    $extension = (strpos($target, 'windows') !== false) ? 'zip' : 'tar.gz';
+    $url = "https://github.com/denzyldick/phanalist/releases/latest/download/phanalist-$target.$extension";
+    $tempFile = sys_get_temp_dir() . "/phanalist-$target.$extension";
+
+    if (!copy($url, $tempFile)) {
+        echo "Failed to download binary from $url" . PHP_EOL;
+        exit(1);
+    }
+
+    if ($extension === 'zip') {
+        $zip = new ZipArchive;
+        if ($zip->open($tempFile) === TRUE) {
+            $zip->extractTo(dirname($binPath));
+            $zip->close();
+        } else {
+            echo "Failed to extract ZIP file." . PHP_EOL;
+            exit(1);
+        }
+    } else {
+        exec("tar -xzf " . escapeshellarg($tempFile) . " -C " . escapeshellarg(dirname($binPath)));
+        // The tarball might contain a subfolder phanalist-$target/
+        if (file_exists(dirname($binPath) . "/phanalist-$target/phanalist")) {
+            rename(dirname($binPath) . "/phanalist-$target/phanalist", $binPath);
+        }
+    }
+
+    unlink($tempFile);
+    chmod($binPath, 0755);
+}
+
+// 3. Execute the binary
+array_shift($argv); // Remove script name
+$args = array_map('escapeshellarg', $argv);
+$command = escapeshellarg($binPath) . ' ' . implode(' ', $args);
+
+passthru($command, $exitCode);
+exit($exitCode);
