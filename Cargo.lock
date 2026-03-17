@@ -794,7 +794,7 @@ dependencies = [
 
 [[package]]
 name = "phanalist"
-version = "0.1.21"
+version = "0.1.23"
 dependencies = [
  "clap",
  "cli-table",
