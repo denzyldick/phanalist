@@ -1,56 +1,78 @@
-name: "Compile multiple targets" 
+name: Release
 
 on:
   push:
     branches: [ "main" ]
+    tags:
+      - 'v*'
   pull_request:
     branches: [ "main" ]
 
 jobs:
-  deploy:
-    name: deploy
-    if: startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest
-    strategy: 
+  test:
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
       matrix:
-        target: [ aarch64-unknown-linux-gnu, armv7-unknown-linux-gnueabihf, i686-unknown-linux-gnu, i686-unknown-linux-musl, mips-unknown-linux-gnu, mips64-unknown-linux-gnuabi64, mips64el-unknown-linux-gnuabi64, mipsel-unknown-linux-gnu, powerpc-unknown-linux-gnu, powerpc64-unknown-linux-gnu, powerpc64le-unknown-linux-gnu,           arm-unknown-linux-gnueabi          ,x86_64-unknown-linux-gnu           ,x86_64-unknown-linux-musl]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
-      - 
-        name: Install Clang
-        uses: egor-tensin/setup-clang@v1
-      -
-        name: Install LLVM and Clang
-        uses: KyleMayes/install-llvm-action@v1
-        with:
-          version: "10.0"
-      - name: Checkout
-        uses: actions/checkout@v1
-      - name: Install rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          override: true
-          target: ${{ matrix.target }}
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Run tests
+        run: cargo test --release
+        env:
+          RUST_MIN_STACK: 8388608
 
-      - name: Build target
-        uses: actions-rs/cargo@v1
-        with:
-          use-cross: true
-          command: build
-          args: --release --target ${{ matrix.target }}
-
-      - name: Package
-        shell: bash
-        run: |
-          cd target/${{ matrix.target }}/release          
-          tar czvf ../../../phanalist-${{ matrix.target }}.tar.gz phanalist
-          cd -
-      - name: Publish
+  create-release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create Release
         uses: softprops/action-gh-release@v1
-        # TODO: if any of the build step fails, the release should be deleted.
         with:
-            files: 'phanalist*'
+          draft: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        
+
+  upload-assets:
+    if: startsWith(github.ref, 'refs/tags/')
+    name: Build & Upload (${{ matrix.target }})
+    needs: create-release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            use-cross: true
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-latest
+            use-cross: true
+          - target: x86_64-apple-darwin
+            os: macos-13
+          - target: aarch64-apple-darwin
+            os: macos-14
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: Upload binary
+        uses: taiki-e/upload-rust-binary-action@v1
+        with:
+          bin: phanalist
+          target: ${{ matrix.target }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tar: unix
+          zip: windows
+          use-cross: ${{ matrix.use-cross || false }}

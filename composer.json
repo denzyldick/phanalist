@@ -19,5 +19,17 @@
       "email": "dolgushev.serhey@gmail.com"
     }
   ],
-  "bin": "phanalist"
+  "bin": "phanalist",
+  "suggest": {
+    "ext-zip": "Required to extract the binary on Windows",
+    "ext-curl": "Recommended for downloading the binary"
+  },
+  "scripts": {
+    "post-install-cmd": [
+      "@php phanalist --version"
+    ],
+    "post-update-cmd": [
+      "@php phanalist --version"
+    ]
+  }
 }
