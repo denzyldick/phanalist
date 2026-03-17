@@ -49,12 +49,14 @@ jobs:
             os: ubuntu-latest
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-latest
+            use-cross: true
           - target: aarch64-unknown-linux-musl
             os: ubuntu-latest
+            use-cross: true
           - target: x86_64-apple-darwin
-            os: macos-latest
+            os: macos-13
           - target: aarch64-apple-darwin
-            os: macos-latest
+            os: macos-14
           - target: x86_64-pc-windows-msvc
             os: windows-latest
     steps:
@@ -71,3 +73,4 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           tar: unix
           zip: windows
+          use-cross: ${{ matrix.use-cross || false }}
