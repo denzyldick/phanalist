@@ -32,4 +32,4 @@ mago-interner = "0.22.2"
 mago-lexer = "0.22.2"
 
 [lib]
-crate-type = ["cdylib", "rlib"]
+crate-type = ["rlib"]
