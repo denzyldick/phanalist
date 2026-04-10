@@ -21,15 +21,15 @@ function get_target() {
     $os = PHP_OS;
     $arch = php_uname('m');
 
-    if (strpos(strtoupper($os), 'WIN') !== false) {
-        return 'x86_64-pc-windows-msvc';
-    }
-
     if (strpos(strtoupper($os), 'DARWIN') !== false) {
         if ($arch === 'arm64' || $arch === 'aarch64') {
             return 'aarch64-apple-darwin';
         }
         return 'x86_64-apple-darwin';
+    }
+
+    if (strpos(strtoupper($os), 'WIN') !== false) {
+        return 'x86_64-pc-windows-msvc';
     }
 
     if (strpos(strtoupper($os), 'LINUX') !== false) {
@@ -52,6 +52,12 @@ if (!$target) {
 }
 
 $binPath = "$binDir/$target/$executableName";
+if (!file_exists($binPath)) {
+    $releasePath = __DIR__ . "/release/$target/$executableName";
+    if (file_exists($releasePath)) {
+        $binPath = $releasePath;
+    }
+}
 
 // 2. Auto-download if missing
 if (!file_exists($binPath)) {
@@ -60,7 +66,7 @@ if (!file_exists($binPath)) {
     }
 
     echo "Phanalist binary not found for $target. Downloading..." . PHP_EOL;
-    
+
     $extension = (strpos($target, 'windows') !== false) ? 'zip' : 'tar.gz';
     $url = "https://github.com/denzyldick/phanalist/releases/latest/download/phanalist-$target.$extension";
     $tempFile = sys_get_temp_dir() . "/phanalist-$target.$extension";
