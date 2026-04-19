@@ -1,16 +1,15 @@
 use crate::results::Results;
-use std::str::FromStr;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 
 pub mod codeclimate;
-pub mod text;
 pub mod json;
 pub mod sarif;
+pub mod text;
 
 pub trait OutputFormatter {
     fn output(_results: &mut Results) {}
 }
-
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[allow(non_camel_case_types)]

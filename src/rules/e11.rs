@@ -1,7 +1,5 @@
-use mago_ast::ast::expression::Expression;
-use mago_ast::ast::Statement;
-use mago_ast::UnaryPrefixOperator;
 use mago_span::HasSpan;
+use mago_syntax::ast::{Call, Expression, Statement, UnaryPrefixOperator};
 
 use crate::file::File;
 use crate::results::Violation;
@@ -21,20 +19,20 @@ impl crate::rules::Rule for Rule {
         String::from(DESCRIPTION)
     }
 
-    fn do_validate(&self, _file: &File) -> bool {
+    fn do_validate(&self, _file: &File<'_>) -> bool {
         true
     }
 
-    fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
+    fn validate(&self, file: &File<'_>, statement: &Statement<'_>) -> Vec<Violation> {
         let mut violations = Vec::new();
         let flatten_statements = self.flatten_statements_to_validate(statement);
 
         for stmt in flatten_statements {
             if let Statement::Expression(expr_stmt) = stmt {
-                check_expression(file, self, &expr_stmt.expression, &mut violations);
+                check_expression(file, self, expr_stmt.expression, &mut violations);
             }
             if let Statement::Return(ret) = stmt {
-                if let Some(value) = &ret.value {
+                if let Some(value) = ret.value {
                     check_expression(file, self, value, &mut violations);
                 }
             }
@@ -45,9 +43,9 @@ impl crate::rules::Rule for Rule {
 }
 
 fn check_expression(
-    file: &File,
+    file: &File<'_>,
     rule: &dyn crate::rules::Rule,
-    expr: &Expression,
+    expr: &Expression<'_>,
     violations: &mut Vec<Violation>,
 ) {
     match expr {
@@ -56,16 +54,11 @@ fn check_expression(
                 let suggestion = "Error supression(@) symbol found. Remove it.".to_string();
                 violations.push(rule.new_violation(file, suggestion, prefix.span()));
             }
-            // Recurse into the operand
-            check_expression(file, rule, &prefix.operand, violations);
+            check_expression(file, rule, prefix.operand, violations);
         }
         Expression::Call(call) => {
-            use mago_ast::Call;
-            match call {
-                Call::Method(m) => {
-                    check_expression(file, rule, &m.object, violations);
-                }
-                _ => {}
+            if let Call::Method(m) = call {
+                check_expression(file, rule, m.object, violations);
             }
         }
         _ => {}

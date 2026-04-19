@@ -1,5 +1,5 @@
-use mago_ast::Statement;
 use mago_span::HasSpan;
+use mago_syntax::ast::Statement;
 
 use crate::file::File;
 use crate::results::Violation;
@@ -19,11 +19,11 @@ impl crate::rules::Rule for Rule {
         String::from(DESCRIPTION)
     }
 
-    fn do_validate(&self, _file: &File) -> bool {
+    fn do_validate(&self, _file: &File<'_>) -> bool {
         true
     }
 
-    fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
+    fn validate(&self, file: &File<'_>, statement: &Statement<'_>) -> Vec<Violation> {
         let mut violations = Vec::new();
 
         if let Statement::Try(s) = statement {

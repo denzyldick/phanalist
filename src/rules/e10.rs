@@ -1,14 +1,13 @@
-use crate::file::File;
-use crate::results::Violation;
-use mago_ast::ast::class_like::member::ClassLikeMember;
-use mago_ast::ast::control_flow::r#if::IfBody;
-use mago_ast::ast::r#loop::foreach::ForeachBody;
-use mago_ast::ast::r#loop::r#for::ForBody;
-use mago_ast::ast::r#loop::r#while::WhileBody;
-use mago_ast::*;
 use mago_span::HasSpan;
+use mago_syntax::ast::{
+    ClassLikeMember, ForBody, ForeachBody, IfBody, MethodBody, Sequence, Statement, SwitchBody,
+    SwitchCase, WhileBody,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+
+use crate::file::File;
+use crate::results::Violation;
 
 pub(crate) static CODE: &str = "E0010";
 static DESCRIPTION: &str = "Npath complexity";
@@ -38,7 +37,7 @@ impl crate::rules::Rule for Rule {
         String::from(DESCRIPTION)
     }
 
-    fn do_validate(&self, _file: &File) -> bool {
+    fn do_validate(&self, _file: &File<'_>) -> bool {
         true
     }
 
@@ -49,30 +48,21 @@ impl crate::rules::Rule for Rule {
         };
     }
 
-    fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
+    fn validate(&self, file: &File<'_>, statement: &Statement<'_>) -> Vec<Violation> {
         let mut violations = Vec::new();
 
         if let Statement::Class(class) = statement {
             for member in class.members.iter() {
                 if let ClassLikeMember::Method(method) = member {
-                    match &method.body {
-                        MethodBody::Concrete(block) => {
-                            let npath = calculate_npath(&block.statements);
-                            if npath > self.settings.max_paths {
-                                let name = file.interner.lookup(&method.name.value);
-                                let suggestion = format!(
-                                     "The body of {} method has {} paths. Reduce the amount of paths.",
-                                     name,
-                                     npath,
-                                 );
-                                violations.push(self.new_violation(
-                                    file,
-                                    suggestion,
-                                    method.span(),
-                                ));
-                            }
+                    if let MethodBody::Concrete(block) = &method.body {
+                        let npath = calculate_npath(&block.statements);
+                        if npath > self.settings.max_paths {
+                            let suggestion = format!(
+                                "The body of {} method has {} paths. Reduce the amount of paths.",
+                                method.name.value, npath,
+                            );
+                            violations.push(self.new_violation(file, suggestion, method.span()));
                         }
-                        _ => {}
                     }
                 }
             }
@@ -81,7 +71,7 @@ impl crate::rules::Rule for Rule {
     }
 }
 
-fn calculate_npath(statements: &Sequence<Statement>) -> i64 {
+fn calculate_npath(statements: &Sequence<'_, Statement<'_>>) -> i64 {
     let mut npath = 0;
     for statement in statements.iter() {
         npath += calculate_statement_npath(statement);
@@ -89,7 +79,7 @@ fn calculate_npath(statements: &Sequence<Statement>) -> i64 {
     npath
 }
 
-fn calculate_statement_npath(statement: &Statement) -> i64 {
+fn calculate_statement_npath(statement: &Statement<'_>) -> i64 {
     let mut npath = 0;
     match statement {
         Statement::If(if_stmt) => {
@@ -109,7 +99,7 @@ fn calculate_statement_npath(statement: &Statement) -> i64 {
                 IfBody::ColonDelimited(body) => {
                     npath += calculate_npath(&body.statements);
                     for clause in body.else_if_clauses.iter() {
-                        npath += 1; // elseif
+                        npath += 1;
                         for s in clause.statements.iter() {
                             npath += calculate_statement_npath(s);
                         }
@@ -162,20 +152,16 @@ fn calculate_statement_npath(statement: &Statement) -> i64 {
         }
         Statement::Switch(switch_stmt) => {
             let cases = match &switch_stmt.body {
-                mago_ast::ast::control_flow::switch::SwitchBody::BraceDelimited(body) => {
-                    &body.cases
-                }
-                mago_ast::ast::control_flow::switch::SwitchBody::ColonDelimited(body) => {
-                    &body.cases
-                }
+                SwitchBody::BraceDelimited(body) => &body.cases,
+                SwitchBody::ColonDelimited(body) => &body.cases,
             };
             for case in cases.iter() {
                 match case {
-                    mago_ast::ast::control_flow::switch::SwitchCase::Expression(c) => {
+                    SwitchCase::Expression(c) => {
                         npath += 1;
                         npath += calculate_npath(&c.statements);
                     }
-                    mago_ast::ast::control_flow::switch::SwitchCase::Default(c) => {
+                    SwitchCase::Default(c) => {
                         npath += calculate_npath(&c.statements);
                     }
                 }

@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-// use mago_source::SourceIdentifier;
-// use mago_span::{Span, Position};
 use serde::{Deserialize, Serialize};
 
 use crate::file::File;
@@ -12,7 +10,6 @@ pub struct Violation {
     pub rule: String,
     pub line: String,
     pub suggestion: String,
-    // pub span: Span,
     pub start_line: usize,
     pub start_column: usize,
     pub end_line: usize,
@@ -28,7 +25,7 @@ pub struct Results {
 }
 
 impl Results {
-    pub fn add_file_violations(&mut self, file: &File, violations: Vec<Violation>) {
+    pub fn add_file_violations(&mut self, file: &File<'_>, violations: Vec<Violation>) {
         let path = file.path.display().to_string();
 
         let mut current_file_violations = if let Some(s) = self.files.get(&path) {
@@ -68,6 +65,8 @@ impl Results {
 mod tests {
     use std::path::PathBuf;
 
+    use bumpalo::Bump;
+
     use super::*;
 
     fn get_results() -> Results {
@@ -78,24 +77,14 @@ mod tests {
             duration: None,
         }
     }
-    fn get_file(name: &str) -> File {
-        File::new(PathBuf::from(name), "Content".to_string())
+    fn get_file<'a>(arena: &'a Bump, name: &str) -> File<'a> {
+        File::new(arena, PathBuf::from(name), "Content".to_string())
     }
     fn get_violation(rule: &str) -> Violation {
         Violation {
             rule: rule.to_string(),
             line: "Line".to_string(),
             suggestion: "Suggestion".to_string(),
-            // span: Span {
-            //     start: Position {
-            //         source: SourceIdentifier::default(),
-            //         offset: 0,
-            //     },
-            //     end: Position {
-            //         source: SourceIdentifier::default(),
-            //         offset: 0,
-            //     },
-            // },
             start_line: 0,
             start_column: 0,
             end_line: 0,
@@ -107,8 +96,9 @@ mod tests {
     fn test_add_file_violations_expected_file_violations() {
         let mut results = get_results();
 
-        let file1 = get_file("./class1.php");
-        let file2 = get_file("./class2.php");
+        let arena = Bump::new();
+        let file1 = get_file(&arena, "./class1.php");
+        let file2 = get_file(&arena, "./class2.php");
 
         let violation1 = get_violation("E001");
         let violation2 = get_violation("E002");
@@ -136,8 +126,9 @@ mod tests {
     fn test_add_file_violations_expected_codes_count() {
         let mut results = get_results();
 
-        let file1 = get_file("./class1.php");
-        let file2 = get_file("./class2.php");
+        let arena = Bump::new();
+        let file1 = get_file(&arena, "./class1.php");
+        let file2 = get_file(&arena, "./class2.php");
 
         let violation1 = get_violation("E001");
         let violation2 = get_violation("E002");
@@ -159,7 +150,8 @@ mod tests {
     #[test]
     fn test_has_any_violations_expected_true() {
         let mut results = get_results();
-        let file1 = get_file("./class1.php");
+        let arena = Bump::new();
+        let file1 = get_file(&arena, "./class1.php");
         let violation1 = get_violation("E001");
 
         results.add_file_violations(&file1, vec![violation1]);

@@ -7,13 +7,8 @@ use std::error::Error;
 use std::fs;
 use std::path::Path;
 
-use mago_ast::ast::control_flow::r#if::IfBody;
-use mago_ast::ast::r#loop::foreach::ForeachBody;
-use mago_ast::ast::r#loop::r#for::ForBody;
-use mago_ast::ast::r#loop::r#while::WhileBody;
-// use mago_ast::Program;
-use mago_ast::Statement;
 use mago_span::Span;
+use mago_syntax::ast::*;
 use serde_json::Value;
 
 use crate::config::Config;
@@ -41,20 +36,20 @@ pub mod e8;
 pub mod e9;
 
 pub trait Rule {
-    // Optional hook for cross-file type resolution or indexing.
-    // Called once for every file before main validation pass.
-    fn index_file(&self, _file: &File) {}
+    /// Optional hook for cross-file type resolution or indexing.
+    /// Called once for every file before main validation pass.
+    fn index_file(&self, _file: &File<'_>) {}
 
-    // Would be a good idea to have default implementation which extracts the code from struct name
-    // Haven't found a way to implement it
+    /// Would be a good idea to have default implementation which extracts the code from struct name
+    /// Haven't found a way to implement it
     fn get_code(&self) -> String;
 
     fn description(&self) -> String {
         String::from("")
     }
-    // Every rule has a detailed explenation.
-    // They are writting in markdown and are located in
-    // the examples directory.
+    /// Every rule has a detailed explenation.
+    /// They are writting in markdown and are located in
+    /// the examples directory.
     fn get_detailed_explanation(&self) -> Option<String> {
         let code = self.get_code().replace("000", "");
         let c: Vec<char> = code.chars().collect();
@@ -94,35 +89,28 @@ pub trait Rule {
         );
     }
 
-    fn do_validate(&self, file: &File) -> bool {
+    fn do_validate(&self, file: &File<'_>) -> bool {
         file.get_fully_qualified_name().is_some()
     }
 
-    fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation>;
+    fn validate(&self, file: &File<'_>, statement: &Statement<'_>) -> Vec<Violation>;
 
-    fn new_violation(&self, file: &File, suggestion: String, span: Span) -> Violation {
-        let (line, start_line, start_column, end_line, end_column) =
-            if let Ok(source) = file.source_manager.load(&span.start.source) {
-                let start_line = source.line_number(span.start.offset);
-                let start_column = source.column_number(span.start.offset);
-                let end_line = source.line_number(span.end.offset);
-                let end_column = source.column_number(span.end.offset);
-                (
-                    start_line.to_string(),
-                    start_line,
-                    start_column,
-                    end_line,
-                    end_column,
-                )
-            } else {
-                (String::from(""), 0, 0, 0, 0)
-            };
+    fn new_violation(&self, file: &File<'_>, suggestion: String, span: Span) -> Violation {
+        let start_line = file.line_number(span.start.offset);
+        let start_column = file.column_number(span.start.offset);
+        let end_line = file.line_number(span.end.offset);
+        let end_column = file.column_number(span.end.offset);
+
+        let line = file
+            .lines
+            .get(start_line.saturating_sub(1))
+            .cloned()
+            .unwrap_or_default();
 
         Violation {
             rule: self.get_code(),
             line,
             suggestion,
-            // span,
             start_line,
             start_column,
             end_line,
@@ -130,16 +118,19 @@ pub trait Rule {
         }
     }
 
-    fn flatten_statements_to_validate<'a>(&'a self, statement: &'a Statement) -> Vec<&Statement> {
-        let mut flatten_statements: Vec<&Statement> = Vec::new();
+    fn flatten_statements_to_validate<'a>(
+        &'a self,
+        statement: &'a Statement<'a>,
+    ) -> Vec<&'a Statement<'a>> {
+        let mut flatten_statements: Vec<&Statement<'a>> = Vec::new();
         self.travers_statements_to_validate(&mut flatten_statements, statement);
         flatten_statements
     }
 
     fn travers_statements_to_validate<'a>(
         &'a self,
-        flatten_statements: &mut Vec<&'a Statement>,
-        statement: &'a Statement,
+        flatten_statements: &mut Vec<&'a Statement<'a>>,
+        statement: &'a Statement<'a>,
     ) {
         flatten_statements.push(statement);
 
@@ -233,64 +224,44 @@ pub trait Rule {
             }
             Statement::Class(class) => {
                 for member in class.members.iter() {
-                    if let mago_ast::ast::class_like::member::ClassLikeMember::Method(method) =
-                        member
-                    {
-                        match &method.body {
-                            mago_ast::MethodBody::Concrete(block) => {
-                                for s in block.statements.iter() {
-                                    self.travers_statements_to_validate(flatten_statements, s);
-                                }
+                    if let ClassLikeMember::Method(method) = member {
+                        if let MethodBody::Concrete(block) = &method.body {
+                            for s in block.statements.iter() {
+                                self.travers_statements_to_validate(flatten_statements, s);
                             }
-                            _ => {}
                         }
                     }
                 }
             }
             Statement::Interface(interface) => {
                 for member in interface.members.iter() {
-                    if let mago_ast::ast::class_like::member::ClassLikeMember::Method(method) =
-                        member
-                    {
-                        match &method.body {
-                            mago_ast::MethodBody::Concrete(block) => {
-                                for s in block.statements.iter() {
-                                    self.travers_statements_to_validate(flatten_statements, s);
-                                }
+                    if let ClassLikeMember::Method(method) = member {
+                        if let MethodBody::Concrete(block) = &method.body {
+                            for s in block.statements.iter() {
+                                self.travers_statements_to_validate(flatten_statements, s);
                             }
-                            _ => {}
                         }
                     }
                 }
             }
             Statement::Trait(t) => {
                 for member in t.members.iter() {
-                    if let mago_ast::ast::class_like::member::ClassLikeMember::Method(method) =
-                        member
-                    {
-                        match &method.body {
-                            mago_ast::MethodBody::Concrete(block) => {
-                                for s in block.statements.iter() {
-                                    self.travers_statements_to_validate(flatten_statements, s);
-                                }
+                    if let ClassLikeMember::Method(method) = member {
+                        if let MethodBody::Concrete(block) = &method.body {
+                            for s in block.statements.iter() {
+                                self.travers_statements_to_validate(flatten_statements, s);
                             }
-                            _ => {}
                         }
                     }
                 }
             }
             Statement::Enum(e) => {
                 for member in e.members.iter() {
-                    if let mago_ast::ast::class_like::member::ClassLikeMember::Method(method) =
-                        member
-                    {
-                        match &method.body {
-                            mago_ast::MethodBody::Concrete(block) => {
-                                for s in block.statements.iter() {
-                                    self.travers_statements_to_validate(flatten_statements, s);
-                                }
+                    if let ClassLikeMember::Method(method) = member {
+                        if let MethodBody::Concrete(block) = &method.body {
+                            for s in block.statements.iter() {
+                                self.travers_statements_to_validate(flatten_statements, s);
                             }
-                            _ => {}
                         }
                     }
                 }
@@ -354,6 +325,8 @@ mod tests {
     use std::fs;
     use std::path::PathBuf;
 
+    use bumpalo::Bump;
+
     use crate::analyse::Analyse;
 
     use super::*;
@@ -361,7 +334,8 @@ mod tests {
     pub(crate) fn analyze_file_for_rule(path: &str, rule_code: &str) -> Vec<Violation> {
         let path = PathBuf::from(format!("./src/rules/examples/{path}"));
         let content = fs::read_to_string(&path).unwrap();
-        let mut file = File::new(path, content);
+        let arena = Bump::new();
+        let mut file = File::new(&arena, path, content);
 
         let config = Config {
             enabled_rules: vec![rule_code.to_string()],
