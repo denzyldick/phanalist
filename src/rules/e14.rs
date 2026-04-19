@@ -1,21 +1,11 @@
+use std::collections::HashMap;
+
+use mago_span::{HasSpan, Span};
+use mago_syntax::ast::*;
+
 use crate::file::File;
 use crate::results::Violation;
 use crate::rules::Rule as RuleTrait;
-use mago_ast::ast::access::Access;
-use mago_ast::ast::class_like::member::{ClassLikeMember, ClassLikeMemberSelector};
-use mago_ast::ast::control_flow::r#if::IfBody;
-use mago_ast::ast::control_flow::switch::SwitchBody;
-use mago_ast::ast::expression::Expression;
-use mago_ast::ast::identifier::Identifier;
-use mago_ast::ast::r#loop::foreach::ForeachBody;
-use mago_ast::ast::r#loop::r#while::WhileBody;
-use mago_ast::ast::type_hint::Hint;
-use mago_ast::ast::Statement;
-use mago_ast::Call;
-use mago_ast::MethodBody;
-use mago_ast::Variable;
-use mago_span::HasSpan;
-use std::collections::HashMap;
 
 static CODE: &str = "E0014";
 static DESCRIPTION: &str =
@@ -38,11 +28,11 @@ pub struct Rule {
 }
 
 impl crate::rules::Rule for Rule {
-    fn index_file(&self, file: &File) {
-        if let Some(program) = &file.ast {
+    fn index_file(&self, file: &File<'_>) {
+        if let Some(program) = file.ast {
             let mut file_registry = TypeRegistry::default();
             for statement in program.statements.iter() {
-                self.collect_types(file, statement, &mut file_registry);
+                self.collect_types(statement, &mut file_registry);
             }
             if let Ok(mut global) = self.global_registry.lock() {
                 for (class_name, methods) in file_registry.methods {
@@ -63,6 +53,7 @@ impl crate::rules::Rule for Rule {
             }
         }
     }
+
     fn get_code(&self) -> String {
         String::from(CODE)
     }
@@ -71,31 +62,30 @@ impl crate::rules::Rule for Rule {
         String::from(DESCRIPTION)
     }
 
-    fn do_validate(&self, _file: &File) -> bool {
+    fn do_validate(&self, _file: &File<'_>) -> bool {
         true
     }
 
-    fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
+    fn validate(&self, file: &File<'_>, statement: &Statement<'_>) -> Vec<Violation> {
         let mut violations = Vec::new();
 
         // Build the type registry from ALL statements in the file so that cross-file
         // references (e.g. a class using a trait defined elsewhere in the same file)
         // are resolvable. Fall back to building from just this statement if no AST.
         let mut registry = TypeRegistry::default();
-        if let Some(program) = &file.ast {
+        if let Some(program) = file.ast {
             for s in program.statements.iter() {
-                self.collect_types(file, s, &mut registry);
+                self.collect_types(s, &mut registry);
             }
         } else {
-            // Fallback: only this statement
             match statement {
                 Statement::Namespace(ns) => {
                     for s in ns.statements().iter() {
-                        self.collect_types(file, s, &mut registry);
+                        self.collect_types(s, &mut registry);
                     }
                 }
                 _ => {
-                    self.collect_types(file, statement, &mut registry);
+                    self.collect_types(statement, &mut registry);
                 }
             }
         }
@@ -134,8 +124,8 @@ impl crate::rules::Rule for Rule {
 
     fn travers_statements_to_validate<'a>(
         &'a self,
-        flatten_statements: &mut Vec<&'a Statement>,
-        statement: &'a Statement,
+        flatten_statements: &mut Vec<&'a Statement<'a>>,
+        statement: &'a Statement<'a>,
     ) {
         // Only push top-level; we handle recursion ourselves to maintain class context.
         flatten_statements.push(statement);
@@ -147,82 +137,81 @@ impl Rule {
     // Phase 1: Build TypeRegistry from all class/trait/interface declarations
     // -------------------------------------------------------------------------
 
-    fn collect_types(&self, file: &File, statement: &Statement, registry: &mut TypeRegistry) {
+    fn collect_types(&self, statement: &Statement<'_>, registry: &mut TypeRegistry) {
         match statement {
             Statement::Namespace(ns) => {
                 for s in ns.statements().iter() {
-                    self.collect_types(file, s, registry);
+                    self.collect_types(s, registry);
                 }
             }
             Statement::Class(class) => {
-                let name = file.interner.lookup(&class.name.value).to_string();
+                let name = class.name.value.to_string();
                 let mut method_map = HashMap::new();
                 let mut prop_map = HashMap::new();
                 for member in class.members.iter() {
-                    if let ClassLikeMember::Method(m) = member {
-                        let method_name = file.interner.lookup(&m.name.value).to_string();
-                        if let Some(hint) = &m.return_type_hint {
-                            if let Some(t) = self.extract_type_hint(file, &hint.hint) {
-                                method_map.insert(method_name, t);
-                            }
-                        }
-                    } else if let ClassLikeMember::Property(p) = member {
-                        if let Some(hint) = p.hint() {
-                            if let Some(t) = self.extract_type_hint(file, hint) {
-                                for var in p.variables() {
-                                    let prop_name = file
-                                        .interner
-                                        .lookup(&var.name)
-                                        .trim_start_matches('$')
-                                        .to_string();
-                                    prop_map.insert(prop_name, t.clone());
+                    match member {
+                        ClassLikeMember::Method(m) => {
+                            if let Some(hint) = &m.return_type_hint {
+                                if let Some(t) = self.extract_type_hint(&hint.hint) {
+                                    method_map.insert(m.name.value.to_string(), t);
                                 }
                             }
                         }
+                        ClassLikeMember::Property(p) => {
+                            if let Some(hint) = p.hint() {
+                                if let Some(t) = self.extract_type_hint(hint) {
+                                    for var in p.variables() {
+                                        let prop_name =
+                                            var.name.trim_start_matches('$').to_string();
+                                        prop_map.insert(prop_name, t.clone());
+                                    }
+                                }
+                            }
+                        }
+                        _ => {}
                     }
                 }
                 registry.methods.insert(name.clone(), method_map);
                 registry.properties.insert(name, prop_map);
             }
             Statement::Trait(trait_def) => {
-                let name = file.interner.lookup(&trait_def.name.value).to_string();
+                let name = trait_def.name.value.to_string();
                 let mut method_map = HashMap::new();
                 let mut prop_map = HashMap::new();
                 for member in trait_def.members.iter() {
-                    if let ClassLikeMember::Method(m) = member {
-                        let method_name = file.interner.lookup(&m.name.value).to_string();
-                        if let Some(hint) = &m.return_type_hint {
-                            if let Some(t) = self.extract_type_hint(file, &hint.hint) {
-                                method_map.insert(method_name, t);
-                            }
-                        }
-                    } else if let ClassLikeMember::Property(p) = member {
-                        if let Some(hint) = p.hint() {
-                            if let Some(t) = self.extract_type_hint(file, hint) {
-                                for var in p.variables() {
-                                    let prop_name = file
-                                        .interner
-                                        .lookup(&var.name)
-                                        .trim_start_matches('$')
-                                        .to_string();
-                                    prop_map.insert(prop_name, t.clone());
+                    match member {
+                        ClassLikeMember::Method(m) => {
+                            if let Some(hint) = &m.return_type_hint {
+                                if let Some(t) = self.extract_type_hint(&hint.hint) {
+                                    method_map.insert(m.name.value.to_string(), t);
                                 }
                             }
                         }
+                        ClassLikeMember::Property(p) => {
+                            if let Some(hint) = p.hint() {
+                                if let Some(t) = self.extract_type_hint(hint) {
+                                    for var in p.variables() {
+                                        let prop_name =
+                                            var.name.trim_start_matches('$').to_string();
+                                        prop_map.insert(prop_name, t.clone());
+                                    }
+                                }
+                            }
+                        }
+                        _ => {}
                     }
                 }
                 registry.methods.insert(name.clone(), method_map);
                 registry.properties.insert(name, prop_map);
             }
             Statement::Interface(iface) => {
-                let name = file.interner.lookup(&iface.name.value).to_string();
+                let name = iface.name.value.to_string();
                 let mut method_map = HashMap::new();
                 for member in iface.members.iter() {
                     if let ClassLikeMember::Method(m) = member {
-                        let method_name = file.interner.lookup(&m.name.value).to_string();
                         if let Some(hint) = &m.return_type_hint {
-                            if let Some(t) = self.extract_type_hint(file, &hint.hint) {
-                                method_map.insert(method_name, t);
+                            if let Some(t) = self.extract_type_hint(&hint.hint) {
+                                method_map.insert(m.name.value.to_string(), t);
                             }
                         }
                     }
@@ -240,9 +229,8 @@ impl Rule {
 
     fn build_class_method_map(
         &self,
-        file: &File,
         class_name: &str,
-        members: &mago_ast::Sequence<ClassLikeMember>,
+        members: &Sequence<'_, ClassLikeMember<'_>>,
         registry: &TypeRegistry,
     ) -> HashMap<String, String> {
         let mut map: HashMap<String, String> = HashMap::new();
@@ -251,17 +239,16 @@ impl Rule {
         for member in members.iter() {
             match member {
                 ClassLikeMember::Method(m) => {
-                    let method_name = file.interner.lookup(&m.name.value).to_string();
                     if let Some(hint) = &m.return_type_hint {
-                        if let Some(t) = self.extract_type_hint(file, &hint.hint) {
-                            map.insert(method_name, t);
+                        if let Some(t) = self.extract_type_hint(&hint.hint) {
+                            map.insert(m.name.value.to_string(), t);
                         }
                     }
                 }
                 ClassLikeMember::TraitUse(trait_use) => {
                     // Merge methods from used traits
                     for trait_name_id in trait_use.trait_names.iter() {
-                        let trait_name = self.lookup_identifier(file, trait_name_id);
+                        let trait_name = trait_name_id.value().to_string();
                         if let Some(trait_map) = registry.methods.get(&trait_name) {
                             for (method_name, ret_type) in trait_map {
                                 // Don't override class's own method definitions
@@ -296,22 +283,21 @@ impl Rule {
 
     fn validate_statement(
         &self,
-        file: &File,
-        statement: &Statement,
+        file: &File<'_>,
+        statement: &Statement<'_>,
         registry: &TypeRegistry,
         violations: &mut Vec<Violation>,
     ) {
         match statement {
             Statement::Class(class) => {
-                let class_name = file.interner.lookup(&class.name.value).to_string();
-                let method_map =
-                    self.build_class_method_map(file, &class_name, &class.members, registry);
+                let class_name = class.name.value.to_string();
+                let method_map = self.build_class_method_map(&class_name, &class.members, registry);
 
                 for member in class.members.iter() {
                     if let ClassLikeMember::Method(method) = member {
                         if let MethodBody::Concrete(block) = &method.body {
                             let mut var_types = VarTypes::new();
-                            self.track_parameters(file, &method.parameter_list, &mut var_types);
+                            self.track_parameters(&method.parameter_list, &mut var_types);
                             for stmt in block.statements.iter() {
                                 self.check_statement(
                                     file,
@@ -328,15 +314,15 @@ impl Rule {
                 }
             }
             Statement::Trait(trait_def) => {
-                let trait_name = file.interner.lookup(&trait_def.name.value).to_string();
+                let trait_name = trait_def.name.value.to_string();
                 let method_map =
-                    self.build_class_method_map(file, &trait_name, &trait_def.members, registry);
+                    self.build_class_method_map(&trait_name, &trait_def.members, registry);
 
                 for member in trait_def.members.iter() {
                     if let ClassLikeMember::Method(method) = member {
                         if let MethodBody::Concrete(block) = &method.body {
                             let mut var_types = VarTypes::new();
-                            self.track_parameters(file, &method.parameter_list, &mut var_types);
+                            self.track_parameters(&method.parameter_list, &mut var_types);
                             for stmt in block.statements.iter() {
                                 self.check_statement(
                                     file,
@@ -354,7 +340,7 @@ impl Rule {
             }
             Statement::Function(func) => {
                 let mut var_types = VarTypes::new();
-                self.track_parameters(file, &func.parameter_list, &mut var_types);
+                self.track_parameters(&func.parameter_list, &mut var_types);
                 for stmt in func.body.statements.iter() {
                     self.check_statement(
                         file,
@@ -368,7 +354,6 @@ impl Rule {
                 }
             }
             _ => {
-                // For standalone procedural code, check without class context
                 let mut var_types = VarTypes::new();
                 self.check_statement(
                     file,
@@ -389,8 +374,8 @@ impl Rule {
 
     fn check_statement(
         &self,
-        file: &File,
-        statement: &Statement,
+        file: &File<'_>,
+        statement: &Statement<'_>,
         method_map: &HashMap<String, String>,
         current_class: &str,
         registry: &TypeRegistry,
@@ -399,32 +384,27 @@ impl Rule {
     ) {
         match statement {
             Statement::Expression(expr_stmt) => {
-                // If this is an assignment, try to track variable type
-                if let Expression::Assignment(assign) = expr_stmt.expression.as_ref() {
-                    // Check RHS for violations first
+                if let Expression::Assignment(assign) = expr_stmt.expression {
                     let rhs_type = self.check_expression(
                         file,
-                        &assign.rhs,
+                        assign.rhs,
                         method_map,
                         current_class,
                         registry,
                         var_types,
                         violations,
                     );
-                    // Track variable type if LHS is a simple variable
-                    if let Expression::Variable(Variable::Direct(d)) = assign.lhs.as_ref() {
-                        let var_name = file.interner.lookup(&d.name).to_string();
+                    if let Expression::Variable(Variable::Direct(d)) = assign.lhs {
+                        let var_name = d.name.to_string();
                         if let Some(t) = rhs_type {
                             var_types.insert(var_name, t);
                         } else {
-                            // Remove stale type info so chaining on it flags a violation
                             var_types.remove(&var_name);
                         }
                     }
-                    // Also check LHS (in case of compound assignments on chains)
                     self.check_expression(
                         file,
-                        &assign.lhs,
+                        assign.lhs,
                         method_map,
                         current_class,
                         registry,
@@ -434,7 +414,7 @@ impl Rule {
                 } else {
                     self.check_expression(
                         file,
-                        &expr_stmt.expression,
+                        expr_stmt.expression,
                         method_map,
                         current_class,
                         registry,
@@ -444,7 +424,7 @@ impl Rule {
                 }
             }
             Statement::Return(ret_stmt) => {
-                if let Some(expr) = &ret_stmt.value {
+                if let Some(expr) = ret_stmt.value {
                     self.check_expression(
                         file,
                         expr,
@@ -472,7 +452,7 @@ impl Rule {
             Statement::If(if_stmt) => {
                 self.check_expression(
                     file,
-                    &if_stmt.condition,
+                    if_stmt.condition,
                     method_map,
                     current_class,
                     registry,
@@ -493,7 +473,7 @@ impl Rule {
                         for clause in body.else_if_clauses.iter() {
                             self.check_expression(
                                 file,
-                                &clause.condition,
+                                clause.condition,
                                 method_map,
                                 current_class,
                                 registry,
@@ -537,7 +517,7 @@ impl Rule {
                         for clause in body.else_if_clauses.iter() {
                             self.check_expression(
                                 file,
-                                &clause.condition,
+                                clause.condition,
                                 method_map,
                                 current_class,
                                 registry,
@@ -575,7 +555,7 @@ impl Rule {
             Statement::While(while_stmt) => {
                 self.check_expression(
                     file,
-                    &while_stmt.condition,
+                    while_stmt.condition,
                     method_map,
                     current_class,
                     registry,
@@ -612,7 +592,7 @@ impl Rule {
             Statement::DoWhile(do_while) => {
                 self.check_expression(
                     file,
-                    &do_while.condition,
+                    do_while.condition,
                     method_map,
                     current_class,
                     registry,
@@ -632,70 +612,61 @@ impl Rule {
             Statement::Switch(switch) => {
                 self.check_expression(
                     file,
-                    &switch.expression,
+                    switch.expression,
                     method_map,
                     current_class,
                     registry,
                     var_types,
                     violations,
                 );
-                let check_cases = |cases: &mago_ast::Sequence<_>,
-                                   slf: &Rule,
-                                   violations: &mut Vec<Violation>,
-                                   var_types: &mut VarTypes| {
-                    for case in cases.iter() {
-                        match case {
-                            mago_ast::ast::control_flow::switch::SwitchCase::Expression(c) => {
-                                slf.check_expression(
+                let cases = match &switch.body {
+                    SwitchBody::BraceDelimited(body) => &body.cases,
+                    SwitchBody::ColonDelimited(body) => &body.cases,
+                };
+                for case in cases.iter() {
+                    match case {
+                        SwitchCase::Expression(c) => {
+                            self.check_expression(
+                                file,
+                                c.expression,
+                                method_map,
+                                current_class,
+                                registry,
+                                var_types,
+                                violations,
+                            );
+                            for s in c.statements.iter() {
+                                self.check_statement(
                                     file,
-                                    &c.expression,
+                                    s,
                                     method_map,
                                     current_class,
                                     registry,
                                     var_types,
                                     violations,
                                 );
-                                for s in c.statements.iter() {
-                                    slf.check_statement(
-                                        file,
-                                        s,
-                                        method_map,
-                                        current_class,
-                                        registry,
-                                        var_types,
-                                        violations,
-                                    );
-                                }
-                            }
-                            mago_ast::ast::control_flow::switch::SwitchCase::Default(c) => {
-                                for s in c.statements.iter() {
-                                    slf.check_statement(
-                                        file,
-                                        s,
-                                        method_map,
-                                        current_class,
-                                        registry,
-                                        var_types,
-                                        violations,
-                                    );
-                                }
                             }
                         }
-                    }
-                };
-                match &switch.body {
-                    SwitchBody::BraceDelimited(body) => {
-                        check_cases(&body.cases, self, violations, var_types);
-                    }
-                    SwitchBody::ColonDelimited(body) => {
-                        check_cases(&body.cases, self, violations, var_types);
+                        SwitchCase::Default(c) => {
+                            for s in c.statements.iter() {
+                                self.check_statement(
+                                    file,
+                                    s,
+                                    method_map,
+                                    current_class,
+                                    registry,
+                                    var_types,
+                                    violations,
+                                );
+                            }
+                        }
                     }
                 }
             }
             Statement::Foreach(foreach) => {
                 self.check_expression(
                     file,
-                    &foreach.expression,
+                    foreach.expression,
                     method_map,
                     current_class,
                     registry,
@@ -755,8 +726,8 @@ impl Rule {
 
     fn check_expression(
         &self,
-        file: &File,
-        expression: &Expression,
+        file: &File<'_>,
+        expression: &Expression<'_>,
         method_map: &HashMap<String, String>,
         current_class: &str,
         registry: &TypeRegistry,
@@ -770,7 +741,7 @@ impl Rule {
             Expression::Binary(binary) => {
                 self.check_expression(
                     file,
-                    &binary.lhs,
+                    binary.lhs,
                     method_map,
                     current_class,
                     registry,
@@ -779,7 +750,7 @@ impl Rule {
                 );
                 self.check_expression(
                     file,
-                    &binary.rhs,
+                    binary.rhs,
                     method_map,
                     current_class,
                     registry,
@@ -794,23 +765,17 @@ impl Rule {
             // ------------------------------------------------------------------
             Expression::Variable(v) => {
                 if let Variable::Direct(d) = v {
-                    let name = file.interner.lookup(&d.name);
-                    if name == "$this" {
+                    if d.name == "$this" {
                         return Some("self".to_string());
                     }
-                    // Resolve from tracked variable types
-                    return var_types.get(name).cloned();
+                    return var_types.get(d.name).cloned();
                 }
                 None
             }
 
-            // ------------------------------------------------------------------
-            // Instantiation: new Foo() → "Foo"
-            // ------------------------------------------------------------------
             Expression::Instantiation(new_expr) => {
-                let class_name = self.identifier_type_name(file, &new_expr.class);
-                // Also check constructor arguments (may be absent for `new Foo`)
-                if let Some(arg_list) = &new_expr.arguments {
+                let class_name = self.identifier_type_name(new_expr.class);
+                if let Some(arg_list) = &new_expr.argument_list {
                     for arg in arg_list.arguments.iter() {
                         self.check_argument_expr(
                             file,
@@ -861,14 +826,14 @@ impl Rule {
             Expression::Conditional(cond) => {
                 self.check_expression(
                     file,
-                    &cond.condition,
+                    cond.condition,
                     method_map,
                     current_class,
                     registry,
                     var_types,
                     violations,
                 );
-                if let Some(then_expr) = &cond.then {
+                if let Some(then_expr) = cond.then {
                     self.check_expression(
                         file,
                         then_expr,
@@ -881,7 +846,7 @@ impl Rule {
                 }
                 self.check_expression(
                     file,
-                    &cond.r#else,
+                    cond.r#else,
                     method_map,
                     current_class,
                     registry,
@@ -896,7 +861,7 @@ impl Rule {
             // ------------------------------------------------------------------
             Expression::Parenthesized(p) => self.check_expression(
                 file,
-                &p.expression,
+                p.expression,
                 method_map,
                 current_class,
                 registry,
@@ -910,7 +875,7 @@ impl Rule {
             Expression::UnaryPrefix(u) => {
                 self.check_expression(
                     file,
-                    &u.operand,
+                    u.operand,
                     method_map,
                     current_class,
                     registry,
@@ -922,7 +887,7 @@ impl Rule {
             Expression::UnaryPostfix(u) => {
                 self.check_expression(
                     file,
-                    &u.operand,
+                    u.operand,
                     method_map,
                     current_class,
                     registry,
@@ -942,8 +907,8 @@ impl Rule {
 
     fn check_call(
         &self,
-        file: &File,
-        call: &Call,
+        file: &File<'_>,
+        call: &Call<'_>,
         method_map: &HashMap<String, String>,
         current_class: &str,
         registry: &TypeRegistry,
@@ -953,7 +918,7 @@ impl Rule {
         match call {
             Call::Method(mc) => self.check_method_call_generic(
                 file,
-                mc.object.as_ref(),
+                mc.object,
                 &mc.method,
                 &mc.argument_list,
                 mc.span(),
@@ -965,7 +930,7 @@ impl Rule {
             ),
             Call::NullSafeMethod(mc) => self.check_method_call_generic(
                 file,
-                mc.object.as_ref(),
+                mc.object,
                 &mc.method,
                 &mc.argument_list,
                 mc.span(),
@@ -979,7 +944,7 @@ impl Rule {
                 // $class::method() — the class expression may be a class name or variable
                 let class_type = self.check_expression(
                     file,
-                    &mc.class,
+                    mc.class,
                     method_map,
                     current_class,
                     registry,
@@ -998,8 +963,7 @@ impl Rule {
                         violations,
                     );
                 }
-                // Resolve return type of the static method
-                let method_name = self.member_selector_name(file, &mc.method);
+                let method_name = self.member_selector_name(&mc.method);
                 self.resolve_method_return(
                     class_type.as_deref(),
                     &method_name,
@@ -1020,7 +984,7 @@ impl Rule {
                         violations,
                     );
                 }
-                None // Function return type is unknown
+                None
             }
         }
     }
@@ -1029,11 +993,11 @@ impl Rule {
     #[allow(clippy::too_many_arguments)]
     fn check_method_call_generic(
         &self,
-        file: &File,
-        object: &Expression,
-        method_selector: &ClassLikeMemberSelector,
-        argument_list: &mago_ast::ast::argument::ArgumentList,
-        span: mago_span::Span,
+        file: &File<'_>,
+        object: &Expression<'_>,
+        method_selector: &ClassLikeMemberSelector<'_>,
+        argument_list: &ArgumentList<'_>,
+        span: Span,
         method_map: &HashMap<String, String>,
         current_class: &str,
         registry: &TypeRegistry,
@@ -1064,16 +1028,12 @@ impl Rule {
             );
         }
 
-        // Determine if chaining on this object is safe
-        let method_name = self.member_selector_name(file, method_selector);
+        let method_name = self.member_selector_name(method_selector);
 
         // Determine if this is a method chain (`$a->b()->c()`) or a valid first call (`$a->b()`, `$this->foo->b()`)
         let is_chain = match object {
             Expression::Call(_) => true,
-            Expression::Parenthesized(p) => match p.expression.as_ref() {
-                Expression::Call(_) => true,
-                _ => false,
-            },
+            Expression::Parenthesized(p) => matches!(p.expression, Expression::Call(_)),
             _ => false,
         };
 
@@ -1094,8 +1054,8 @@ impl Rule {
         let is_fluent_on_foreign = match object {
             Expression::Call(call) => {
                 let prev_object = match call {
-                    Call::Method(mc) => Some(mc.object.as_ref()),
-                    Call::NullSafeMethod(mc) => Some(mc.object.as_ref()),
+                    Call::Method(mc) => Some(mc.object),
+                    Call::NullSafeMethod(mc) => Some(mc.object),
                     _ => None,
                 };
                 if let Some(prev_obj) = prev_object {
@@ -1106,7 +1066,7 @@ impl Rule {
                         current_class,
                         registry,
                         var_types,
-                        &mut Vec::new(), // dummy to avoid duplicates
+                        &mut Vec::new(),
                     );
                     prev_type == object_type
                 } else {
@@ -1117,27 +1077,15 @@ impl Rule {
         };
 
         match &object_type {
-            Some(t) if self.is_own_type(t, current_class) || is_fluent_on_foreign => {
-                // Safe: look up return type of this method
-                self.resolve_method_return(
-                    Some(t),
-                    &method_name,
-                    current_class,
-                    method_map,
-                    registry,
-                )
-            }
-            Some(t) if registry.interfaces.contains(t) => {
-                // Interfaces define contracts; returning a valid interface object is safe
-                // to chain on, as per Law of Demeter extensions.
-                self.resolve_method_return(
-                    Some(t),
-                    &method_name,
-                    current_class,
-                    method_map,
-                    registry,
-                )
-            }
+            Some(t) if self.is_own_type(t, current_class) || is_fluent_on_foreign => self
+                .resolve_method_return(Some(t), &method_name, current_class, method_map, registry),
+            Some(t) if registry.interfaces.contains(t) => self.resolve_method_return(
+                Some(t),
+                &method_name,
+                current_class,
+                method_map,
+                registry,
+            ),
             Some(t) => {
                 // Foreign type — chaining is a violation
                 let message = format!(
@@ -1165,8 +1113,8 @@ impl Rule {
 
     fn resolve_object_type(
         &self,
-        file: &File,
-        object: &Expression,
+        file: &File<'_>,
+        object: &Expression<'_>,
         method_map: &HashMap<String, String>,
         current_class: &str,
         registry: &TypeRegistry,
@@ -1176,18 +1124,16 @@ impl Rule {
         match object {
             // $this → "self"
             Expression::Variable(Variable::Direct(d)) => {
-                let name = file.interner.lookup(&d.name);
-                if name == "$this" {
+                if d.name == "$this" {
                     Some("self".to_string())
                 } else {
-                    // Look up variable type from tracking
-                    var_types.get(name).cloned()
+                    var_types.get(d.name).cloned()
                 }
             }
 
             // new Foo() → "Foo"
             Expression::Instantiation(new_expr) => {
-                if let Some(arg_list) = &new_expr.arguments {
+                if let Some(arg_list) = &new_expr.argument_list {
                     for arg in arg_list.arguments.iter() {
                         self.check_argument_expr(
                             file,
@@ -1200,7 +1146,7 @@ impl Rule {
                         );
                     }
                 }
-                self.identifier_type_name(file, &new_expr.class)
+                self.identifier_type_name(new_expr.class)
             }
 
             // Another method call (chained) → recurse via check_expression
@@ -1222,7 +1168,7 @@ impl Rule {
                     // $obj->prop: first validate the object itself
                     let obj_type = self.resolve_object_type(
                         file,
-                        &pa.object,
+                        pa.object,
                         method_map,
                         current_class,
                         registry,
@@ -1231,7 +1177,6 @@ impl Rule {
                     );
                     if let Some(t) = &obj_type {
                         if self.is_own_type(t, current_class) {
-                            // Accessing own property is fine. Look up its type from registry:
                             let lookup_type = if t == "self" || t == "static" {
                                 current_class
                             } else {
@@ -1239,7 +1184,7 @@ impl Rule {
                             };
                             if let Some(mut prop_type) =
                                 registry.properties.get(lookup_type).and_then(|props| {
-                                    let prop_name = self.member_selector_name(file, &pa.property);
+                                    let prop_name = self.member_selector_name(&pa.property);
                                     props.get(prop_name.trim_start_matches('$')).cloned()
                                 })
                             {
@@ -1251,14 +1196,12 @@ impl Rule {
                             return None;
                         }
                     }
-                    // Accessing a property of a foreign object
-                    // The caller will detect the violation when chaining on this None
                     None
                 }
                 Access::NullSafeProperty(pa) => {
                     let obj_type = self.resolve_object_type(
                         file,
-                        &pa.object,
+                        pa.object,
                         method_map,
                         current_class,
                         registry,
@@ -1274,7 +1217,7 @@ impl Rule {
                             };
                             if let Some(mut prop_type) =
                                 registry.properties.get(lookup_type).and_then(|props| {
-                                    let prop_name = self.member_selector_name(file, &pa.property);
+                                    let prop_name = self.member_selector_name(&pa.property);
                                     props.get(prop_name.trim_start_matches('$')).cloned()
                                 })
                             {
@@ -1288,24 +1231,20 @@ impl Rule {
                     }
                     None
                 }
-                _ => {
-                    // StaticProperty / ClassConstant — recurse
-                    self.check_expression(
-                        file,
-                        object,
-                        method_map,
-                        current_class,
-                        registry,
-                        var_types,
-                        violations,
-                    )
-                }
+                _ => self.check_expression(
+                    file,
+                    object,
+                    method_map,
+                    current_class,
+                    registry,
+                    var_types,
+                    violations,
+                ),
             },
 
-            // Parenthesised: unwrap
             Expression::Parenthesized(p) => self.resolve_object_type(
                 file,
-                &p.expression,
+                p.expression,
                 method_map,
                 current_class,
                 registry,
@@ -1313,14 +1252,8 @@ impl Rule {
                 violations,
             ),
 
-            // Static class name identifier used directly e.g. ClassName::staticMethod()
             Expression::Identifier(id) => {
-                let name = match id {
-                    Identifier::Local(l) => file.interner.lookup(&l.value).to_string(),
-                    Identifier::Qualified(q) => file.interner.lookup(&q.value).to_string(),
-                    Identifier::FullyQualified(f) => file.interner.lookup(&f.value).to_string(),
-                };
-                // "self", "static", "parent" keywords used as class names
+                let name = id.value().to_string();
                 match name.as_str() {
                     "self" | "static" => Some("self".to_string()),
                     _ => Some(name),
@@ -1331,14 +1264,10 @@ impl Rule {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Helper: check Access expressions (property access used standalone)
-    // -------------------------------------------------------------------------
-
     fn check_access(
         &self,
-        file: &File,
-        access: &Access,
+        file: &File<'_>,
+        access: &Access<'_>,
         method_map: &HashMap<String, String>,
         current_class: &str,
         registry: &TypeRegistry,
@@ -1347,22 +1276,21 @@ impl Rule {
     ) -> Option<String> {
         match access {
             Access::Property(pa) => {
-                // Standalone $obj->prop — validate the object part for chaining in it
                 self.check_expression(
                     file,
-                    &pa.object,
+                    pa.object,
                     method_map,
                     current_class,
                     registry,
                     var_types,
                     violations,
                 );
-                None // Property type is always unknown
+                None
             }
             Access::NullSafeProperty(pa) => {
                 self.check_expression(
                     file,
-                    &pa.object,
+                    pa.object,
                     method_map,
                     current_class,
                     registry,
@@ -1374,7 +1302,7 @@ impl Rule {
             Access::StaticProperty(pa) => {
                 self.check_expression(
                     file,
-                    &pa.class,
+                    pa.class,
                     method_map,
                     current_class,
                     registry,
@@ -1386,7 +1314,7 @@ impl Rule {
             Access::ClassConstant(pa) => {
                 self.check_expression(
                     file,
-                    &pa.class,
+                    pa.class,
                     method_map,
                     current_class,
                     registry,
@@ -1398,11 +1326,6 @@ impl Rule {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
-
-    /// Resolve a method's return type from the method map or registry.
     fn resolve_method_return(
         &self,
         object_type: Option<&str>,
@@ -1416,94 +1339,69 @@ impl Rule {
                 t = current_class;
             }
             if self.is_own_type(t, current_class) {
-                // Look up in the current class's method map
                 if let Some(ret) = method_map.get(method_name) {
                     return Some(ret.clone());
                 }
-                // Fallback to registry if not found directly
                 if let Some(type_map) = registry.methods.get(t) {
                     if let Some(ret) = type_map.get(method_name) {
                         return Some(ret.clone());
                     }
                 }
-            } else {
-                // Look up in the type registry for cross-class resolution
-                if let Some(type_map) = registry.methods.get(t) {
-                    if let Some(ret) = type_map.get(method_name) {
-                        return Some(ret.clone());
-                    }
+            } else if let Some(type_map) = registry.methods.get(t) {
+                if let Some(ret) = type_map.get(method_name) {
+                    return Some(ret.clone());
                 }
             }
         }
         None
     }
 
-    /// Extract parameter types into tracking map
     fn track_parameters(
         &self,
-        file: &File,
-        parameters: &mago_ast::ast::FunctionLikeParameterList,
+        parameters: &FunctionLikeParameterList<'_>,
         var_types: &mut VarTypes,
     ) {
         for param in parameters.parameters.iter() {
             if let Some(hint) = &param.hint {
-                if let Some(t) = self.extract_type_hint(file, hint) {
-                    let param_name = file.interner.lookup(&param.variable.name).to_string();
-                    var_types.insert(param_name, t);
+                if let Some(t) = self.extract_type_hint(hint) {
+                    var_types.insert(param.variable.name.to_string(), t);
                 }
             }
         }
     }
 
-    /// Returns true if `t` represents the current class (self, static, or by name).
     fn is_own_type(&self, t: &str, current_class: &str) -> bool {
         t == "self" || t == "static" || (!current_class.is_empty() && t == current_class)
     }
 
-    /// Extract string name from a `ClassLikeMemberSelector`.
-    fn member_selector_name(&self, file: &File, selector: &ClassLikeMemberSelector) -> String {
+    fn member_selector_name(&self, selector: &ClassLikeMemberSelector<'_>) -> String {
         match selector {
-            ClassLikeMemberSelector::Identifier(local_id) => {
-                file.interner.lookup(&local_id.value).to_string()
-            }
+            ClassLikeMemberSelector::Identifier(local_id) => local_id.value.to_string(),
             ClassLikeMemberSelector::Variable(v) => {
                 if let Variable::Direct(d) = v {
-                    format!("${}", file.interner.lookup(&d.name))
+                    d.name.to_string()
                 } else {
                     "<dynamic>".to_string()
                 }
             }
-            ClassLikeMemberSelector::Expression(_) => "<dynamic>".to_string(),
+            ClassLikeMemberSelector::Expression(_) | ClassLikeMemberSelector::Missing(_) => {
+                "<dynamic>".to_string()
+            }
         }
     }
 
-    /// Extract string type name from an expression used as a class/instantiation target.
-    fn identifier_type_name(&self, file: &File, expr: &Expression) -> Option<String> {
+    fn identifier_type_name(&self, expr: &Expression<'_>) -> Option<String> {
         if let Expression::Identifier(id) = expr {
-            Some(match id {
-                Identifier::Local(l) => file.interner.lookup(&l.value).to_string(),
-                Identifier::Qualified(q) => file.interner.lookup(&q.value).to_string(),
-                Identifier::FullyQualified(f) => file.interner.lookup(&f.value).to_string(),
-            })
+            Some(id.value().to_string())
         } else {
             None
         }
     }
 
-    /// Lookup string for an Identifier node (used in trait names etc).
-    fn lookup_identifier(&self, file: &File, id: &Identifier) -> String {
-        match id {
-            Identifier::Local(l) => file.interner.lookup(&l.value).to_string(),
-            Identifier::Qualified(q) => file.interner.lookup(&q.value).to_string(),
-            Identifier::FullyQualified(f) => file.interner.lookup(&f.value).to_string(),
-        }
-    }
-
-    /// Check an argument expression for LoD violations (does not affect return type).
     fn check_argument_expr(
         &self,
-        file: &File,
-        arg: &mago_ast::ast::argument::Argument,
+        file: &File<'_>,
+        arg: &Argument<'_>,
         method_map: &HashMap<String, String>,
         current_class: &str,
         registry: &TypeRegistry,
@@ -1511,10 +1409,10 @@ impl Rule {
         violations: &mut Vec<Violation>,
     ) {
         match arg {
-            mago_ast::ast::argument::Argument::Positional(a) => {
+            Argument::Positional(a) => {
                 self.check_expression(
                     file,
-                    &a.value,
+                    a.value,
                     method_map,
                     current_class,
                     registry,
@@ -1522,10 +1420,10 @@ impl Rule {
                     violations,
                 );
             }
-            mago_ast::ast::argument::Argument::Named(a) => {
+            Argument::Named(a) => {
                 self.check_expression(
                     file,
-                    &a.value,
+                    a.value,
                     method_map,
                     current_class,
                     registry,
@@ -1536,28 +1434,22 @@ impl Rule {
         }
     }
 
-    /// Extract a printable type string from a return type Hint.
-    fn extract_type_hint(&self, file: &File, hint: &Hint) -> Option<String> {
+    fn extract_type_hint(&self, hint: &Hint<'_>) -> Option<String> {
         match hint {
-            Hint::Identifier(id) => Some(match id {
-                Identifier::Local(l) => file.interner.lookup(&l.value).to_string(),
-                Identifier::Qualified(q) => file.interner.lookup(&q.value).to_string(),
-                Identifier::FullyQualified(f) => file.interner.lookup(&f.value).to_string(),
-            }),
+            Hint::Identifier(id) => Some(id.value().to_string()),
             Hint::Self_(_) => Some("self".to_string()),
             Hint::Static(_) => Some("static".to_string()),
             Hint::Parent(_) => Some("parent".to_string()),
-            // For nullable types like ?self, unwrap and recurse
-            Hint::Nullable(n) => self.extract_type_hint(file, &n.hint),
+            Hint::Nullable(n) => self.extract_type_hint(n.hint),
             _ => None,
         }
     }
-
-    // new_violation is inherited from the Rule trait in mod.rs — no override needed
 }
 
 #[cfg(test)]
 mod tests {
+    use bumpalo::Bump;
+
     use super::*;
     use crate::rules::tests::analyze_file_for_rule;
 
@@ -1640,18 +1532,17 @@ mod tests {
     #[test]
     fn valid_cross_file() {
         let rule = Rule::default();
+        let arena = Bump::new();
 
-        // File 1: Dependency
         let path1 = std::path::PathBuf::from("./src/rules/examples/e14/dependency.php");
         let content1 =
             "<?php class DB { public function query(): DB { return $this; } }".to_string();
-        let file1 = crate::file::File::new(path1, content1);
+        let file1 = File::new(&arena, path1, content1);
 
-        // File 2: Usage
         let path2 = std::path::PathBuf::from("./src/rules/examples/e14/usage.php");
         let content2 = "<?php class App { public function run(DB $db) { $db->query()->query(); } }"
             .to_string();
-        let file2 = crate::file::File::new(path2, content2);
+        let file2 = File::new(&arena, path2, content2);
 
         crate::rules::Rule::index_file(&rule, &file1);
         crate::rules::Rule::index_file(&rule, &file2);
@@ -1659,7 +1550,7 @@ mod tests {
         let violations = crate::rules::Rule::validate(
             &rule,
             &file2,
-            file2.ast.as_ref().unwrap().statements.first().unwrap(),
+            file2.ast.unwrap().statements.first().unwrap(),
         );
         assert!(
             violations.is_empty(),

@@ -1,7 +1,8 @@
+use mago_span::HasSpan;
+use mago_syntax::ast::Statement;
+
 use crate::file::File;
 use crate::results::Violation;
-use mago_ast::Statement;
-use mago_span::HasSpan;
 
 static CODE: &str = "E0005";
 static DESCRIPTION: &str = "Capitalized class name";
@@ -17,18 +18,20 @@ impl crate::rules::Rule for Rule {
         String::from(DESCRIPTION)
     }
 
-    fn do_validate(&self, _file: &File) -> bool {
+    fn do_validate(&self, _file: &File<'_>) -> bool {
         true
     }
 
-    fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
+    fn validate(&self, file: &File<'_>, statement: &Statement<'_>) -> Vec<Violation> {
         let mut violations = Vec::new();
 
         if let Statement::Class(class) = statement {
-            let name = file.interner.lookup(&class.name.value);
-            if !name.chars().next().unwrap().is_uppercase() {
-                let suggestion = format!("The class name {} is not capitalized. The first letter of the name of the class should be in uppercase.", name);
-                violations.push(self.new_violation(file, suggestion, class.name.span()))
+            let name = class.name.value;
+            if let Some(first) = name.chars().next() {
+                if !first.is_uppercase() {
+                    let suggestion = format!("The class name {} is not capitalized. The first letter of the name of the class should be in uppercase.", name);
+                    violations.push(self.new_violation(file, suggestion, class.name.span()))
+                }
             }
         };
 

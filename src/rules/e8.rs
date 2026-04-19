@@ -1,7 +1,5 @@
-use mago_ast::ast::class_like::member::ClassLikeMember;
-use mago_ast::ast::class_like::method::MethodBody;
-use mago_ast::ast::Statement;
 use mago_span::HasSpan;
+use mago_syntax::ast::{ClassLikeMember, MethodBody, Statement};
 
 use crate::file::File;
 use crate::results::Violation;
@@ -20,11 +18,11 @@ impl crate::rules::Rule for Rule {
         String::from(DESCRIPTION)
     }
 
-    fn do_validate(&self, _file: &File) -> bool {
+    fn do_validate(&self, _file: &File<'_>) -> bool {
         true
     }
 
-    fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
+    fn validate(&self, file: &File<'_>, statement: &Statement<'_>) -> Vec<Violation> {
         let mut violations = Vec::new();
 
         if let Statement::Class(class) = statement {
@@ -39,10 +37,9 @@ impl crate::rules::Rule for Rule {
                             .any(|s| matches!(s, Statement::Return(_)));
 
                         if has_return && method.return_type_hint.is_none() {
-                            let method_name = file.interner.lookup(&method.name.value);
                             let suggestion = format!(
                                 "The method {} has a return statement but it has no return type signature.",
-                                method_name
+                                method.name.value
                             );
                             violations.push(self.new_violation(file, suggestion, method.span()));
                         }
