@@ -1,10 +1,10 @@
-use crate::file::File;
-use crate::results::Violation;
-use mago_ast::ast::class_like::member::ClassLikeMember;
-use mago_ast::Statement;
 use mago_span::HasSpan;
+use mago_syntax::ast::{ClassLikeMember, Statement};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+
+use crate::file::File;
+use crate::results::Violation;
 
 pub(crate) static CODE: &str = "E0007";
 static DESCRIPTION: &str = "Method parameters count";
@@ -38,7 +38,7 @@ impl crate::rules::Rule for Rule {
         String::from(DESCRIPTION)
     }
 
-    fn do_validate(&self, _file: &File) -> bool {
+    fn do_validate(&self, _file: &File<'_>) -> bool {
         true
     }
 
@@ -49,13 +49,13 @@ impl crate::rules::Rule for Rule {
         };
     }
 
-    fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
+    fn validate(&self, file: &File<'_>, statement: &Statement<'_>) -> Vec<Violation> {
         let mut violations = Vec::new();
 
         if let Statement::Class(class) = statement {
             for member in class.members.iter() {
                 if let ClassLikeMember::Method(method) = member {
-                    let name = file.interner.lookup(&method.name.value);
+                    let name = method.name.value;
                     let parameters_count = method.parameter_list.parameters.len();
 
                     if name == "__construct" {

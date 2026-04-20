@@ -1,14 +1,13 @@
-use crate::file::File;
-use crate::results::Violation;
-use mago_ast::ast::class_like::member::ClassLikeMember;
-use mago_ast::ast::control_flow::r#if::IfBody;
-use mago_ast::ast::r#loop::foreach::ForeachBody;
-use mago_ast::ast::r#loop::r#for::ForBody;
-use mago_ast::ast::r#loop::r#while::WhileBody;
-use mago_ast::*;
 use mago_span::HasSpan;
+use mago_syntax::ast::{
+    ClassLikeMember, ForBody, ForeachBody, IfBody, MethodBody, Sequence, Statement, SwitchBody,
+    SwitchCase, WhileBody,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+
+use crate::file::File;
+use crate::results::Violation;
 
 pub(crate) static CODE: &str = "E0009";
 static DESCRIPTION: &str = "Cyclomatic complexity";
@@ -38,7 +37,7 @@ impl crate::rules::Rule for Rule {
         String::from(DESCRIPTION)
     }
 
-    fn do_validate(&self, _file: &File) -> bool {
+    fn do_validate(&self, _file: &File<'_>) -> bool {
         true
     }
 
@@ -49,32 +48,24 @@ impl crate::rules::Rule for Rule {
         };
     }
 
-    fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
+    fn validate(&self, file: &File<'_>, statement: &Statement<'_>) -> Vec<Violation> {
         let mut violations = Vec::new();
 
         if let Statement::Class(class) = statement {
             for member in class.members.iter() {
                 if let ClassLikeMember::Method(method) = member {
-                    match &method.body {
-                        MethodBody::Concrete(block) => {
-                            // Base complexity is 1 for the method itself
-                            let complexity = 1 + calculate_complexity(&block.statements);
+                    if let MethodBody::Concrete(block) = &method.body {
+                        // Base complexity is 1 for the method itself
+                        let complexity = 1 + calculate_complexity(&block.statements);
 
-                            if complexity > self.settings.max_complexity {
-                                let name = file.interner.lookup(&method.name.value);
-                                let suggestion = format!(
-                                     "The body of {} method has {} complexity. Make it easier to understand.",
-                                     name,
-                                     complexity,
-                                 );
-                                violations.push(self.new_violation(
-                                    file,
-                                    suggestion,
-                                    method.span(),
-                                ));
-                            }
+                        if complexity > self.settings.max_complexity {
+                            let suggestion = format!(
+                                "The body of {} method has {} complexity. Make it easier to understand.",
+                                method.name.value,
+                                complexity,
+                            );
+                            violations.push(self.new_violation(file, suggestion, method.span()));
                         }
-                        _ => {}
                     }
                 }
             }
@@ -83,7 +74,7 @@ impl crate::rules::Rule for Rule {
     }
 }
 
-fn calculate_complexity(statements: &Sequence<Statement>) -> i64 {
+fn calculate_complexity(statements: &Sequence<'_, Statement<'_>>) -> i64 {
     let mut complexity = 0;
     for statement in statements.iter() {
         complexity += calculate_statement_complexity(statement);
@@ -91,7 +82,7 @@ fn calculate_complexity(statements: &Sequence<Statement>) -> i64 {
     complexity
 }
 
-fn calculate_statement_complexity(statement: &Statement) -> i64 {
+fn calculate_statement_complexity(statement: &Statement<'_>) -> i64 {
     let mut complexity = 0;
     match statement {
         Statement::If(if_stmt) => {
@@ -162,20 +153,16 @@ fn calculate_statement_complexity(statement: &Statement) -> i64 {
         }
         Statement::Switch(switch_stmt) => {
             let cases = match &switch_stmt.body {
-                mago_ast::ast::control_flow::switch::SwitchBody::BraceDelimited(body) => {
-                    &body.cases
-                }
-                mago_ast::ast::control_flow::switch::SwitchBody::ColonDelimited(body) => {
-                    &body.cases
-                }
+                SwitchBody::BraceDelimited(body) => &body.cases,
+                SwitchBody::ColonDelimited(body) => &body.cases,
             };
             for case in cases.iter() {
                 match case {
-                    mago_ast::ast::control_flow::switch::SwitchCase::Expression(c) => {
+                    SwitchCase::Expression(c) => {
                         complexity += 1;
                         complexity += calculate_complexity(&c.statements);
                     }
-                    mago_ast::ast::control_flow::switch::SwitchCase::Default(c) => {
+                    SwitchCase::Default(c) => {
                         // Default case does not increase complexity usually? Or does it?
                         // McCabe says number of branches. Default is the "else".
                         // Usually 'case' adds 1. Default doesn't.

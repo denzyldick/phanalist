@@ -1,12 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
-use mago_ast::ast::class_like::member::ClassLikeMember;
-use mago_ast::ast::class_like::method::MethodBody;
-use mago_ast::ast::expression::Expression;
-use mago_ast::ast::modifier::Modifier;
-use mago_ast::ast::Statement;
-use mago_ast::Call;
-use mago_span::HasSpan;
+use mago_span::{HasSpan, Span};
+use mago_syntax::ast::*;
 
 use crate::file::File;
 use crate::results::Violation;
@@ -25,22 +20,22 @@ impl crate::rules::Rule for Rule {
         String::from(DESCRIPTION)
     }
 
-    fn do_validate(&self, _file: &File) -> bool {
+    fn do_validate(&self, _file: &File<'_>) -> bool {
         true
     }
 
-    fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
+    fn validate(&self, file: &File<'_>, statement: &Statement<'_>) -> Vec<Violation> {
         let mut violations = Vec::new();
 
         if let Statement::Class(class) = statement {
             // Collect all private method names and their spans
-            let mut private_methods: HashMap<String, mago_span::Span> = HashMap::new();
+            let mut private_methods: HashMap<String, Span> = HashMap::new();
             // Collect all method names that are called anywhere in the class
             let mut called_methods: HashSet<String> = HashSet::new();
 
             for member in class.members.iter() {
                 if let ClassLikeMember::Method(method) = member {
-                    let method_name = file.interner.lookup(&method.name.value).to_string();
+                    let method_name = method.name.value.to_string();
                     let is_private = method
                         .modifiers
                         .iter()
@@ -57,18 +52,13 @@ impl crate::rules::Rule for Rule {
                             for s in flat {
                                 if let Statement::Expression(expr_stmt) = s {
                                     self.collect_called_methods(
-                                        file,
-                                        &expr_stmt.expression,
+                                        expr_stmt.expression,
                                         &mut called_methods,
                                     );
                                 }
                                 if let Statement::Return(ret) = s {
-                                    if let Some(value) = &ret.value {
-                                        self.collect_called_methods(
-                                            file,
-                                            value,
-                                            &mut called_methods,
-                                        );
+                                    if let Some(value) = ret.value {
+                                        self.collect_called_methods(value, &mut called_methods);
                                     }
                                 }
                             }
@@ -91,34 +81,30 @@ impl crate::rules::Rule for Rule {
 }
 
 impl Rule {
-    fn collect_called_methods(&self, file: &File, expr: &Expression, called: &mut HashSet<String>) {
+    fn collect_called_methods(&self, expr: &Expression<'_>, called: &mut HashSet<String>) {
         match expr {
             Expression::Call(call) => {
-                match call {
-                    Call::Method(m) => {
-                        // $this->methodName()
-                        if let mago_ast::ClassLikeMemberSelector::Identifier(id) = &m.method {
-                            let name = file.interner.lookup(&id.value).to_string();
-                            called.insert(name);
-                        }
-                        self.collect_called_methods(file, &m.object, called);
-                        for arg in m.argument_list.arguments.iter() {
-                            match arg {
-                                mago_ast::ast::argument::Argument::Positional(a) => {
-                                    self.collect_called_methods(file, &a.value, called);
-                                }
-                                mago_ast::ast::argument::Argument::Named(a) => {
-                                    self.collect_called_methods(file, &a.value, called);
-                                }
+                if let Call::Method(m) = call {
+                    // $this->methodName()
+                    if let ClassLikeMemberSelector::Identifier(id) = &m.method {
+                        called.insert(id.value.to_string());
+                    }
+                    self.collect_called_methods(m.object, called);
+                    for arg in m.argument_list.arguments.iter() {
+                        match arg {
+                            Argument::Positional(a) => {
+                                self.collect_called_methods(a.value, called);
+                            }
+                            Argument::Named(a) => {
+                                self.collect_called_methods(a.value, called);
                             }
                         }
                     }
-                    _ => {}
                 }
             }
             Expression::Binary(bin) => {
-                self.collect_called_methods(file, &bin.lhs, called);
-                self.collect_called_methods(file, &bin.rhs, called);
+                self.collect_called_methods(bin.lhs, called);
+                self.collect_called_methods(bin.rhs, called);
             }
             _ => {}
         }

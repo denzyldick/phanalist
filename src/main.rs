@@ -4,7 +4,7 @@ use std::path::Path;
 use std::process;
 use std::str::FromStr;
 
-use clap::{arg, Parser};
+use clap::Parser;
 
 use crate::analyse::Analyse;
 use crate::outputs::Format;

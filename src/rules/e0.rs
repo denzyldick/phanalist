@@ -1,4 +1,6 @@
-use mago_ast::ast::Statement;
+#![allow(dead_code)]
+
+use mago_syntax::ast::Statement;
 
 use crate::file::File;
 use crate::results::Violation;
@@ -17,7 +19,7 @@ impl crate::rules::Rule for Rule {
         String::from(DESCRIPTION)
     }
 
-    fn validate(&self, _file: &File, _statement: &Statement) -> Vec<Violation> {
+    fn validate(&self, _file: &File<'_>, _statement: &Statement<'_>) -> Vec<Violation> {
         vec![]
     }
 }

@@ -1,9 +1,8 @@
-use crate::config::Config;
+use mago_span::HasSpan;
+use mago_syntax::ast::{ClassLikeMember, Modifier, Sequence, Statement};
+
 use crate::file::File;
 use crate::results::Violation;
-use mago_ast::ast::class_like::member::ClassLikeMember;
-use mago_ast::{Modifier, Statement};
-use mago_span::HasSpan;
 
 pub struct Rule {}
 
@@ -19,57 +18,32 @@ impl crate::rules::Rule for Rule {
         String::from(DESCRIPTION)
     }
 
-    fn do_validate(&self, _file: &File) -> bool {
+    fn do_validate(&self, _file: &File<'_>) -> bool {
         true
     }
 
-    fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
+    fn validate(&self, file: &File<'_>, statement: &Statement<'_>) -> Vec<Violation> {
         let mut violations = Vec::new();
 
-        match statement {
-            Statement::Class(class) => {
-                for member in class.members.iter() {
-                    if let ClassLikeMember::Method(method) = member {
-                        if !self.has_visibility_modifier(&method.modifiers) {
-                            let method_name = file.interner.lookup(&method.name.value);
-                            let suggestion = format!(
-                                "Method name \"{}\" should be declared with a visibility modifier.",
-                                method_name
-                            );
-                            violations.push(self.new_violation(file, suggestion, method.span()));
-                        }
+        let members = match statement {
+            Statement::Class(class) => Some(&class.members),
+            Statement::Interface(interface) => Some(&interface.members),
+            Statement::Trait(t) => Some(&t.members),
+            _ => None,
+        };
+
+        if let Some(members) = members {
+            for member in members.iter() {
+                if let ClassLikeMember::Method(method) = member {
+                    if !self.has_visibility_modifier(&method.modifiers) {
+                        let suggestion = format!(
+                            "Method name \"{}\" should be declared with a visibility modifier.",
+                            method.name.value
+                        );
+                        violations.push(self.new_violation(file, suggestion, method.span()));
                     }
                 }
             }
-            Statement::Interface(interface) => {
-                for member in interface.members.iter() {
-                    if let ClassLikeMember::Method(method) = member {
-                        if !self.has_visibility_modifier(&method.modifiers) {
-                            let method_name = file.interner.lookup(&method.name.value);
-                            let suggestion = format!(
-                                "Method name \"{}\" should be declared with a visibility modifier.",
-                                method_name
-                            );
-                            violations.push(self.new_violation(file, suggestion, method.span()));
-                        }
-                    }
-                }
-            }
-            Statement::Trait(t) => {
-                for member in t.members.iter() {
-                    if let ClassLikeMember::Method(method) = member {
-                        if !self.has_visibility_modifier(&method.modifiers) {
-                            let method_name = file.interner.lookup(&method.name.value);
-                            let suggestion = format!(
-                                "Method name \"{}\" should be declared with a visibility modifier.",
-                                method_name
-                            );
-                            violations.push(self.new_violation(file, suggestion, method.span()));
-                        }
-                    }
-                }
-            }
-            _ => {}
         }
 
         violations
@@ -77,7 +51,7 @@ impl crate::rules::Rule for Rule {
 }
 
 impl Rule {
-    fn has_visibility_modifier(&self, modifiers: &mago_ast::Sequence<Modifier>) -> bool {
+    fn has_visibility_modifier(&self, modifiers: &Sequence<'_, Modifier<'_>>) -> bool {
         for modifier in modifiers.iter() {
             match modifier {
                 Modifier::Public(_) | Modifier::Protected(_) | Modifier::Private(_) => return true,
