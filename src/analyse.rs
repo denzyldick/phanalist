@@ -4,11 +4,11 @@ use std::io::ErrorKind;
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 
+use bumpalo::Bump;
 use colored::Colorize;
 use indicatif::ProgressBar;
 use jwalk::WalkDir;
-// use mago_ast::Program;
-use mago_ast::Statement;
+use mago_syntax::ast::Statement;
 
 use crate::config::Config;
 use crate::file::File;
@@ -62,6 +62,7 @@ impl Analyse {
             rules: Self::get_active_rules(config),
         }
     }
+
     pub(crate) fn scan(
         &self,
         path: String,
@@ -80,25 +81,28 @@ impl Analyse {
             println!("Scanning files in {} ...", &path.to_string().bold());
         }
 
+        let scan_path = path.clone();
         std::thread::spawn(move || {
-            let path = PathBuf::from(path);
+            let path = PathBuf::from(scan_path);
             self::scan_folder(path, send);
         });
 
+        let arena = Bump::new();
+
         // 1. Collect all files
-        let mut scanned_files = Vec::new();
+        let mut scanned_files: Vec<File<'_>> = Vec::new();
         for (content, path) in recv {
-            scanned_files.push(File::new(path, content));
+            scanned_files.push(File::new(&arena, path, content));
         }
 
-        // 2. Pre-pass (indexing)
+        // 2. Pre-pass (indexing).
         for file in &scanned_files {
             for rule in self.rules.values() {
                 rule.index_file(file);
             }
         }
 
-        // 3. Main pass
+        // 3. Main pass.
         let mut files = 0;
         for mut file in scanned_files {
             if show_bar && format == &Format::text {
@@ -190,10 +194,10 @@ impl Analyse {
         };
     }
 
-    pub(crate) fn analyse_file(&self, file: &mut File) -> Vec<Violation> {
+    pub(crate) fn analyse_file(&self, file: &mut File<'_>) -> Vec<Violation> {
         let mut violations: Vec<Violation> = vec![];
 
-        if let Some(program) = &file.ast {
+        if let Some(program) = file.ast {
             file.reference_counter.build_reference_counter(program);
             for statement in program.statements.iter() {
                 violations.append(&mut self.analyse_file_statement(file, statement));
@@ -246,7 +250,11 @@ impl Analyse {
         ProgressBar::new(files_count as u64)
     }
 
-    pub fn analyse_file_statement(&self, file: &File, statement: &Statement) -> Vec<Violation> {
+    pub fn analyse_file_statement<'a>(
+        &self,
+        file: &File<'a>,
+        statement: &Statement<'a>,
+    ) -> Vec<Violation> {
         let mut violations = Vec::new();
 
         for rule in self.rules.values() {

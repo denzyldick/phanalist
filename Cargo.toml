@@ -24,12 +24,10 @@ exitcode = "1.1.2"
 memory-stats = "1.0.0"
 human_bytes = "0.4"
 serde-sarif = "=0.5.0"
-mago-parser = "0.22.2"
-mago-ast = "0.22.2"
-mago-span = "0.22.2"
-mago-source = "0.22.2"
-mago-interner = "0.22.2"
-mago-lexer = "0.22.2"
+mago-syntax = "1.23"
+mago-database = "1.23"
+mago-span = "1.23"
+bumpalo = "3"
 
 [lib]
 crate-type = ["rlib"]

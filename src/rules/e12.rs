@@ -1,13 +1,11 @@
+use mago_span::HasSpan;
+use mago_syntax::ast::*;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+
 use crate::file::File;
 use crate::results::Violation;
 use crate::rules::Rule as RuleTrait;
-use mago_ast::ast::class_like::member::ClassLikeMember;
-use mago_ast::ast::expression::Expression;
-use mago_ast::ast::*;
-use mago_ast::{Call, UnaryPostfixOperator, UnaryPrefixOperator};
-use mago_span::HasSpan;
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 pub static CODE: &str = "E0012";
 static DESCRIPTION: &str = "Service compatibility with Shared Memory Model";
@@ -53,7 +51,7 @@ impl RuleTrait for Rule {
         };
     }
 
-    fn do_validate(&self, file: &File) -> bool {
+    fn do_validate(&self, file: &File<'_>) -> bool {
         if let Some(ns) = &file.namespace {
             return crate::rules::do_validate_namespace(
                 ns.clone(),
@@ -65,25 +63,20 @@ impl RuleTrait for Rule {
         true
     }
 
-    fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
+    fn validate(&self, file: &File<'_>, statement: &Statement<'_>) -> Vec<Violation> {
         let mut violations = Vec::new();
 
         if let Statement::Class(class) = statement {
-            // 1. Check if class implements ResetInterface
-            if self.implements_reset_interface(file, class) {
+            if self.implements_reset_interface(class) {
                 return violations;
             }
 
-            // 2. Iterate over members to find methods
             for member in class.members.iter() {
                 if let ClassLikeMember::Method(method) = member {
-                    // 3. Skip constructor
-                    let method_name = file.interner.lookup(&method.name.value);
-                    if method_name == "__construct" {
+                    if method.name.value == "__construct" {
                         continue;
                     }
 
-                    // 4. Check method body for property assignments
                     if let MethodBody::Concrete(block) = &method.body {
                         for stmt in block.statements.iter() {
                             self.find_property_assignments(file, stmt, &mut violations);
@@ -93,35 +86,21 @@ impl RuleTrait for Rule {
             }
         }
 
-        use std::fs::OpenOptions;
-        use std::io::Write;
-        let mut debug_file = OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open("e12_debug.txt")
-            .unwrap();
-        writeln!(
-            debug_file,
-            "Refactoring E12: Found {} violations",
-            violations.len()
-        )
-        .unwrap();
         violations
     }
 }
 
 impl Rule {
-    fn implements_reset_interface(&self, file: &File, class: &Class) -> bool {
+    fn implements_reset_interface(&self, class: &Class<'_>) -> bool {
         if self.settings.reset_interfaces.is_empty() {
             return false;
         }
 
         if let Some(implements) = &class.implements {
             for interface in implements.types.iter() {
-                let name = self.get_identifier_name(file, interface);
+                let name = identifier_name(interface);
                 for reset_interface in &self.settings.reset_interfaces {
                     if name.ends_with(reset_interface) {
-                        // Simplified check
                         return true;
                     }
                 }
@@ -132,16 +111,14 @@ impl Rule {
 
     fn find_property_assignments(
         &self,
-        file: &File,
-        statement: &Statement,
+        file: &File<'_>,
+        statement: &Statement<'_>,
         violations: &mut Vec<Violation>,
     ) {
-        // 1. Direct checks on the statement (if it's an expression statement)
         if let Statement::Expression(expr_stmt) = statement {
-            self.check_expression(file, &expr_stmt.expression, violations);
+            self.check_expression(file, expr_stmt.expression, violations);
         }
 
-        // 2. Recursive traversal for nested statements
         match statement {
             Statement::Block(block) => {
                 for stmt in block.statements.iter() {
@@ -149,7 +126,7 @@ impl Rule {
                 }
             }
             Statement::If(if_stmt) => match &if_stmt.body {
-                mago_ast::ast::control_flow::r#if::IfBody::Statement(body) => {
+                IfBody::Statement(body) => {
                     self.find_property_assignments(file, &body.statement, violations);
                     for clauses in body.else_if_clauses.iter() {
                         self.find_property_assignments(file, &clauses.statement, violations);
@@ -158,7 +135,7 @@ impl Rule {
                         self.find_property_assignments(file, &else_clause.statement, violations);
                     }
                 }
-                mago_ast::ast::control_flow::r#if::IfBody::ColonDelimited(body) => {
+                IfBody::ColonDelimited(body) => {
                     for stmt in body.statements.iter() {
                         self.find_property_assignments(file, stmt, violations);
                     }
@@ -175,10 +152,10 @@ impl Rule {
                 }
             },
             Statement::While(while_stmt) => match &while_stmt.body {
-                mago_ast::ast::r#loop::r#while::WhileBody::Statement(body) => {
+                WhileBody::Statement(body) => {
                     self.find_property_assignments(file, body, violations);
                 }
-                mago_ast::ast::r#loop::r#while::WhileBody::ColonDelimited(body) => {
+                WhileBody::ColonDelimited(body) => {
                     for stmt in body.statements.iter() {
                         self.find_property_assignments(file, stmt, violations);
                     }
@@ -188,59 +165,40 @@ impl Rule {
                 self.find_property_assignments(file, &do_while.statement, violations);
             }
             Statement::Foreach(foreach) => match &foreach.body {
-                mago_ast::ast::r#loop::foreach::ForeachBody::Statement(body) => {
+                ForeachBody::Statement(body) => {
                     self.find_property_assignments(file, body, violations);
                 }
-                mago_ast::ast::r#loop::foreach::ForeachBody::ColonDelimited(body) => {
+                ForeachBody::ColonDelimited(body) => {
                     for stmt in body.statements.iter() {
                         self.find_property_assignments(file, stmt, violations);
                     }
                 }
             },
             Statement::For(for_stmt) => match &for_stmt.body {
-                mago_ast::ast::r#loop::r#for::ForBody::Statement(body) => {
+                ForBody::Statement(body) => {
                     self.find_property_assignments(file, body, violations);
                 }
-                mago_ast::ast::r#loop::r#for::ForBody::ColonDelimited(body) => {
+                ForBody::ColonDelimited(body) => {
                     for stmt in body.statements.iter() {
                         self.find_property_assignments(file, stmt, violations);
                     }
                 }
             },
-            Statement::Switch(switch) => match &switch.body {
-                mago_ast::ast::control_flow::switch::SwitchBody::BraceDelimited(body) => {
-                    for case in body.cases.iter() {
-                        match case {
-                            mago_ast::ast::control_flow::switch::SwitchCase::Expression(c) => {
-                                for stmt in c.statements.iter() {
-                                    self.find_property_assignments(file, stmt, violations);
-                                }
-                            }
-                            mago_ast::ast::control_flow::switch::SwitchCase::Default(c) => {
-                                for stmt in c.statements.iter() {
-                                    self.find_property_assignments(file, stmt, violations);
-                                }
-                            }
-                        }
+            Statement::Switch(switch) => {
+                let cases = match &switch.body {
+                    SwitchBody::BraceDelimited(body) => &body.cases,
+                    SwitchBody::ColonDelimited(body) => &body.cases,
+                };
+                for case in cases.iter() {
+                    let statements = match case {
+                        SwitchCase::Expression(c) => &c.statements,
+                        SwitchCase::Default(c) => &c.statements,
+                    };
+                    for stmt in statements.iter() {
+                        self.find_property_assignments(file, stmt, violations);
                     }
                 }
-                mago_ast::ast::control_flow::switch::SwitchBody::ColonDelimited(body) => {
-                    for case in body.cases.iter() {
-                        match case {
-                            mago_ast::ast::control_flow::switch::SwitchCase::Expression(c) => {
-                                for stmt in c.statements.iter() {
-                                    self.find_property_assignments(file, stmt, violations);
-                                }
-                            }
-                            mago_ast::ast::control_flow::switch::SwitchCase::Default(c) => {
-                                for stmt in c.statements.iter() {
-                                    self.find_property_assignments(file, stmt, violations);
-                                }
-                            }
-                        }
-                    }
-                }
-            },
+            }
             Statement::Try(try_stmt) => {
                 for stmt in try_stmt.block.statements.iter() {
                     self.find_property_assignments(file, stmt, violations);
@@ -257,7 +215,7 @@ impl Rule {
                 }
             }
             Statement::Return(ret) => {
-                if let Some(value) = &ret.value {
+                if let Some(value) = ret.value {
                     self.check_expression(file, value, violations);
                 }
             }
@@ -267,38 +225,39 @@ impl Rule {
 
     fn check_expression(
         &self,
-        file: &File,
-        expression: &Expression,
+        file: &File<'_>,
+        expression: &Expression<'_>,
         violations: &mut Vec<Violation>,
     ) {
         match expression {
             Expression::Assignment(assignment) => {
-                self.check_assignment_lhs(file, &assignment.lhs, violations);
-                self.check_expression(file, &assignment.rhs, violations);
+                self.check_assignment_lhs(file, assignment.lhs, violations);
+                self.check_expression(file, assignment.rhs, violations);
             }
             Expression::UnaryPrefix(prefix) => {
                 if let UnaryPrefixOperator::PreIncrement(_) | UnaryPrefixOperator::PreDecrement(_) =
                     prefix.operator
                 {
-                    self.check_assignment_lhs(file, &prefix.operand, violations);
+                    self.check_assignment_lhs(file, prefix.operand, violations);
                 }
-                self.check_expression(file, &prefix.operand, violations);
+                self.check_expression(file, prefix.operand, violations);
             }
-            Expression::UnaryPostfix(postfix) => match postfix.operator {
-                UnaryPostfixOperator::PostIncrement(_) | UnaryPostfixOperator::PostDecrement(_) => {
-                    self.check_assignment_lhs(file, &postfix.operand, violations);
-                }
-            },
+            Expression::UnaryPostfix(postfix) => {
+                // UnaryPostfixOperator only has PostIncrement/PostDecrement, both of
+                // which are assignment-producing, so any postfix reaches the LHS check.
+                let _: &UnaryPostfixOperator = &postfix.operator;
+                self.check_assignment_lhs(file, postfix.operand, violations);
+            }
             Expression::Call(call) => match call {
                 Call::Function(f) => {
                     self.check_argument_list(file, &f.argument_list, violations);
                 }
                 Call::Method(m) => {
-                    self.check_expression(file, &m.object, violations);
+                    self.check_expression(file, m.object, violations);
                     self.check_argument_list(file, &m.argument_list, violations);
                 }
                 Call::NullSafeMethod(m) => {
-                    self.check_expression(file, &m.object, violations);
+                    self.check_expression(file, m.object, violations);
                     self.check_argument_list(file, &m.argument_list, violations);
                 }
                 Call::StaticMethod(m) => {
@@ -311,17 +270,17 @@ impl Rule {
 
     fn check_argument_list(
         &self,
-        file: &File,
-        argument_list: &ArgumentList,
+        file: &File<'_>,
+        argument_list: &ArgumentList<'_>,
         violations: &mut Vec<Violation>,
     ) {
         for argument in argument_list.arguments.iter() {
             match argument {
-                mago_ast::ast::argument::Argument::Positional(arg) => {
-                    self.check_expression(file, &arg.value, violations);
+                Argument::Positional(arg) => {
+                    self.check_expression(file, arg.value, violations);
                 }
-                mago_ast::ast::argument::Argument::Named(arg) => {
-                    self.check_expression(file, &arg.value, violations);
+                Argument::Named(arg) => {
+                    self.check_expression(file, arg.value, violations);
                 }
             }
         }
@@ -329,8 +288,8 @@ impl Rule {
 
     fn check_assignment_lhs(
         &self,
-        file: &File,
-        expression: &Expression,
+        file: &File<'_>,
+        expression: &Expression<'_>,
         violations: &mut Vec<Violation>,
     ) {
         if let Expression::Access(access) = expression {
@@ -338,7 +297,7 @@ impl Rule {
             match access {
                 Access::Property(prop) => {
                     // Check if object is $this
-                    if self.is_this(file, &prop.object) {
+                    if is_this(prop.object) {
                         violations.push(self.new_violation(
                             file,
                             "Properties in service must be immutable. Violating Shared Memory Model.".to_string(),
@@ -348,7 +307,7 @@ impl Rule {
                 }
                 Access::StaticProperty(prop) => {
                     // Check if it is self::$prop or static::$prop
-                    if self.is_self_or_static_or_class(file, &prop.class) {
+                    if is_self_or_static_or_class(prop.class) {
                         violations.push(self.new_violation(
                             file,
                             "Static properties in service must be immutable. Violating Shared Memory Model.".to_string(),
@@ -360,43 +319,33 @@ impl Rule {
             }
         }
     }
+}
 
-    fn get_identifier_name(&self, file: &File, identifier: &Identifier) -> String {
-        match identifier {
-            Identifier::Local(local) => file.interner.lookup(&local.value).to_string(),
-            Identifier::Qualified(qualified) => file.interner.lookup(&qualified.value).to_string(),
-            Identifier::FullyQualified(fully_qualified) => {
-                file.interner.lookup(&fully_qualified.value).to_string()
-            }
-        }
+fn identifier_name(identifier: &Identifier<'_>) -> String {
+    identifier.value().to_string()
+}
+
+fn is_this(expression: &Expression<'_>) -> bool {
+    if let Expression::Variable(Variable::Direct(direct)) = expression {
+        return direct.name == "$this";
     }
+    false
+}
 
-    fn is_this(&self, file: &File, expression: &Expression) -> bool {
-        if let Expression::Variable(var) = expression {
-            if let Variable::Direct(direct) = var {
-                let name = file.interner.lookup(&direct.name);
-                return name == "$this";
-            }
+fn is_self_or_static_or_class(class_id: &Expression<'_>) -> bool {
+    match class_id {
+        Expression::Self_(_) => true,
+        Expression::Static(_) => true,
+        Expression::Identifier(_) => {
+            // In case of Foo::$prop, we might want to check if Foo is the class itself?
+            // But generally static access on ANY class in a service is fishy if it modifies state.
+            // However, the rule is "Service compatibility with Shared Memory Model".
+            // Modifying static property of ANY class is bad?
+            // Or only logic inside service?
+            // Original rule likely targeted self/static.
+            // But let's assume valid checks for now.
+            true
         }
-        false
-    }
-
-    fn is_self_or_static_or_class(&self, file: &File, class_id: &Expression) -> bool {
-        match class_id {
-            Expression::Self_(_) => true,
-            Expression::Static(_) => true,
-            Expression::Identifier(id) => {
-                let _name = self.get_identifier_name(file, id);
-                // In case of Foo::$prop, we might want to check if Foo is the class itself?
-                // But generally static access on ANY class in a service is fishy if it modifies state.
-                // However, the rule is "Service compatibility with Shared Memory Model".
-                // Modifying static property of ANY class is bad?
-                // Or only logic inside service?
-                // Original rule likely targeted self/static.
-                // But let's assume valid checks for now.
-                true
-            }
-            _ => false,
-        }
+        _ => false,
     }
 }

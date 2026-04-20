@@ -1,8 +1,5 @@
-use mago_ast::ast::class_like::member::ClassLikeMember;
-use mago_ast::ast::class_like::property::Property;
-use mago_ast::ast::modifier::Modifier;
-use mago_ast::ast::Statement;
 use mago_span::HasSpan;
+use mago_syntax::ast::{ClassLikeMember, Modifier, Property, Statement};
 
 use crate::file::File;
 use crate::results::Violation;
@@ -21,11 +18,11 @@ impl crate::rules::Rule for Rule {
         String::from(DESCRIPTION)
     }
 
-    fn do_validate(&self, _file: &File) -> bool {
+    fn do_validate(&self, _file: &File<'_>) -> bool {
         true
     }
 
-    fn validate(&self, file: &File, statement: &Statement) -> Vec<Violation> {
+    fn validate(&self, file: &File<'_>, statement: &Statement<'_>) -> Vec<Violation> {
         let mut violations = Vec::new();
 
         if let Statement::Class(class) = statement {
@@ -35,7 +32,7 @@ impl crate::rules::Rule for Rule {
                         let names: Vec<String> = property
                             .variables()
                             .iter()
-                            .map(|v| file.interner.lookup(&v.name).to_string())
+                            .map(|v| v.name.to_string())
                             .collect();
 
                         let suggestion =
@@ -51,7 +48,7 @@ impl crate::rules::Rule for Rule {
 }
 
 impl Rule {
-    fn property_without_visibility(property: &Property) -> bool {
+    fn property_without_visibility(property: &Property<'_>) -> bool {
         !property.modifiers().iter().any(|m| {
             matches!(
                 m,
