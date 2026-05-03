@@ -24,6 +24,7 @@ pub mod e11;
 pub mod e12;
 pub mod e13;
 pub mod e14;
+pub mod e15;
 pub mod e2;
 // pub mod e1;
 // pub mod e2;
@@ -51,9 +52,9 @@ pub trait Rule {
     /// They are writting in markdown and are located in
     /// the examples directory.
     fn get_detailed_explanation(&self) -> Option<String> {
-        let code = self.get_code().replace("000", "");
-        let c: Vec<char> = code.chars().collect();
-        let rule_number = c.get(1).unwrap();
+        let code = self.get_code();
+        let rule_number = code.trim_start_matches('E').trim_start_matches('0');
+        let rule_number = if rule_number.is_empty() { "0" } else { rule_number };
 
         let markdown = format!("./src/rules/examples/e{}/e{}.md", rule_number, rule_number);
         let path = Path::new(&markdown);
@@ -316,6 +317,7 @@ pub fn all_rules() -> HashMap<String, Box<dyn Rule>> {
     add_rule(&mut rules, Box::default() as Box<e12::Rule>);
     add_rule(&mut rules, Box::new(e13::Rule {}));
     add_rule(&mut rules, Box::new(e14::Rule::default()));
+    add_rule(&mut rules, Box::default() as Box<e15::Rule>);
 
     rules
 }
@@ -400,11 +402,13 @@ mod tests {
     #[test]
     fn validate_markdown() {
         let rule = e1::Rule {};
-
         let markdown = rule.get_detailed_explanation().unwrap();
-
         let e1_markdown = fs::read_to_string(Path::new("./src/rules/examples/e1/e1.md")).unwrap();
-
         assert_eq!(e1_markdown, markdown);
+
+        let rule = e15::Rule::default();
+        let markdown = rule.get_detailed_explanation().unwrap();
+        let e15_markdown = fs::read_to_string(Path::new("./src/rules/examples/e15/e15.md")).unwrap();
+        assert_eq!(e15_markdown, markdown);
     }
 }
