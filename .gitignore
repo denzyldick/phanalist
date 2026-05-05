@@ -13,5 +13,5 @@ src/rules/examples/*/phanalist.yml
 
 # Debug/scratch files from mago-parser migration
 *.txt
-examples/
+/examples/
 e12_debug.txt
