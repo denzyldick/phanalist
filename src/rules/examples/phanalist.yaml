@@ -6,6 +6,8 @@ rules:
     max_parameters: 8
   E0010:
     max_paths: 200
+  E0017:
+    max_coupling: 10
   E0012:
     exclude_namespaces: []
     include_namespaces:
