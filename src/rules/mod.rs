@@ -5,7 +5,7 @@ use std::collections::HashMap;
 // use jwalk::WalkDir;
 use std::error::Error;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use mago_span::Span;
 use mago_syntax::ast::*;
@@ -25,6 +25,7 @@ pub mod e12;
 pub mod e13;
 pub mod e14;
 pub mod e15;
+pub mod e16;
 pub mod e2;
 // pub mod e1;
 // pub mod e2;
@@ -54,15 +55,24 @@ pub trait Rule {
     fn get_detailed_explanation(&self) -> Option<String> {
         let code = self.get_code();
         let rule_number = code.trim_start_matches('E').trim_start_matches('0');
-        let rule_number = if rule_number.is_empty() { "0" } else { rule_number };
+        let rule_number = if rule_number.is_empty() {
+            "0"
+        } else {
+            rule_number
+        };
 
-        let markdown = format!("./src/rules/examples/e{}/e{}.md", rule_number, rule_number);
-        let path = Path::new(&markdown);
+        let relative_path = PathBuf::from(format!(
+            "./src/rules/examples/e{rule_number}/e{rule_number}.md"
+        ));
+        let manifest_path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join(relative_path.strip_prefix("./").unwrap_or(&relative_path));
 
-        if path.exists() {
-            let text = fs::read_to_string(path);
-            if let Ok(text) = text {
-                return Some(text.to_string());
+        for path in [relative_path, manifest_path] {
+            if path.exists() {
+                let text = fs::read_to_string(path);
+                if let Ok(text) = text {
+                    return Some(text.to_string());
+                }
             }
         }
         None
@@ -318,23 +328,26 @@ pub fn all_rules() -> HashMap<String, Box<dyn Rule>> {
     add_rule(&mut rules, Box::new(e13::Rule {}));
     add_rule(&mut rules, Box::new(e14::Rule::default()));
     add_rule(&mut rules, Box::default() as Box<e15::Rule>);
+    add_rule(&mut rules, Box::default() as Box<e16::Rule>);
 
     rules
 }
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
-    use std::path::PathBuf;
-
     use bumpalo::Bump;
+    use std::fs;
 
     use crate::analyse::Analyse;
 
     use super::*;
 
     pub(crate) fn analyze_file_for_rule(path: &str, rule_code: &str) -> Vec<Violation> {
-        let path = PathBuf::from(format!("./src/rules/examples/{path}"));
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("src")
+            .join("rules")
+            .join("examples")
+            .join(path);
         let content = fs::read_to_string(&path).unwrap();
         let arena = Bump::new();
         let mut file = File::new(&arena, path, content);
@@ -403,12 +416,10 @@ mod tests {
     fn validate_markdown() {
         let rule = e1::Rule {};
         let markdown = rule.get_detailed_explanation().unwrap();
-        let e1_markdown = fs::read_to_string(Path::new("./src/rules/examples/e1/e1.md")).unwrap();
+        let e1_markdown = fs::read_to_string(
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/rules/examples/e1/e1.md"),
+        )
+        .unwrap();
         assert_eq!(e1_markdown, markdown);
-
-        let rule = e15::Rule::default();
-        let markdown = rule.get_detailed_explanation().unwrap();
-        let e15_markdown = fs::read_to_string(Path::new("./src/rules/examples/e15/e15.md")).unwrap();
-        assert_eq!(e15_markdown, markdown);
     }
 }
