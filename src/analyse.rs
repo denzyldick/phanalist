@@ -53,7 +53,7 @@ pub fn scan_folder(current_dir: PathBuf, sender: Sender<(String, PathBuf)>) {
 }
 
 pub struct Analyse {
-    rules: HashMap<String, Box<dyn Rule>>,
+    pub(crate) rules: HashMap<String, Box<dyn Rule>>,
 }
 
 impl Analyse {

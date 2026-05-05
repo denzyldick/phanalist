@@ -36,6 +36,30 @@ impl Default for Config {
             String::from(rules::e12::CODE),
             serde_json::to_value(rules::e12::Settings::default()).unwrap(),
         );
+        rules.insert(
+            String::from(rules::e18::CODE),
+            serde_json::to_value(rules::e18::Settings::default()).unwrap(),
+        );
+        rules.insert(
+            String::from(rules::e19::CODE),
+            serde_json::to_value(rules::e19::Settings::default()).unwrap(),
+        );
+        rules.insert(
+            String::from(rules::e20::CODE),
+            serde_json::to_value(rules::e20::Settings::default()).unwrap(),
+        );
+        rules.insert(
+            String::from(rules::e21::CODE),
+            serde_json::to_value(rules::e21::Settings::default()).unwrap(),
+        );
+        rules.insert(
+            String::from(rules::e22::CODE),
+            serde_json::to_value(rules::e22::Settings::default()).unwrap(),
+        );
+        rules.insert(
+            String::from(rules::e23::CODE),
+            serde_json::to_value(rules::e23::Settings::default()).unwrap(),
+        );
 
         Config {
             enabled_rules,

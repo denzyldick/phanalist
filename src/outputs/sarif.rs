@@ -9,7 +9,7 @@ use super::OutputFormatter;
 pub struct Sarif {}
 impl OutputFormatter for Sarif {
     fn output(results: &mut Results) {
-        const VERSION: &str = "v0.1.21";
+        let version: &str = env!("CARGO_PKG_VERSION");
         let description = MultiformatMessageString {
             markdown: None,
             properties: None,
@@ -17,6 +17,8 @@ impl OutputFormatter for Sarif {
         };
 
         let mut sarif_rules = vec![];
+        let mut rule_to_index: std::collections::HashMap<String, i64> = std::collections::HashMap::new();
+        let mut current_index = 0;
         let rules = rules::all_rules();
         for rule in rules {
             let r = rule.1.description();
@@ -35,14 +37,20 @@ impl OutputFormatter for Sarif {
                 guid: None,
                 help: Some(multiformat_message.clone()),
                 full_description: Some(multiformat_message.clone()),
-                help_uri: None,
+                help_uri: Some(format!(
+                    "https://github.com/denzyldick/phanalist/blob/main/src/rules/examples/{}/{}.md",
+                    rule.0.to_lowercase(),
+                    rule.0.to_lowercase()
+                )),
                 id: rule.0.clone(),
                 message_strings: None,
-                name: Some(rule.0),
+                name: Some(rule.0.clone()),
                 properties: None,
                 relationships: None,
                 short_description: Some(multiformat_message),
             });
+            rule_to_index.insert(rule.0, current_index);
+            current_index += 1;
         }
         let tool_component = ToolComponent {
             associated_component: None,
@@ -67,12 +75,12 @@ impl OutputFormatter for Sarif {
             properties: None,
             release_date_utc: None,
             rules: Some(sarif_rules),
-            semantic_version: Some(VERSION.to_string()),
+            semantic_version: Some(version.to_string()),
             short_description: Some(description),
             supported_taxonomies: None,
             taxa: None,
             translation_metadata: None,
-            version: Some(VERSION.to_string()),
+            version: Some(version.to_string()),
         };
         let tool = Tool {
             driver: tool_component,
@@ -138,8 +146,8 @@ impl OutputFormatter for Sarif {
                     graphs: None,
                     guid: None,
                     hosted_viewer_uri: None,
-                    kind: None,
-                    level: None,
+                    kind: Some(serde_json::Value::String(String::from("fail"))),
+                    level: Some(serde_json::Value::String(String::from("warning"))),
                     locations: Some(vec![location]),
                     message,
                     occurrence_count: None,
@@ -150,7 +158,7 @@ impl OutputFormatter for Sarif {
                     related_locations: None,
                     rule: None,
                     rule_id: Some(violation.rule.clone()),
-                    rule_index: None,
+                    rule_index: rule_to_index.get(&violation.rule).copied(),
                     stacks: None,
                     suppressions: None,
                     taxa: None,
@@ -172,7 +180,34 @@ impl OutputFormatter for Sarif {
             default_source_language: Some(String::from("PHP")),
             external_property_file_references: None,
             graphs: None,
-            invocations: None,
+            invocations: Some(vec![sarif::Invocation {
+                account: None,
+                arguments: None,
+                command_line: None,
+                end_time_utc: None,
+                environment_variables: None,
+                executable_location: None,
+                execution_successful: true,
+                exit_code: None,
+                exit_code_description: None,
+                exit_signal_name: None,
+                exit_signal_number: None,
+                machine: None,
+                notification_configuration_overrides: None,
+                process_id: None,
+                process_start_failure_message: None,
+                properties: None,
+                response_files: None,
+                rule_configuration_overrides: None,
+                start_time_utc: None,
+                stderr: None,
+                stdin: None,
+                stdout: None,
+                stdout_stderr: None,
+                tool_configuration_notifications: None,
+                tool_execution_notifications: None,
+                working_directory: None,
+            }]),
             language: Some("en".to_string()),
             logical_locations: None,
             newline_sequences: None,
