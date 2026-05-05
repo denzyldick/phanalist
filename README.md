@@ -108,6 +108,15 @@ rules:
 | [E0012](src/rules/examples/e12/e12.md) | Service compatibility with Shared Memory Model | `include_namespaces`, `exclude_namespaces`, `reset_interfaces` |
 | [E0013](/src/rules/examples/e13/e13.md) | Private method not being used | |
 | [E0014](/src/rules/examples/e14/e14.md) | Law of Demeter | |
+| [E0015](/src/rules/examples/e15/e15.md) | Lack of Cohesion of Methods (LCOM4) | |
+| [E0016](/src/rules/examples/e16/e16.md) | Using unserialize | |
+| [E0017](/src/rules/examples/e17/e17.md) | Coupling Between Objects (CBO) | `max_coupling: 10` |
+| [E0018](/src/rules/examples/e18/e18.md) | Weighted Methods per Class (WMC) | `max_wmc: 50` |
+| [E0019](/src/rules/examples/e19/e19.md) | Response For a Class (RFC) | `max_rfc: 50` |
+| [E0020](/src/rules/examples/e20/e20.md) | Depth of Inheritance Tree (DIT) | `max_depth: 4` |
+| [E0021](/src/rules/examples/e21/e21.md) | Number of Children (NOC) | `max_children: 15` |
+| [E0022](/src/rules/examples/e22/e22.md) | Afferent and Efferent Coupling (Ca/Ce) | `max_ca: 20`, `max_ce: 20` |
+| [E0023](/src/rules/examples/e23/e23.md) | Instability, Abstractness, Distance (I/A/D) | `max_instability: 0.8`, `max_abstractness: 0.8`, `max_distance: 0.5` |
 
 Adding a new rule is straightforward — [this tutorial](./docs/adding_new_rule.md) explains how.
 
