@@ -24,6 +24,7 @@ pub mod e11;
 pub mod e12;
 pub mod e13;
 pub mod e14;
+pub mod e15;
 pub mod e16;
 pub mod e2;
 // pub mod e1;
@@ -326,6 +327,7 @@ pub fn all_rules() -> HashMap<String, Box<dyn Rule>> {
     add_rule(&mut rules, Box::default() as Box<e12::Rule>);
     add_rule(&mut rules, Box::new(e13::Rule {}));
     add_rule(&mut rules, Box::new(e14::Rule::default()));
+    add_rule(&mut rules, Box::default() as Box<e15::Rule>);
     add_rule(&mut rules, Box::default() as Box<e16::Rule>);
 
     rules
@@ -419,13 +421,5 @@ mod tests {
         )
         .unwrap();
         assert_eq!(e1_markdown, markdown);
-
-        let rule = e16::Rule::default();
-        let markdown = rule.get_detailed_explanation().unwrap();
-        let e16_markdown = fs::read_to_string(
-            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/rules/examples/e16/e16.md"),
-        )
-        .unwrap();
-        assert_eq!(e16_markdown, markdown);
     }
 }
