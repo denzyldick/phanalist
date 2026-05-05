@@ -27,6 +27,8 @@ pub mod e14;
 pub mod e15;
 pub mod e16;
 pub mod e17;
+pub mod e18;
+pub mod e19;
 pub mod e2;
 // pub mod e1;
 // pub mod e2;
@@ -37,6 +39,10 @@ pub mod e6;
 pub mod e7;
 pub mod e8;
 pub mod e9;
+pub mod e20;
+pub mod e21;
+pub mod e22;
+pub mod e23;
 
 pub trait Rule {
     /// Optional hook for cross-file type resolution or indexing.
@@ -331,6 +337,12 @@ pub fn all_rules() -> HashMap<String, Box<dyn Rule>> {
     add_rule(&mut rules, Box::default() as Box<e15::Rule>);
     add_rule(&mut rules, Box::default() as Box<e16::Rule>);
     add_rule(&mut rules, Box::default() as Box<e17::Rule>);
+    add_rule(&mut rules, Box::default() as Box<e18::Rule>);
+    add_rule(&mut rules, Box::default() as Box<e19::Rule>);
+    add_rule(&mut rules, Box::default() as Box<e20::Rule>);
+    add_rule(&mut rules, Box::default() as Box<e21::Rule>);
+    add_rule(&mut rules, Box::default() as Box<e22::Rule>);
+    add_rule(&mut rules, Box::default() as Box<e23::Rule>);
 
     rules
 }
@@ -359,6 +371,10 @@ mod tests {
             ..Default::default()
         };
         let analyse = Analyse::new(&config);
+
+        for rule in analyse.rules.values() {
+            rule.index_file(&file);
+        }
 
         analyse.analyse_file(&mut file)
     }
