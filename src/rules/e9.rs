@@ -74,7 +74,7 @@ impl crate::rules::Rule for Rule {
     }
 }
 
-fn calculate_complexity(statements: &Sequence<'_, Statement<'_>>) -> i64 {
+pub(crate) fn calculate_complexity(statements: &Sequence<'_, Statement<'_>>) -> i64 {
     let mut complexity = 0;
     for statement in statements.iter() {
         complexity += calculate_statement_complexity(statement);
