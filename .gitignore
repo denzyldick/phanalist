@@ -9,6 +9,7 @@ bad-source-target
 src/rules/examples/phanalist.yml
 src/rules/examples/*/phanalist.yml
 *.yaml
+!phanalist.yaml
 
 
 # Debug/scratch files from mago-parser migration

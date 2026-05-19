@@ -320,6 +320,7 @@ fn add_rule(rules: &mut HashMap<String, Box<dyn Rule>>, rule: Box<dyn Rule>) {
 pub fn all_rules() -> HashMap<String, Box<dyn Rule>> {
     let mut rules: HashMap<String, Box<dyn Rule>> = HashMap::new();
 
+    add_rule(&mut rules, Box::new(e0::Rule {}));
     add_rule(&mut rules, Box::new(e1::Rule {}));
     add_rule(&mut rules, Box::new(e2::Rule {}));
     add_rule(&mut rules, Box::new(e3::Rule {}));

@@ -11,7 +11,7 @@
 ### ✨ Features
 
 - 🚀 **Fast** — built in Rust, analyzes large codebases in seconds
-- 🔍 **14 built-in rules** — covering complexity, style, design patterns, and more
+- 🔍 **24 built-in rules** — covering complexity, style, design patterns, and more
 - ⚙️ **Zero config to start** — works out of the box, configure only what you need
 - 📄 **Multiple output formats** — `text`, `json`, and `sarif` (for CI pipelines)
 - 🔌 **Extensible** — adding a custom rule takes minutes
