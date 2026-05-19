@@ -35,6 +35,7 @@ pub struct Method {
 }
 
 impl Method {
+    #[allow(dead_code)]
     pub fn increase_counter(&mut self) {
         self.counter += 1;
     }
@@ -47,7 +48,6 @@ impl RC {
         }
     }
 
-    // TODO: Implement reference counting with mago_syntax AST.
     pub fn build_reference_counter(&mut self, _program: &Program<'_>) -> Option<RC> {
         None
     }
@@ -74,8 +74,8 @@ impl<'arena> File<'arena> {
         }
     }
 
+    #[allow(dead_code)]
     pub fn get_class(&self) -> Option<Vec<Statement<'arena>>> {
-        // TODO: Implement with mago_syntax AST.
         None
     }
 

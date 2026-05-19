@@ -29,7 +29,7 @@ struct Args {
     /// The list of rules to use (by default it is used from config)
     rules: Option<Vec<String>>,
     #[arg(short, long, default_value = "text")]
-    /// Possible options: text, json, gitlab
+    /// Possible options: text, json, sarif, codeclimate
     output_format: String,
     #[arg(long)]
     /// Output only summary

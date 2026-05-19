@@ -1,12 +1,9 @@
-#![allow(dead_code)]
-
 use mago_syntax::ast::Statement;
 
 use crate::file::File;
 use crate::results::Violation;
 
-static CODE: &str = "E0000";
-static DESCRIPTION: &str = "Example rule";
+pub(crate) static CODE: &str = "E0000";
 
 pub struct Rule {}
 
@@ -16,7 +13,7 @@ impl crate::rules::Rule for Rule {
     }
 
     fn description(&self) -> String {
-        String::from(DESCRIPTION)
+        String::from("Example rule")
     }
 
     fn validate(&self, _file: &File<'_>, _statement: &Statement<'_>) -> Vec<Violation> {
