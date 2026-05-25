@@ -87,12 +87,12 @@ fn calculate_statement_cognitive_complexity(statement: &Statement<'_>, nesting: 
             match &if_stmt.body {
                 IfBody::Statement(body) => {
                     complexity +=
-                        calculate_statement_cognitive_complexity(&body.statement, nesting + 1);
+                        calculate_statement_cognitive_complexity(body.statement, nesting + 1);
                     for clause in body.else_if_clauses.iter() {
                         // 'else if' increments by 1 but NOT nesting (it's part of the same level)
                         complexity += 1;
                         complexity += calculate_statement_cognitive_complexity(
-                            &clause.statement,
+                            clause.statement,
                             nesting + 1,
                         );
                     }
@@ -100,7 +100,7 @@ fn calculate_statement_cognitive_complexity(statement: &Statement<'_>, nesting: 
                         // 'else' increments by 1
                         complexity += 1;
                         complexity += calculate_statement_cognitive_complexity(
-                            &else_clause.statement,
+                            else_clause.statement,
                             nesting + 1,
                         );
                     }
@@ -139,7 +139,7 @@ fn calculate_statement_cognitive_complexity(statement: &Statement<'_>, nesting: 
         Statement::DoWhile(do_while_stmt) => {
             complexity += 1 + nesting;
             complexity +=
-                calculate_statement_cognitive_complexity(&do_while_stmt.statement, nesting + 1);
+                calculate_statement_cognitive_complexity(do_while_stmt.statement, nesting + 1);
             complexity += calculate_expression_complexity(do_while_stmt.condition);
         }
         Statement::For(for_stmt) => {

@@ -23,26 +23,19 @@ impl Default for Settings {
     }
 }
 
+#[derive(Default)]
 pub struct Rule {
     pub settings: Settings,
 }
 
-impl Default for Rule {
-    fn default() -> Self {
-        Self {
-            settings: Settings::default(),
-        }
-    }
-}
-
-struct DSU {
+struct Dsu {
     parent: Vec<usize>,
     count: usize,
 }
 
-impl DSU {
+impl Dsu {
     fn new(n: usize) -> Self {
-        DSU {
+        Dsu {
             parent: (0..n).collect(),
             count: n,
         }
@@ -83,7 +76,7 @@ impl<'a> MethodNode<'a> {
     fn name(&self) -> String {
         match self {
             MethodNode::Method(m) => m.name.value.to_string(),
-            MethodNode::Hook(h, prop) => format!("{}::{}", prop, h.name.value.to_string()),
+            MethodNode::Hook(h, prop) => format!("{}::{}", prop, h.name.value),
         }
     }
 
@@ -163,7 +156,7 @@ impl RuleTrait for Rule {
             }
 
             let n = nodes.len();
-            let mut dsu = DSU::new(n);
+            let mut dsu = Dsu::new(n);
             let mut property_to_methods: HashMap<String, Vec<usize>> = HashMap::new();
             let mut method_to_index: HashMap<String, usize> = HashMap::new();
 

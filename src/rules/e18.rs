@@ -22,16 +22,9 @@ impl Default for Settings {
     }
 }
 
+#[derive(Default)]
 pub struct Rule {
     pub settings: Settings,
-}
-
-impl Default for Rule {
-    fn default() -> Self {
-        Self {
-            settings: Settings::default(),
-        }
-    }
 }
 
 impl RuleTrait for Rule {

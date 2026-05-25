@@ -23,16 +23,9 @@ impl Default for Settings {
     }
 }
 
+#[derive(Default)]
 pub struct Rule {
     pub settings: Settings,
-}
-
-impl Default for Rule {
-    fn default() -> Self {
-        Self {
-            settings: Settings::default(),
-        }
-    }
 }
 
 impl RuleTrait for Rule {
@@ -233,14 +226,14 @@ impl Rule {
                 self.scan_expression(if_stmt.condition, current_class, coupled_types);
                 match &if_stmt.body {
                     IfBody::Statement(body) => {
-                        self.scan_statement(&body.statement, current_class, coupled_types);
+                        self.scan_statement(body.statement, current_class, coupled_types);
                         for clause in body.else_if_clauses.iter() {
                             self.scan_expression(clause.condition, current_class, coupled_types);
-                            self.scan_statement(&clause.statement, current_class, coupled_types);
+                            self.scan_statement(clause.statement, current_class, coupled_types);
                         }
                         if let Some(else_clause) = &body.else_clause {
                             self.scan_statement(
-                                &else_clause.statement,
+                                else_clause.statement,
                                 current_class,
                                 coupled_types,
                             );
@@ -278,7 +271,7 @@ impl Rule {
                 }
             }
             Statement::DoWhile(do_while) => {
-                self.scan_statement(&do_while.statement, current_class, coupled_types);
+                self.scan_statement(do_while.statement, current_class, coupled_types);
                 self.scan_expression(do_while.condition, current_class, coupled_types);
             }
             Statement::For(for_stmt) => {

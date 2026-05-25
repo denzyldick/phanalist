@@ -18,9 +18,8 @@ impl OutputFormatter for Sarif {
 
         let mut sarif_rules = vec![];
         let mut rule_to_index: std::collections::HashMap<String, i64> = std::collections::HashMap::new();
-        let mut current_index = 0;
         let rules = rules::all_rules();
-        for rule in rules {
+        for (current_index, rule) in rules.into_iter().enumerate() {
             let r = rule.1.description();
             let description = r;
 
@@ -49,8 +48,7 @@ impl OutputFormatter for Sarif {
                 relationships: None,
                 short_description: Some(multiformat_message),
             });
-            rule_to_index.insert(rule.0, current_index);
-            current_index += 1;
+            rule_to_index.insert(rule.0, current_index as i64);
         }
         let tool_component = ToolComponent {
             associated_component: None,

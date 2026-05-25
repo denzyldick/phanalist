@@ -372,6 +372,7 @@ impl Rule {
     // Phase 4: Statement checker (with variable type tracking)
     // -------------------------------------------------------------------------
 
+    #[allow(clippy::too_many_arguments)]
     fn check_statement(
         &self,
         file: &File<'_>,
@@ -463,7 +464,7 @@ impl Rule {
                     IfBody::Statement(body) => {
                         self.check_statement(
                             file,
-                            &body.statement,
+                            body.statement,
                             method_map,
                             current_class,
                             registry,
@@ -482,7 +483,7 @@ impl Rule {
                             );
                             self.check_statement(
                                 file,
-                                &clause.statement,
+                                clause.statement,
                                 method_map,
                                 current_class,
                                 registry,
@@ -493,7 +494,7 @@ impl Rule {
                         if let Some(else_clause) = &body.else_clause {
                             self.check_statement(
                                 file,
-                                &else_clause.statement,
+                                else_clause.statement,
                                 method_map,
                                 current_class,
                                 registry,
@@ -601,7 +602,7 @@ impl Rule {
                 );
                 self.check_statement(
                     file,
-                    &do_while.statement,
+                    do_while.statement,
                     method_map,
                     current_class,
                     registry,
@@ -724,6 +725,7 @@ impl Rule {
     // None if the type is unknown (which triggers violation on any chaining).
     // -------------------------------------------------------------------------
 
+    #[allow(clippy::too_many_arguments)]
     fn check_expression(
         &self,
         file: &File<'_>,
@@ -905,6 +907,7 @@ impl Rule {
     // Helper: check Call variants
     // -------------------------------------------------------------------------
 
+    #[allow(clippy::too_many_arguments)]
     fn check_call(
         &self,
         file: &File<'_>,
@@ -1111,6 +1114,7 @@ impl Rule {
     // Helper: resolve the type of the receiver object
     // -------------------------------------------------------------------------
 
+    #[allow(clippy::too_many_arguments)]
     fn resolve_object_type(
         &self,
         file: &File<'_>,
@@ -1264,6 +1268,7 @@ impl Rule {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn check_access(
         &self,
         file: &File<'_>,
@@ -1398,6 +1403,7 @@ impl Rule {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn check_argument_expr(
         &self,
         file: &File<'_>,

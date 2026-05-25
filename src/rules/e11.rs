@@ -56,10 +56,8 @@ fn check_expression(
             }
             check_expression(file, rule, prefix.operand, violations);
         }
-        Expression::Call(call) => {
-            if let Call::Method(m) = call {
-                check_expression(file, rule, m.object, violations);
-            }
+        Expression::Call(Call::Method(m)) => {
+            check_expression(file, rule, m.object, violations);
         }
         _ => {}
     }

@@ -86,14 +86,14 @@ fn calculate_statement_npath(statement: &Statement<'_>) -> i64 {
             npath += 1;
             match &if_stmt.body {
                 IfBody::Statement(body) => {
-                    npath += calculate_statement_npath(&body.statement);
+                    npath += calculate_statement_npath(body.statement);
                     for clause in body.else_if_clauses.iter() {
                         npath += 1;
-                        npath += calculate_statement_npath(&clause.statement);
+                        npath += calculate_statement_npath(clause.statement);
                     }
                     if let Some(else_clause) = &body.else_clause {
                         npath += 1;
-                        npath += calculate_statement_npath(&else_clause.statement);
+                        npath += calculate_statement_npath(else_clause.statement);
                     }
                 }
                 IfBody::ColonDelimited(body) => {
@@ -126,7 +126,7 @@ fn calculate_statement_npath(statement: &Statement<'_>) -> i64 {
         }
         Statement::DoWhile(do_while_stmt) => {
             npath += 1;
-            npath += calculate_statement_npath(&do_while_stmt.statement);
+            npath += calculate_statement_npath(do_while_stmt.statement);
         }
         Statement::For(for_stmt) => {
             npath += 1;

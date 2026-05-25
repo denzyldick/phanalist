@@ -127,12 +127,12 @@ impl Rule {
             }
             Statement::If(if_stmt) => match &if_stmt.body {
                 IfBody::Statement(body) => {
-                    self.find_property_assignments(file, &body.statement, violations);
+                    self.find_property_assignments(file, body.statement, violations);
                     for clauses in body.else_if_clauses.iter() {
-                        self.find_property_assignments(file, &clauses.statement, violations);
+                        self.find_property_assignments(file, clauses.statement, violations);
                     }
                     if let Some(else_clause) = &body.else_clause {
-                        self.find_property_assignments(file, &else_clause.statement, violations);
+                        self.find_property_assignments(file, else_clause.statement, violations);
                     }
                 }
                 IfBody::ColonDelimited(body) => {
@@ -162,7 +162,7 @@ impl Rule {
                 }
             },
             Statement::DoWhile(do_while) => {
-                self.find_property_assignments(file, &do_while.statement, violations);
+                self.find_property_assignments(file, do_while.statement, violations);
             }
             Statement::Foreach(foreach) => match &foreach.body {
                 ForeachBody::Statement(body) => {
@@ -295,25 +295,19 @@ impl Rule {
         if let Expression::Access(access) = expression {
             let span = access.span();
             match access {
-                Access::Property(prop) => {
-                    // Check if object is $this
-                    if is_this(prop.object) {
-                        violations.push(self.new_violation(
-                            file,
-                            "Properties in service must be immutable. Violating Shared Memory Model.".to_string(),
-                            span,
-                        ));
-                    }
+                Access::Property(prop) if is_this(prop.object) => {
+                    violations.push(self.new_violation(
+                        file,
+                        "Properties in service must be immutable. Violating Shared Memory Model.".to_string(),
+                        span,
+                    ));
                 }
-                Access::StaticProperty(prop) => {
-                    // Check if it is self::$prop or static::$prop
-                    if is_self_or_static_or_class(prop.class) {
-                        violations.push(self.new_violation(
-                            file,
-                            "Static properties in service must be immutable. Violating Shared Memory Model.".to_string(),
-                            span,
-                        ));
-                    }
+                Access::StaticProperty(prop) if is_self_or_static_or_class(prop.class) => {
+                    violations.push(self.new_violation(
+                        file,
+                        "Static properties in service must be immutable. Violating Shared Memory Model.".to_string(),
+                        span,
+                    ));
                 }
                 _ => {}
             }

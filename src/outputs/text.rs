@@ -65,7 +65,7 @@ impl Text {
         let mut rows = vec![];
 
         let mut sorted_codes_count = results.codes_count.clone().into_iter().collect::<Vec<_>>();
-        sorted_codes_count.sort_by(|a, b| b.1.cmp(&a.1));
+        sorted_codes_count.sort_by_key(|b| std::cmp::Reverse(b.1));
         for (rule_code, violations) in sorted_codes_count {
             let rule = all_rules.get(&rule_code).unwrap();
 

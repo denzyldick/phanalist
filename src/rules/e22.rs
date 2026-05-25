@@ -265,7 +265,7 @@ impl Rule {
                 for dep in deps {
                     // Only count if the dependency is NOT in our namespace
                     let dep_ns = index.class_to_namespace.get(dep);
-                    if dep_ns.map_or(true, |ns| ns != namespace) {
+                    if dep_ns.is_none_or(|ns| ns != namespace) {
                         ce_types.insert(dep.clone());
                     }
                 }
@@ -277,7 +277,7 @@ impl Rule {
         for (class_name, deps) in &index.class_dependencies {
             // Skip classes in our own namespace
             let class_ns = index.class_to_namespace.get(class_name);
-            if class_ns.map_or(false, |ns| ns == namespace) {
+            if class_ns.is_some_and(|ns| ns == namespace) {
                 continue;
             }
             for dep in deps {
