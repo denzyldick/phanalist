@@ -12,7 +12,7 @@ repository = "https://github.com/denzyldick/phanalist"
 
 [dependencies]
 clap = { version = "4.1.4", features = ["derive"] }
-cli-table = "0.4.7"
+cli-table = "0.5.0"
 colored = "3.1.1"
 jwalk = "0.8.1"
 serde = "1.0.152"
