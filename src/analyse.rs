@@ -175,6 +175,7 @@ impl Analyse {
         }
     }
 
+    #[allow(dead_code)]
     pub(crate) fn output(&mut self, results: &mut Results, format: Format, summary_only: bool) {
         if summary_only {
             results.files = HashMap::new();
