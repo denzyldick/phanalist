@@ -321,7 +321,7 @@ impl Rule {
             if let Some(deps) = index.class_dependencies.get(class_name) {
                 for dep in deps {
                     let dep_ns = index.class_to_namespace.get(dep);
-                    if dep_ns.map_or(true, |ns| ns != namespace) {
+                    if dep_ns.is_none_or(|ns| ns != namespace) {
                         ce_types.insert(dep.clone());
                     }
                 }
@@ -332,7 +332,7 @@ impl Rule {
         let mut ca_types: HashSet<String> = HashSet::new();
         for (class_name, deps) in &index.class_dependencies {
             let class_ns = index.class_to_namespace.get(class_name);
-            if class_ns.map_or(false, |ns| ns == namespace) {
+            if class_ns.is_some_and(|ns| ns == namespace) {
                 continue;
             }
             for dep in deps {

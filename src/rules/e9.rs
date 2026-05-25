@@ -89,13 +89,13 @@ fn calculate_statement_complexity(statement: &Statement<'_>) -> i64 {
             complexity += 1; // if
             match &if_stmt.body {
                 IfBody::Statement(body) => {
-                    complexity += calculate_statement_complexity(&body.statement);
+                    complexity += calculate_statement_complexity(body.statement);
                     for clause in body.else_if_clauses.iter() {
                         complexity += 1; // elseif
-                        complexity += calculate_statement_complexity(&clause.statement);
+                        complexity += calculate_statement_complexity(clause.statement);
                     }
                     if let Some(else_clause) = &body.else_clause {
-                        complexity += calculate_statement_complexity(&else_clause.statement);
+                        complexity += calculate_statement_complexity(else_clause.statement);
                     }
                 }
                 IfBody::ColonDelimited(body) => {
@@ -127,7 +127,7 @@ fn calculate_statement_complexity(statement: &Statement<'_>) -> i64 {
         }
         Statement::DoWhile(do_while_stmt) => {
             complexity += 1;
-            complexity += calculate_statement_complexity(&do_while_stmt.statement);
+            complexity += calculate_statement_complexity(do_while_stmt.statement);
         }
         Statement::For(for_stmt) => {
             complexity += 1;

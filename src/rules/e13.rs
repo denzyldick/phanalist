@@ -83,21 +83,19 @@ impl crate::rules::Rule for Rule {
 impl Rule {
     fn collect_called_methods(&self, expr: &Expression<'_>, called: &mut HashSet<String>) {
         match expr {
-            Expression::Call(call) => {
-                if let Call::Method(m) = call {
-                    // $this->methodName()
-                    if let ClassLikeMemberSelector::Identifier(id) = &m.method {
-                        called.insert(id.value.to_string());
-                    }
-                    self.collect_called_methods(m.object, called);
-                    for arg in m.argument_list.arguments.iter() {
-                        match arg {
-                            Argument::Positional(a) => {
-                                self.collect_called_methods(a.value, called);
-                            }
-                            Argument::Named(a) => {
-                                self.collect_called_methods(a.value, called);
-                            }
+            Expression::Call(Call::Method(m)) => {
+                // $this->methodName()
+                if let ClassLikeMemberSelector::Identifier(id) = &m.method {
+                    called.insert(id.value.to_string());
+                }
+                self.collect_called_methods(m.object, called);
+                for arg in m.argument_list.arguments.iter() {
+                    match arg {
+                        Argument::Positional(a) => {
+                            self.collect_called_methods(a.value, called);
+                        }
+                        Argument::Named(a) => {
+                            self.collect_called_methods(a.value, called);
                         }
                     }
                 }

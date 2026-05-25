@@ -160,14 +160,14 @@ pub trait Rule {
             }
             Statement::If(if_stmt) => match &if_stmt.body {
                 IfBody::Statement(body) => {
-                    self.travers_statements_to_validate(flatten_statements, &body.statement);
+                    self.travers_statements_to_validate(flatten_statements, body.statement);
                     for clauses in body.else_if_clauses.iter() {
-                        self.travers_statements_to_validate(flatten_statements, &clauses.statement);
+                        self.travers_statements_to_validate(flatten_statements, clauses.statement);
                     }
                     if let Some(else_clause) = &body.else_clause {
                         self.travers_statements_to_validate(
                             flatten_statements,
-                            &else_clause.statement,
+                            else_clause.statement,
                         );
                     }
                 }
@@ -198,7 +198,7 @@ pub trait Rule {
                 }
             },
             Statement::DoWhile(do_while_stmt) => {
-                self.travers_statements_to_validate(flatten_statements, &do_while_stmt.statement);
+                self.travers_statements_to_validate(flatten_statements, do_while_stmt.statement);
             }
             Statement::Foreach(foreach_stmt) => match &foreach_stmt.body {
                 ForeachBody::Statement(body) => {
