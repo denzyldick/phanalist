@@ -3,6 +3,7 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
+use crate::debug_stats::RuleTimings;
 use crate::file::File;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -22,6 +23,8 @@ pub struct Results {
     pub codes_count: HashMap<String, i64>,
     pub total_files_count: i64,
     pub duration: Option<Duration>,
+    #[serde(skip)]
+    pub rule_timings: Option<RuleTimings>,
 }
 
 impl Results {
@@ -75,6 +78,7 @@ mod tests {
             codes_count: Default::default(),
             total_files_count: 0,
             duration: None,
+            rule_timings: None,
         }
     }
     fn get_file<'a>(arena: &'a Bump, name: &str) -> File<'a> {

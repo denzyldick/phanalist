@@ -377,7 +377,7 @@ mod tests {
             rule.index_file(&file);
         }
 
-        analyse.analyse_file(&mut file)
+        analyse.analyse_file(&mut file, false).0
     }
 
     fn get_ns() -> String {
