@@ -24,7 +24,25 @@ use crate::results::{Results, Violation};
 use crate::rules::Rule;
 use crate::rules::{self};
 
-pub fn scan_folder(current_dir: PathBuf, sender: Sender<(String, PathBuf)>) {
+/// Print a verbose line. When a progress bar is active, route it through
+/// `ProgressBar::println` so the bar stays pinned to the bottom and the line
+/// scrolls above it; otherwise fall back to plain stderr.
+fn log_line(bar: Option<&ProgressBar>, msg: String) {
+    match bar {
+        // Only the drawn bar can pin itself to the bottom. When stderr isn't a
+        // TTY the bar is hidden and `println` is a no-op, so fall back to
+        // `eprintln!` to keep verbose output visible when piped to a file.
+        Some(pb) if !pb.is_hidden() => pb.println(msg),
+        _ => eprintln!("{msg}"),
+    }
+}
+
+pub fn scan_folder(
+    current_dir: PathBuf,
+    sender: Sender<(String, PathBuf)>,
+    verbose: u8,
+    bar: Option<ProgressBar>,
+) {
     for entry in WalkDir::new(current_dir).follow_links(false) {
         let entry = entry.unwrap();
         let path = entry.path();
@@ -39,6 +57,9 @@ pub fn scan_folder(current_dir: PathBuf, sender: Sender<(String, PathBuf)>) {
         if (file_name != "." || !file_name.is_empty()) && metadata.is_file() {
             if let Some(extension) = path.extension() {
                 if extension == "php" {
+                    if verbose >= 2 {
+                        log_line(bar.as_ref(), format!("[vv] reading {}", path.display()));
+                    }
                     let content = fs::read_to_string(entry.path());
                     match content {
                         Err(_) => {
@@ -71,6 +92,7 @@ impl Analyse {
         _config: &Config,
         show_bar: bool,
         format: &Format,
+        verbose: u8,
         collect_rule_metrics: bool,
     ) -> Results {
         let now = std::time::Instant::now();
@@ -87,10 +109,17 @@ impl Analyse {
             println!("Scanning files in {} ...", &path.to_string().bold());
         }
 
+        let bar_active = show_bar && format == &Format::text;
+        let thread_bar = if bar_active {
+            Some(progress_bar.clone())
+        } else {
+            None
+        };
+
         let scan_path = path.clone();
         std::thread::spawn(move || {
             let path = PathBuf::from(scan_path);
-            self::scan_folder(path, send);
+            self::scan_folder(path, send, verbose, thread_bar);
         });
 
         let arena = Bump::new();
@@ -98,11 +127,23 @@ impl Analyse {
         // 1. Collect all files
         let mut scanned_files: Vec<File<'_>> = Vec::new();
         for (content, path) in recv {
+            if verbose >= 2 {
+                log_line(
+                    bar_active.then_some(&progress_bar),
+                    format!("[vv] parsing {}", path.display()),
+                );
+            }
             scanned_files.push(File::new(&arena, path, content));
         }
 
         // 2. Pre-pass (indexing).
         for file in &scanned_files {
+            if verbose >= 3 {
+                log_line(
+                    bar_active.then_some(&progress_bar),
+                    format!("[vvv] indexing {}", file.path.display()),
+                );
+            }
             for rule in self.rules.values() {
                 rule.index_file(file);
             }
@@ -111,7 +152,13 @@ impl Analyse {
         // 3. Main pass.
         let mut files = 0;
         for mut file in scanned_files {
-            if show_bar && format == &Format::text {
+            if verbose >= 1 {
+                log_line(
+                    bar_active.then_some(&progress_bar),
+                    format!("[v] analysing {}", file.path.display()),
+                );
+            }
+            if bar_active {
                 progress_bar.inc(1);
             }
 
@@ -126,7 +173,7 @@ impl Analyse {
             files += 1;
         }
 
-        if show_bar && format == &Format::text {
+        if bar_active {
             progress_bar.finish();
         }
 

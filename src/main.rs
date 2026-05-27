@@ -38,6 +38,10 @@ struct Args {
     #[arg(short, long)]
     /// Do not output the results
     quiet: bool,
+    #[arg(short, long, action = clap::ArgAction::Count)]
+    /// Increase verbosity. Repeat to print each file as it is scanned:
+    /// -v main pass, -vv parsing, -vvv indexing
+    verbose: u8,
     #[arg(long)]
     /// Print per-rule per-file timing (min/max/avg/p90/p95/p99 + slowest files)
     debug_rule_timing: bool,
@@ -88,6 +92,7 @@ fn main() {
             &config,
             format != Format::json && !quiet,
             &format,
+            args.verbose,
             collect_rule_metrics,
         );
         if !quiet {

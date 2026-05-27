@@ -14,7 +14,7 @@ pub fn scan(path: String) -> results::Results {
 
     let analyze: Analyse = Analyse::new(&config);
 
-    analyze.scan("./src".to_string(), &config, false, &output_format, false)
+    analyze.scan("./src".to_string(), &config, false, &output_format,0,false)
 }
 
 #[cfg(test)]
