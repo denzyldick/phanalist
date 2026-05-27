@@ -3,6 +3,7 @@ use std::fs;
 use std::io::ErrorKind;
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
+use std::time::Instant;
 
 use bumpalo::Bump;
 use colored::Colorize;
@@ -11,6 +12,7 @@ use jwalk::WalkDir;
 use mago_syntax::ast::Statement;
 
 use crate::config::Config;
+use crate::debug_stats::{FileTimings, RuleTimings};
 use crate::file::File;
 use crate::outputs::codeclimate::CodeClimate;
 use crate::outputs::json::Json;
@@ -69,9 +71,13 @@ impl Analyse {
         _config: &Config,
         show_bar: bool,
         format: &Format,
+        collect_rule_metrics: bool,
     ) -> Results {
         let now = std::time::Instant::now();
         let mut results = Results::default();
+        if collect_rule_metrics {
+            results.rule_timings = Some(RuleTimings::default());
+        }
         let progress_bar = self.get_progress_bar(&path);
 
         let (send, recv) = std::sync::mpsc::channel();
@@ -109,8 +115,13 @@ impl Analyse {
                 progress_bar.inc(1);
             }
 
-            let violations = self.analyse_file(&mut file);
+            let (violations, file_timings) = self.analyse_file(&mut file, collect_rule_metrics);
+            let file_path = file.path.display().to_string();
             results.add_file_violations(&file, violations);
+
+            if let (Some(rt), Some(ft)) = (results.rule_timings.as_mut(), file_timings) {
+                rt.merge_file(file_path, ft);
+            }
 
             files += 1;
         }
@@ -195,16 +206,29 @@ impl Analyse {
         };
     }
 
-    pub(crate) fn analyse_file(&self, file: &mut File<'_>) -> Vec<Violation> {
+    pub(crate) fn analyse_file(
+        &self,
+        file: &mut File<'_>,
+        collect_rule_metrics: bool,
+    ) -> (Vec<Violation>, Option<FileTimings>) {
         let mut violations: Vec<Violation> = vec![];
+        let mut timings = if collect_rule_metrics {
+            Some(FileTimings::new())
+        } else {
+            None
+        };
 
         if let Some(program) = file.ast {
             file.reference_counter.build_reference_counter(program);
             for statement in program.statements.iter() {
-                violations.append(&mut self.analyse_file_statement(file, statement));
+                violations.append(&mut self.analyse_file_statement(
+                    file,
+                    statement,
+                    timings.as_mut(),
+                ));
             }
         }
-        violations
+        (violations, timings)
     }
 
     fn get_active_rules(config: &Config) -> HashMap<String, Box<dyn Rule>> {
@@ -255,14 +279,29 @@ impl Analyse {
         &self,
         file: &File<'a>,
         statement: &Statement<'a>,
+        mut timings: Option<&mut FileTimings>,
     ) -> Vec<Violation> {
         let mut violations = Vec::new();
 
         for rule in self.rules.values() {
-            if rule.do_validate(file) {
-                for statement in rule.flatten_statements_to_validate(statement) {
+            let rule_start = timings.as_ref().map(|_| Instant::now());
+
+            let validated = rule.do_validate(file);
+            let mut stmt_count = 0;
+            if validated {
+                let flat = rule.flatten_statements_to_validate(statement);
+                stmt_count = flat.len();
+                for statement in flat {
                     violations.append(&mut rule.validate(file, statement));
                 }
+            }
+
+            if let Some(t) = timings.as_deref_mut() {
+                let elapsed = rule_start.unwrap().elapsed();
+                let entry = t.entry(rule.get_code()).or_default();
+                entry.duration += elapsed;
+                entry.validated |= validated;
+                entry.statements += stmt_count;
             }
         }
 

@@ -2,6 +2,7 @@ use analyse::Analyse;
 use outputs::Format;
 pub mod analyse;
 pub mod config;
+pub mod debug_stats;
 pub mod file;
 pub mod outputs;
 pub mod results;
@@ -13,7 +14,7 @@ pub fn scan(path: String) -> results::Results {
 
     let analyze: Analyse = Analyse::new(&config);
 
-    analyze.scan("./src".to_string(), &config, false, &output_format)
+    analyze.scan("./src".to_string(), &config, false, &output_format, false)
 }
 
 #[cfg(test)]
