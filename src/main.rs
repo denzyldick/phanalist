@@ -37,6 +37,10 @@ struct Args {
     #[arg(short, long)]
     /// Do not output the results
     quiet: bool,
+    #[arg(short, long, action = clap::ArgAction::Count)]
+    /// Increase verbosity. Repeat to print each file as it is scanned:
+    /// -v main pass, -vv parsing, -vvv indexing
+    verbose: u8,
 }
 
 fn main() {
@@ -75,6 +79,7 @@ fn main() {
             &config,
             format != Format::json && !quiet,
             &format,
+            args.verbose,
         );
         if !quiet {
             analyze.output(&mut results, format.clone(), args.summary_only);
