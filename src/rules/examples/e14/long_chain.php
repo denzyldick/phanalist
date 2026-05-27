@@ -1,0 +1,97 @@
+<?php
+
+// Valid: a self-returning setter chained many times. This is a regression
+// fixture for the exponential blow-up that hung E0014 on long fluent chains
+// (e.g. a builder/model with dozens of chained ->setX() calls).
+class Builder
+{
+    public function set(): self
+    {
+        return $this;
+    }
+
+    public function build(): self
+    {
+        return $this
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set()
+            ->set();
+    }
+}
