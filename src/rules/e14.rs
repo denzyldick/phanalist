@@ -25,6 +25,13 @@ type VarTypes = HashMap<String, String>;
 #[derive(Default)]
 pub struct Rule {
     pub global_registry: std::sync::Mutex<TypeRegistry>,
+    /// Memoizes `resolve_object_type` by expression span for the duration of a
+    /// single `validate` call. Without it, the chain-fluency check re-resolves
+    /// the receiver of every chain link, making a chain of N calls cost
+    /// `O(phi^N)` and hanging on long fluent chains. Cleared per `validate`
+    /// because spans only carry byte offsets (no file id), so entries from one
+    /// file must not leak into the next.
+    resolve_cache: std::sync::Mutex<HashMap<Span, Option<String>>>,
 }
 
 impl crate::rules::Rule for Rule {
@@ -68,6 +75,11 @@ impl crate::rules::Rule for Rule {
 
     fn validate(&self, file: &File<'_>, statement: &Statement<'_>) -> Vec<Violation> {
         let mut violations = Vec::new();
+
+        // Start each validation with an empty type cache; see `resolve_cache`.
+        if let Ok(mut cache) = self.resolve_cache.lock() {
+            cache.clear();
+        }
 
         // Build the type registry from ALL statements in the file so that cross-file
         // references (e.g. a class using a trait defined elsewhere in the same file)
@@ -1114,8 +1126,50 @@ impl Rule {
     // Helper: resolve the type of the receiver object
     // -------------------------------------------------------------------------
 
+    /// Caching wrapper around [`Self::resolve_object_type_uncached`].
+    ///
+    /// The first time a given expression span is resolved it runs the real
+    /// logic (which records any violations into `violations`); later lookups of
+    /// the same span return the cached type without re-descending or re-pushing.
+    /// The fluency check below re-resolves chain links it has already walked, so
+    /// without this an N-link chain costs `O(phi^N)`.
     #[allow(clippy::too_many_arguments)]
     fn resolve_object_type(
+        &self,
+        file: &File<'_>,
+        object: &Expression<'_>,
+        method_map: &HashMap<String, String>,
+        current_class: &str,
+        registry: &TypeRegistry,
+        var_types: &VarTypes,
+        violations: &mut Vec<Violation>,
+    ) -> Option<String> {
+        let key = object.span();
+        if let Ok(cache) = self.resolve_cache.lock() {
+            if let Some(cached) = cache.get(&key) {
+                return cached.clone();
+            }
+        }
+
+        let result = self.resolve_object_type_uncached(
+            file,
+            object,
+            method_map,
+            current_class,
+            registry,
+            var_types,
+            violations,
+        );
+
+        if let Ok(mut cache) = self.resolve_cache.lock() {
+            cache.insert(key, result.clone());
+        }
+
+        result
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn resolve_object_type_uncached(
         &self,
         file: &File<'_>,
         object: &Expression<'_>,
@@ -1531,6 +1585,23 @@ mod tests {
         assert!(
             violations.is_empty(),
             "Expected no violations for interface chaining, got: {:?}",
+            violations
+        );
+    }
+
+    /// Regression test for the exponential blow-up on long fluent chains.
+    ///
+    /// A self-returning setter chained many times is valid (every link resolves
+    /// to the current class), so it must report no violations. Before the fix
+    /// this hung: `check_method_call_generic` re-resolved the receiver type for
+    /// every link (via `is_fluent_on_foreign`), giving `O(phi^N)` cost in chain
+    /// length. The fixture has 80 chained calls, which never terminated before.
+    #[test]
+    fn long_fluent_chain_terminates() {
+        let violations = analyze_file_for_rule("e14/long_chain.php", CODE);
+        assert!(
+            violations.is_empty(),
+            "Expected no violations for valid self-returning fluent chain, got: {:?}",
             violations
         );
     }
