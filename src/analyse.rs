@@ -3,6 +3,7 @@ use std::fs;
 use std::io::ErrorKind;
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
+use std::time::Instant;
 
 use bumpalo::Bump;
 use colored::Colorize;
@@ -11,6 +12,7 @@ use jwalk::WalkDir;
 use mago_syntax::ast::Statement;
 
 use crate::config::Config;
+use crate::debug_stats::{FileTimings, RuleTimings};
 use crate::file::File;
 use crate::outputs::codeclimate::CodeClimate;
 use crate::outputs::json::Json;
@@ -22,7 +24,25 @@ use crate::results::{Results, Violation};
 use crate::rules::Rule;
 use crate::rules::{self};
 
-pub fn scan_folder(current_dir: PathBuf, sender: Sender<(String, PathBuf)>) {
+/// Print a verbose line. When a progress bar is active, route it through
+/// `ProgressBar::println` so the bar stays pinned to the bottom and the line
+/// scrolls above it; otherwise fall back to plain stderr.
+fn log_line(bar: Option<&ProgressBar>, msg: String) {
+    match bar {
+        // Only the drawn bar can pin itself to the bottom. When stderr isn't a
+        // TTY the bar is hidden and `println` is a no-op, so fall back to
+        // `eprintln!` to keep verbose output visible when piped to a file.
+        Some(pb) if !pb.is_hidden() => pb.println(msg),
+        _ => eprintln!("{msg}"),
+    }
+}
+
+pub fn scan_folder(
+    current_dir: PathBuf,
+    sender: Sender<(String, PathBuf)>,
+    verbose: u8,
+    bar: Option<ProgressBar>,
+) {
     for entry in WalkDir::new(current_dir).follow_links(false) {
         let entry = entry.unwrap();
         let path = entry.path();
@@ -37,6 +57,9 @@ pub fn scan_folder(current_dir: PathBuf, sender: Sender<(String, PathBuf)>) {
         if (file_name != "." || !file_name.is_empty()) && metadata.is_file() {
             if let Some(extension) = path.extension() {
                 if extension == "php" {
+                    if verbose >= 2 {
+                        log_line(bar.as_ref(), format!("[vv] reading {}", path.display()));
+                    }
                     let content = fs::read_to_string(entry.path());
                     match content {
                         Err(_) => {
@@ -69,9 +92,14 @@ impl Analyse {
         _config: &Config,
         show_bar: bool,
         format: &Format,
+        verbose: u8,
+        collect_rule_metrics: bool,
     ) -> Results {
         let now = std::time::Instant::now();
         let mut results = Results::default();
+        if collect_rule_metrics {
+            results.rule_timings = Some(RuleTimings::default());
+        }
         let progress_bar = self.get_progress_bar(&path);
 
         let (send, recv) = std::sync::mpsc::channel();
@@ -81,10 +109,17 @@ impl Analyse {
             println!("Scanning files in {} ...", &path.to_string().bold());
         }
 
+        let bar_active = show_bar && format == &Format::text;
+        let thread_bar = if bar_active {
+            Some(progress_bar.clone())
+        } else {
+            None
+        };
+
         let scan_path = path.clone();
         std::thread::spawn(move || {
             let path = PathBuf::from(scan_path);
-            self::scan_folder(path, send);
+            self::scan_folder(path, send, verbose, thread_bar);
         });
 
         let arena = Bump::new();
@@ -92,11 +127,23 @@ impl Analyse {
         // 1. Collect all files
         let mut scanned_files: Vec<File<'_>> = Vec::new();
         for (content, path) in recv {
+            if verbose >= 2 {
+                log_line(
+                    bar_active.then_some(&progress_bar),
+                    format!("[vv] parsing {}", path.display()),
+                );
+            }
             scanned_files.push(File::new(&arena, path, content));
         }
 
         // 2. Pre-pass (indexing).
         for file in &scanned_files {
+            if verbose >= 3 {
+                log_line(
+                    bar_active.then_some(&progress_bar),
+                    format!("[vvv] indexing {}", file.path.display()),
+                );
+            }
             for rule in self.rules.values() {
                 rule.index_file(file);
             }
@@ -105,17 +152,28 @@ impl Analyse {
         // 3. Main pass.
         let mut files = 0;
         for mut file in scanned_files {
-            if show_bar && format == &Format::text {
+            if verbose >= 1 {
+                log_line(
+                    bar_active.then_some(&progress_bar),
+                    format!("[v] analysing {}", file.path.display()),
+                );
+            }
+            if bar_active {
                 progress_bar.inc(1);
             }
 
-            let violations = self.analyse_file(&mut file);
+            let (violations, file_timings) = self.analyse_file(&mut file, collect_rule_metrics);
+            let file_path = file.path.display().to_string();
             results.add_file_violations(&file, violations);
+
+            if let (Some(rt), Some(ft)) = (results.rule_timings.as_mut(), file_timings) {
+                rt.merge_file(file_path, ft);
+            }
 
             files += 1;
         }
 
-        if show_bar && format == &Format::text {
+        if bar_active {
             progress_bar.finish();
         }
 
@@ -195,16 +253,29 @@ impl Analyse {
         };
     }
 
-    pub(crate) fn analyse_file(&self, file: &mut File<'_>) -> Vec<Violation> {
+    pub(crate) fn analyse_file(
+        &self,
+        file: &mut File<'_>,
+        collect_rule_metrics: bool,
+    ) -> (Vec<Violation>, Option<FileTimings>) {
         let mut violations: Vec<Violation> = vec![];
+        let mut timings = if collect_rule_metrics {
+            Some(FileTimings::new())
+        } else {
+            None
+        };
 
         if let Some(program) = file.ast {
             file.reference_counter.build_reference_counter(program);
             for statement in program.statements.iter() {
-                violations.append(&mut self.analyse_file_statement(file, statement));
+                violations.append(&mut self.analyse_file_statement(
+                    file,
+                    statement,
+                    timings.as_mut(),
+                ));
             }
         }
-        violations
+        (violations, timings)
     }
 
     fn get_active_rules(config: &Config) -> HashMap<String, Box<dyn Rule>> {
@@ -255,14 +326,29 @@ impl Analyse {
         &self,
         file: &File<'a>,
         statement: &Statement<'a>,
+        mut timings: Option<&mut FileTimings>,
     ) -> Vec<Violation> {
         let mut violations = Vec::new();
 
         for rule in self.rules.values() {
-            if rule.do_validate(file) {
-                for statement in rule.flatten_statements_to_validate(statement) {
+            let rule_start = timings.as_ref().map(|_| Instant::now());
+
+            let validated = rule.do_validate(file);
+            let mut stmt_count = 0;
+            if validated {
+                let flat = rule.flatten_statements_to_validate(statement);
+                stmt_count = flat.len();
+                for statement in flat {
                     violations.append(&mut rule.validate(file, statement));
                 }
+            }
+
+            if let Some(t) = timings.as_deref_mut() {
+                let elapsed = rule_start.unwrap().elapsed();
+                let entry = t.entry(rule.get_code()).or_default();
+                entry.duration += elapsed;
+                entry.validated |= validated;
+                entry.statements += stmt_count;
             }
         }
 
