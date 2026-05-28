@@ -43,6 +43,13 @@ pub mod e20;
 pub mod e21;
 pub mod e22;
 pub mod e23;
+pub mod e24;
+pub mod e25;
+pub mod e26;
+pub mod e27;
+pub mod e28;
+pub mod e29;
+pub mod e30;
 
 pub trait Rule {
     /// Optional hook for cross-file type resolution or indexing.
@@ -344,6 +351,13 @@ pub fn all_rules() -> HashMap<String, Box<dyn Rule>> {
     add_rule(&mut rules, Box::default() as Box<e21::Rule>);
     add_rule(&mut rules, Box::default() as Box<e22::Rule>);
     add_rule(&mut rules, Box::default() as Box<e23::Rule>);
+    add_rule(&mut rules, Box::default() as Box<e24::Rule>);
+    add_rule(&mut rules, Box::default() as Box<e25::Rule>);
+    add_rule(&mut rules, Box::default() as Box<e26::Rule>);
+    add_rule(&mut rules, Box::default() as Box<e27::Rule>);
+    add_rule(&mut rules, Box::default() as Box<e28::Rule>);
+    add_rule(&mut rules, Box::default() as Box<e29::Rule>);
+    add_rule(&mut rules, Box::default() as Box<e30::Rule>);
 
     rules
 }

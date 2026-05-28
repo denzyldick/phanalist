@@ -12,5 +12,7 @@ rules:
     exclude_namespaces: []
     include_namespaces:
       - App\Service\
+    reset_interfaces:
+      - ResetInterface
   E0009:
     max_complexity: 10
