@@ -7,7 +7,7 @@ use crate::rules::Rule as RuleTrait;
 
 pub struct Rule {}
 
-const CODE: &str = "E0004";
+pub(crate) static CODE: &str = "E0004";
 const DESCRIPTION: &str = "Uppercase constants";
 
 impl crate::rules::Rule for Rule {

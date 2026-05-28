@@ -7,7 +7,7 @@ use crate::file::File;
 use crate::results::Violation;
 use crate::rules::Rule as RuleTrait;
 
-static CODE: &str = "E0014";
+pub(crate) static CODE: &str = "E0014";
 static DESCRIPTION: &str =
     "Law of Demeter violation. Method chaining should be avoided unless returning the same object type.";
 
@@ -134,7 +134,7 @@ impl crate::rules::Rule for Rule {
         violations
     }
 
-    fn travers_statements_to_validate<'a>(
+    fn traverse_statements_to_validate<'a>(
         &'a self,
         flatten_statements: &mut Vec<&'a Statement<'a>>,
         statement: &'a Statement<'a>,

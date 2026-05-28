@@ -6,7 +6,7 @@ use mago_syntax::ast::*;
 use crate::file::File;
 use crate::results::Violation;
 
-static CODE: &str = "E0013";
+pub(crate) static CODE: &str = "E0013";
 static DESCRIPTION: &str = "Private method not being called.";
 
 pub struct Rule {}

@@ -3,7 +3,7 @@ use mago_syntax::ast::{OpeningTag, Statement};
 use crate::file::File;
 use crate::results::Violation;
 
-static CODE: &str = "E0001";
+pub(crate) static CODE: &str = "E0001";
 static DESCRIPTION: &str = "Opening tag position";
 
 pub struct Rule {}
@@ -58,7 +58,7 @@ impl crate::rules::Rule for Rule {
         violations
     }
 
-    fn travers_statements_to_validate<'a>(
+    fn traverse_statements_to_validate<'a>(
         &'a self,
         flatten_statements: &mut Vec<&'a Statement<'a>>,
         statement: &'a Statement<'a>,

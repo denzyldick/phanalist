@@ -10,7 +10,7 @@ use crate::file::File;
 use crate::results::Violation;
 use crate::rules::Rule as RuleTrait;
 
-pub static CODE: &str = "E0021";
+pub(crate) static CODE: &str = "E0021";
 static DESCRIPTION: &str = "Number of Children (NOC)";
 
 #[derive(Deserialize, Serialize)]

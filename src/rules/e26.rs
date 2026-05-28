@@ -115,9 +115,8 @@ fn count_code_and_comment_lines(lines: &[String]) -> (usize, usize) {
 
         if trimmed.starts_with("//") || trimmed.starts_with('#') {
             comment_lines += 1;
-        } else if trimmed.starts_with("/*") {
+        } else if let Some(rest) = trimmed.strip_prefix("/*") {
             comment_lines += 1;
-            let rest = &trimmed[2..];
             if let Some(close_pos) = rest.find("*/") {
                 let after_close = rest[close_pos + 2..].trim();
                 if !after_close.is_empty() {

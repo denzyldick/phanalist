@@ -220,8 +220,14 @@ impl Analyse {
                     );
                 }
 
-                match serde_yaml::from_str(&s) {
-                    Ok(c) => c,
+                match serde_yaml::from_str::<Config>(&s) {
+                    Ok(mut c) => {
+                        let default = Config::default();
+                        for (code, settings) in default.rules {
+                            c.rules.entry(code).or_insert(settings);
+                        }
+                        c
+                    }
                     Err(e) => {
                         if output_format == &Format::text {
                             println!("Unable to use the config: {}. Ignoring it.", &e);

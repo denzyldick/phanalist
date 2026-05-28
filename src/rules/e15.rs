@@ -9,7 +9,7 @@ use crate::file::File;
 use crate::results::Violation;
 use crate::rules::Rule as RuleTrait;
 
-pub static CODE: &str = "E0015";
+pub(crate) static CODE: &str = "E0015";
 static DESCRIPTION: &str = "Lack of Cohesion of Methods (LCOM4)";
 
 #[derive(Deserialize, Serialize)]

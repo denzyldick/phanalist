@@ -86,13 +86,13 @@ impl crate::rules::Rule for Rule {
 
         match statement {
             Statement::Class(class) => {
-                self.check_members(file, &class.name.value, &class.members, class.span(), &mut violations);
+                self.check_members(file, class.name.value, &class.members, class.span(), &mut violations);
             }
             Statement::Trait(t) => {
-                self.check_members(file, &t.name.value, &t.members, t.span(), &mut violations);
+                self.check_members(file, t.name.value, &t.members, t.span(), &mut violations);
             }
             Statement::Enum(e) => {
-                self.check_members(file, &e.name.value, &e.members, e.span(), &mut violations);
+                self.check_members(file, e.name.value, &e.members, e.span(), &mut violations);
             }
             _ => {}
         }

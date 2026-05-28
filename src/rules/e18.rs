@@ -8,7 +8,7 @@ use crate::results::Violation;
 use crate::rules::e9::calculate_complexity;
 use crate::rules::Rule as RuleTrait;
 
-pub static CODE: &str = "E0018";
+pub(crate) static CODE: &str = "E0018";
 static DESCRIPTION: &str = "Weighted Methods per Class (WMC)";
 
 #[derive(Deserialize, Serialize)]

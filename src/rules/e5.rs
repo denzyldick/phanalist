@@ -4,7 +4,7 @@ use mago_syntax::ast::Statement;
 use crate::file::File;
 use crate::results::Violation;
 
-static CODE: &str = "E0005";
+pub(crate) static CODE: &str = "E0005";
 static DESCRIPTION: &str = "Capitalized class name";
 
 pub struct Rule {}

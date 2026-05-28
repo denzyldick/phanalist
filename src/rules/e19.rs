@@ -9,7 +9,7 @@ use crate::file::File;
 use crate::results::Violation;
 use crate::rules::Rule as RuleTrait;
 
-pub static CODE: &str = "E0019";
+pub(crate) static CODE: &str = "E0019";
 static DESCRIPTION: &str = "Response For a Class (RFC)";
 
 #[derive(Deserialize, Serialize)]

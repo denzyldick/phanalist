@@ -10,7 +10,7 @@ use crate::file::File;
 use crate::results::Violation;
 use crate::rules::Rule as RuleTrait;
 
-pub static CODE: &str = "E0029";
+pub(crate) static CODE: &str = "E0029";
 static DESCRIPTION: &str = "Class-level Fan-in / Fan-out";
 
 #[derive(Deserialize, Serialize)]

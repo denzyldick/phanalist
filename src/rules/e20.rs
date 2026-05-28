@@ -10,7 +10,7 @@ use crate::file::File;
 use crate::results::Violation;
 use crate::rules::Rule as RuleTrait;
 
-pub static CODE: &str = "E0020";
+pub(crate) static CODE: &str = "E0020";
 static DESCRIPTION: &str = "Depth of Inheritance Tree (DIT)";
 
 #[derive(Deserialize, Serialize)]

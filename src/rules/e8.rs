@@ -4,7 +4,7 @@ use mago_syntax::ast::{ClassLikeMember, MethodBody, Statement};
 use crate::file::File;
 use crate::results::Violation;
 
-static CODE: &str = "E0008";
+pub(crate) static CODE: &str = "E0008";
 static DESCRIPTION: &str = "Return type signature";
 
 pub struct Rule {}
