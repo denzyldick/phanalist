@@ -61,6 +61,14 @@ impl Default for Config {
             serde_json::to_value(rules::e23::Settings::default()).unwrap(),
         );
         rules.insert(
+            String::from(rules::e15::CODE),
+            serde_json::to_value(rules::e15::Settings::default()).unwrap(),
+        );
+        rules.insert(
+            String::from(rules::e16::CODE),
+            serde_json::to_value(rules::e16::Settings::default()).unwrap(),
+        );
+        rules.insert(
             String::from(rules::e24::CODE),
             serde_json::to_value(rules::e24::Settings::default()).unwrap(),
         );

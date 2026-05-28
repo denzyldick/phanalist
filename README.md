@@ -81,6 +81,10 @@ rules:
       - "App\\Service\\"
       - "App\\Controller\\"
     exclude_namespaces: []
+  E0015:
+    threshold: 1
+  E0016:
+    max_complexity: 15
   E0024:
     max_loc: 30
   E0025:
@@ -126,8 +130,8 @@ rules:
 | [E0012](/src/rules/examples/e12/e12.md) | Service compatibility with Shared Memory Model | `include_namespaces`, `exclude_namespaces`, `reset_interfaces` |
 | [E0013](/src/rules/examples/e13/e13.md) | Private method not being used | |
 | [E0014](/src/rules/examples/e14/e14.md) | Law of Demeter | |
-| [E0015](/src/rules/examples/e15/e15.md) | Lack of Cohesion of Methods (LCOM4) | |
-| [E0016](/src/rules/examples/e16/e16.md) | Using unserialize | |
+| [E0015](/src/rules/examples/e15/e15.md) | Lack of Cohesion of Methods (LCOM4) | `threshold: 1` |
+| [E0016](/src/rules/examples/e16/e16.md) | Cognitive complexity | `max_complexity: 15` |
 | [E0017](/src/rules/examples/e17/e17.md) | Coupling Between Objects (CBO) | `max_coupling: 10` |
 | [E0018](/src/rules/examples/e18/e18.md) | Weighted Methods per Class (WMC) | `max_wmc: 50` |
 | [E0019](/src/rules/examples/e19/e19.md) | Response For a Class (RFC) | `max_rfc: 50` |
