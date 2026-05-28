@@ -11,6 +11,7 @@ use crate::outputs::Format;
 
 mod analyse;
 mod config;
+mod debug_stats;
 mod file;
 mod outputs;
 mod results;
@@ -37,6 +38,16 @@ struct Args {
     #[arg(short, long)]
     /// Do not output the results
     quiet: bool,
+    #[arg(short, long, action = clap::ArgAction::Count)]
+    /// Increase verbosity. Repeat to print each file as it is scanned:
+    /// -v main pass, -vv parsing, -vvv indexing
+    verbose: u8,
+    #[arg(long)]
+    /// Print per-rule per-file timing (min/max/avg/p90/p95/p99 + slowest files)
+    debug_rule_timing: bool,
+    #[arg(long)]
+    /// Print per-rule cost/coverage stats (total time, %, violations, files, statements)
+    debug_rule_stats: bool,
 }
 
 fn main() {
@@ -69,16 +80,36 @@ fn main() {
 
     let mut has_violations = false;
 
+    let collect_rule_metrics = args.debug_rule_timing || args.debug_rule_stats;
+
+    if collect_rule_metrics && format != Format::text {
+        eprintln!("--debug-rule-timing/--debug-rule-stats only produce output with text format");
+    }
+
     for path in paths.iter() {
         let mut results = analyze.scan(
             path.clone(),
             &config,
             format != Format::json && !quiet,
             &format,
+            args.verbose,
+            collect_rule_metrics,
         );
         if !quiet {
             analyze.output(&mut results, format.clone(), args.summary_only);
         }
+
+        if collect_rule_metrics && format == Format::text {
+            if let Some(rt) = &results.rule_timings {
+                rt.print_text(
+                    &results.codes_count,
+                    results.total_files_count,
+                    args.debug_rule_timing,
+                    args.debug_rule_stats,
+                );
+            }
+        }
+
         has_violations = has_violations || results.has_any_violations();
     }
 
