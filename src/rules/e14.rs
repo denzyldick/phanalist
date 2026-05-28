@@ -1126,6 +1126,7 @@ impl Rule {
     // Helper: resolve the type of the receiver object
     // -------------------------------------------------------------------------
 
+
     /// Caching wrapper around [`Self::resolve_object_type_uncached`].
     ///
     /// The first time a given expression span is resolved it runs the real

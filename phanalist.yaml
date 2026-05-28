@@ -15,3 +15,21 @@ rules:
     - App\Controller\
     reset_interfaces:
     - ResetInterface
+  E0024:
+    max_loc: 30
+  E0025:
+    max_loc: 500
+  E0026:
+    min_ratio: 0.1
+    max_ratio: 0.5
+  E0027:
+    max_methods: 15
+    max_fields: 10
+  E0028:
+    max_getter_setter_ratio: 0.7
+    min_methods: 3
+  E0029:
+    max_fan_out: 10
+    max_fan_in: 20
+  E0030:
+    max_density: 0.3
