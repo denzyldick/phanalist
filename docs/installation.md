@@ -11,7 +11,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/denzyldic
 It will automatically download executable for your platform.
 ```bash
 ~/phanalist -V
-phanalist 1.0.0
+phanalist 0.1.29
 ```
 
 ### Pre-compiled architecture-specific binary.
@@ -58,6 +58,6 @@ docker run -it -v $(pwd):/var/src ghcr.io/denzyldick/phanalist:latest phanalist 
 Phanalist is also listed on the Github action marketplace.
 ```yaml
               - name: Phanalist
-                uses: denzyldick/phanalist-action@v0.1.21
+                uses: denzyldick/phanalist-action@v1
             
 ```
