@@ -10,7 +10,7 @@ use crate::file::File;
 use crate::results::Violation;
 use crate::rules::Rule as RuleTrait;
 
-pub static CODE: &str = "E0023";
+pub(crate) static CODE: &str = "E0023";
 static DESCRIPTION: &str = "Instability (I), Abstractness (A), Distance from Main Sequence (D)";
 
 #[derive(Deserialize, Serialize)]

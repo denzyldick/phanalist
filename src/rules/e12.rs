@@ -7,7 +7,7 @@ use crate::file::File;
 use crate::results::Violation;
 use crate::rules::Rule as RuleTrait;
 
-pub static CODE: &str = "E0012";
+pub(crate) static CODE: &str = "E0012";
 static DESCRIPTION: &str = "Service compatibility with Shared Memory Model";
 
 #[derive(Deserialize, Serialize)]

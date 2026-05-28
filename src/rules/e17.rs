@@ -9,7 +9,7 @@ use crate::file::File;
 use crate::results::Violation;
 use crate::rules::Rule as RuleTrait;
 
-pub static CODE: &str = "E0017";
+pub(crate) static CODE: &str = "E0017";
 static DESCRIPTION: &str = "Coupling Between Objects (CBO)";
 
 #[derive(Deserialize, Serialize)]

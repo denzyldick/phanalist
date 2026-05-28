@@ -11,7 +11,7 @@
 ### ✨ Features
 
 - 🚀 **Fast** — built in Rust, analyzes large codebases in seconds
-- 🔍 **24 built-in rules** — covering complexity, style, design patterns, and more
+- 🔍 **31 built-in rules** — covering complexity, style, design patterns, and more
 - ⚙️ **Zero config to start** — works out of the box, configure only what you need
 - 📄 **Multiple output formats** — `text`, `json`, and `sarif` (for CI pipelines)
 - 🔌 **Extensible** — adding a custom rule takes minutes
@@ -30,7 +30,7 @@ It will automatically download the executable for your platform:
 
 ```bash
 $ ~/phanalist -V
-phanalist 1.0.0
+phanalist 0.1.29
 ```
 
 There are also [multiple other installation options](./docs/installation.md).
@@ -97,15 +97,15 @@ rules:
 | [E0001](/src/rules/examples/e1/e1.md) | Opening tag position | |
 | [E0002](/src/rules/examples/e2/e2.md) | Empty catch | |
 | [E0003](/src/rules/examples/e3/e3.md) | Method modifiers | |
-| [E0004](src/rules/examples/e4.md) | Uppercase constants | |
-| [E0005](src/rules/examples/e5.md) | Capitalized class name | |
+| [E0004](/src/rules/examples/e4/e4.md) | Uppercase constants | |
+| [E0005](/src/rules/examples/e5/e5.md) | Capitalized class name | |
 | [E0006](/src/rules/examples/e6/e6.md) | Property modifiers | |
 | [E0007](/src/rules/examples/e7/e7.md) | Method parameters count | `check_constructor: true`, `max_parameters: 5` |
-| [E0008](src/rules/examples/e8/e8.md) | Return type signature | |
+| [E0008](/src/rules/examples/e8/e8.md) | Return type signature | |
 | [E0009](/src/rules/examples/e9/e9.md) | Cyclomatic complexity | `max_complexity: 10` |
-| [E0010](src/rules/examples/e10/e10.md) | Npath complexity | `max_paths: 200` |
-| [E0011](src/rules/examples/e11/e11.md) | Detect error suppression symbol (`@`) | |
-| [E0012](src/rules/examples/e12/e12.md) | Service compatibility with Shared Memory Model | `include_namespaces`, `exclude_namespaces`, `reset_interfaces` |
+| [E0010](/src/rules/examples/e10/e10.md) | Npath complexity | `max_paths: 200` |
+| [E0011](/src/rules/examples/e11/e11.md) | Detect error suppression symbol (`@`) | |
+| [E0012](/src/rules/examples/e12/e12.md) | Service compatibility with Shared Memory Model | `include_namespaces`, `exclude_namespaces`, `reset_interfaces` |
 | [E0013](/src/rules/examples/e13/e13.md) | Private method not being used | |
 | [E0014](/src/rules/examples/e14/e14.md) | Law of Demeter | |
 | [E0015](/src/rules/examples/e15/e15.md) | Lack of Cohesion of Methods (LCOM4) | |
@@ -117,6 +117,13 @@ rules:
 | [E0021](/src/rules/examples/e21/e21.md) | Number of Children (NOC) | `max_children: 15` |
 | [E0022](/src/rules/examples/e22/e22.md) | Afferent and Efferent Coupling (Ca/Ce) | `max_ca: 20`, `max_ce: 20` |
 | [E0023](/src/rules/examples/e23/e23.md) | Instability, Abstractness, Distance (I/A/D) | `max_instability: 0.8`, `max_abstractness: 0.8`, `max_distance: 0.5` |
+| [E0024](/src/rules/examples/e24/e24.md) | Lines of Code per Method | `max_loc: 30` |
+| [E0025](/src/rules/examples/e25/e25.md) | Lines of Code per File | `max_loc: 500` |
+| [E0026](/src/rules/examples/e26/e26.md) | Comment Ratio | `min_ratio: 0.1`, `max_ratio: 0.5` |
+| [E0027](/src/rules/examples/e27/e27.md) | God Class (Brain Class) | `max_methods: 15`, `max_fields: 10` |
+| [E0028](/src/rules/examples/e28/e28.md) | Data Class | `max_getter_setter_ratio: 0.7`, `min_methods: 3` |
+| [E0029](/src/rules/examples/e29/e29.md) | Fan-in / Fan-out | `max_fan_out: 10`, `max_fan_in: 20` |
+| [E0030](/src/rules/examples/e30/e30.md) | Cyclomatic Complexity Density | `max_density: 0.3` |
 
 Adding a new rule is straightforward — [this tutorial](./docs/adding_new_rule.md) explains how.
 

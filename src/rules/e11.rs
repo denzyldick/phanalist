@@ -4,7 +4,7 @@ use mago_syntax::ast::{Call, Expression, Statement, UnaryPrefixOperator};
 use crate::file::File;
 use crate::results::Violation;
 
-static CODE: &str = "E0011";
+pub(crate) static CODE: &str = "E0011";
 static DESCRIPTION: &str = "Detect the error suppression symbol: @";
 
 #[derive(Default)]

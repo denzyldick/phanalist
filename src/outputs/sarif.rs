@@ -23,6 +23,9 @@ impl OutputFormatter for Sarif {
             let r = rule.1.description();
             let description = r;
 
+            let rule_number = rule.0.trim_start_matches('E').trim_start_matches('0');
+            let rule_number = if rule_number.is_empty() { "0" } else { rule_number };
+
             let multiformat_message = MultiformatMessageString {
                 markdown: rule.1.get_detailed_explanation(),
                 properties: None,
@@ -37,9 +40,8 @@ impl OutputFormatter for Sarif {
                 help: Some(multiformat_message.clone()),
                 full_description: Some(multiformat_message.clone()),
                 help_uri: Some(format!(
-                    "https://github.com/denzyldick/phanalist/blob/main/src/rules/examples/{}/{}.md",
-                    rule.0.to_lowercase(),
-                    rule.0.to_lowercase()
+                    "https://github.com/denzyldick/phanalist/blob/main/src/rules/examples/e{}/e{}.md",
+                    rule_number, rule_number
                 )),
                 id: rule.0.clone(),
                 message_strings: None,

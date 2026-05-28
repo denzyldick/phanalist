@@ -10,7 +10,7 @@ use crate::file::File;
 use crate::results::Violation;
 use crate::rules::Rule as RuleTrait;
 
-pub static CODE: &str = "E0022";
+pub(crate) static CODE: &str = "E0022";
 static DESCRIPTION: &str = "Afferent and Efferent Coupling (Ca/Ce)";
 
 #[derive(Deserialize, Serialize)]

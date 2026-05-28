@@ -4,7 +4,7 @@ use mago_syntax::ast::{ClassLikeMember, Modifier, Property, Statement};
 use crate::file::File;
 use crate::results::Violation;
 
-static CODE: &str = "E0006";
+pub(crate) static CODE: &str = "E0006";
 static DESCRIPTION: &str = "Property modifiers";
 
 pub struct Rule {}

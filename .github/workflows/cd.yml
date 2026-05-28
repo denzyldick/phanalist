@@ -15,7 +15,9 @@ jobs:
       version: ${{ steps.retrieve-version.outputs.version }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+      - name: Make scripts executable
+        run: chmod +x .github/workflows/scripts/*.sh
       - name: Check CHANGELOG.md file exists
         run: '[ -f CHANGELOG.md ]'
       - name: Check unreleased version is defined in CHANGELOG.md
@@ -29,13 +31,11 @@ jobs:
     needs: check-version
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION_STABLE }}
-          profile: minimal
-          override: true
       - name: Build
         run: cargo build --all-targets
       - name: Test
@@ -46,13 +46,11 @@ jobs:
     needs: check-version
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION_STABLE }}
-          profile: minimal
-          override: true
       - name: Build
         run: cargo build --all-targets
       - name: Test
@@ -63,13 +61,11 @@ jobs:
     needs: check-version
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION_STABLE }}
-          profile: minimal
-          override: true
       - name: Build
         run: cargo build --all-targets
       - name: Test
@@ -81,13 +77,13 @@ jobs:
     needs: check-version
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION_STABLE }}
-          profile: minimal
-          override: true
+      - name: Make scripts executable
+        run: chmod +x .github/workflows/scripts/*.sh
       - name: Check publication
         run: bash .github/workflows/scripts/check_publication.sh
         env:
@@ -103,13 +99,13 @@ jobs:
       - check-publication
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: ${{ env.RUST_VERSION_STABLE }}
-          profile: minimal
-          override: true
+      - name: Make scripts executable
+        run: chmod +x .github/workflows/scripts/*.sh
       - name: Publish
         run: bash .github/workflows/scripts/run_publication.sh
         env:
@@ -125,7 +121,7 @@ jobs:
       - name: Install dependencies
         run: sudo apt-get install node-semver -y
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.GIT_TOKEN }}
       - name: Apply version and date in CHANGELOG.md file

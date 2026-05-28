@@ -4,7 +4,7 @@ use mago_syntax::ast::Statement;
 use crate::file::File;
 use crate::results::Violation;
 
-static CODE: &str = "E0002";
+pub(crate) static CODE: &str = "E0002";
 static DESCRIPTION: &str = "Empty catch";
 static SUGGESTION: &str = "There is an empty catch. It's not recommended to catch an Exception without doing anything with it.";
 

@@ -54,13 +54,7 @@ impl Results {
     }
 
     pub fn has_any_violations(&self) -> bool {
-        self.codes_count
-            .values()
-            .cloned()
-            .collect::<Vec<i64>>()
-            .iter()
-            .sum::<i64>()
-            > 0
+        self.codes_count.values().any(|&c| c > 0)
     }
 }
 

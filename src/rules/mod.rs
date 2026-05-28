@@ -1,8 +1,5 @@
 use colored::Colorize;
 use std::collections::HashMap;
-// use std::default::Default;
-// use indicatif::ProgressBar;
-// use jwalk::WalkDir;
 use std::error::Error;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -14,9 +11,6 @@ use serde_json::Value;
 use crate::config::Config;
 use crate::file::File;
 use crate::results::Violation;
-// use crate::rules::ast_child_statements::AstChildStatements;
-
-// mod ast_child_statements;
 pub mod e0;
 pub mod e1;
 pub mod e10;
@@ -30,8 +24,6 @@ pub mod e17;
 pub mod e18;
 pub mod e19;
 pub mod e2;
-// pub mod e1;
-// pub mod e2;
 pub mod e3;
 pub mod e4;
 pub mod e5;
@@ -63,8 +55,8 @@ pub trait Rule {
     fn description(&self) -> String {
         String::from("")
     }
-    /// Every rule has a detailed explenation.
-    /// They are writting in markdown and are located in
+    /// Every rule has a detailed explanation.
+    /// They are written in markdown and are located in
     /// the examples directory.
     fn get_detailed_explanation(&self) -> Option<String> {
         let code = self.get_code();
@@ -148,11 +140,11 @@ pub trait Rule {
         statement: &'a Statement<'a>,
     ) -> Vec<&'a Statement<'a>> {
         let mut flatten_statements: Vec<&Statement<'a>> = Vec::new();
-        self.travers_statements_to_validate(&mut flatten_statements, statement);
+        self.traverse_statements_to_validate(&mut flatten_statements, statement);
         flatten_statements
     }
 
-    fn travers_statements_to_validate<'a>(
+    fn traverse_statements_to_validate<'a>(
         &'a self,
         flatten_statements: &mut Vec<&'a Statement<'a>>,
         statement: &'a Statement<'a>,
@@ -162,17 +154,17 @@ pub trait Rule {
         match statement {
             Statement::Block(block) => {
                 for s in block.statements.iter() {
-                    self.travers_statements_to_validate(flatten_statements, s);
+                    self.traverse_statements_to_validate(flatten_statements, s);
                 }
             }
             Statement::If(if_stmt) => match &if_stmt.body {
                 IfBody::Statement(body) => {
-                    self.travers_statements_to_validate(flatten_statements, body.statement);
+                    self.traverse_statements_to_validate(flatten_statements, body.statement);
                     for clauses in body.else_if_clauses.iter() {
-                        self.travers_statements_to_validate(flatten_statements, clauses.statement);
+                        self.traverse_statements_to_validate(flatten_statements, clauses.statement);
                     }
                     if let Some(else_clause) = &body.else_clause {
-                        self.travers_statements_to_validate(
+                        self.traverse_statements_to_validate(
                             flatten_statements,
                             else_clause.statement,
                         );
@@ -180,71 +172,71 @@ pub trait Rule {
                 }
                 IfBody::ColonDelimited(body) => {
                     for s in body.statements.iter() {
-                        self.travers_statements_to_validate(flatten_statements, s);
+                        self.traverse_statements_to_validate(flatten_statements, s);
                     }
                     for clauses in body.else_if_clauses.iter() {
                         for s in clauses.statements.iter() {
-                            self.travers_statements_to_validate(flatten_statements, s);
+                            self.traverse_statements_to_validate(flatten_statements, s);
                         }
                     }
                     if let Some(else_clause) = &body.else_clause {
                         for s in else_clause.statements.iter() {
-                            self.travers_statements_to_validate(flatten_statements, s);
+                            self.traverse_statements_to_validate(flatten_statements, s);
                         }
                     }
                 }
             },
             Statement::While(while_stmt) => match &while_stmt.body {
                 WhileBody::Statement(body) => {
-                    self.travers_statements_to_validate(flatten_statements, body);
+                    self.traverse_statements_to_validate(flatten_statements, body);
                 }
                 WhileBody::ColonDelimited(body) => {
                     for s in body.statements.iter() {
-                        self.travers_statements_to_validate(flatten_statements, s);
+                        self.traverse_statements_to_validate(flatten_statements, s);
                     }
                 }
             },
             Statement::DoWhile(do_while_stmt) => {
-                self.travers_statements_to_validate(flatten_statements, do_while_stmt.statement);
+                self.traverse_statements_to_validate(flatten_statements, do_while_stmt.statement);
             }
             Statement::Foreach(foreach_stmt) => match &foreach_stmt.body {
                 ForeachBody::Statement(body) => {
-                    self.travers_statements_to_validate(flatten_statements, body);
+                    self.traverse_statements_to_validate(flatten_statements, body);
                 }
                 ForeachBody::ColonDelimited(body) => {
                     for s in body.statements.iter() {
-                        self.travers_statements_to_validate(flatten_statements, s);
+                        self.traverse_statements_to_validate(flatten_statements, s);
                     }
                 }
             },
             Statement::For(for_stmt) => match &for_stmt.body {
                 ForBody::Statement(body) => {
-                    self.travers_statements_to_validate(flatten_statements, body);
+                    self.traverse_statements_to_validate(flatten_statements, body);
                 }
                 ForBody::ColonDelimited(body) => {
                     for s in body.statements.iter() {
-                        self.travers_statements_to_validate(flatten_statements, s);
+                        self.traverse_statements_to_validate(flatten_statements, s);
                     }
                 }
             },
             Statement::Try(try_stmt) => {
                 for s in try_stmt.block.statements.iter() {
-                    self.travers_statements_to_validate(flatten_statements, s);
+                    self.traverse_statements_to_validate(flatten_statements, s);
                 }
                 for catch in try_stmt.catch_clauses.iter() {
                     for s in catch.block.statements.iter() {
-                        self.travers_statements_to_validate(flatten_statements, s);
+                        self.traverse_statements_to_validate(flatten_statements, s);
                     }
                 }
                 if let Some(finally) = &try_stmt.finally_clause {
                     for s in finally.block.statements.iter() {
-                        self.travers_statements_to_validate(flatten_statements, s);
+                        self.traverse_statements_to_validate(flatten_statements, s);
                     }
                 }
             }
             Statement::Namespace(namespace) => {
                 for s in namespace.statements().iter() {
-                    self.travers_statements_to_validate(flatten_statements, s);
+                    self.traverse_statements_to_validate(flatten_statements, s);
                 }
             }
             Statement::Class(class) => {
@@ -252,7 +244,7 @@ pub trait Rule {
                     if let ClassLikeMember::Method(method) = member {
                         if let MethodBody::Concrete(block) = &method.body {
                             for s in block.statements.iter() {
-                                self.travers_statements_to_validate(flatten_statements, s);
+                                self.traverse_statements_to_validate(flatten_statements, s);
                             }
                         }
                     }
@@ -263,7 +255,7 @@ pub trait Rule {
                     if let ClassLikeMember::Method(method) = member {
                         if let MethodBody::Concrete(block) = &method.body {
                             for s in block.statements.iter() {
-                                self.travers_statements_to_validate(flatten_statements, s);
+                                self.traverse_statements_to_validate(flatten_statements, s);
                             }
                         }
                     }
@@ -274,7 +266,7 @@ pub trait Rule {
                     if let ClassLikeMember::Method(method) = member {
                         if let MethodBody::Concrete(block) = &method.body {
                             for s in block.statements.iter() {
-                                self.travers_statements_to_validate(flatten_statements, s);
+                                self.traverse_statements_to_validate(flatten_statements, s);
                             }
                         }
                     }
@@ -285,7 +277,7 @@ pub trait Rule {
                     if let ClassLikeMember::Method(method) = member {
                         if let MethodBody::Concrete(block) = &method.body {
                             for s in block.statements.iter() {
-                                self.travers_statements_to_validate(flatten_statements, s);
+                                self.traverse_statements_to_validate(flatten_statements, s);
                             }
                         }
                     }

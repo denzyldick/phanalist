@@ -49,7 +49,7 @@ impl Rule {
                 ClassLikeMember::Property(_) => field_count += 1,
                 ClassLikeMember::Method(method) => {
                     total_methods += 1;
-                    let name = &*method.name.value;
+                    let name = method.name.value;
                     if name == "__construct" {
                         has_constructor = true;
                         continue;
@@ -114,13 +114,13 @@ impl crate::rules::Rule for Rule {
 
         match statement {
             Statement::Class(class) => {
-                self.check_members(file, &class.name.value, &class.members, class.span(), &mut violations);
+                self.check_members(file, class.name.value, &class.members, class.span(), &mut violations);
             }
             Statement::Trait(t) => {
-                self.check_members(file, &t.name.value, &t.members, t.span(), &mut violations);
+                self.check_members(file, t.name.value, &t.members, t.span(), &mut violations);
             }
             Statement::Enum(e) => {
-                self.check_members(file, &e.name.value, &e.members, e.span(), &mut violations);
+                self.check_members(file, e.name.value, &e.members, e.span(), &mut violations);
             }
             _ => {}
         }
@@ -131,11 +131,11 @@ impl crate::rules::Rule for Rule {
 
 fn is_accessor_method(method: &mago_syntax::ast::Method<'_>, name: &str) -> bool {
     let is_getter = name.starts_with("get") && name.len() > 3
-        && name.chars().nth(3).map_or(false, |c| c.is_uppercase());
+        && name.chars().nth(3).is_some_and(|c| c.is_uppercase());
     let is_isser = (name.starts_with("is") || name.starts_with("has")) && name.len() > 2
-        && name.chars().nth(2).map_or(false, |c| c.is_uppercase());
+        && name.chars().nth(2).is_some_and(|c| c.is_uppercase());
     let is_setter = name.starts_with("set") && name.len() > 3
-        && name.chars().nth(3).map_or(false, |c| c.is_uppercase());
+        && name.chars().nth(3).is_some_and(|c| c.is_uppercase());
 
     if !is_getter && !is_isser && !is_setter {
         return false;
