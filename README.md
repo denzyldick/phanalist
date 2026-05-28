@@ -8,6 +8,21 @@
 
 ---
 
+### 🤔 Why Phanalist?
+
+PHP codebases grow. As they grow, they accumulate technical debt — god classes that do everything, methods no one can follow, hidden complexity that breaks with every change. Traditional linters catch syntax errors and style issues, but they don't tell you if your code is **maintainable**.
+
+Phanalist focuses on **structural health**. It measures what matters for long-term maintainability:
+
+- **Complexity metrics** — cyclomatic complexity, cognitive complexity, LOC per method, nested paths
+- **Coupling & cohesion** — Law of Demeter violations, god classes, data classes, fan-in/fan-out
+- **Object-oriented design** — depth of inheritance, weighted methods per class, response for a class
+- **Readability** — comment ratios, error suppression, method parameter counts
+
+Think of it as a health checkup for your PHP code. It doesn't just tell you *that* something is wrong — each rule explains *why* it matters and *how* to fix it.
+
+---
+
 ### ✨ Features
 
 - 🚀 **Fast** — built in Rust, analyzes large codebases in seconds
