@@ -8,7 +8,7 @@ jobs:
   upload-sarif:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
       - run: cargo run --release -- --src=. --output-format=sarif | tee results.sarif
