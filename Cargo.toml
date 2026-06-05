@@ -25,7 +25,7 @@ human_bytes = "0.4"
 serde-sarif = "=0.5.0"
 mago-syntax = "1.23"
 mago-database = "1.23"
-mago-span = "1.23"
+mago-span = "1.30"
 bumpalo = "3"
 
 [lib]
