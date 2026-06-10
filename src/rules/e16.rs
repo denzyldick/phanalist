@@ -57,7 +57,7 @@ impl crate::rules::Rule for Rule {
                         if complexity > self.settings.max_complexity {
                             let suggestion = format!(
                                 "The body of {} method has {} cognitive complexity. Make it easier to understand.",
-                                method.name.value,
+                                String::from_utf8_lossy(method.name.value),
                                 complexity,
                             );
                             violations.push(self.new_violation(file, suggestion, method.span()));

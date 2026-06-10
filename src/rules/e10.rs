@@ -59,7 +59,7 @@ impl crate::rules::Rule for Rule {
                         if npath > self.settings.max_paths {
                             let suggestion = format!(
                                 "The body of {} method has {} paths. Reduce the amount of paths.",
-                                method.name.value, npath,
+                                String::from_utf8_lossy(method.name.value), npath,
                             );
                             violations.push(self.new_violation(file, suggestion, method.span()));
                         }

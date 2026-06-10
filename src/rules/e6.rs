@@ -32,7 +32,7 @@ impl crate::rules::Rule for Rule {
                         let names: Vec<String> = property
                             .variables()
                             .iter()
-                            .map(|v| v.name.to_string())
+                            .map(|v| String::from_utf8_lossy(v.name).into_owned())
                             .collect();
 
                         let suggestion =

@@ -76,7 +76,7 @@ impl RuleTrait for Rule {
         let mut violations = Vec::new();
 
         if let Statement::Class(class) = statement {
-            let class_name = class.name.value.to_string();
+            let class_name = String::from_utf8_lossy(class.name.value).into_owned();
             let depth = self.compute_depth(&class_name);
 
             if depth > self.settings.max_depth {
@@ -103,13 +103,13 @@ impl Rule {
             Statement::Class(class) => {
                 if let Some(extends) = &class.extends {
                     for parent in extends.types.iter() {
-                        let child = class.name.value.to_string();
-                        let parent_name = parent
-                            .value()
+                        let child = String::from_utf8_lossy(class.name.value).into_owned();
+                        let parent_str = std::str::from_utf8(parent.value()).unwrap_or_default();
+                        let parent_name = parent_str
                             .trim_start_matches('\\')
                             .rsplit('\\')
                             .next()
-                            .unwrap_or(parent.value())
+                            .unwrap_or(parent_str)
                             .to_string();
                         if let Ok(mut index) = self.index.lock() {
                             index.extends.insert(child, parent_name);

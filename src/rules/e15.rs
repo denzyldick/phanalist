@@ -75,8 +75,8 @@ enum MethodNode<'a> {
 impl<'a> MethodNode<'a> {
     fn name(&self) -> String {
         match self {
-            MethodNode::Method(m) => m.name.value.to_string(),
-            MethodNode::Hook(h, prop) => format!("{}::{}", prop, h.name.value),
+            MethodNode::Method(m) => String::from_utf8_lossy(m.name.value).into_owned(),
+            MethodNode::Hook(h, prop) => format!("{}::{}", prop, String::from_utf8_lossy(h.name.value)),
         }
     }
 
@@ -122,7 +122,7 @@ impl RuleTrait for Rule {
             for member in class.members.iter() {
                 match member {
                     ClassLikeMember::Method(method) => {
-                        let name = method.name.value.to_string();
+                        let name = String::from_utf8_lossy(method.name.value).into_owned();
                         if !name.starts_with("__") {
                             nodes.push(MethodNode::Method(method));
                         }
@@ -135,12 +135,12 @@ impl RuleTrait for Rule {
                         if !is_static {
                             let vars = prop.variables();
                             for var in vars {
-                                let prop_name = var.name.to_string();
+                                let prop_name = String::from_utf8_lossy(var.name).into_owned();
                                 property_names.insert(prop_name.clone());
                             }
 
                             if let Property::Hooked(h) = prop {
-                                let prop_name = h.item.variable().name.to_string();
+                                let prop_name = String::from_utf8_lossy(h.item.variable().name).into_owned();
                                 for hook in h.hook_list.hooks.iter() {
                                     nodes.push(MethodNode::Hook(hook, prop_name.clone()));
                                 }
@@ -217,7 +217,7 @@ impl RuleTrait for Rule {
             if lcom4 > self.settings.threshold {
                 let suggestion = format!(
                     "Class \"{}\" has low cohesion (LCOM4 = {}). Consider splitting it into {} smaller classes.",
-                    class.name.value, lcom4, lcom4
+                    String::from_utf8_lossy(class.name.value), lcom4, lcom4
                 );
                 violations.push(self.new_violation(file, suggestion, class.span()));
             }
@@ -230,7 +230,7 @@ impl RuleTrait for Rule {
 impl Rule {
     fn is_this(&self, expr: &Expression<'_>) -> bool {
         if let Expression::Variable(Variable::Direct(d)) = expr {
-            return d.name == "$this";
+            return d.name == b"$this";
         }
         false
     }
@@ -272,7 +272,7 @@ impl Rule {
                 Call::Method(m) => {
                     if self.is_this(m.object) {
                         if let ClassLikeMemberSelector::Identifier(id) = &m.method {
-                            called_methods.insert(id.value.to_string());
+                            called_methods.insert(String::from_utf8_lossy(id.value).into_owned());
                         }
                     }
                     self.scan_expression(m.object, property_names, used_props, called_methods);
@@ -288,7 +288,7 @@ impl Rule {
                 Call::NullSafeMethod(m) => {
                     if self.is_this(m.object) {
                         if let ClassLikeMemberSelector::Identifier(id) = &m.method {
-                            called_methods.insert(id.value.to_string());
+                            called_methods.insert(String::from_utf8_lossy(id.value).into_owned());
                         }
                     }
                     self.scan_expression(m.object, property_names, used_props, called_methods);
@@ -328,7 +328,7 @@ impl Rule {
                 Access::Property(p) => {
                     if self.is_this(p.object) {
                         if let ClassLikeMemberSelector::Identifier(id) = &p.property {
-                            let name = format!("${}", id.value);
+                            let name = format!("${}", String::from_utf8_lossy(id.value));
                             if property_names.contains(&name) {
                                 used_props.insert(name);
                             }
@@ -339,7 +339,7 @@ impl Rule {
                 Access::NullSafeProperty(p) => {
                     if self.is_this(p.object) {
                         if let ClassLikeMemberSelector::Identifier(id) = &p.property {
-                            let name = format!("${}", id.value);
+                            let name = format!("${}", String::from_utf8_lossy(id.value));
                             if property_names.contains(&name) {
                                 used_props.insert(name);
                             }

@@ -38,7 +38,7 @@ impl crate::rules::Rule for Rule {
                     if !self.has_visibility_modifier(&method.modifiers) {
                         let suggestion = format!(
                             "Method name \"{}\" should be declared with a visibility modifier.",
-                            method.name.value
+                            String::from_utf8_lossy(method.name.value)
                         );
                         violations.push(self.new_violation(file, suggestion, method.span()));
                     }

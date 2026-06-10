@@ -27,9 +27,10 @@ impl crate::rules::Rule for Rule {
 
         if let Statement::Class(class) = statement {
             let name = class.name.value;
-            if let Some(first) = name.chars().next() {
+            let name_str = std::str::from_utf8(name).unwrap_or_default();
+            if let Some(first) = name_str.chars().next() {
                 if !first.is_uppercase() {
-                    let suggestion = format!("The class name {} is not capitalized. The first letter of the name of the class should be in uppercase.", name);
+                    let suggestion = format!("The class name {} is not capitalized. The first letter of the name of the class should be in uppercase.", name_str);
                     violations.push(self.new_violation(file, suggestion, class.name.span()))
                 }
             }

@@ -157,7 +157,7 @@ impl Rule {
                 }
             }
             Statement::Class(class) => {
-                let name = class.name.value.to_string();
+                let name = String::from_utf8_lossy(class.name.value).into_owned();
                 let mut method_map = HashMap::new();
                 let mut prop_map = HashMap::new();
                 for member in class.members.iter() {
@@ -165,7 +165,7 @@ impl Rule {
                         ClassLikeMember::Method(m) => {
                             if let Some(hint) = &m.return_type_hint {
                                 if let Some(t) = self.extract_type_hint(&hint.hint) {
-                                    method_map.insert(m.name.value.to_string(), t);
+                                    method_map.insert(String::from_utf8_lossy(m.name.value).into_owned(), t);
                                 }
                             }
                         }
@@ -174,7 +174,7 @@ impl Rule {
                                 if let Some(t) = self.extract_type_hint(hint) {
                                     for var in p.variables() {
                                         let prop_name =
-                                            var.name.trim_start_matches('$').to_string();
+                                            std::str::from_utf8(var.name).unwrap_or_default().trim_start_matches('$').to_string();
                                         prop_map.insert(prop_name, t.clone());
                                     }
                                 }
@@ -187,7 +187,7 @@ impl Rule {
                 registry.properties.insert(name, prop_map);
             }
             Statement::Trait(trait_def) => {
-                let name = trait_def.name.value.to_string();
+                let name = String::from_utf8_lossy(trait_def.name.value).into_owned();
                 let mut method_map = HashMap::new();
                 let mut prop_map = HashMap::new();
                 for member in trait_def.members.iter() {
@@ -195,7 +195,7 @@ impl Rule {
                         ClassLikeMember::Method(m) => {
                             if let Some(hint) = &m.return_type_hint {
                                 if let Some(t) = self.extract_type_hint(&hint.hint) {
-                                    method_map.insert(m.name.value.to_string(), t);
+                                    method_map.insert(String::from_utf8_lossy(m.name.value).into_owned(), t);
                                 }
                             }
                         }
@@ -204,7 +204,7 @@ impl Rule {
                                 if let Some(t) = self.extract_type_hint(hint) {
                                     for var in p.variables() {
                                         let prop_name =
-                                            var.name.trim_start_matches('$').to_string();
+                                            std::str::from_utf8(var.name).unwrap_or_default().trim_start_matches('$').to_string();
                                         prop_map.insert(prop_name, t.clone());
                                     }
                                 }
@@ -217,13 +217,13 @@ impl Rule {
                 registry.properties.insert(name, prop_map);
             }
             Statement::Interface(iface) => {
-                let name = iface.name.value.to_string();
+                let name = String::from_utf8_lossy(iface.name.value).into_owned();
                 let mut method_map = HashMap::new();
                 for member in iface.members.iter() {
                     if let ClassLikeMember::Method(m) = member {
                         if let Some(hint) = &m.return_type_hint {
                             if let Some(t) = self.extract_type_hint(&hint.hint) {
-                                method_map.insert(m.name.value.to_string(), t);
+                                method_map.insert(String::from_utf8_lossy(m.name.value).into_owned(), t);
                             }
                         }
                     }
@@ -253,14 +253,14 @@ impl Rule {
                 ClassLikeMember::Method(m) => {
                     if let Some(hint) = &m.return_type_hint {
                         if let Some(t) = self.extract_type_hint(&hint.hint) {
-                            map.insert(m.name.value.to_string(), t);
+                            map.insert(String::from_utf8_lossy(m.name.value).into_owned(), t);
                         }
                     }
                 }
                 ClassLikeMember::TraitUse(trait_use) => {
                     // Merge methods from used traits
                     for trait_name_id in trait_use.trait_names.iter() {
-                        let trait_name = trait_name_id.value().to_string();
+                        let trait_name = String::from_utf8_lossy(trait_name_id.value()).into_owned();
                         if let Some(trait_map) = registry.methods.get(&trait_name) {
                             for (method_name, ret_type) in trait_map {
                                 // Don't override class's own method definitions
@@ -302,7 +302,7 @@ impl Rule {
     ) {
         match statement {
             Statement::Class(class) => {
-                let class_name = class.name.value.to_string();
+                let class_name = String::from_utf8_lossy(class.name.value).into_owned();
                 let method_map = self.build_class_method_map(&class_name, &class.members, registry);
 
                 for member in class.members.iter() {
@@ -326,7 +326,7 @@ impl Rule {
                 }
             }
             Statement::Trait(trait_def) => {
-                let trait_name = trait_def.name.value.to_string();
+                let trait_name = String::from_utf8_lossy(trait_def.name.value).into_owned();
                 let method_map =
                     self.build_class_method_map(&trait_name, &trait_def.members, registry);
 
@@ -408,7 +408,7 @@ impl Rule {
                         violations,
                     );
                     if let Expression::Variable(Variable::Direct(d)) = assign.lhs {
-                        let var_name = d.name.to_string();
+                        let var_name = String::from_utf8_lossy(d.name).into_owned();
                         if let Some(t) = rhs_type {
                             var_types.insert(var_name, t);
                         } else {
@@ -779,10 +779,11 @@ impl Rule {
             // ------------------------------------------------------------------
             Expression::Variable(v) => {
                 if let Variable::Direct(d) = v {
-                    if d.name == "$this" {
+                    if d.name == b"$this" {
                         return Some("self".to_string());
                     }
-                    return var_types.get(d.name).cloned();
+                    let name = std::str::from_utf8(d.name).unwrap_or_default();
+                    return var_types.get(name).cloned();
                 }
                 None
             }
@@ -1183,10 +1184,11 @@ impl Rule {
         match object {
             // $this → "self"
             Expression::Variable(Variable::Direct(d)) => {
-                if d.name == "$this" {
+                if d.name == b"$this" {
                     Some("self".to_string())
                 } else {
-                    var_types.get(d.name).cloned()
+                    let name = std::str::from_utf8(d.name).unwrap_or_default();
+                    var_types.get(name).cloned()
                 }
             }
 
@@ -1312,7 +1314,7 @@ impl Rule {
             ),
 
             Expression::Identifier(id) => {
-                let name = id.value().to_string();
+                let name = String::from_utf8_lossy(id.value()).into_owned();
                 match name.as_str() {
                     "self" | "static" => Some("self".to_string()),
                     _ => Some(name),
@@ -1424,7 +1426,7 @@ impl Rule {
         for param in parameters.parameters.iter() {
             if let Some(hint) = &param.hint {
                 if let Some(t) = self.extract_type_hint(hint) {
-                    var_types.insert(param.variable.name.to_string(), t);
+                    var_types.insert(String::from_utf8_lossy(param.variable.name).into_owned(), t);
                 }
             }
         }
@@ -1436,10 +1438,10 @@ impl Rule {
 
     fn member_selector_name(&self, selector: &ClassLikeMemberSelector<'_>) -> String {
         match selector {
-            ClassLikeMemberSelector::Identifier(local_id) => local_id.value.to_string(),
+            ClassLikeMemberSelector::Identifier(local_id) => String::from_utf8_lossy(local_id.value).into_owned(),
             ClassLikeMemberSelector::Variable(v) => {
                 if let Variable::Direct(d) = v {
-                    d.name.to_string()
+                    String::from_utf8_lossy(d.name).into_owned()
                 } else {
                     "<dynamic>".to_string()
                 }
@@ -1452,7 +1454,7 @@ impl Rule {
 
     fn identifier_type_name(&self, expr: &Expression<'_>) -> Option<String> {
         if let Expression::Identifier(id) = expr {
-            Some(id.value().to_string())
+            Some(String::from_utf8_lossy(id.value()).into_owned())
         } else {
             None
         }
@@ -1497,7 +1499,7 @@ impl Rule {
 
     fn extract_type_hint(&self, hint: &Hint<'_>) -> Option<String> {
         match hint {
-            Hint::Identifier(id) => Some(id.value().to_string()),
+            Hint::Identifier(id) => Some(String::from_utf8_lossy(id.value()).into_owned()),
             Hint::Self_(_) => Some("self".to_string()),
             Hint::Static(_) => Some("static".to_string()),
             Hint::Parent(_) => Some("parent".to_string()),

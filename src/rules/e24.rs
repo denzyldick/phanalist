@@ -46,7 +46,7 @@ impl Rule {
                     if loc > self.settings.max_loc {
                         let suggestion = format!(
                             "Method \"{}\" has {} lines of code (max: {}). Consider breaking it into smaller methods.",
-                            method.name.value, loc, self.settings.max_loc
+                            String::from_utf8_lossy(method.name.value), loc, self.settings.max_loc
                         );
                         violations.push(self.new_violation(file, suggestion, method.span()));
                     }

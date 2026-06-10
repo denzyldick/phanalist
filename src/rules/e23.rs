@@ -95,7 +95,7 @@ impl RuleTrait for Rule {
             let namespace = ns
                 .name
                 .as_ref()
-                .map(|n| n.value().to_string())
+                .map(|n| String::from_utf8_lossy(n.value()).into_owned())
                 .unwrap_or_default();
 
             if namespace.is_empty() {
@@ -153,14 +153,14 @@ impl Rule {
                 let ns_name = ns
                     .name
                     .as_ref()
-                    .map(|n| n.value().to_string())
+                    .map(|n| String::from_utf8_lossy(n.value()).into_owned())
                     .unwrap_or_default();
                 for s in ns.statements().iter() {
                     self.collect_package_data(s, &ns_name);
                 }
             }
             Statement::Class(class) => {
-                let name = class.name.value.to_string();
+                let name = String::from_utf8_lossy(class.name.value).into_owned();
                 let is_abstract = class
                     .modifiers
                     .iter()
@@ -169,12 +169,12 @@ impl Rule {
                 let mut deps = HashSet::new();
                 if let Some(extends) = &class.extends {
                     for parent in extends.types.iter() {
-                        deps.insert(self.normalize_type(parent.value()));
+                        deps.insert(self.normalize_type(std::str::from_utf8(parent.value()).unwrap_or_default()));
                     }
                 }
                 if let Some(implements) = &class.implements {
                     for iface in implements.types.iter() {
-                        deps.insert(self.normalize_type(iface.value()));
+                        deps.insert(self.normalize_type(std::str::from_utf8(iface.value()).unwrap_or_default()));
                     }
                 }
                 for member in class.members.iter() {
@@ -208,7 +208,7 @@ impl Rule {
                 }
             }
             Statement::Interface(iface) => {
-                let name = iface.name.value.to_string();
+                let name = String::from_utf8_lossy(iface.name.value).into_owned();
                 if let Ok(mut index) = self.index.lock() {
                     index
                         .class_to_namespace
@@ -227,7 +227,7 @@ impl Rule {
                 }
             }
             Statement::Trait(t) => {
-                let name = t.name.value.to_string();
+                let name = String::from_utf8_lossy(t.name.value).into_owned();
                 if let Ok(mut index) = self.index.lock() {
                     index
                         .class_to_namespace
@@ -268,7 +268,7 @@ impl Rule {
             }
             ClassLikeMember::TraitUse(trait_use) => {
                 for trait_name in trait_use.trait_names.iter() {
-                    deps.insert(self.normalize_type(trait_name.value()));
+                    deps.insert(self.normalize_type(std::str::from_utf8(trait_name.value()).unwrap_or_default()));
                 }
             }
             _ => {}
@@ -278,7 +278,7 @@ impl Rule {
     fn collect_hint_deps(&self, hint: &Hint<'_>, deps: &mut HashSet<String>) {
         match hint {
             Hint::Identifier(id) => {
-                let name = self.normalize_type(id.value());
+                let name = self.normalize_type(std::str::from_utf8(id.value()).unwrap_or_default());
                 if !self.is_builtin(&name) {
                     deps.insert(name);
                 }
