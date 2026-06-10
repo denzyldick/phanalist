@@ -35,7 +35,7 @@ impl crate::rules::Rule for Rule {
 
             for member in class.members.iter() {
                 if let ClassLikeMember::Method(method) = member {
-                    let method_name = method.name.value.to_string();
+                    let method_name = String::from_utf8_lossy(method.name.value).into_owned();
                     let is_private = method
                         .modifiers
                         .iter()
@@ -86,7 +86,7 @@ impl Rule {
             Expression::Call(Call::Method(m)) => {
                 // $this->methodName()
                 if let ClassLikeMemberSelector::Identifier(id) = &m.method {
-                    called.insert(id.value.to_string());
+                    called.insert(String::from_utf8_lossy(id.value).into_owned());
                 }
                 self.collect_called_methods(m.object, called);
                 for arg in m.argument_list.arguments.iter() {

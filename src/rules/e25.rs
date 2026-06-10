@@ -61,7 +61,7 @@ impl crate::rules::Rule for Rule {
             if loc > self.settings.max_loc {
                 let suggestion = format!(
                     "File containing \"{}\" has {} lines of code (max: {}). Consider splitting it into smaller files.",
-                    name, loc, self.settings.max_loc
+                    String::from_utf8_lossy(name), loc, self.settings.max_loc
                 );
                 violations.push(self.new_violation(file, suggestion, span));
             }

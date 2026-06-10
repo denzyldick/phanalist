@@ -39,7 +39,7 @@ impl crate::rules::Rule for Rule {
                         if has_return && method.return_type_hint.is_none() {
                             let suggestion = format!(
                                 "The method {} has a return statement but it has no return type signature.",
-                                method.name.value
+                                String::from_utf8_lossy(method.name.value)
                             );
                             violations.push(self.new_violation(file, suggestion, method.span()));
                         }
