@@ -69,7 +69,7 @@ impl crate::rules::Rule for Rule {
             if ratio < self.settings.min_ratio {
                 let suggestion = format!(
                     "Class \"{}\" has a comment ratio of {:.1}% (min: {}%). Add more documentation.",
-                    class.name.value,
+                    String::from_utf8_lossy(class.name.value),
                     ratio * 100.0,
                     self.settings.min_ratio * 100.0
                 );
@@ -77,7 +77,7 @@ impl crate::rules::Rule for Rule {
             } else if ratio > self.settings.max_ratio {
                 let suggestion = format!(
                     "Class \"{}\" has a comment ratio of {:.1}% (max: {}%). Too many comments may indicate unclear code.",
-                    class.name.value,
+                    String::from_utf8_lossy(class.name.value),
                     ratio * 100.0,
                     self.settings.max_ratio * 100.0
                 );

@@ -49,7 +49,7 @@ impl Rule {
                 ClassLikeMember::Property(_) => field_count += 1,
                 ClassLikeMember::Method(method) => {
                     total_methods += 1;
-                    let name = method.name.value;
+                    let name = std::str::from_utf8(method.name.value).unwrap_or_default();
                     if name == "__construct" {
                         has_constructor = true;
                         continue;
@@ -114,13 +114,13 @@ impl crate::rules::Rule for Rule {
 
         match statement {
             Statement::Class(class) => {
-                self.check_members(file, class.name.value, &class.members, class.span(), &mut violations);
+                self.check_members(file, std::str::from_utf8(class.name.value).unwrap_or_default(), &class.members, class.span(), &mut violations);
             }
             Statement::Trait(t) => {
-                self.check_members(file, t.name.value, &t.members, t.span(), &mut violations);
+                self.check_members(file, std::str::from_utf8(t.name.value).unwrap_or_default(), &t.members, t.span(), &mut violations);
             }
             Statement::Enum(e) => {
-                self.check_members(file, e.name.value, &e.members, e.span(), &mut violations);
+                self.check_members(file, std::str::from_utf8(e.name.value).unwrap_or_default(), &e.members, e.span(), &mut violations);
             }
             _ => {}
         }

@@ -1,8 +1,6 @@
-use std::borrow::Cow;
-
 use bumpalo::Bump;
 use mago_database::file::File;
-use mago_syntax::parser::parse_file;
+use mago_syntax::parser::parse_file_content;
 
 #[test]
 fn test_php_84_property_hooks_parsing() {
@@ -16,9 +14,9 @@ class User {
 "#;
 
     let arena = Bump::new();
-    let file = File::ephemeral(Cow::Borrowed("test.php"), Cow::Owned(code.to_string()));
+    let file = File::ephemeral("test.php".as_bytes().into(), code.to_string().into_bytes().into());
 
-    let program = parse_file(&arena, &file);
+    let program = parse_file_content(&arena, file.id, file.contents.as_ref());
 
     assert!(
         !program.has_errors(),

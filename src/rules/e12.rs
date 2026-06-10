@@ -73,7 +73,7 @@ impl RuleTrait for Rule {
 
             for member in class.members.iter() {
                 if let ClassLikeMember::Method(method) = member {
-                    if method.name.value == "__construct" {
+                    if method.name.value == b"__construct" {
                         continue;
                     }
 
@@ -316,12 +316,12 @@ impl Rule {
 }
 
 fn identifier_name(identifier: &Identifier<'_>) -> String {
-    identifier.value().to_string()
+    String::from_utf8_lossy(identifier.value()).into_owned()
 }
 
 fn is_this(expression: &Expression<'_>) -> bool {
     if let Expression::Variable(Variable::Direct(direct)) = expression {
-        return direct.name == "$this";
+        return direct.name == b"$this";
     }
     false
 }

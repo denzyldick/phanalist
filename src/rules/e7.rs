@@ -58,7 +58,7 @@ impl crate::rules::Rule for Rule {
                     let name = method.name.value;
                     let parameters_count = method.parameter_list.parameters.len();
 
-                    if name == "__construct" {
+                    if name == b"__construct" {
                         if self.settings.check_constructor
                             && parameters_count > self.settings.max_parameters as usize
                         {
@@ -71,7 +71,7 @@ impl crate::rules::Rule for Rule {
                     } else if parameters_count > self.settings.max_parameters as usize {
                         let suggestion = format!(
                             "Method {} has too many parameters. More than {} parameters is considered a too much.",
-                            name, self.settings.max_parameters
+                            String::from_utf8_lossy(name), self.settings.max_parameters
                         );
                         violations.push(self.new_violation(file, suggestion, method.span()));
                     }

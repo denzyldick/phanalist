@@ -30,8 +30,9 @@ impl crate::rules::Rule for Rule {
             Statement::Constant(c) => {
                 for item in c.items.iter() {
                     let name = item.name.value;
-                    if name != name.to_uppercase() {
-                        let suggestion = format!("The constant {} should be uppercase.", name);
+                    let name_str = std::str::from_utf8(name).unwrap_or_default();
+                    if name_str != name_str.to_uppercase() {
+                        let suggestion = format!("The constant {} should be uppercase.", name_str);
                         violations.push(self.new_violation(file, suggestion, item.name.span()));
                     }
                 }
@@ -63,8 +64,9 @@ fn collect_member_constants(
         if let ClassLikeMember::Constant(const_member) = member {
             for item in const_member.items.iter() {
                 let name = item.name.value;
-                if name != name.to_uppercase() {
-                    let suggestion = format!("The constant {} should be uppercase.", name);
+                let name_str = std::str::from_utf8(name).unwrap_or_default();
+                if name_str != name_str.to_uppercase() {
+                    let suggestion = format!("The constant {} should be uppercase.", name_str);
                     violations.push(RuleTrait::new_violation(
                         rule,
                         file,

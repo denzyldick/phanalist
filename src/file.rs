@@ -55,8 +55,8 @@ impl RC {
 
 impl<'arena> File<'arena> {
     pub fn new(arena: &'arena Bump, path: PathBuf, content: String) -> Self {
-        let file_id = FileId::new(&path.to_string_lossy());
-        let program = mago_syntax::parser::parse_file_content(arena, file_id, &content);
+        let file_id = FileId::new(path.to_string_lossy().as_bytes());
+        let program = mago_syntax::parser::parse_file_content(arena, file_id, content.as_bytes());
 
         let line_starts = compute_line_starts(&content);
         let lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
@@ -151,17 +151,17 @@ fn extract_namespace_and_class<'arena>(
         match statement {
             Statement::Namespace(ns) => {
                 if let Some(name) = ns.name.as_ref() {
-                    namespace = Some(name.value().to_string());
+                    namespace = Some(String::from_utf8_lossy(name.value()).to_string());
                 }
                 for s in ns.statements().iter() {
                     if let Statement::Class(class) = s {
-                        class_name = Some(class.name.value.to_string());
+                        class_name = Some(String::from_utf8_lossy(class.name.value).into_owned());
                         break;
                     }
                 }
             }
             Statement::Class(class) => {
-                class_name = Some(class.name.value.to_string());
+                class_name = Some(String::from_utf8_lossy(class.name.value).to_string());
             }
             _ => {}
         }

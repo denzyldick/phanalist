@@ -51,7 +51,7 @@ impl Rule {
                     if density > self.settings.max_density {
                         let suggestion = format!(
                             "Method \"{}\" has complexity density of {:.2} (max: {:.2}). Complexity {} in {} lines. Consider simplifying the logic.",
-                            method.name.value, density, self.settings.max_density,
+                            String::from_utf8_lossy(method.name.value), density, self.settings.max_density,
                             complexity, loc
                         );
                         violations.push(self.new_violation(file, suggestion, method.span()));

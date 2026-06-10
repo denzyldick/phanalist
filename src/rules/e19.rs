@@ -72,7 +72,7 @@ impl RuleTrait for Rule {
             if rfc > self.settings.max_rfc {
                 let suggestion = format!(
                     "Class \"{}\" has a Response For Class (RFC) of {} (threshold: {}). The class responds to too many messages.",
-                    class.name.value, rfc, self.settings.max_rfc
+                    String::from_utf8_lossy(class.name.value), rfc, self.settings.max_rfc
                 );
                 violations.push(self.new_violation(file, suggestion, class.span()));
             }
@@ -207,38 +207,38 @@ impl Rule {
     fn scan_expression(&self, expression: &Expression<'_>, called_methods: &mut HashSet<String>) {
         match expression {
             Expression::Call(call) => match call {
-                Call::Method(method) => {
-                    if let ClassLikeMemberSelector::Identifier(id) = &method.method {
-                        called_methods.insert(id.value.to_string());
-                    }
-                    self.scan_expression(method.object, called_methods);
-                    for arg in method.argument_list.arguments.iter() {
-                        self.scan_expression(arg.value(), called_methods);
-                    }
+            Call::Method(method) => {
+                if let ClassLikeMemberSelector::Identifier(id) = &method.method {
+                    called_methods.insert(String::from_utf8_lossy(id.value).into_owned());
                 }
-                Call::NullSafeMethod(method) => {
-                    if let ClassLikeMemberSelector::Identifier(id) = &method.method {
-                        called_methods.insert(id.value.to_string());
-                    }
-                    self.scan_expression(method.object, called_methods);
-                    for arg in method.argument_list.arguments.iter() {
-                        self.scan_expression(arg.value(), called_methods);
-                    }
+                self.scan_expression(method.object, called_methods);
+                for arg in method.argument_list.arguments.iter() {
+                    self.scan_expression(arg.value(), called_methods);
                 }
+            }
+            Call::NullSafeMethod(method) => {
+                if let ClassLikeMemberSelector::Identifier(id) = &method.method {
+                    called_methods.insert(String::from_utf8_lossy(id.value).into_owned());
+                }
+                self.scan_expression(method.object, called_methods);
+                for arg in method.argument_list.arguments.iter() {
+                    self.scan_expression(arg.value(), called_methods);
+                }
+            }
                 Call::StaticMethod(method) => {
                     if let ClassLikeMemberSelector::Identifier(id) = &method.method {
                         let class_name = self.identifier_name(method.class);
-                        let call_name = format!("{}::{}", class_name, id.value);
+                        let call_name = format!("{}::{}", class_name, String::from_utf8_lossy(id.value));
                         called_methods.insert(call_name);
                     }
                     for arg in method.argument_list.arguments.iter() {
                         self.scan_expression(arg.value(), called_methods);
                     }
                 }
-                Call::Function(func) => {
-                    if let Expression::Identifier(id) = func.function {
-                        called_methods.insert(id.value().to_string());
-                    }
+            Call::Function(func) => {
+                if let Expression::Identifier(id) = func.function {
+                    called_methods.insert(String::from_utf8_lossy(id.value()).into_owned());
+                }
                     for arg in func.argument_list.arguments.iter() {
                         self.scan_expression(arg.value(), called_methods);
                     }
@@ -321,7 +321,7 @@ impl Rule {
 
     fn identifier_name(&self, expr: &Expression<'_>) -> String {
         match expr {
-            Expression::Identifier(id) => id.value().to_string(),
+            Expression::Identifier(id) => String::from_utf8_lossy(id.value()).into_owned(),
             _ => "unknown".to_string(),
         }
     }

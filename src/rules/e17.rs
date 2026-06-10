@@ -52,18 +52,18 @@ impl RuleTrait for Rule {
         let mut violations = Vec::new();
 
         if let Statement::Class(class) = statement {
-            let current_class = class.name.value.to_string();
+            let current_class = String::from_utf8_lossy(class.name.value).into_owned();
             let mut coupled_types = HashSet::new();
 
             if let Some(extends) = &class.extends {
                 for parent in extends.types.iter() {
-                    self.add_type_name(parent.value(), &current_class, &mut coupled_types);
+                    self.add_type_name(std::str::from_utf8(parent.value()).unwrap_or_default(), &current_class, &mut coupled_types);
                 }
             }
 
             if let Some(implements) = &class.implements {
                 for interface in implements.types.iter() {
-                    self.add_type_name(interface.value(), &current_class, &mut coupled_types);
+                    self.add_type_name(std::str::from_utf8(interface.value()).unwrap_or_default(), &current_class, &mut coupled_types);
                 }
             }
 
@@ -151,7 +151,7 @@ impl Rule {
             }
             ClassLikeMember::TraitUse(trait_use) => {
                 for trait_name in trait_use.trait_names.iter() {
-                    self.add_type_name(trait_name.value(), current_class, coupled_types);
+                    self.add_type_name(std::str::from_utf8(trait_name.value()).unwrap_or_default(), current_class, coupled_types);
                 }
             }
             _ => {}
@@ -177,7 +177,7 @@ impl Rule {
     fn scan_hint(&self, hint: &Hint<'_>, current_class: &str, coupled_types: &mut HashSet<String>) {
         match hint {
             Hint::Identifier(identifier) => {
-                self.add_type_name(identifier.value(), current_class, coupled_types);
+                self.add_type_name(std::str::from_utf8(identifier.value()).unwrap_or_default(), current_class, coupled_types);
             }
             Hint::Parenthesized(parenthesized) => {
                 self.scan_hint(parenthesized.hint, current_class, coupled_types);
@@ -528,12 +528,12 @@ impl Rule {
             Expression::AnonymousClass(anonymous_class) => {
                 if let Some(extends) = &anonymous_class.extends {
                     for parent in extends.types.iter() {
-                        self.add_type_name(parent.value(), current_class, coupled_types);
+                        self.add_type_name(std::str::from_utf8(parent.value()).unwrap_or_default(), current_class, coupled_types);
                     }
                 }
                 if let Some(implements) = &anonymous_class.implements {
                     for interface in implements.types.iter() {
-                        self.add_type_name(interface.value(), current_class, coupled_types);
+                        self.add_type_name(std::str::from_utf8(interface.value()).unwrap_or_default(), current_class, coupled_types);
                     }
                 }
                 if let Some(argument_list) = &anonymous_class.argument_list {
@@ -554,7 +554,7 @@ impl Rule {
     ) {
         match expression {
             Expression::Identifier(identifier) => {
-                self.add_type_name(identifier.value(), current_class, coupled_types);
+                self.add_type_name(std::str::from_utf8(identifier.value()).unwrap_or_default(), current_class, coupled_types);
             }
             Expression::Parenthesized(parenthesized) => {
                 self.scan_class_expression(parenthesized.expression, current_class, coupled_types);

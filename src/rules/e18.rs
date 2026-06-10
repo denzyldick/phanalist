@@ -66,7 +66,7 @@ impl RuleTrait for Rule {
             if wmc > self.settings.max_wmc {
                 let suggestion = format!(
                     "Class \"{}\" has a Weighted Methods per Class (WMC) of {} (threshold: {}). Consider splitting responsibilities.",
-                    class.name.value, wmc, self.settings.max_wmc
+                    String::from_utf8_lossy(class.name.value), wmc, self.settings.max_wmc
                 );
                 violations.push(self.new_violation(file, suggestion, class.span()));
             }

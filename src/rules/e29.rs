@@ -79,7 +79,7 @@ impl RuleTrait for Rule {
         let mut violations = Vec::new();
 
         if let Statement::Class(class) = statement {
-            let class_name = class.name.value.to_string();
+            let class_name = String::from_utf8_lossy(class.name.value).into_owned();
             let index = match self.index.lock() {
                 Ok(idx) => idx,
                 Err(_) => return violations,
@@ -117,18 +117,18 @@ impl Rule {
                 }
             }
             Statement::Class(class) => {
-                let class_name = class.name.value.to_string();
+                let class_name = String::from_utf8_lossy(class.name.value).into_owned();
                 let mut deps = HashSet::new();
 
                 if let Some(extends) = &class.extends {
                     for parent in extends.types.iter() {
-                        deps.insert(self.normalize_name(parent.value()));
+                        deps.insert(self.normalize_name(std::str::from_utf8(parent.value()).unwrap_or_default()));
                     }
                 }
 
                 if let Some(implements) = &class.implements {
                     for iface in implements.types.iter() {
-                        deps.insert(self.normalize_name(iface.value()));
+                        deps.insert(self.normalize_name(std::str::from_utf8(iface.value()).unwrap_or_default()));
                     }
                 }
 
@@ -168,7 +168,7 @@ impl Rule {
             }
             ClassLikeMember::TraitUse(trait_use) => {
                 for trait_name in trait_use.trait_names.iter() {
-                    deps.insert(self.normalize_name(trait_name.value()));
+                    deps.insert(self.normalize_name(std::str::from_utf8(trait_name.value()).unwrap_or_default()));
                 }
             }
             _ => {}
@@ -178,7 +178,7 @@ impl Rule {
     fn collect_hint_deps(&self, hint: &Hint<'_>, deps: &mut HashSet<String>) {
         match hint {
             Hint::Identifier(id) => {
-                let name = self.normalize_name(id.value());
+                let name = self.normalize_name(std::str::from_utf8(id.value()).unwrap_or_default());
                 if !self.is_builtin(&name) {
                     deps.insert(name);
                 }
@@ -489,12 +489,12 @@ impl Rule {
             Expression::AnonymousClass(anonymous_class) => {
                 if let Some(extends) = &anonymous_class.extends {
                     for parent in extends.types.iter() {
-                        deps.insert(self.normalize_name(parent.value()));
+                        deps.insert(self.normalize_name(std::str::from_utf8(parent.value()).unwrap_or_default()));
                     }
                 }
                 if let Some(implements) = &anonymous_class.implements {
                     for iface in implements.types.iter() {
-                        deps.insert(self.normalize_name(iface.value()));
+                        deps.insert(self.normalize_name(std::str::from_utf8(iface.value()).unwrap_or_default()));
                     }
                 }
                 if let Some(argument_list) = &anonymous_class.argument_list {
@@ -513,7 +513,7 @@ impl Rule {
     fn scan_class_expression(&self, expression: &Expression<'_>, deps: &mut HashSet<String>) {
         match expression {
             Expression::Identifier(identifier) => {
-                let name = self.normalize_name(identifier.value());
+                let name = self.normalize_name(std::str::from_utf8(identifier.value()).unwrap_or_default());
                 if !self.is_builtin(&name) {
                     deps.insert(name);
                 }
