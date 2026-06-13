@@ -12,6 +12,10 @@ pub struct Config {
     pub enabled_rules: Vec<String>,
     pub disable_rules: Vec<String>,
     pub rules: HashMap<String, JsonValue>,
+    /// Paths excluded from scanning entirely, before any rule runs. Directory
+    /// prefixes (`var/cache`) or globs (`**/*.generated.php`).
+    #[serde(default)]
+    pub exclude_paths: Vec<String>,
 }
 
 impl Default for Config {
@@ -101,6 +105,7 @@ impl Default for Config {
             enabled_rules,
             disable_rules,
             rules,
+            exclude_paths: vec![],
         }
     }
 }
@@ -117,5 +122,25 @@ impl Config {
         };
 
         file.write_all(t.as_bytes())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn exclude_paths_defaults_to_empty_when_absent() {
+        let yaml = "enabled_rules: []\ndisable_rules: []\nrules: {}\n";
+        let config: Config = serde_yaml::from_str(yaml).unwrap();
+        assert!(config.exclude_paths.is_empty());
+    }
+
+    #[test]
+    fn exclude_paths_parsed_from_yaml() {
+        let yaml =
+            "enabled_rules: []\ndisable_rules: []\nrules: {}\nexclude_paths:\n  - var/cache\n";
+        let config: Config = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(config.exclude_paths, vec!["var/cache".to_string()]);
     }
 }
