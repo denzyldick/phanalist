@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::file::File;
-use crate::results::Violation;
+use crate::results::{Message, Violation};
 
 pub(crate) static CODE: &str = "E0009";
 static DESCRIPTION: &str = "Cyclomatic complexity";
@@ -59,12 +59,13 @@ impl crate::rules::Rule for Rule {
                         let complexity = 1 + calculate_complexity(&block.statements);
 
                         if complexity > self.settings.max_complexity {
-                            let suggestion = format!(
-                                "The body of {} method has {} complexity. Make it easier to understand.",
-                                String::from_utf8_lossy(method.name.value),
-                                complexity,
-                            );
-                            violations.push(self.new_violation(file, suggestion, method.span()));
+                            let message = Message::new(
+                                "E0009:high-cyclomatic-complexity",
+                                "The body of {name} method has {complexity} complexity. Make it easier to understand.",
+                            )
+                            .arg("name", String::from_utf8_lossy(method.name.value).to_string())
+                            .arg("complexity", complexity.to_string());
+                            violations.push(self.new_violation(file, message, method.span()));
                         }
                     }
                 }
@@ -201,7 +202,7 @@ mod tests {
 
         assert!(violations.len().gt(&0));
         assert_eq!(
-            violations.first().unwrap().suggestion,
+            violations.first().unwrap().message.render(),
             "The body of complexMethod method has 11 complexity. Make it easier to understand."
                 .to_string()
         );

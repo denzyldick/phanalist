@@ -2,7 +2,7 @@ use mago_span::HasSpan;
 use mago_syntax::ast::Statement;
 
 use crate::file::File;
-use crate::results::Violation;
+use crate::results::{Message, Violation};
 
 pub(crate) static CODE: &str = "E0002";
 static DESCRIPTION: &str = "Empty catch";
@@ -29,7 +29,8 @@ impl crate::rules::Rule for Rule {
         if let Statement::Try(s) = statement {
             for catch in s.catch_clauses.iter() {
                 if catch.block.statements.is_empty() {
-                    violations.push(self.new_violation(file, SUGGESTION.to_string(), catch.span()));
+                    let message = Message::new("E0002:empty-catch", SUGGESTION);
+                    violations.push(self.new_violation(file, message, catch.span()));
                 }
             }
         };
@@ -50,7 +51,7 @@ mod tests {
 
         assert!(violations.len().gt(&0));
         assert_eq!(
-            violations.first().unwrap().suggestion,
+            violations.first().unwrap().message.render(),
             SUGGESTION.to_string()
         );
     }

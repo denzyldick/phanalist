@@ -2,7 +2,7 @@ use mago_span::HasSpan;
 use mago_syntax::ast::{ClassLikeMember, Modifier, Property, Statement};
 
 use crate::file::File;
-use crate::results::Violation;
+use crate::results::{Message, Violation};
 
 pub(crate) static CODE: &str = "E0006";
 static DESCRIPTION: &str = "Property modifiers";
@@ -35,9 +35,12 @@ impl crate::rules::Rule for Rule {
                             .map(|v| String::from_utf8_lossy(v.name).into_owned())
                             .collect();
 
-                        let suggestion =
-                            format!("The variables {} have no modifier.", names.join(", "));
-                        violations.push(self.new_violation(file, suggestion, property.span()));
+                        let message = Message::new(
+                            "E0006:property-missing-modifier",
+                            "The variables {names} have no modifier.",
+                        )
+                        .arg("names", names.join(", "));
+                        violations.push(self.new_violation(file, message, property.span()));
                     }
                 }
             }
@@ -70,7 +73,7 @@ mod tests {
 
         assert!(violations.len().gt(&0));
         assert_eq!(
-            violations.first().unwrap().suggestion,
+            violations.first().unwrap().message.render(),
             "The variables $var have no modifier.".to_string()
         );
     }

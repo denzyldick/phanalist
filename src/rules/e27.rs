@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::file::File;
-use crate::results::Violation;
+use crate::results::{Message, Violation};
 use crate::rules::Rule as RuleTrait;
 
 pub(crate) static CODE: &str = "E0027";
@@ -51,12 +51,16 @@ impl Rule {
         }
 
         if method_count > self.settings.max_methods && field_count > self.settings.max_fields {
-            let suggestion = format!(
-                "\"{}\" is a potential God Class: {} methods and {} fields (max: {} methods, {} fields). Consider splitting it into multiple types with single responsibilities.",
-                name, method_count, field_count,
-                self.settings.max_methods, self.settings.max_fields
-            );
-            violations.push(self.new_violation(file, suggestion, span));
+            let message = Message::new(
+                "E0027:god-class",
+                "\"{name}\" is a potential God Class: {method_count} methods and {field_count} fields (max: {max_methods} methods, {max_fields} fields). Consider splitting it into multiple types with single responsibilities.",
+            )
+            .arg("name", name.to_string())
+            .arg("method_count", method_count.to_string())
+            .arg("field_count", field_count.to_string())
+            .arg("max_methods", self.settings.max_methods.to_string())
+            .arg("max_fields", self.settings.max_fields.to_string());
+            violations.push(self.new_violation(file, message, span));
         }
     }
 }
@@ -111,7 +115,7 @@ mod tests {
     fn god_class() {
         let violations = analyze_file_for_rule("e27/god_class.php", CODE);
         assert!(violations.len().gt(&0));
-        assert!(violations[0].suggestion.contains("GodClass"));
+        assert!(violations[0].message.render().contains("GodClass"));
     }
 
     #[test]

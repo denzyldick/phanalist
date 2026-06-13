@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::file::File;
-use crate::results::Violation;
+use crate::results::{Message, Violation};
 use crate::rules::Rule as RuleTrait;
 
 pub(crate) static CODE: &str = "E0020";
@@ -80,11 +80,14 @@ impl RuleTrait for Rule {
             let depth = self.compute_depth(&class_name);
 
             if depth > self.settings.max_depth {
-                let suggestion = format!(
-                    "Class \"{}\" has an inheritance depth of {} (threshold: {}). Deep hierarchies increase complexity.",
-                    class_name, depth, self.settings.max_depth
-                );
-                violations.push(self.new_violation(file, suggestion, class.span()));
+                let message = Message::new(
+                    "E0020:deep-inheritance",
+                    "Class \"{class}\" has an inheritance depth of {depth} (threshold: {threshold}). Deep hierarchies increase complexity.",
+                )
+                .arg("class", class_name.clone())
+                .arg("depth", depth.to_string())
+                .arg("threshold", self.settings.max_depth.to_string());
+                violations.push(self.new_violation(file, message, class.span()));
             }
         }
 
@@ -159,7 +162,7 @@ mod tests {
         assert!(violations.len() >= 1);
         assert!(violations
             .iter()
-            .any(|v| v.suggestion.contains("inheritance depth")));
+            .any(|v| v.message.render().contains("inheritance depth")));
     }
 
     #[test]
