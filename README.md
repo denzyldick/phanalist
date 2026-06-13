@@ -75,6 +75,34 @@ On the first run `phanalist.yaml` will be created with the default configuration
 | `--output-format` | Output format: `text`, `json`, `sarif` | `text` |
 | `--summary-only` | Show only violation counts per rule | — |
 | `--quiet` | Suppress all output | — |
+| `--use-baseline` | Filter results against a baseline file, reporting only new violations | — |
+| `--update-baseline` | Regenerate the baseline from the current scan (requires `--use-baseline`) | — |
+
+---
+
+### Baseline
+
+A baseline lets you adopt phanalist on an existing codebase without fixing every
+finding at once. It freezes the current violations; later runs report only new
+ones, so CI stays green on known debt but fails on regressions.
+
+Generate (or regenerate) the baseline:
+
+```bash
+~/phanalist --use-baseline phanalist-baseline.json --update-baseline
+```
+
+Then run against it (in CI, or locally):
+
+```bash
+~/phanalist --use-baseline phanalist-baseline.json
+```
+
+The baseline is a pretty-printed, stably sorted JSON file, so it produces clean
+diffs and merges. Each entry is keyed on the file, rule, and a stable message id
+with a count, so unrelated edits that shift line numbers do not invalidate it,
+and reworded message text does not either. When you fix violations, regenerate
+the baseline to shrink it.
 
 ---
 
