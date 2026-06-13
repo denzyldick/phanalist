@@ -1,16 +1,13 @@
 //! Baseline support: freeze the current set of violations and, on later runs,
 //! report only new ones. Keyed on `(path, file, rule, message id)` with a count,
 //! so line shifts and reworded message text do not invalidate it.
-//!
-//! NOTE: `normalize_relative` / `split_dir_file` here intentionally mirror the
-//! path helpers introduced by the `exclude_paths` work. When both land they can
-//! be unified into a single shared module.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
+use crate::paths::normalize_relative;
 use crate::results::Results;
 
 const VERSION: u32 = 1;
@@ -32,21 +29,6 @@ pub struct Baseline {
     pub violations: Vec<BaselineEntry>,
 }
 
-/// Normalize a path string to a stable, portable relative form: relative to the
-/// current working directory, posix separators, no leading `./`.
-pub fn normalize_relative(path: &str) -> String {
-    let path = path.replace('\\', "/");
-    let path = match std::env::current_dir() {
-        Ok(cwd) => {
-            let cwd = cwd.to_string_lossy().replace('\\', "/");
-            let prefix = format!("{}/", cwd.trim_end_matches('/'));
-            path.strip_prefix(&prefix).map(String::from).unwrap_or(path)
-        }
-        Err(_) => path,
-    };
-    path.strip_prefix("./").unwrap_or(&path).to_string()
-}
-
 /// Split a normalized relative path into its directory portion and file name.
 /// A path with no directory yields an empty directory string.
 pub fn split_dir_file(relative: &str) -> (String, String) {
@@ -66,7 +48,7 @@ impl Baseline {
             HashMap::new();
 
         for (path, violations) in &results.files {
-            let (dir, file) = split_dir_file(&normalize_relative(path));
+            let (dir, file) = split_dir_file(&normalize_relative(Path::new(path)));
             for violation in violations {
                 let key = (
                     dir.clone(),
@@ -142,7 +124,7 @@ impl Baseline {
             .collect();
 
         for (path, violations) in results.files.iter_mut() {
-            let (dir, file) = split_dir_file(&normalize_relative(path));
+            let (dir, file) = split_dir_file(&normalize_relative(Path::new(path)));
             // How many of each key we have suppressed so far in this file.
             let mut seen: HashMap<(String, String), usize> = HashMap::new();
 
@@ -201,13 +183,6 @@ mod tests {
             r.files.insert(path.to_string(), violations);
         }
         r
-    }
-
-    #[test]
-    fn normalize_strips_dot_slash_and_backslashes() {
-        assert_eq!(normalize_relative("./src/Foo.php"), "src/Foo.php");
-        assert_eq!(normalize_relative("src\\Foo.php"), "src/Foo.php");
-        assert_eq!(normalize_relative("src/Foo.php"), "src/Foo.php");
     }
 
     #[test]
