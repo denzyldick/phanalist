@@ -2,7 +2,7 @@ use mago_span::HasSpan;
 use mago_syntax::ast::Statement;
 
 use crate::file::File;
-use crate::results::Violation;
+use crate::results::{Message, Violation};
 
 pub(crate) static CODE: &str = "E0005";
 static DESCRIPTION: &str = "Capitalized class name";
@@ -30,8 +30,12 @@ impl crate::rules::Rule for Rule {
             let name_str = std::str::from_utf8(name).unwrap_or_default();
             if let Some(first) = name_str.chars().next() {
                 if !first.is_uppercase() {
-                    let suggestion = format!("The class name {} is not capitalized. The first letter of the name of the class should be in uppercase.", name_str);
-                    violations.push(self.new_violation(file, suggestion, class.name.span()))
+                    let message = Message::new(
+                        "E0005:class-name-not-capitalized",
+                        "The class name {name} is not capitalized. The first letter of the name of the class should be in uppercase.",
+                    )
+                    .arg("name", name_str.to_string());
+                    violations.push(self.new_violation(file, message, class.name.span()))
                 }
             }
         };
@@ -52,7 +56,7 @@ mod tests {
 
         assert!(violations.len().gt(&0));
         assert_eq!(
-            violations.first().unwrap().suggestion,
+            violations.first().unwrap().message.render(),
             "The class name nonCapitalized is not capitalized. The first letter of the name of the class should be in uppercase.".to_string()
         );
     }

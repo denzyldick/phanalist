@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::file::File;
-use crate::results::Violation;
+use crate::results::{Message, Violation};
 
 pub(crate) static CODE: &str = "E0007";
 static DESCRIPTION: &str = "Method parameters count";
@@ -62,18 +62,21 @@ impl crate::rules::Rule for Rule {
                         if self.settings.check_constructor
                             && parameters_count > self.settings.max_parameters as usize
                         {
-                            let suggestion = format!(
-                                "Constructor has too many parameters. More than {} parameters is considered a too much.",
-                                self.settings.max_parameters
-                            );
-                            violations.push(self.new_violation(file, suggestion, method.span()));
+                            let message = Message::new(
+                                "E0007:constructor-too-many-parameters",
+                                "Constructor has too many parameters. More than {max} parameters is considered a too much.",
+                            )
+                            .arg("max", self.settings.max_parameters.to_string());
+                            violations.push(self.new_violation(file, message, method.span()));
                         }
                     } else if parameters_count > self.settings.max_parameters as usize {
-                        let suggestion = format!(
-                            "Method {} has too many parameters. More than {} parameters is considered a too much.",
-                            String::from_utf8_lossy(name), self.settings.max_parameters
-                        );
-                        violations.push(self.new_violation(file, suggestion, method.span()));
+                        let message = Message::new(
+                            "E0007:method-too-many-parameters",
+                            "Method {name} has too many parameters. More than {max} parameters is considered a too much.",
+                        )
+                        .arg("name", String::from_utf8_lossy(name).to_string())
+                        .arg("max", self.settings.max_parameters.to_string());
+                        violations.push(self.new_violation(file, message, method.span()));
                     }
                 }
             }
@@ -95,7 +98,7 @@ mod tests {
 
         assert!(violations.len().gt(&0));
         assert_eq!(
-            violations.first().unwrap().suggestion,
+            violations.first().unwrap().message.render(),
             "Method test has too many parameters. More than 8 parameters is considered a too much."
                 .to_string()
         );

@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::file::File;
-use crate::results::Violation;
+use crate::results::{Message, Violation};
 use crate::rules::Rule as RuleTrait;
 
 pub(crate) static CODE: &str = "E0029";
@@ -88,19 +88,25 @@ impl RuleTrait for Rule {
             let (fan_out, fan_in) = self.compute_fan_in_out(&class_name, &index);
 
             if fan_out > self.settings.max_fan_out {
-                let suggestion = format!(
-                    "Class \"{}\" has fan-out of {} (max: {}). It depends on too many other classes — consider reducing dependencies.",
-                    class_name, fan_out, self.settings.max_fan_out
-                );
-                violations.push(self.new_violation(file, suggestion, class.span()));
+                let message = Message::new(
+                    "E0029:fan-out",
+                    "Class \"{class_name}\" has fan-out of {fan_out} (max: {max_fan_out}). It depends on too many other classes — consider reducing dependencies.",
+                )
+                .arg("class_name", class_name.to_string())
+                .arg("fan_out", fan_out.to_string())
+                .arg("max_fan_out", self.settings.max_fan_out.to_string());
+                violations.push(self.new_violation(file, message, class.span()));
             }
 
             if fan_in > self.settings.max_fan_in {
-                let suggestion = format!(
-                    "Class \"{}\" has fan-in of {} (max: {}). Too many classes depend on it — consider splitting or stabilizing its interface.",
-                    class_name, fan_in, self.settings.max_fan_in
-                );
-                violations.push(self.new_violation(file, suggestion, class.span()));
+                let message = Message::new(
+                    "E0029:fan-in",
+                    "Class \"{class_name}\" has fan-in of {fan_in} (max: {max_fan_in}). Too many classes depend on it — consider splitting or stabilizing its interface.",
+                )
+                .arg("class_name", class_name.to_string())
+                .arg("fan_in", fan_in.to_string())
+                .arg("max_fan_in", self.settings.max_fan_in.to_string());
+                violations.push(self.new_violation(file, message, class.span()));
             }
         }
 
@@ -650,7 +656,7 @@ mod tests {
     fn high_fan_out() {
         let violations = analyze_file_for_rule("e29/high_fan_out.php", CODE);
         assert!(violations.len().gt(&0));
-        assert!(violations[0].suggestion.contains("fan-out"));
+        assert!(violations[0].message.render().contains("fan-out"));
     }
 
     #[test]

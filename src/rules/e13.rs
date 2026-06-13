@@ -4,7 +4,7 @@ use mago_span::{HasSpan, Span};
 use mago_syntax::ast::*;
 
 use crate::file::File;
-use crate::results::Violation;
+use crate::results::{Message, Violation};
 
 pub(crate) static CODE: &str = "E0013";
 static DESCRIPTION: &str = "Private method not being called.";
@@ -70,7 +70,11 @@ impl crate::rules::Rule for Rule {
             // Report private methods that are never called
             for (name, span) in &private_methods {
                 if !called_methods.contains(name) {
-                    let message = format!("The private method {} is not being called. ", name);
+                    let message = Message::new(
+                        "E0013:private-method-not-called",
+                        "The private method {name} is not being called. ",
+                    )
+                    .arg("name", name.to_string());
                     violations.push(self.new_violation(file, message, *span));
                 }
             }

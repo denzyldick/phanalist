@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::file::File;
-use crate::results::Violation;
+use crate::results::{Message, Violation};
 use crate::rules::Rule as RuleTrait;
 
 pub(crate) static CODE: &str = "E0012";
@@ -298,14 +298,20 @@ impl Rule {
                 Access::Property(prop) if is_this(prop.object) => {
                     violations.push(self.new_violation(
                         file,
-                        "Properties in service must be immutable. Violating Shared Memory Model.".to_string(),
+                        Message::new(
+                            "E0012:mutable-property",
+                            "Properties in service must be immutable. Violating Shared Memory Model.",
+                        ),
                         span,
                     ));
                 }
                 Access::StaticProperty(prop) if is_self_or_static_or_class(prop.class) => {
                     violations.push(self.new_violation(
                         file,
-                        "Static properties in service must be immutable. Violating Shared Memory Model.".to_string(),
+                        Message::new(
+                            "E0012:mutable-static-property",
+                            "Static properties in service must be immutable. Violating Shared Memory Model.",
+                        ),
                         span,
                     ));
                 }

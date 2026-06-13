@@ -1,20 +1,78 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-use serde::{Deserialize, Serialize};
+use serde::ser::SerializeStruct;
+use serde::{Deserialize, Serialize, Serializer};
 
 use crate::debug_stats::RuleTimings;
 use crate::file::File;
 
+/// A diagnostic message. `id` is a stable slug used as a key (e.g. by the
+/// baseline); `template` is human text with `{name}` placeholders that `args`
+/// fill in. `render()` produces the displayed string. Marked `#[non_exhaustive]`
+/// so future fields (severity, help url, fix data) are additive.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[non_exhaustive]
+pub struct Message {
+    pub id: String,
+    pub template: String,
+    pub args: Vec<(String, String)>,
+}
+
+impl Message {
+    pub fn new(id: impl Into<String>, template: impl Into<String>) -> Self {
+        Message {
+            id: id.into(),
+            template: template.into(),
+            args: Vec::new(),
+        }
+    }
+
+    pub fn arg(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
+        self.args.push((name.into(), value.into()));
+        self
+    }
+
+    /// Substitute `args` into the `{name}` placeholders of the template.
+    pub fn render(&self) -> String {
+        let mut out = self.template.clone();
+        for (name, value) in &self.args {
+            out = out.replace(&format!("{{{name}}}"), value);
+        }
+        out
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, PartialEq)]
 pub struct Violation {
     pub rule: String,
     pub line: String,
-    pub suggestion: String,
+    pub message: Message,
     pub start_line: usize,
     pub start_column: usize,
     pub end_line: usize,
     pub end_column: usize,
+}
+
+// Custom serialization: emit the structured `message` and also a flat, rendered
+// `suggestion` string so consumers of the JSON output that read the old
+// `suggestion` field keep working.
+impl Serialize for Violation {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut state = serializer.serialize_struct("Violation", 8)?;
+        state.serialize_field("rule", &self.rule)?;
+        state.serialize_field("line", &self.line)?;
+        state.serialize_field("suggestion", &self.message.render())?;
+        state.serialize_field("message", &self.message)?;
+        state.serialize_field("start_line", &self.start_line)?;
+        state.serialize_field("start_column", &self.start_column)?;
+        state.serialize_field("end_line", &self.end_line)?;
+        state.serialize_field("end_column", &self.end_column)?;
+        state.end()
+    }
 }
 
 #[derive(Serialize, Debug, Deserialize, Clone, Default)]
@@ -82,12 +140,48 @@ mod tests {
         Violation {
             rule: rule.to_string(),
             line: "Line".to_string(),
-            suggestion: "Suggestion".to_string(),
+            message: Message::new("test", "Suggestion"),
             start_line: 0,
             start_column: 0,
             end_line: 0,
             end_column: 0,
         }
+    }
+
+    #[test]
+    fn message_render_without_args_returns_template() {
+        let m = Message::new("e1.x", "A plain message.");
+        assert_eq!(m.render(), "A plain message.");
+    }
+
+    #[test]
+    fn message_render_substitutes_named_args() {
+        let m = Message::new("e1.col", "Wrong column: {column}.").arg("column", "2");
+        assert_eq!(m.render(), "Wrong column: 2.");
+    }
+
+    #[test]
+    fn message_render_substitutes_multiple_args() {
+        let m = Message::new("e", "{a} then {b}")
+            .arg("a", "first")
+            .arg("b", "second");
+        assert_eq!(m.render(), "first then second");
+    }
+
+    #[test]
+    fn message_keeps_id() {
+        assert_eq!(Message::new("e1.x", "t").id, "e1.x");
+    }
+
+    #[test]
+    fn violation_json_has_rendered_suggestion_and_structured_message() {
+        let v = get_violation("E001");
+        let json = serde_json::to_string(&v).unwrap();
+        // Backward-compatible flat rendered string...
+        assert!(json.contains("\"suggestion\":\"Suggestion\""));
+        // ...plus the structured message with its stable id.
+        assert!(json.contains("\"message\":{"));
+        assert!(json.contains("\"id\":\"test\""));
     }
 
     #[test]

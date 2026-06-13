@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::file::File;
-use crate::results::Violation;
+use crate::results::{Message, Violation};
 use crate::rules::Rule as RuleTrait;
 
 pub(crate) static CODE: &str = "E0022";
@@ -99,19 +99,25 @@ impl RuleTrait for Rule {
             let (ca, ce) = self.compute_coupling(&namespace);
 
             if ca > self.settings.max_ca {
-                let suggestion = format!(
-                    "Namespace \"{}\" has afferent coupling (Ca) of {} (threshold: {}). Many external classes depend on this namespace.",
-                    namespace, ca, self.settings.max_ca
-                );
-                violations.push(self.new_violation(file, suggestion, ns.span()));
+                let message = Message::new(
+                    "E0022:high-afferent-coupling",
+                    "Namespace \"{namespace}\" has afferent coupling (Ca) of {ca} (threshold: {threshold}). Many external classes depend on this namespace.",
+                )
+                .arg("namespace", namespace.clone())
+                .arg("ca", ca.to_string())
+                .arg("threshold", self.settings.max_ca.to_string());
+                violations.push(self.new_violation(file, message, ns.span()));
             }
 
             if ce > self.settings.max_ce {
-                let suggestion = format!(
-                    "Namespace \"{}\" has efferent coupling (Ce) of {} (threshold: {}). This namespace depends on too many external classes.",
-                    namespace, ce, self.settings.max_ce
-                );
-                violations.push(self.new_violation(file, suggestion, ns.span()));
+                let message = Message::new(
+                    "E0022:high-efferent-coupling",
+                    "Namespace \"{namespace}\" has efferent coupling (Ce) of {ce} (threshold: {threshold}). This namespace depends on too many external classes.",
+                )
+                .arg("namespace", namespace.clone())
+                .arg("ce", ce.to_string())
+                .arg("threshold", self.settings.max_ce.to_string());
+                violations.push(self.new_violation(file, message, ns.span()));
             }
         }
 

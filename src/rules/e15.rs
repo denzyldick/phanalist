@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::file::File;
-use crate::results::Violation;
+use crate::results::{Message, Violation};
 use crate::rules::Rule as RuleTrait;
 
 pub(crate) static CODE: &str = "E0015";
@@ -215,11 +215,14 @@ impl RuleTrait for Rule {
 
             let lcom4 = dsu.count;
             if lcom4 > self.settings.threshold {
-                let suggestion = format!(
-                    "Class \"{}\" has low cohesion (LCOM4 = {}). Consider splitting it into {} smaller classes.",
-                    String::from_utf8_lossy(class.name.value), lcom4, lcom4
-                );
-                violations.push(self.new_violation(file, suggestion, class.span()));
+                let message = Message::new(
+                    "E0015:low-cohesion",
+                    "Class \"{class}\" has low cohesion (LCOM4 = {lcom4}). Consider splitting it into {count} smaller classes.",
+                )
+                .arg("class", String::from_utf8_lossy(class.name.value).to_string())
+                .arg("lcom4", lcom4.to_string())
+                .arg("count", lcom4.to_string());
+                violations.push(self.new_violation(file, message, class.span()));
             }
         }
 
@@ -453,7 +456,7 @@ mod tests {
     fn test_non_cohesive_class() {
         let violations = analyze_file_for_rule("e15/non_cohesive.php", CODE);
         assert!(violations.len() > 0);
-        assert!(violations[0].suggestion.contains("LCOM4 = 2"));
+        assert!(violations[0].message.render().contains("LCOM4 = 2"));
     }
 
     #[test]

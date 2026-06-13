@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::file::File;
-use crate::results::Violation;
+use crate::results::{Message, Violation};
 
 pub(crate) static CODE: &str = "E0016";
 static DESCRIPTION: &str = "Cognitive complexity";
@@ -55,12 +55,13 @@ impl crate::rules::Rule for Rule {
                         let complexity = calculate_cognitive_complexity(&block.statements, 0);
 
                         if complexity > self.settings.max_complexity {
-                            let suggestion = format!(
-                                "The body of {} method has {} cognitive complexity. Make it easier to understand.",
-                                String::from_utf8_lossy(method.name.value),
-                                complexity,
-                            );
-                            violations.push(self.new_violation(file, suggestion, method.span()));
+                            let message = Message::new(
+                                "E0016:high-cognitive-complexity",
+                                "The body of {method} method has {complexity} cognitive complexity. Make it easier to understand.",
+                            )
+                            .arg("method", String::from_utf8_lossy(method.name.value).to_string())
+                            .arg("complexity", complexity.to_string());
+                            violations.push(self.new_violation(file, message, method.span()));
                         }
                     }
                 }
@@ -289,7 +290,8 @@ mod tests {
         assert!(violations
             .first()
             .unwrap()
-            .suggestion
+            .message
+            .render()
             .contains("cognitive complexity"));
     }
 

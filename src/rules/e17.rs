@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::file::File;
-use crate::results::Violation;
+use crate::results::{Message, Violation};
 use crate::rules::Rule as RuleTrait;
 
 pub(crate) static CODE: &str = "E0017";
@@ -75,13 +75,14 @@ impl RuleTrait for Rule {
             if coupling > self.settings.max_coupling {
                 let mut names = coupled_types.into_iter().collect::<Vec<_>>();
                 names.sort();
-                let suggestion = format!(
-                    "Class \"{}\" is coupled to {} external types ({}). Reduce the number of collaborators or split responsibilities.",
-                    current_class,
-                    coupling,
-                    names.join(", ")
-                );
-                violations.push(self.new_violation(file, suggestion, class.span()));
+                let message = Message::new(
+                    "E0017:high-coupling",
+                    "Class \"{class}\" is coupled to {coupling} external types ({types}). Reduce the number of collaborators or split responsibilities.",
+                )
+                .arg("class", current_class)
+                .arg("coupling", coupling.to_string())
+                .arg("types", names.join(", "));
+                violations.push(self.new_violation(file, message, class.span()));
             }
         }
 
@@ -737,9 +738,10 @@ mod tests {
 
         assert_eq!(violations.len(), 1);
         assert!(violations[0]
-            .suggestion
+            .message
+            .render()
             .contains("is coupled to 13 external types"));
-        assert!(violations[0].suggestion.contains("PaymentGateway"));
+        assert!(violations[0].message.render().contains("PaymentGateway"));
     }
 
     #[test]

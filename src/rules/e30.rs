@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::file::File;
-use crate::results::Violation;
+use crate::results::{Message, Violation};
 use crate::rules::e9::calculate_complexity;
 use crate::rules::Rule as RuleTrait;
 
@@ -49,12 +49,16 @@ impl Rule {
                     let density = complexity as f64 / loc as f64;
 
                     if density > self.settings.max_density {
-                        let suggestion = format!(
-                            "Method \"{}\" has complexity density of {:.2} (max: {:.2}). Complexity {} in {} lines. Consider simplifying the logic.",
-                            String::from_utf8_lossy(method.name.value), density, self.settings.max_density,
-                            complexity, loc
-                        );
-                        violations.push(self.new_violation(file, suggestion, method.span()));
+                        let message = Message::new(
+                            "E0030:complexity-density",
+                            "Method \"{name}\" has complexity density of {density} (max: {max_density}). Complexity {complexity} in {loc} lines. Consider simplifying the logic.",
+                        )
+                        .arg("name", String::from_utf8_lossy(method.name.value).to_string())
+                        .arg("density", format!("{:.2}", density))
+                        .arg("max_density", format!("{:.2}", self.settings.max_density))
+                        .arg("complexity", complexity.to_string())
+                        .arg("loc", loc.to_string());
+                        violations.push(self.new_violation(file, message, method.span()));
                     }
                 }
             }
@@ -112,7 +116,7 @@ mod tests {
     fn dense_method() {
         let violations = analyze_file_for_rule("e30/dense_method.php", CODE);
         assert!(violations.len().gt(&0));
-        assert!(violations[0].suggestion.contains("denseMethod"));
+        assert!(violations[0].message.render().contains("denseMethod"));
     }
 
     #[test]

@@ -2,7 +2,7 @@ use mago_span::HasSpan;
 use mago_syntax::ast::{Call, Expression, Statement, UnaryPrefixOperator};
 
 use crate::file::File;
-use crate::results::Violation;
+use crate::results::{Message, Violation};
 
 pub(crate) static CODE: &str = "E0011";
 static DESCRIPTION: &str = "Detect the error suppression symbol: @";
@@ -51,8 +51,11 @@ fn check_expression(
     match expr {
         Expression::UnaryPrefix(prefix) => {
             if let UnaryPrefixOperator::ErrorControl(_) = prefix.operator {
-                let suggestion = "Error supression(@) symbol found. Remove it.".to_string();
-                violations.push(rule.new_violation(file, suggestion, prefix.span()));
+                let message = Message::new(
+                    "E0011:error-suppression",
+                    "Error supression(@) symbol found. Remove it.",
+                );
+                violations.push(rule.new_violation(file, message, prefix.span()));
             }
             check_expression(file, rule, prefix.operand, violations);
         }

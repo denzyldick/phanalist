@@ -2,7 +2,7 @@ use mago_span::HasSpan;
 use mago_syntax::ast::{ClassLikeMember, Modifier, Sequence, Statement};
 
 use crate::file::File;
-use crate::results::Violation;
+use crate::results::{Message, Violation};
 
 pub struct Rule {}
 
@@ -36,11 +36,15 @@ impl crate::rules::Rule for Rule {
             for member in members.iter() {
                 if let ClassLikeMember::Method(method) = member {
                     if !self.has_visibility_modifier(&method.modifiers) {
-                        let suggestion = format!(
-                            "Method name \"{}\" should be declared with a visibility modifier.",
-                            String::from_utf8_lossy(method.name.value)
+                        let message = Message::new(
+                            "E0003:method-missing-visibility",
+                            "Method name \"{name}\" should be declared with a visibility modifier.",
+                        )
+                        .arg(
+                            "name",
+                            String::from_utf8_lossy(method.name.value).to_string(),
                         );
-                        violations.push(self.new_violation(file, suggestion, method.span()));
+                        violations.push(self.new_violation(file, message, method.span()));
                     }
                 }
             }
@@ -74,7 +78,7 @@ mod tests {
 
         assert!(violations.len().gt(&0));
         assert_eq!(
-            violations.first().unwrap().suggestion,
+            violations.first().unwrap().message.render(),
             "Method name \"methodWithoutModifier\" should be declared with a visibility modifier."
                 .to_string()
         );
@@ -86,7 +90,7 @@ mod tests {
 
         assert!(violations.len().gt(&0));
         assert_eq!(
-            violations.first().unwrap().suggestion,
+            violations.first().unwrap().message.render(),
             "Method name \"__construct\" should be declared with a visibility modifier."
                 .to_string()
         );
