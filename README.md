@@ -83,6 +83,7 @@ On the first run `phanalist.yaml` will be created with the default configuration
 ```yaml
 enabled_rules: []   # empty = all rules active
 disable_rules: []
+exclude_paths: []   # paths skipped before any rule runs (see below)
 rules:
   E0007:
     check_constructor: true
@@ -123,6 +124,7 @@ rules:
 - **`enabled_rules`** — whitelist of rules to run (empty = all)
 - **`disable_rules`** — rules to skip
 - **`rules`** — per-rule configuration options
+- **`exclude_paths`** — files skipped before any rule runs, as directory prefixes (`var/cache`, `bootstrap/cache`) or globs (`**/*.generated.php`). Handy for framework caches and frozen code like migrations that would only add noise. Paths that match nothing are ignored, so listing both Symfony and Laravel locations is safe.
 
 ---
 
