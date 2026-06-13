@@ -16,6 +16,7 @@ mod config;
 mod debug_stats;
 mod file;
 mod outputs;
+mod paths;
 mod results;
 mod rules;
 

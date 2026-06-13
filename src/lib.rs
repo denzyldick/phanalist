@@ -6,6 +6,7 @@ pub mod config;
 pub mod debug_stats;
 pub mod file;
 pub mod outputs;
+pub mod paths;
 pub mod results;
 pub mod rules;
 

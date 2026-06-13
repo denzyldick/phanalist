@@ -42,6 +42,7 @@ pub fn scan_folder(
     sender: Sender<(String, PathBuf)>,
     verbose: u8,
     bar: Option<ProgressBar>,
+    exclude_paths: Vec<String>,
 ) {
     for entry in WalkDir::new(current_dir).follow_links(false) {
         let entry = entry.unwrap();
@@ -57,6 +58,17 @@ pub fn scan_folder(
         if (file_name != "." || !file_name.is_empty()) && metadata.is_file() {
             if let Some(extension) = path.extension() {
                 if extension == "php" {
+                    if !exclude_paths.is_empty()
+                        && crate::paths::is_excluded(
+                            &crate::paths::normalize_relative(&path),
+                            &exclude_paths,
+                        )
+                    {
+                        if verbose >= 2 {
+                            log_line(bar.as_ref(), format!("[vv] excluded {}", path.display()));
+                        }
+                        continue;
+                    }
                     if verbose >= 2 {
                         log_line(bar.as_ref(), format!("[vv] reading {}", path.display()));
                     }
@@ -89,7 +101,7 @@ impl Analyse {
     pub(crate) fn scan(
         &self,
         path: String,
-        _config: &Config,
+        config: &Config,
         show_bar: bool,
         format: &Format,
         verbose: u8,
@@ -116,10 +128,22 @@ impl Analyse {
             None
         };
 
+        if verbose >= 1 {
+            for pattern in crate::paths::missing_literal_excludes(&config.exclude_paths) {
+                log_line(
+                    thread_bar.as_ref(),
+                    format!("exclude_paths: '{pattern}' matches no existing path — typo?")
+                        .yellow()
+                        .to_string(),
+                );
+            }
+        }
+
         let scan_path = path.clone();
+        let exclude_paths = config.exclude_paths.clone();
         std::thread::spawn(move || {
             let path = PathBuf::from(scan_path);
-            self::scan_folder(path, send, verbose, thread_bar);
+            self::scan_folder(path, send, verbose, thread_bar, exclude_paths);
         });
 
         let arena = Bump::new();
@@ -365,6 +389,31 @@ impl Analyse {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::mpsc::channel;
+
+    #[test]
+    fn scan_folder_skips_excluded_paths() {
+        let base =
+            std::env::temp_dir().join(format!("phanalist_excl_{}", std::process::id()));
+        let included = base.join("src");
+        let excluded = base.join("excluded");
+        fs::create_dir_all(&included).unwrap();
+        fs::create_dir_all(&excluded).unwrap();
+        fs::write(included.join("Keep.php"), "<?php\n").unwrap();
+        fs::write(excluded.join("Skip.php"), "<?php\n").unwrap();
+
+        let (send, recv) = channel();
+        scan_folder(base.clone(), send, 0, None, vec!["**/excluded/*.php".to_string()]);
+
+        let names: Vec<String> = recv
+            .iter()
+            .map(|(_, p)| p.file_name().unwrap().to_string_lossy().to_string())
+            .collect();
+        fs::remove_dir_all(&base).ok();
+
+        assert!(names.contains(&"Keep.php".to_string()));
+        assert!(!names.contains(&"Skip.php".to_string()));
+    }
 
     fn get_all_codes() -> Vec<String> {
         vec![
