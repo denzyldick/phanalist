@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::file::File;
-use crate::results::Violation;
+use crate::results::{Message, Violation};
 use crate::rules::Rule as RuleTrait;
 
 pub(crate) static CODE: &str = "E0019";
@@ -70,11 +70,14 @@ impl RuleTrait for Rule {
             let rfc = own_method_count + called_methods.len();
 
             if rfc > self.settings.max_rfc {
-                let suggestion = format!(
-                    "Class \"{}\" has a Response For Class (RFC) of {} (threshold: {}). The class responds to too many messages.",
-                    String::from_utf8_lossy(class.name.value), rfc, self.settings.max_rfc
-                );
-                violations.push(self.new_violation(file, suggestion, class.span()));
+                let message = Message::new(
+                    "E0019:high-rfc",
+                    "Class \"{class}\" has a Response For Class (RFC) of {rfc} (threshold: {threshold}). The class responds to too many messages.",
+                )
+                .arg("class", String::from_utf8_lossy(class.name.value).into_owned())
+                .arg("rfc", rfc.to_string())
+                .arg("threshold", self.settings.max_rfc.to_string());
+                violations.push(self.new_violation(file, message, class.span()));
             }
         }
 
@@ -337,7 +340,7 @@ mod tests {
     fn high_rfc() {
         let violations = analyze_file_for_rule("e19/high_rfc.php", CODE);
         assert_eq!(violations.len(), 1);
-        assert!(violations[0].suggestion.contains("Response For Class (RFC)"));
+        assert!(violations[0].message.render().contains("Response For Class (RFC)"));
     }
 
     #[test]

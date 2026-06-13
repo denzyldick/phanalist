@@ -44,7 +44,7 @@ impl Text {
                     println!(
                         "  {}:\t{}",
                         suggestion.rule.yellow().bold(),
-                        suggestion.suggestion.bold()
+                        suggestion.message.render().bold()
                     );
                     println!(
                         "  {}\t{} {}",

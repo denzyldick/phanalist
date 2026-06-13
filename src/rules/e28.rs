@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::file::File;
-use crate::results::Violation;
+use crate::results::{Message, Violation};
 use crate::rules::Rule as RuleTrait;
 
 pub(crate) static CODE: &str = "E0028";
@@ -69,21 +69,25 @@ impl Rule {
         let real_methods = total_methods - accessor_count - if has_constructor { 1 } else { 0 };
 
         if real_methods == 0 && total_methods >= self.settings.min_methods {
-            let suggestion = format!(
-                "\"{}\" is a Data Class: {} fields but no behavior beyond getters and setters. Add domain logic or consider using a value object.",
-                name, field_count
-            );
-            violations.push(self.new_violation(file, suggestion, span));
+            let message = Message::new(
+                "E0028:data-class",
+                "\"{name}\" is a Data Class: {field_count} fields but no behavior beyond getters and setters. Add domain logic or consider using a value object.",
+            )
+            .arg("name", name.to_string())
+            .arg("field_count", field_count.to_string());
+            violations.push(self.new_violation(file, message, span));
         } else if total_methods > 0 {
             let accessor_ratio = accessor_count as f64 / total_methods as f64;
             if accessor_ratio >= self.settings.max_getter_setter_ratio && field_count > 0 {
-                let suggestion = format!(
-                    "\"{}\" is a potential Data Class: {} fields, {:.0}% of methods are accessors (max: {:.0}%). Consider encapsulating behavior.",
-                    name, field_count,
-                    accessor_ratio * 100.0,
-                    self.settings.max_getter_setter_ratio * 100.0
-                );
-                violations.push(self.new_violation(file, suggestion, span));
+                let message = Message::new(
+                    "E0028:potential-data-class",
+                    "\"{name}\" is a potential Data Class: {field_count} fields, {accessor_pct}% of methods are accessors (max: {max_pct}%). Consider encapsulating behavior.",
+                )
+                .arg("name", name.to_string())
+                .arg("field_count", field_count.to_string())
+                .arg("accessor_pct", format!("{:.0}", accessor_ratio * 100.0))
+                .arg("max_pct", format!("{:.0}", self.settings.max_getter_setter_ratio * 100.0));
+                violations.push(self.new_violation(file, message, span));
             }
         }
     }

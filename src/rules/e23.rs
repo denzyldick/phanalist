@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::file::File;
-use crate::results::Violation;
+use crate::results::{Message, Violation};
 use crate::rules::Rule as RuleTrait;
 
 pub(crate) static CODE: &str = "E0023";
@@ -111,32 +111,41 @@ impl RuleTrait for Rule {
             if total_coupling > 0 {
                 let instability = ce as f64 / total_coupling as f64;
                 if instability > self.settings.max_instability {
-                    let suggestion = format!(
-                        "Namespace \"{}\" has instability (I) of {:.2} (threshold: {:.2}). Highly unstable namespaces depend on many others but few depend on them.",
-                        namespace, instability, self.settings.max_instability
-                    );
-                    violations.push(self.new_violation(file, suggestion, ns.span()));
+                    let message = Message::new(
+                        "E0023:instability",
+                        "Namespace \"{namespace}\" has instability (I) of {instability} (threshold: {threshold}). Highly unstable namespaces depend on many others but few depend on them.",
+                    )
+                    .arg("namespace", namespace.to_string())
+                    .arg("instability", format!("{:.2}", instability))
+                    .arg("threshold", format!("{:.2}", self.settings.max_instability));
+                    violations.push(self.new_violation(file, message, ns.span()));
                 }
 
                 // Abstractness: A = abstract / total
                 if total_count > 0 {
                     let abstractness = abstract_count as f64 / total_count as f64;
                     if abstractness > self.settings.max_abstractness {
-                        let suggestion = format!(
-                            "Namespace \"{}\" has abstractness (A) of {:.2} (threshold: {:.2}). Too many abstract classes without concrete implementations.",
-                            namespace, abstractness, self.settings.max_abstractness
-                        );
-                        violations.push(self.new_violation(file, suggestion, ns.span()));
+                        let message = Message::new(
+                            "E0023:abstractness",
+                            "Namespace \"{namespace}\" has abstractness (A) of {abstractness} (threshold: {threshold}). Too many abstract classes without concrete implementations.",
+                        )
+                        .arg("namespace", namespace.to_string())
+                        .arg("abstractness", format!("{:.2}", abstractness))
+                        .arg("threshold", format!("{:.2}", self.settings.max_abstractness));
+                        violations.push(self.new_violation(file, message, ns.span()));
                     }
 
                     // Distance from Main Sequence: D = |A + I - 1|
                     let distance = (abstractness + instability - 1.0).abs();
                     if distance > self.settings.max_distance {
-                        let suggestion = format!(
-                            "Namespace \"{}\" has distance from main sequence (D) of {:.2} (threshold: {:.2}). Consider rebalancing abstractness and stability.",
-                            namespace, distance, self.settings.max_distance
-                        );
-                        violations.push(self.new_violation(file, suggestion, ns.span()));
+                        let message = Message::new(
+                            "E0023:distance",
+                            "Namespace \"{namespace}\" has distance from main sequence (D) of {distance} (threshold: {threshold}). Consider rebalancing abstractness and stability.",
+                        )
+                        .arg("namespace", namespace.to_string())
+                        .arg("distance", format!("{:.2}", distance))
+                        .arg("threshold", format!("{:.2}", self.settings.max_distance));
+                        violations.push(self.new_violation(file, message, ns.span()));
                     }
                 }
             }

@@ -2,7 +2,7 @@ use mago_span::HasSpan;
 use mago_syntax::ast::{ClassLikeMember, Statement};
 
 use crate::file::File;
-use crate::results::Violation;
+use crate::results::{Message, Violation};
 use crate::rules::Rule as RuleTrait;
 
 pub struct Rule {}
@@ -32,8 +32,10 @@ impl crate::rules::Rule for Rule {
                     let name = item.name.value;
                     let name_str = std::str::from_utf8(name).unwrap_or_default();
                     if name_str != name_str.to_uppercase() {
-                        let suggestion = format!("The constant {} should be uppercase.", name_str);
-                        violations.push(self.new_violation(file, suggestion, item.name.span()));
+                        let message =
+                            Message::new("E0004:constant-not-uppercase", "The constant {name} should be uppercase.")
+                                .arg("name", name_str.to_string());
+                        violations.push(self.new_violation(file, message, item.name.span()));
                     }
                 }
             }
@@ -66,11 +68,13 @@ fn collect_member_constants(
                 let name = item.name.value;
                 let name_str = std::str::from_utf8(name).unwrap_or_default();
                 if name_str != name_str.to_uppercase() {
-                    let suggestion = format!("The constant {} should be uppercase.", name_str);
+                    let message =
+                        Message::new("E0004:constant-not-uppercase", "The constant {name} should be uppercase.")
+                            .arg("name", name_str.to_string());
                     violations.push(RuleTrait::new_violation(
                         rule,
                         file,
-                        suggestion,
+                        message,
                         item.name.span(),
                     ));
                 }
@@ -91,7 +95,7 @@ mod tests {
 
         assert!(violations.len().gt(&0));
         assert_eq!(
-            violations.first().unwrap().suggestion,
+            violations.first().unwrap().message.render(),
             "The constant TeST should be uppercase.".to_string()
         );
     }

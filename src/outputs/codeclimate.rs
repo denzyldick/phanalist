@@ -25,7 +25,7 @@ impl OutputFormatter for CodeClimate {
                 res.push(json!({
                     "type": "issue",
                     "check_name": &violation.rule,
-                    "description": &violation.suggestion,
+                    "description": violation.message.render(),
                     "content": {
                         "body": &rule_markdown
                     },

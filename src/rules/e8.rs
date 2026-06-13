@@ -2,7 +2,7 @@ use mago_span::HasSpan;
 use mago_syntax::ast::{ClassLikeMember, MethodBody, Statement};
 
 use crate::file::File;
-use crate::results::Violation;
+use crate::results::{Message, Violation};
 
 pub(crate) static CODE: &str = "E0008";
 static DESCRIPTION: &str = "Return type signature";
@@ -37,11 +37,12 @@ impl crate::rules::Rule for Rule {
                             .any(|s| matches!(s, Statement::Return(_)));
 
                         if has_return && method.return_type_hint.is_none() {
-                            let suggestion = format!(
-                                "The method {} has a return statement but it has no return type signature.",
-                                String::from_utf8_lossy(method.name.value)
-                            );
-                            violations.push(self.new_violation(file, suggestion, method.span()));
+                            let message = Message::new(
+                                "E0008:missing-return-type",
+                                "The method {name} has a return statement but it has no return type signature.",
+                            )
+                            .arg("name", String::from_utf8_lossy(method.name.value).to_string());
+                            violations.push(self.new_violation(file, message, method.span()));
                         }
                     }
                 }
@@ -64,7 +65,7 @@ mod tests {
 
         assert!(violations.len().gt(&0));
         assert_eq!(
-            violations.first().unwrap().suggestion,
+            violations.first().unwrap().message.render(),
             "The method test has a return statement but it has no return type signature."
                 .to_string()
         );

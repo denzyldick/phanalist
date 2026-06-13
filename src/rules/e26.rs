@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::file::File;
-use crate::results::Violation;
+use crate::results::{Message, Violation};
 
 pub(crate) static CODE: &str = "E0026";
 static DESCRIPTION: &str = "Comment Ratio";
@@ -67,21 +67,23 @@ impl crate::rules::Rule for Rule {
             let ratio = comment_lines as f64 / total_relevant as f64;
 
             if ratio < self.settings.min_ratio {
-                let suggestion = format!(
-                    "Class \"{}\" has a comment ratio of {:.1}% (min: {}%). Add more documentation.",
-                    String::from_utf8_lossy(class.name.value),
-                    ratio * 100.0,
-                    self.settings.min_ratio * 100.0
-                );
-                violations.push(self.new_violation(file, suggestion, class.span()));
+                let message = Message::new(
+                    "E0026:undercommented",
+                    "Class \"{name}\" has a comment ratio of {ratio}% (min: {min}%). Add more documentation.",
+                )
+                .arg("name", String::from_utf8_lossy(class.name.value).to_string())
+                .arg("ratio", format!("{:.1}", ratio * 100.0))
+                .arg("min", format!("{}", self.settings.min_ratio * 100.0));
+                violations.push(self.new_violation(file, message, class.span()));
             } else if ratio > self.settings.max_ratio {
-                let suggestion = format!(
-                    "Class \"{}\" has a comment ratio of {:.1}% (max: {}%). Too many comments may indicate unclear code.",
-                    String::from_utf8_lossy(class.name.value),
-                    ratio * 100.0,
-                    self.settings.max_ratio * 100.0
-                );
-                violations.push(self.new_violation(file, suggestion, class.span()));
+                let message = Message::new(
+                    "E0026:overcommented",
+                    "Class \"{name}\" has a comment ratio of {ratio}% (max: {max}%). Too many comments may indicate unclear code.",
+                )
+                .arg("name", String::from_utf8_lossy(class.name.value).to_string())
+                .arg("ratio", format!("{:.1}", ratio * 100.0))
+                .arg("max", format!("{}", self.settings.max_ratio * 100.0));
+                violations.push(self.new_violation(file, message, class.span()));
             }
         }
 
@@ -147,14 +149,14 @@ mod tests {
     fn undercommented() {
         let violations = analyze_file_for_rule("e26/undercommented.php", CODE);
         assert!(violations.len().gt(&0));
-        assert!(violations[0].suggestion.contains("10%"));
+        assert!(violations[0].message.render().contains("10%"));
     }
 
     #[test]
     fn overcommented() {
         let violations = analyze_file_for_rule("e26/overcommented.php", CODE);
         assert!(violations.len().gt(&0));
-        assert!(violations[0].suggestion.contains("50%"));
+        assert!(violations[0].message.render().contains("50%"));
     }
 
     #[test]

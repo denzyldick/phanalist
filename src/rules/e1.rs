@@ -1,7 +1,7 @@
 use mago_syntax::ast::{OpeningTag, Statement};
 
 use crate::file::File;
-use crate::results::Violation;
+use crate::results::{Message, Violation};
 
 pub(crate) static CODE: &str = "E0001";
 static DESCRIPTION: &str = "Opening tag position";
@@ -40,18 +40,20 @@ impl crate::rules::Rule for Rule {
             let column = file.column_number(span.start.offset);
 
             if line > 1 {
-                let suggestion = String::from(
+                let message = Message::new(
+                    "E0001:opening-tag-line",
                     "The opening tag is not on the right line. This should always be the first line in a PHP file.",
                 );
-                violations.push(self.new_violation(file, suggestion, span));
+                violations.push(self.new_violation(file, message, span));
             }
 
             if column > 0 {
-                let suggestion = format!(
-                    "The opening tag doesn't start at the right column: {}.",
-                    column + 1
-                );
-                violations.push(self.new_violation(file, suggestion, span));
+                let message = Message::new(
+                    "E0001:opening-tag-column",
+                    "The opening tag doesn't start at the right column: {column}.",
+                )
+                .arg("column", (column + 1).to_string());
+                violations.push(self.new_violation(file, message, span));
             }
         }
 
@@ -87,7 +89,7 @@ mod tests {
         let violations = analyze_file_for_rule("e1/full_opening_tag_not_first_line.php", CODE);
 
         assert!(violations.len().gt(&0));
-        assert_eq!(violations.first().unwrap().suggestion, "The opening tag is not on the right line. This should always be the first line in a PHP file.".to_string());
+        assert_eq!(violations.first().unwrap().message.render(), "The opening tag is not on the right line. This should always be the first line in a PHP file.".to_string());
     }
 
     #[test]
@@ -96,7 +98,7 @@ mod tests {
 
         assert!(violations.len().gt(&0));
         assert_eq!(
-            violations.first().unwrap().suggestion,
+            violations.first().unwrap().message.render(),
             "The opening tag doesn't start at the right column: 2.".to_string()
         );
     }
@@ -113,7 +115,7 @@ mod tests {
         let violations = analyze_file_for_rule("e1/short_opening_tag_not_first_line.php", CODE);
 
         assert!(violations.len().gt(&0));
-        assert_eq!(violations.first().unwrap().suggestion, "The opening tag is not on the right line. This should always be the first line in a PHP file.".to_string());
+        assert_eq!(violations.first().unwrap().message.render(), "The opening tag is not on the right line. This should always be the first line in a PHP file.".to_string());
     }
 
     #[test]
@@ -122,7 +124,7 @@ mod tests {
 
         assert!(violations.len().gt(&0));
         assert_eq!(
-            violations.first().unwrap().suggestion,
+            violations.first().unwrap().message.render(),
             "The opening tag doesn't start at the right column: 2.".to_string()
         );
     }

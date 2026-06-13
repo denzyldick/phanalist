@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::file::File;
-use crate::results::Violation;
+use crate::results::{Message, Violation};
 use crate::rules::Rule as RuleTrait;
 
 pub(crate) static CODE: &str = "E0021";
@@ -80,11 +80,14 @@ impl RuleTrait for Rule {
             let child_count = self.get_child_count(&class_name);
 
             if child_count > self.settings.max_children {
-                let suggestion = format!(
-                    "Class \"{}\" has {} direct subclasses (threshold: {}). High NOC increases the impact of changes.",
-                    class_name, child_count, self.settings.max_children
-                );
-                violations.push(self.new_violation(file, suggestion, class.span()));
+                let message = Message::new(
+                    "E0021:many-children",
+                    "Class \"{class}\" has {children} direct subclasses (threshold: {threshold}). High NOC increases the impact of changes.",
+                )
+                .arg("class", class_name.clone())
+                .arg("children", child_count.to_string())
+                .arg("threshold", self.settings.max_children.to_string());
+                violations.push(self.new_violation(file, message, class.span()));
             }
         }
 
@@ -146,7 +149,7 @@ mod tests {
     fn many_children() {
         let violations = analyze_file_for_rule("e21/many_children.php", CODE);
         assert_eq!(violations.len(), 1);
-        assert!(violations[0].suggestion.contains("direct subclasses"));
+        assert!(violations[0].message.render().contains("direct subclasses"));
     }
 
     #[test]

@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::file::File;
-use crate::results::Violation;
+use crate::results::{Message, Violation};
 
 pub(crate) static CODE: &str = "E0010";
 static DESCRIPTION: &str = "Npath complexity";
@@ -57,11 +57,13 @@ impl crate::rules::Rule for Rule {
                     if let MethodBody::Concrete(block) = &method.body {
                         let npath = calculate_npath(&block.statements);
                         if npath > self.settings.max_paths {
-                            let suggestion = format!(
-                                "The body of {} method has {} paths. Reduce the amount of paths.",
-                                String::from_utf8_lossy(method.name.value), npath,
-                            );
-                            violations.push(self.new_violation(file, suggestion, method.span()));
+                            let message = Message::new(
+                                "E0010:too-many-paths",
+                                "The body of {name} method has {npath} paths. Reduce the amount of paths.",
+                            )
+                            .arg("name", String::from_utf8_lossy(method.name.value).to_string())
+                            .arg("npath", npath.to_string());
+                            violations.push(self.new_violation(file, message, method.span()));
                         }
                     }
                 }
@@ -196,7 +198,7 @@ mod tests {
         let violations = analyze_file_for_rule("e10/npath.php", CODE);
         assert!(violations.len().eq(&1));
         assert_eq!(
-            violations.first().unwrap().suggestion,
+            violations.first().unwrap().message.render(),
             "The body of tooManyPaths method has 319 paths. Reduce the amount of paths."
                 .to_string()
         );

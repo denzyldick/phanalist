@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::file::File;
-use crate::results::Violation;
+use crate::results::{Message, Violation};
 use crate::rules::e9::calculate_complexity;
 use crate::rules::Rule as RuleTrait;
 
@@ -64,11 +64,14 @@ impl RuleTrait for Rule {
             }
 
             if wmc > self.settings.max_wmc {
-                let suggestion = format!(
-                    "Class \"{}\" has a Weighted Methods per Class (WMC) of {} (threshold: {}). Consider splitting responsibilities.",
-                    String::from_utf8_lossy(class.name.value), wmc, self.settings.max_wmc
-                );
-                violations.push(self.new_violation(file, suggestion, class.span()));
+                let message = Message::new(
+                    "E0018:high-wmc",
+                    "Class \"{class}\" has a Weighted Methods per Class (WMC) of {wmc} (threshold: {threshold}). Consider splitting responsibilities.",
+                )
+                .arg("class", String::from_utf8_lossy(class.name.value).into_owned())
+                .arg("wmc", wmc.to_string())
+                .arg("threshold", self.settings.max_wmc.to_string());
+                violations.push(self.new_violation(file, message, class.span()));
             }
         }
 
@@ -86,7 +89,7 @@ mod tests {
     fn high_wmc() {
         let violations = analyze_file_for_rule("e18/high_wmc.php", CODE);
         assert_eq!(violations.len(), 1);
-        assert!(violations[0].suggestion.contains("Weighted Methods per Class (WMC)"));
+        assert!(violations[0].message.render().contains("Weighted Methods per Class (WMC)"));
     }
 
     #[test]

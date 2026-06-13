@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::file::File;
-use crate::results::Violation;
+use crate::results::{Message, Violation};
 
 pub(crate) static CODE: &str = "E0025";
 static DESCRIPTION: &str = "Lines of Code (LOC) per File";
@@ -59,11 +59,14 @@ impl crate::rules::Rule for Rule {
         if let Some((name, span)) = name {
             let loc = file.lines.len();
             if loc > self.settings.max_loc {
-                let suggestion = format!(
-                    "File containing \"{}\" has {} lines of code (max: {}). Consider splitting it into smaller files.",
-                    String::from_utf8_lossy(name), loc, self.settings.max_loc
-                );
-                violations.push(self.new_violation(file, suggestion, span));
+                let message = Message::new(
+                    "E0025:file-too-long",
+                    "File containing \"{name}\" has {loc} lines of code (max: {max}). Consider splitting it into smaller files.",
+                )
+                .arg("name", String::from_utf8_lossy(name).to_string())
+                .arg("loc", loc.to_string())
+                .arg("max", self.settings.max_loc.to_string());
+                violations.push(self.new_violation(file, message, span));
             }
         }
 

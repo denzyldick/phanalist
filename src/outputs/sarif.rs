@@ -97,7 +97,7 @@ impl OutputFormatter for Sarif {
                 };
 
                 let message = Message {
-                    text: Some(String::from(&violation.suggestion)),
+                    text: Some(violation.message.render()),
                     ..Default::default()
                 };
 

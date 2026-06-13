@@ -10,7 +10,7 @@ use serde_json::Value;
 
 use crate::config::Config;
 use crate::file::File;
-use crate::results::Violation;
+use crate::results::{Message, Violation};
 pub mod e0;
 pub mod e1;
 pub mod e10;
@@ -112,7 +112,7 @@ pub trait Rule {
 
     fn validate(&self, file: &File<'_>, statement: &Statement<'_>) -> Vec<Violation>;
 
-    fn new_violation(&self, file: &File<'_>, suggestion: String, span: Span) -> Violation {
+    fn new_violation(&self, file: &File<'_>, message: Message, span: Span) -> Violation {
         let start_line = file.line_number(span.start.offset);
         let start_column = file.column_number(span.start.offset);
         let end_line = file.line_number(span.end.offset);
@@ -127,7 +127,7 @@ pub trait Rule {
         Violation {
             rule: self.get_code(),
             line,
-            suggestion,
+            message,
             start_line,
             start_column,
             end_line,

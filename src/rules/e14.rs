@@ -4,7 +4,7 @@ use mago_span::{HasSpan, Span};
 use mago_syntax::ast::*;
 
 use crate::file::File;
-use crate::results::Violation;
+use crate::results::{Message, Violation};
 use crate::rules::Rule as RuleTrait;
 
 pub(crate) static CODE: &str = "E0014";
@@ -1104,19 +1104,22 @@ impl Rule {
             ),
             Some(t) => {
                 // Foreign type — chaining is a violation
-                let message = format!(
-                    "Law of Demeter violation. Method '{}' is called on '{}', which is a foreign object.",
-                    method_name, t
-                );
+                let message = Message::new(
+                    "E0014:foreign-object-chain",
+                    "Law of Demeter violation. Method '{method}' is called on '{type}', which is a foreign object.",
+                )
+                .arg("method", method_name.to_string())
+                .arg("type", t.to_string());
                 violations.push(self.new_violation(file, message, span));
                 None
             }
             None => {
                 // Unknown type — conservative: violation
-                let message = format!(
-                    "Law of Demeter violation. Method '{}' is called on an object of unknown type (possible foreign object).",
-                    method_name
-                );
+                let message = Message::new(
+                    "E0014:unknown-object-chain",
+                    "Law of Demeter violation. Method '{method}' is called on an object of unknown type (possible foreign object).",
+                )
+                .arg("method", method_name.to_string());
                 violations.push(self.new_violation(file, message, span));
                 None
             }

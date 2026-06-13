@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::file::File;
-use crate::results::Violation;
+use crate::results::{Message, Violation};
 use crate::rules::Rule as RuleTrait;
 
 pub(crate) static CODE: &str = "E0024";
@@ -44,11 +44,14 @@ impl Rule {
                     }
                     let loc = end_line - start_line - 1;
                     if loc > self.settings.max_loc {
-                        let suggestion = format!(
-                            "Method \"{}\" has {} lines of code (max: {}). Consider breaking it into smaller methods.",
-                            String::from_utf8_lossy(method.name.value), loc, self.settings.max_loc
-                        );
-                        violations.push(self.new_violation(file, suggestion, method.span()));
+                        let message = Message::new(
+                            "E0024:method-too-long",
+                            "Method \"{name}\" has {loc} lines of code (max: {max}). Consider breaking it into smaller methods.",
+                        )
+                        .arg("name", String::from_utf8_lossy(method.name.value).to_string())
+                        .arg("loc", loc.to_string())
+                        .arg("max", self.settings.max_loc.to_string());
+                        violations.push(self.new_violation(file, message, method.span()));
                     }
                 }
             }
@@ -106,7 +109,7 @@ mod tests {
     fn long_method() {
         let violations = analyze_file_for_rule("e24/long_method.php", CODE);
         assert!(violations.len().gt(&0));
-        assert!(violations[0].suggestion.contains("longMethod"));
+        assert!(violations[0].message.render().contains("longMethod"));
     }
 
     #[test]
