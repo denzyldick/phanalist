@@ -70,11 +70,15 @@ On the first run `phanalist.yaml` will be created with the default configuration
 
 | Flag | Description | Default |
 |---|---|---|
-| `--config` | Path to configuration file | `./phanalist.yaml` |
-| `--src` | Path to project sources | `./src` |
-| `--output-format` | Output format: `text`, `json`, `sarif` | `text` |
+| `--config`, `-c` | Path to configuration file | `./phanalist.yaml` |
+| `--src`, `-s` | Path to project sources | `./src` |
+| `--rules`, `-r` | Only run these rules (overrides config) | from config |
+| `--output-format`, `-o` | Output format: `text`, `json`, `sarif`, `codeclimate` | `text` |
 | `--summary-only` | Show only violation counts per rule | — |
-| `--quiet` | Suppress all output | — |
+| `--quiet`, `-q` | Suppress all output | — |
+| `--verbose`, `-v` | Increase verbosity; repeat for more (`-v` main pass, `-vv` parsing, `-vvv` indexing) | — |
+| `--debug-rule-timing` | Print per-rule per-file timing (min/max/avg/p90/p95/p99 + slowest files) | — |
+| `--debug-rule-stats` | Print per-rule cost/coverage stats (time, %, violations, files, statements) | — |
 
 ---
 
