@@ -1,15 +1,17 @@
 extern crate exitcode;
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process;
 use std::str::FromStr;
 
 use clap::Parser;
 
 use crate::analyse::Analyse;
+use crate::baseline::Baseline;
 use crate::outputs::Format;
 
 mod analyse;
+mod baseline;
 mod config;
 mod debug_stats;
 mod file;
@@ -49,6 +51,12 @@ struct Args {
     #[arg(long)]
     /// Print per-rule cost/coverage stats (total time, %, violations, files, statements)
     debug_rule_stats: bool,
+    #[arg(long)]
+    /// Filter results against a baseline file, reporting only new violations
+    use_baseline: Option<String>,
+    #[arg(long)]
+    /// Discard the existing baseline and regenerate it from the current scan (requires --use-baseline)
+    update_baseline: bool,
 }
 
 fn main() {
@@ -79,7 +87,29 @@ fn main() {
     }
     let mut analyze = Analyse::new(&config);
 
+    if args.update_baseline && args.use_baseline.is_none() {
+        eprintln!("--update-baseline requires --use-baseline <path>");
+        process::exit(exitcode::USAGE);
+    }
+
+    // In filter mode (use-baseline without update) load the baseline up front.
+    let baseline = match (&args.use_baseline, args.update_baseline) {
+        (Some(path), false) => match Baseline::load(Path::new(path)) {
+            Ok(b) => Some(b),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                eprintln!("Baseline file not found: {path}");
+                process::exit(exitcode::USAGE);
+            }
+            Err(e) => {
+                eprintln!("Failed to read baseline {path}: {e}");
+                process::exit(exitcode::DATAERR);
+            }
+        },
+        _ => None,
+    };
+
     let mut has_violations = false;
+    let mut aggregate = results::Results::default();
 
     let collect_rule_metrics = args.debug_rule_timing || args.debug_rule_stats;
 
@@ -96,6 +126,18 @@ fn main() {
             args.verbose,
             collect_rule_metrics,
         );
+
+        // Update mode: collect every violation for the new baseline and skip
+        // per-path output entirely.
+        if args.update_baseline {
+            aggregate.files.extend(results.files);
+            continue;
+        }
+
+        if let Some(ref baseline) = baseline {
+            baseline.filter(&mut results);
+        }
+
         if !quiet {
             analyze.output(&mut results, format.clone(), args.summary_only);
         }
@@ -112,6 +154,27 @@ fn main() {
         }
 
         has_violations = has_violations || results.has_any_violations();
+    }
+
+    if args.update_baseline {
+        let path = args.use_baseline.expect("validated above");
+        let baseline = Baseline::from_results(&aggregate);
+        match baseline.save(&PathBuf::from(&path)) {
+            Ok(()) => {
+                if !quiet && format == Format::text {
+                    println!(
+                        "Baseline written to {} ({} entries).",
+                        path,
+                        baseline.violations.len()
+                    );
+                }
+                process::exit(exitcode::OK);
+            }
+            Err(e) => {
+                eprintln!("Failed to write baseline {path}: {e}");
+                process::exit(exitcode::CANTCREAT);
+            }
+        }
     }
 
     if has_violations {
