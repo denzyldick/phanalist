@@ -16,11 +16,16 @@ phanalist 0.1.29
 
 ### Pre-compiled architecture-specific binary.
 
-You can also manually download your platform-specific binary.
+You can also manually download your platform-specific binary from the [latest GitHub release](https://github.com/denzyldick/phanalist/releases/latest).
 
-- macOS: [aarch64](https://raw.githubusercontent.com/denzyldick/phanalist/main/release/aarch64-apple-darwin/phanalist), [x86_64](https://raw.githubusercontent.com/denzyldick/phanalist/main/release/x86_64-apple-darwin/phanalist)
-- Linux MUSL: [aarch64](https://raw.githubusercontent.com/denzyldick/phanalist/main/release/aarch64-unknown-linux-musl/phanalist), [x86_64](https://raw.githubusercontent.com/denzyldick/phanalist/main/release/x86_64-unknown-linux-musl/phanalist)
-- Linux GNU: [aarch64](https://raw.githubusercontent.com/denzyldick/phanalist/main/release/aarch64-unknown-linux-gnu/phanalist), [x86_64](https://raw.githubusercontent.com/denzyldick/phanalist/main/release/x86_64-unknown-linux-gnu/phanalist)
+Available tarballs:
+- `phanalist-aarch64-apple-darwin.tar.gz`
+- `phanalist-x86_64-apple-darwin.tar.gz`
+- `phanalist-aarch64-unknown-linux-musl.tar.gz`
+- `phanalist-x86_64-unknown-linux-musl.tar.gz`
+- `phanalist-aarch64-unknown-linux-gnu.tar.gz`
+- `phanalist-x86_64-unknown-linux-gnu.tar.gz`
+- `phanalist-x86_64-pc-windows-msvc.zip`
 
 ### Compile from source
 
