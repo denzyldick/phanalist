@@ -7,7 +7,12 @@
     "PHP",
     "Static analyzer",
     "Cleancode",
-    "Refactoring"
+    "Refactoring",
+    "static-analysis",
+    "code-quality",
+    "phanalist",
+    "linting",
+    "maintainability"
   ],
   "authors": [
     {
