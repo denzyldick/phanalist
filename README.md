@@ -70,9 +70,10 @@ On the first run `phanalist.yaml` will be created with the default configuration
 
 | Flag | Description | Default |
 |---|---|---|
-| `--config` | Path to configuration file | `./phanalist.yaml` |
-| `--src` | Path to project sources | `./src` |
-| `--output-format` | Output format: `text`, `json`, `sarif` | `text` |
+| `--config`, `-c` | Path to configuration file | `./phanalist.yaml` |
+| `--src`, `-s` | Path to project sources | `./src` |
+| `--rules`, `-r` | Only run these rules (overrides config) | from config |
+| `--output-format`, `-o` | Output format: `text`, `json`, `sarif`, `codeclimate` | `text` |
 | `--summary-only` | Show only violation counts per rule | — |
 | `--quiet` | Suppress all output | — |
 | `--use-baseline` | Filter results against a baseline file, reporting only new violations | — |
@@ -103,6 +104,10 @@ diffs and merges. Each entry is keyed on the file, rule, and a stable message id
 with a count, so unrelated edits that shift line numbers do not invalidate it,
 and reworded message text does not either. When you fix violations, regenerate
 the baseline to shrink it.
+| `--quiet`, `-q` | Suppress all output | — |
+| `--verbose`, `-v` | Increase verbosity; repeat for more (`-v` main pass, `-vv` parsing, `-vvv` indexing) | — |
+| `--debug-rule-timing` | Print per-rule per-file timing (min/max/avg/p90/p95/p99 + slowest files) | — |
+| `--debug-rule-stats` | Print per-rule cost/coverage stats (time, %, violations, files, statements) | — |
 
 ---
 
