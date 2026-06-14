@@ -28,7 +28,7 @@ Think of it as a health checkup for your PHP code. It doesn't just tell you *tha
 - 🚀 **Fast** — built in Rust, analyzes large codebases in seconds
 - 🔍 **31 built-in rules** — covering complexity, style, design patterns, and more
 - ⚙️ **Zero config to start** — works out of the box, configure only what you need
-- 📄 **Multiple output formats** — `text`, `json`, and `sarif` (for CI pipelines)
+- 📄 **Multiple output formats** — `text`, `json`, `sarif` (for CI pipelines), and `codeclimate` (for Code Quality platforms)
 - 🔌 **Extensible** — adding a custom rule takes minutes
 
 ---
@@ -71,11 +71,14 @@ On the first run `phanalist.yaml` will be created with the default configuration
 | Flag | Description | Default |
 |---|---|---|
 | `--config`, `-c` | Path to configuration file | `./phanalist.yaml` |
-| `--src`, `-s` | Path to project sources | `./src` |
+| `--src`, `-s` | Path(s) to project sources (repeatable, e.g. `-s src -s tests`) | `./src` |
 | `--rules`, `-r` | Only run these rules (overrides config) | from config |
 | `--output-format`, `-o` | Output format: `text`, `json`, `sarif`, `codeclimate` | `text` |
 | `--summary-only` | Show only violation counts per rule | — |
-| `--quiet` | Suppress all output | — |
+| `--quiet`, `-q` | Suppress all output | — |
+| `--verbose`, `-v` | Increase verbosity; repeat for more (`-v` main pass, `-vv` parsing, `-vvv` indexing) | — |
+| `--debug-rule-timing` | Print per-rule per-file timing (min/max/avg/p90/p95/p99 + slowest files) | — |
+| `--debug-rule-stats` | Print per-rule cost/coverage stats (time, %, violations, files, statements) | — |
 | `--use-baseline` | Filter results against a baseline file, reporting only new violations | — |
 | `--update-baseline` | Regenerate the baseline from the current scan (requires `--use-baseline`) | — |
 
@@ -104,10 +107,6 @@ diffs and merges. Each entry is keyed on the file, rule, and a stable message id
 with a count, so unrelated edits that shift line numbers do not invalidate it,
 and reworded message text does not either. When you fix violations, regenerate
 the baseline to shrink it.
-| `--quiet`, `-q` | Suppress all output | — |
-| `--verbose`, `-v` | Increase verbosity; repeat for more (`-v` main pass, `-vv` parsing, `-vvv` indexing) | — |
-| `--debug-rule-timing` | Print per-rule per-file timing (min/max/avg/p90/p95/p99 + slowest files) | — |
-| `--debug-rule-stats` | Print per-rule cost/coverage stats (time, %, violations, files, statements) | — |
 
 ---
 
@@ -125,11 +124,13 @@ rules:
     max_complexity: 10
   E0010:
     max_paths: 200
-   E0012:
+  E0012:
     include_namespaces:
       - "App\\Service\\"
       - "App\\Controller\\"
     exclude_namespaces: []
+    reset_interfaces:
+      - "ResetInterface"
   E0015:
     threshold: 1
   E0016:
@@ -157,7 +158,7 @@ rules:
 - **`enabled_rules`** — whitelist of rules to run (empty = all)
 - **`disable_rules`** — rules to skip
 - **`rules`** — per-rule configuration options
-- **`exclude_paths`** — files skipped before any rule runs, as directory prefixes (`var/cache`, `bootstrap/cache`) or globs (`**/*.generated.php`). Handy for framework caches and frozen code like migrations that would only add noise. Paths that match nothing are ignored, so listing both Symfony and Laravel locations is safe.
+- **`exclude_paths`** — files skipped before any rule runs, as directory prefixes (`var/cache`, `bootstrap/cache`) or globs (`**/*.generated.php`). Handy for framework caches and frozen code like migrations that would only add noise. Literal (non-glob) patterns that don't exist on disk trigger a warning at `-v` verbosity — a helpful catch for typos. Globs that match nothing are silently accepted.
 
 ---
 
