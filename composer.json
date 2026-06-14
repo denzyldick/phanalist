@@ -26,10 +26,10 @@
   },
   "scripts": {
     "post-install-cmd": [
-      "phanalist --version"
+      "vendor/bin/phanalist --version"
     ],
     "post-update-cmd": [
-      "phanalist --version"
+      "vendor/bin/phanalist --version"
     ]
   }
 }
