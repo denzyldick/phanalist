@@ -16,3 +16,9 @@ src/rules/examples/*/phanalist.yml
 *.txt
 /examples/
 e12_debug.txt
+
+# Old local release artifacts (releases are now handled by CI)
+/release/
+
+# Cross-compilation Dockerfiles (obsolete, CI uses taiki-e/upload-rust-binary-action)
+/docker/
