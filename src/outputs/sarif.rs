@@ -20,16 +20,14 @@ impl OutputFormatter for Sarif {
         let mut rule_to_index: std::collections::HashMap<String, i64> = std::collections::HashMap::new();
         let rules = rules::all_rules();
         for (current_index, rule) in rules.into_iter().enumerate() {
-            let r = rule.1.description();
-            let description = r;
-
             let rule_number = rule.0.trim_start_matches('E').trim_start_matches('0');
             let rule_number = if rule_number.is_empty() { "0" } else { rule_number };
 
+            let detailed = rule.1.get_detailed_explanation();
             let multiformat_message = MultiformatMessageString {
-                markdown: rule.1.get_detailed_explanation(),
+                markdown: detailed.clone(),
                 properties: None,
-                text: description,
+                text: detailed.unwrap_or_else(|| rule.1.description()),
             };
             sarif_rules.push(sarif::ReportingDescriptor {
                 default_configuration: None,
