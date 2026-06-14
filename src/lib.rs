@@ -1,6 +1,7 @@
 use analyse::Analyse;
 use outputs::Format;
 pub mod analyse;
+pub mod baseline;
 pub mod config;
 pub mod debug_stats;
 pub mod file;
