@@ -118,8 +118,6 @@ jobs:
       - check-version
       - publish
     steps:
-      - name: Install dependencies
-        run: sudo apt-get install node-semver -y
       - name: Checkout
         uses: actions/checkout@v6
         with:
@@ -144,10 +142,10 @@ jobs:
       - name: Extract changelog
         run: sed -n '/\#\# \[${{needs.check-version.outputs.version}}/,/\#\# \[/p' CHANGELOG.md | sed '/\#\# \[/d' | sed '1{/^$/d}' | sed '1{/^$/d}' | sed '${/^$/d}' | sed '${/^$/d}' > version_changelog.md
       - name: Create GitHub release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{needs.check-version.outputs.version}}
-          release_name: v${{needs.check-version.outputs.version}}
+          name: v${{needs.check-version.outputs.version}}
           body_path: version_changelog.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

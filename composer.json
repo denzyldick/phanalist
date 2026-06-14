@@ -26,10 +26,10 @@
   },
   "scripts": {
     "post-install-cmd": [
-      "@php phanalist --version"
+      "phanalist --version"
     ],
     "post-update-cmd": [
-      "@php phanalist --version"
+      "phanalist --version"
     ]
   }
 }
