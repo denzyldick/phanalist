@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-06-14
+
 ### Added
 
 - LCOM4 metric (E0015)

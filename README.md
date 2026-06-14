@@ -45,7 +45,7 @@ It will automatically download the executable for your platform:
 
 ```bash
 $ ~/phanalist -V
-phanalist 0.1.29
+phanalist 1.0.0
 ```
 
 There are also [multiple other installation options](./docs/installation.md).
