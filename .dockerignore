@@ -1,2 +1,12 @@
-./test-big-projects
-./target
+.git
+.gitignore
+.github
+docker
+docs
+bin
+release
+test_repos
+test-big-projects
+target
+*.md
+*.sh
