@@ -50,6 +50,23 @@ phanalist 1.0.0
 
 There are also [multiple other installation options](./docs/installation.md).
 
+### GitHub Action
+
+Add inline SARIF annotations to your PRs using the [Phanalist GitHub Action](https://github.com/marketplace/actions/phanalist):
+
+```yaml
+name: Phanalist
+on: [pull_request]
+permissions:
+  security-events: write
+jobs:
+  phanalist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denzyldick/phanalist-action@v1
+```
+
 ---
 
 ### Usage
