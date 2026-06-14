@@ -28,7 +28,7 @@ Think of it as a health checkup for your PHP code. It doesn't just tell you *tha
 - 🚀 **Fast** — built in Rust, analyzes large codebases in seconds
 - 🔍 **31 built-in rules** — covering complexity, style, design patterns, and more
 - ⚙️ **Zero config to start** — works out of the box, configure only what you need
-- 📄 **Multiple output formats** — `text`, `json`, `sarif` (for CI pipelines), and `codeclimate` (for Code Quality platforms)
+- 📄 **Multiple output formats** — `text`, `json`, `sarif` (for CI pipelines with inline PR annotations via [GitHub Action](https://github.com/marketplace/actions/phanalist)), and `codeclimate` (for Code Quality platforms)
 - 🔌 **Extensible** — adding a custom rule takes minutes
 
 ---
