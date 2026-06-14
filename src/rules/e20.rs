@@ -159,7 +159,7 @@ mod tests {
     fn deep_inheritance() {
         let violations = analyze_file_for_rule("e20/deep_inheritance.php", CODE);
         // E has depth 4, F has depth 5 — both exceed default threshold of 4
-        assert!(violations.len() >= 1);
+        assert!(!violations.is_empty());
         assert!(violations
             .iter()
             .any(|v| v.message.render().contains("inheritance depth")));

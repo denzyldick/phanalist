@@ -1,5 +1,3 @@
-use phanalist;
-
 #[test]
 fn test_php84_hooks() {
     // We expect this to likely fail or panic with the current parser

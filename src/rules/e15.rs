@@ -455,7 +455,7 @@ mod tests {
     #[test]
     fn test_non_cohesive_class() {
         let violations = analyze_file_for_rule("e15/non_cohesive.php", CODE);
-        assert!(violations.len() > 0);
+        assert!(!violations.is_empty());
         assert!(violations[0].message.render().contains("LCOM4 = 2"));
     }
 
@@ -468,6 +468,6 @@ mod tests {
     #[test]
     fn test_anonymous_class_isolation() {
         let violations = analyze_file_for_rule("e15/anonymous_class.php", CODE);
-        assert!(violations.len() > 0);
-    }
+        assert!(!violations.is_empty());
+}
 }
