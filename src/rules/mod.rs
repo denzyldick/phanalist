@@ -43,7 +43,7 @@ pub mod e28;
 pub mod e29;
 pub mod e30;
 
-pub trait Rule {
+pub trait Rule: Sync {
     /// Optional hook for cross-file type resolution or indexing.
     /// Called once for every file before main validation pass.
     fn index_file(&self, _file: &File<'_>) {}

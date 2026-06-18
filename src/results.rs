@@ -7,6 +7,22 @@ use serde::{Deserialize, Serialize, Serializer};
 use crate::debug_stats::RuleTimings;
 use crate::file::File;
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct EngineerEntry {
+    pub total_fixed: u64,
+    pub total_introduced: u64,
+    pub net: i64,
+    pub rules: HashMap<String, RuleChange>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct RuleChange {
+    pub fixed: u64,
+    pub introduced: u64,
+}
+
+pub type EngineerReport = HashMap<String, EngineerEntry>;
+
 /// A diagnostic message. `id` is a stable slug used as a key (e.g. by the
 /// baseline); `template` is human text with `{name}` placeholders that `args`
 /// fill in. `render()` produces the displayed string. Marked `#[non_exhaustive]`
@@ -83,6 +99,8 @@ pub struct Results {
     pub duration: Option<Duration>,
     #[serde(skip)]
     pub rule_timings: Option<RuleTimings>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub engineer_report: Option<EngineerReport>,
 }
 
 impl Results {
@@ -131,6 +149,7 @@ mod tests {
             total_files_count: 0,
             duration: None,
             rule_timings: None,
+            engineer_report: None,
         }
     }
     fn get_file<'a>(arena: &'a Bump, name: &str) -> File<'a> {
