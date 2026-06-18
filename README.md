@@ -115,14 +115,17 @@ Use the `--blame` flag to see who is introducing and fixing violations in your c
 # Who has violations in their code currently
 ~/phanalist --blame
 
-# Who has been degrading quality recently
+# See what changed in the last 30 days (Net column shows who is improving vs degrading)
 ~/phanalist --blame --since "30 days"
 
-# Who has been improving quality over the last year
+# See changes over the last year
 ~/phanalist --blame --since "1 year"
 
-# Exclude bots and export a chart image
-~/phanalist --blame --since "30 days" --exclude-author dependabot --export-chart report.png
+# Exclude bots
+~/phanalist --blame --since "30 days" --exclude-author dependabot
+
+# Sort by net improvements (who is adding the most value)
+~/phanalist --blame --since "30 days" --sort net
 ```
 
 The report shows a table with:
@@ -134,6 +137,10 @@ The report shows a table with:
 | **Introduced (✗)** | Violations that appeared compared to the `--since` snapshot |
 | **Net** | `Fixed - Introduced` — positive means improving, negative means degrading |
 
+**Sorting:**
+
+Use `--sort` to change the order: `total` (default, by volume), `net` (by net improvements), `name`, `fixed`, `introduced`.
+
 **How it works:**
 
 - **Without `--since`:** Looks at the current violations in your code and uses git blame to figure out who last touched each affected line. Engineers are credited with the violations in code they most recently worked on.
@@ -141,7 +148,7 @@ The report shows a table with:
 
 **Charts:**
 
-Terminal output includes a stacked bar chart (green = fixed, red = introduced) and a per-rule breakdown. Use `--export-chart <path>` to generate a PNG or SVG image of the overall chart.
+Terminal output includes a stacked bar chart (green = fixed, red = introduced) and a per-rule breakdown.
 
 The `--blame` flag works with `--output-format json` — the engineer data is included as an `"engineer_report"` field in the JSON output for use in pipelines or dashboards.
 

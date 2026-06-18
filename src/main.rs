@@ -82,6 +82,9 @@ struct Args {
     #[arg(long)]
     /// Only include rules matching this string (repeatable, e.g. --filter-rule E0014)
     filter_rule: Vec<String>,
+    #[arg(long, default_value = "total")]
+    /// Sort the engineer report by: total (default), net, name, fixed, introduced
+    sort: String,
 }
 
 fn main() {
@@ -273,6 +276,7 @@ fn main() {
             min_violations: args.min_violations,
             filter_authors: args.filter_author.clone(),
             filter_rules: args.filter_rule.clone(),
+            sort_by: args.sort.clone(),
         };
 
         let engineer = match EngineerBlame::new(&repo_root, &blame_config) {
@@ -300,7 +304,7 @@ fn main() {
 
         if !quiet {
             if format == Format::text {
-                outputs::chart::print_engineer_report(&report, &args.since);
+                outputs::chart::print_engineer_report(&report, &args.since, &args.sort);
             } else if format == Format::json {
                 println!("{}", serde_json::to_string_pretty(&aggregate).unwrap());
             }

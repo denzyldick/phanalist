@@ -22,6 +22,7 @@ pub struct BlameConfig {
     pub min_violations: u64,
     pub filter_authors: Vec<String>,
     pub filter_rules: Vec<String>,
+    pub sort_by: String,
 }
 
 /// Parse a human-readable or absolute date string into a timestamp.

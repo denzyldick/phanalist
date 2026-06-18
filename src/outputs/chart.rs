@@ -3,14 +3,20 @@ use colored::Colorize;
 
 use crate::results::{EngineerEntry, EngineerReport, RuleChange};
 
-pub fn print_engineer_report(report: &EngineerReport, since: &Option<String>) {
+pub fn print_engineer_report(report: &EngineerReport, since: &Option<String>, sort_by: &str) {
     if report.is_empty() {
         println!("{}", "No engineer data to report.".yellow());
         return;
     }
 
     let mut entries: Vec<(&String, &EngineerEntry)> = report.iter().collect();
-    entries.sort_by_key(|(_, e)| std::cmp::Reverse(e.total_introduced + e.total_fixed));
+    match sort_by {
+        "net" => entries.sort_by_key(|(_, e)| std::cmp::Reverse(e.net)),
+        "name" => entries.sort_by_key(|(a, _)| *a),
+        "fixed" => entries.sort_by_key(|(_, e)| std::cmp::Reverse(e.total_fixed)),
+        "introduced" => entries.sort_by_key(|(_, e)| std::cmp::Reverse(e.total_introduced)),
+        _ => entries.sort_by_key(|(_, e)| std::cmp::Reverse(e.total_introduced + e.total_fixed)),
+    }
 
     let title = match since {
         Some(s) => format!("Engineer Quality Report (since {s})"),
@@ -106,21 +112,21 @@ mod tests {
     fn test_print_engineer_report_empty() {
         let report: EngineerReport = std::collections::HashMap::new();
         // Should not panic
-        print_engineer_report(&report, &None);
+        print_engineer_report(&report, &None, "total");
     }
 
     #[test]
     fn test_print_engineer_report_with_data() {
         let report = make_report();
         // Should not panic
-        print_engineer_report(&report, &Some("30 days".to_string()));
+        print_engineer_report(&report, &Some("30 days".to_string()), "total");
     }
 
     #[test]
     fn test_print_engineer_report_title_with_since() {
         // Just verify formatting doesn't crash
         let report = make_report();
-        print_engineer_report(&report, &Some("2025-01-01".to_string()));
+        print_engineer_report(&report, &Some("2025-01-01".to_string()), "total");
     }
 
 }
