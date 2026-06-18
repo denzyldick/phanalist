@@ -4,6 +4,7 @@ pub mod analyse;
 pub mod baseline;
 pub mod config;
 pub mod debug_stats;
+pub mod engineer;
 pub mod file;
 pub mod outputs;
 pub mod paths;
@@ -16,7 +17,7 @@ pub fn scan(path: String) -> results::Results {
 
     let analyze: Analyse = Analyse::new(&config);
 
-    analyze.scan("./src".to_string(), &config, false, &output_format,0,false)
+    analyze.scan("./src".to_string(), &config, false, &output_format,0,false,None)
 }
 
 #[cfg(test)]

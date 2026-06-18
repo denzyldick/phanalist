@@ -98,6 +98,58 @@ On the first run `phanalist.yaml` will be created with the default configuration
 | `--debug-rule-stats` | Print per-rule cost/coverage stats (time, %, violations, files, statements) | — |
 | `--use-baseline` | Filter results against a baseline file, reporting only new violations | — |
 | `--update-baseline` | Regenerate the baseline from the current scan (requires `--use-baseline`) | — |
+| `--blame` | Attribute violations to engineers via git blame and show a quality report | — |
+| `--since` | Only count violations from commits after this date (e.g. `"30 days"`, `"1 year"`, `"2025-01-01"`) | — |
+| `--until` | Only count violations from commits before this date (e.g. `"2025-06-01"`) | — |
+| `--export-chart` | Export engineer chart as PNG/SVG image (requires `--blame`) | — |
+| `--exclude-author` | Exclude authors from the report (repeatable, e.g. `--exclude-author dependabot`) | — |
+| `--min-violations` | Minimum total violations to include an engineer in the report | `0` |
+
+---
+
+### Engineer Quality Report
+
+Use the `--blame` flag to see who is introducing and fixing violations in your codebase:
+
+```bash
+# Who has violations in their code currently
+~/phanalist --blame
+
+# Who has been degrading quality recently
+~/phanalist --blame --since "30 days"
+
+# Who has been improving quality over the last year
+~/phanalist --blame --since "1 year"
+
+# Exclude bots and export a chart image
+~/phanalist --blame --since "30 days" --exclude-author dependabot --export-chart report.png
+```
+
+The report shows a table with:
+
+| Column | Meaning |
+|---|---|
+| **Engineer** | Git author name |
+| **Fixed (✓)** | Violations that disappeared compared to the `--since` snapshot |
+| **Introduced (✗)** | Violations that appeared compared to the `--since` snapshot |
+| **Net** | `Fixed - Introduced` — positive means improving, negative means degrading |
+
+When `--since` is used, phanalist:
+1. Reads the old version of each changed file from git history
+2. Re-analyzes it for that point in time
+3. Diffs the violations to determine what was fixed vs introduced
+4. Uses git blame to attribute each change to the engineer
+
+> **Note:** Historical analysis (`--since`/`--until`) re-analyzes files from git history
+> and may take longer on large repos. A notice is printed before it starts.
+
+**Charts:**
+
+Terminal output includes a stacked bar chart (green = fixed, red = introduced) and a per-rule breakdown. Use `--export-chart <path>` to generate a PNG or SVG image of the overall chart.
+
+The `--blame` flag works with `--output-format json` — the engineer data is included as an `"engineer_report"` field in the JSON output for use in pipelines or dashboards.
+
+Requires a `.git` directory (discovered from the current working directory). Only files within `--src` paths are attributed.
 
 ---
 

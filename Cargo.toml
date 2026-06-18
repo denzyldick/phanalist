@@ -27,6 +27,19 @@ mago-syntax = "1.30"
 mago-database = "1.30"
 mago-span = "1.30"
 bumpalo = "3"
+git2 = "0.20"
+gix = { version = "0.84", features = ["blame"] }
+chrono = "0.4"
+
+[features]
+default = []
+chart-image = ["dep:plotters"]
+
+[dependencies.plotters]
+version = "0.3"
+optional = true
+default-features = false
+features = ["svg_backend", "bitmap_backend", "bitmap_encoder", "line_series", "point_series"]
 
 [lib]
 crate-type = ["rlib"]

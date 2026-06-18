@@ -106,27 +106,32 @@ impl Analyse {
         format: &Format,
         verbose: u8,
         collect_rule_metrics: bool,
+        external_bar: Option<ProgressBar>,
     ) -> Results {
         let now = std::time::Instant::now();
         let mut results = Results::default();
         if collect_rule_metrics {
             results.rule_timings = Some(RuleTimings::default());
         }
-        let progress_bar = self.get_progress_bar(&path);
 
-        let (send, recv) = std::sync::mpsc::channel();
-
-        if show_bar && format == &Format::text {
-            println!();
-            println!("Scanning files in {} ...", &path.to_string().bold());
-        }
-
-        let bar_active = show_bar && format == &Format::text;
-        let thread_bar = if bar_active {
-            Some(progress_bar.clone())
+        let has_external_bar = external_bar.is_some();
+        let progress_bar = if let Some(pb) = external_bar {
+            Some(pb)
+        } else if show_bar && format == &Format::text {
+            Some(self.get_progress_bar(&path))
         } else {
             None
         };
+
+        let (send, recv) = std::sync::mpsc::channel();
+
+        let bar_active = progress_bar.is_some();
+        let thread_bar = progress_bar.clone();
+
+        if show_bar && format == &Format::text && !has_external_bar {
+            println!();
+            println!("Scanning files in {} ...", &path.to_string().bold());
+        }
 
         if verbose >= 1 {
             for pattern in crate::paths::missing_literal_excludes(&config.exclude_paths) {
@@ -153,7 +158,7 @@ impl Analyse {
         for (content, path) in recv {
             if verbose >= 2 {
                 log_line(
-                    bar_active.then_some(&progress_bar),
+                    progress_bar.as_ref(),
                     format!("[vv] parsing {}", path.display()),
                 );
             }
@@ -164,7 +169,7 @@ impl Analyse {
         for file in &scanned_files {
             if verbose >= 3 {
                 log_line(
-                    bar_active.then_some(&progress_bar),
+                    progress_bar.as_ref(),
                     format!("[vvv] indexing {}", file.path.display()),
                 );
             }
@@ -178,12 +183,12 @@ impl Analyse {
         for mut file in scanned_files {
             if verbose >= 1 {
                 log_line(
-                    bar_active.then_some(&progress_bar),
+                    progress_bar.as_ref(),
                     format!("[v] analysing {}", file.path.display()),
                 );
             }
-            if bar_active {
-                progress_bar.inc(1);
+            if let Some(ref pb) = progress_bar {
+                pb.inc(1);
             }
 
             let (violations, file_timings) = self.analyse_file(&mut file, collect_rule_metrics);
@@ -197,8 +202,8 @@ impl Analyse {
             files += 1;
         }
 
-        if bar_active {
-            progress_bar.finish();
+        if bar_active && !has_external_bar {
+            progress_bar.unwrap().finish();
         }
 
         results.total_files_count = files;
