@@ -98,6 +98,61 @@ On the first run `phanalist.yaml` will be created with the default configuration
 | `--debug-rule-stats` | Print per-rule cost/coverage stats (time, %, violations, files, statements) | — |
 | `--use-baseline` | Filter results against a baseline file, reporting only new violations | — |
 | `--update-baseline` | Regenerate the baseline from the current scan (requires `--use-baseline`) | — |
+| `--blame` | Attribute violations to engineers via git blame and show a quality report | — |
+| `--since` | Only count violations from commits after this date (e.g. `"30 days"`, `"1 year"`, `"2025-01-01"`) | — |
+| `--until` | Only count violations from commits before this date (e.g. `"2025-06-01"`) | — |
+| `--export-chart` | Export engineer chart as PNG/SVG image (requires `--blame`) | — |
+| `--exclude-author` | Exclude authors from the report (repeatable, e.g. `--exclude-author dependabot`) | — |
+| `--min-violations` | Minimum total violations to include an engineer in the report | `0` |
+
+---
+
+### Engineer Quality Report
+
+Use the `--blame` flag to see who is introducing and fixing violations in your codebase:
+
+```bash
+# Who has violations in their code currently
+~/phanalist --blame
+
+# See what changed in the last 30 days (Net column shows who is improving vs degrading)
+~/phanalist --blame --since "30 days"
+
+# See changes over the last year
+~/phanalist --blame --since "1 year"
+
+# Exclude bots
+~/phanalist --blame --since "30 days" --exclude-author dependabot
+
+# Sort by net improvements (who is adding the most value)
+~/phanalist --blame --since "30 days" --sort net
+```
+
+The report shows a table with:
+
+| Column | Meaning |
+|---|---|
+| **Engineer** | Git author name |
+| **Fixed (✓)** | Violations that disappeared compared to the `--since` snapshot |
+| **Introduced (✗)** | Violations that appeared compared to the `--since` snapshot |
+| **Net** | `Fixed - Introduced` — positive means improving, negative means degrading |
+
+**Sorting:**
+
+Use `--sort` to change the order: `total` (default, by volume), `net` (by net improvements), `name`, `fixed`, `introduced`.
+
+**How it works:**
+
+- **Without `--since`:** Looks at the current violations in your code and uses git blame to figure out who last touched each affected line. Engineers are credited with the violations in code they most recently worked on.
+- **With `--since <date>`:** Takes a snapshot of your code as it was at that date, runs the same analysis on the old version, and compares the results. Violations that disappeared were "fixed" — violations that appeared were "introduced". Each change is attributed to the engineer who made it.
+
+**Output:**
+
+The report includes a summary table and a per-rule breakdown with colored counts (green for fixed, red for introduced).
+
+The `--blame` flag works with `--output-format json` — the engineer data is included as an `"engineer_report"` field in the JSON output for use in pipelines or dashboards.
+
+Requires a `.git` directory (discovered from the current working directory). Only files within `--src` paths are attributed.
 
 ---
 

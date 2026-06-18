@@ -2,6 +2,7 @@ use crate::results::Results;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
+pub mod chart;
 pub mod codeclimate;
 pub mod json;
 pub mod sarif;
