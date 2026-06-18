@@ -6,7 +6,7 @@ use std::str::FromStr;
 
 use clap::Parser;
 use colored::Colorize;
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::ProgressBar;
 
 use crate::analyse::Analyse;
 use crate::baseline::Baseline;
@@ -71,14 +71,17 @@ struct Args {
     /// Show violations until this date (e.g. "2025-06-01")
     until: Option<String>,
     #[arg(long)]
-    /// Export engineer chart as PNG/SVG image (requires --blame)
-    export_chart: Option<String>,
-    #[arg(long)]
     /// Exclude these authors from the engineer report (repeatable)
     exclude_author: Vec<String>,
     #[arg(long, default_value = "0")]
     /// Minimum total violations to include an engineer in the report
     min_violations: u64,
+    #[arg(long)]
+    /// Only include authors matching this substring (repeatable, case-insensitive)
+    filter_author: Vec<String>,
+    #[arg(long)]
+    /// Only include rules matching this string (repeatable, e.g. --filter-rule E0014)
+    filter_rule: Vec<String>,
 }
 
 fn main() {
@@ -140,15 +143,7 @@ fn main() {
     }
 
     let blame_bar: Option<ProgressBar> = if args.blame && format == Format::text && !quiet {
-        let pb = indicatif::ProgressBar::new(0);
-        pb.set_style(
-            ProgressStyle::default_bar()
-                .template("[{elapsed_precise}] [{bar:40}] {pos}/{len} files ({eta})")
-                .unwrap()
-                .progress_chars("=>"),
-        );
-        pb.set_message("scanning");
-        Some(pb)
+        Some(indicatif::ProgressBar::new(0))
     } else {
         None
     };
@@ -202,14 +197,13 @@ fn main() {
 
     if let Some(ref b) = blame_bar {
         let total = aggregate.total_files_count;
-        let blame_total = if args.since.is_some() || args.until.is_some() {
+        let blame_total = if args.since.is_some() {
             total * 2
         } else {
             let vio_count = aggregate.files.iter().filter(|(_, v)| !v.is_empty()).count();
             total + vio_count as i64
         };
         b.set_length(blame_total as u64);
-        b.set_message("blaming");
     }
 
     if args.update_baseline {
@@ -262,16 +256,14 @@ fn main() {
             }
         };
 
-        if args.since.is_some() || args.until.is_some() {
-            if format == Format::text {
-                eprintln!(
-                    "{}",
-                    "Notice: Running historical analysis with --since/--until. \
-                     This will re-analyse changed files from the git history. \
-                     May take a while depending on repo size."
-                        .yellow()
-                );
-            }
+        if (args.since.is_some() || args.until.is_some()) && format == Format::text {
+            eprintln!(
+                "{}",
+                "Notice: Running historical analysis with --since/--until. \
+                 This will re-analyse changed files from the git history. \
+                 May take a while depending on repo size."
+                    .yellow()
+            );
         }
 
         let blame_config = BlameConfig {
@@ -279,6 +271,8 @@ fn main() {
             until: args.until.clone(),
             exclude_authors: args.exclude_author.clone(),
             min_violations: args.min_violations,
+            filter_authors: args.filter_author.clone(),
+            filter_rules: args.filter_rule.clone(),
         };
 
         let engineer = match EngineerBlame::new(&repo_root, &blame_config) {
@@ -301,7 +295,7 @@ fn main() {
         aggregate.engineer_report = Some(report.clone());
 
         if let Some(ref b) = blame_bar {
-            b.finish_with_message("blame done");
+            b.finish();
         }
 
         if !quiet {
@@ -312,18 +306,6 @@ fn main() {
             }
         }
 
-        if let Some(chart_path) = &args.export_chart {
-            match outputs::chart::export_chart_image(&report, chart_path, &args.since) {
-                Ok(()) => {
-                    if format == Format::text {
-                        println!("Chart exported to {}", chart_path.green().bold());
-                    }
-                }
-                Err(e) => {
-                    eprintln!("Failed to export chart: {e}");
-                }
-            }
-        }
     }
 
     if has_violations {

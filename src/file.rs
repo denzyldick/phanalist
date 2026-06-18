@@ -34,13 +34,6 @@ pub struct Method {
     pub counter: isize,
 }
 
-impl Method {
-    #[allow(dead_code)]
-    pub fn increase_counter(&mut self) {
-        self.counter += 1;
-    }
-}
-
 impl RC {
     pub fn new() -> Self {
         Self {
@@ -72,11 +65,6 @@ impl<'arena> File<'arena> {
             reference_counter: RC::new(),
             ast: Some(program),
         }
-    }
-
-    #[allow(dead_code)]
-    pub fn get_class(&self) -> Option<Vec<Statement<'arena>>> {
-        None
     }
 
     pub fn get_fully_qualified_name(&self) -> Option<String> {

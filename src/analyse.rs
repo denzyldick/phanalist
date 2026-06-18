@@ -98,6 +98,7 @@ impl Analyse {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn scan(
         &self,
         path: String,
@@ -268,6 +269,7 @@ impl Analyse {
         }
     }
 
+    // Called from main.rs; dead_code is a false positive across crate targets.
     #[allow(dead_code)]
     pub(crate) fn output(&mut self, results: &mut Results, format: Format, summary_only: bool) {
         if summary_only {

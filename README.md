@@ -134,14 +134,10 @@ The report shows a table with:
 | **Introduced (✗)** | Violations that appeared compared to the `--since` snapshot |
 | **Net** | `Fixed - Introduced` — positive means improving, negative means degrading |
 
-When `--since` is used, phanalist:
-1. Reads the old version of each changed file from git history
-2. Re-analyzes it for that point in time
-3. Diffs the violations to determine what was fixed vs introduced
-4. Uses git blame to attribute each change to the engineer
+**How it works:**
 
-> **Note:** Historical analysis (`--since`/`--until`) re-analyzes files from git history
-> and may take longer on large repos. A notice is printed before it starts.
+- **Without `--since`:** Looks at the current violations in your code and uses git blame to figure out who last touched each affected line. Engineers are credited with the violations in code they most recently worked on.
+- **With `--since <date>`:** Takes a snapshot of your code as it was at that date, runs the same analysis on the old version, and compares the results. Violations that disappeared were "fixed" — violations that appeared were "introduced". Each change is attributed to the engineer who made it.
 
 **Charts:**
 
