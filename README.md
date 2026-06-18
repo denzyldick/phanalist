@@ -146,9 +146,9 @@ Use `--sort` to change the order: `total` (default, by volume), `net` (by net im
 - **Without `--since`:** Looks at the current violations in your code and uses git blame to figure out who last touched each affected line. Engineers are credited with the violations in code they most recently worked on.
 - **With `--since <date>`:** Takes a snapshot of your code as it was at that date, runs the same analysis on the old version, and compares the results. Violations that disappeared were "fixed" — violations that appeared were "introduced". Each change is attributed to the engineer who made it.
 
-**Charts:**
+**Output:**
 
-Terminal output includes a stacked bar chart (green = fixed, red = introduced) and a per-rule breakdown.
+The report includes a summary table and a per-rule breakdown with colored counts (green for fixed, red for introduced).
 
 The `--blame` flag works with `--output-format json` — the engineer data is included as an `"engineer_report"` field in the JSON output for use in pipelines or dashboards.
 
