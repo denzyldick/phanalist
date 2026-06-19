@@ -234,7 +234,7 @@ fn main() {
     // Git repo discovered after scanning to avoid FFI/library conflicts
     let blame_git_repo = if args.blame {
         let src_path = Path::new(&paths[0]);
-        match git2::Repository::discover(src_path) {
+        match gix::discover(src_path) {
             Ok(r) => Some(r),
             Err(_) => {
                 let has_git = src_path.ancestors().any(|d| d.join(".git").exists());

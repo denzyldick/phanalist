@@ -4,7 +4,8 @@ use std::sync::{Arc, Mutex};
 
 use bumpalo::Bump;
 use chrono::{DateTime, FixedOffset, NaiveDate, NaiveDateTime, NaiveTime, TimeDelta, Utc};
-use git2::{Oid, Repository};
+use gix::revision::walk::Sorting;
+use gix::traverse::commit::simple::CommitTimeOrder;
 use indicatif::ProgressBar;
 use serde::{Deserialize, Serialize};
 
@@ -88,7 +89,7 @@ pub fn is_author_excluded(name: &str, email: &str, exclude: &[String]) -> bool {
 }
 
 pub struct EngineerBlame {
-    repo: Mutex<Repository>,
+    repo: Mutex<gix::Repository>,
     repo_path: PathBuf,
     since_ts: Option<i64>,
     until_ts: Option<i64>,
@@ -97,7 +98,7 @@ pub struct EngineerBlame {
     filter_rules: Vec<String>,
     min_violations: u64,
     blame_cache: Arc<Mutex<HashMap<String, Arc<Vec<BlameLine>>>>>,
-    boundary_oid: Mutex<Option<Oid>>,
+    boundary_oid: Mutex<Option<gix::hash::ObjectId>>,
 }
 
 #[derive(Clone)]
@@ -111,7 +112,7 @@ impl EngineerBlame {
         repo_path: &Path,
         config: &BlameConfig,
     ) -> Result<Self, String> {
-        let repo = Repository::open(repo_path).map_err(|e| format!("Cannot open git repo: {e}"))?;
+        let repo = gix::open(repo_path).map_err(|e| format!("Cannot open git repo: {e}"))?;
 
         let since_ts = config.since.as_ref().and_then(|s| {
             parse_relative_date(s).map(|dt| dt.timestamp())
@@ -135,7 +136,7 @@ impl EngineerBlame {
         })
     }
 
-    fn get_content_at_boundary(&self, rel_path: &str, boundary_oid: Oid) -> Option<String> {
+    fn get_content_at_boundary(&self, rel_path: &str, boundary_oid: gix::hash::ObjectId) -> Option<String> {
         let normalized = rel_path.strip_prefix("./").unwrap_or(rel_path);
         let repo = self.repo.lock().ok()?;
         let workdir = repo.workdir().unwrap_or(Path::new(".")).to_path_buf();
@@ -144,32 +145,29 @@ impl EngineerBlame {
             .unwrap_or(Path::new(normalized));
         let commit = repo.find_commit(boundary_oid).ok()?;
         let tree = commit.tree().ok()?;
-        let entry = tree.get_path(path).ok()?;
-        let blob = repo.find_blob(entry.id()).ok()?;
-        std::str::from_utf8(blob.content()).ok().map(String::from)
+        let entry = tree.lookup_entry_by_path(path).ok()??;
+        let blob = entry.object().ok()?.try_into_blob().ok()?;
+        std::str::from_utf8(&blob.data).ok().map(String::from)
     }
 
     /// Walk the revwalk once to find the boundary commit (first commit ≤ since_ts),
     /// cache it, then tree-diff it against HEAD to get all changed files. Returns
     /// `(boundary_oid, changed_files)`. Returns `None` when no boundary exists.
-    fn find_boundary_and_changed_files(&self, since_ts: i64) -> Option<(Oid, HashSet<String>)> {
+    fn find_boundary_and_changed_files(&self, since_ts: i64) -> Option<(gix::hash::ObjectId, HashSet<String>)> {
         let repo = self.repo.lock().ok()?;
-        let head = repo.head().ok()?;
-        let head_oid = head.target()?;
-        let head_commit = repo.find_commit(head_oid).ok()?;
+        let head_id = repo.head_id().ok()?;
+        let head_commit = repo.find_commit(head_id).ok()?;
         let head_tree = head_commit.tree().ok()?;
 
-        let mut revwalk = repo.revwalk().ok()?;
-        revwalk.push(head_oid).ok()?;
-        revwalk.set_sorting(git2::Sort::TIME).ok()?;
+        let walk = repo.rev_walk([head_id])
+            .sorting(Sorting::ByCommitTime(CommitTimeOrder::NewestFirst))
+            .all().ok()?;
 
         let boundary_oid = 'found: {
-            for oid_result in revwalk {
-                let oid = oid_result.ok()?;
-                if let Ok(commit) = repo.find_commit(oid) {
-                    if commit.time().seconds() <= since_ts {
-                        break 'found oid;
-                    }
+            for info in walk {
+                let info = info.ok()?;
+                if info.commit_time() <= since_ts {
+                    break 'found info.id;
                 }
             }
             return None;
@@ -183,18 +181,14 @@ impl EngineerBlame {
         let boundary_commit = repo.find_commit(boundary_oid).ok()?;
         let boundary_tree = boundary_commit.tree().ok()?;
 
-        let diff = repo.diff_tree_to_tree(
+        let changes = repo.diff_tree_to_tree(
             Some(&boundary_tree),
             Some(&head_tree),
             None,
         ).ok()?;
 
-        let changed: HashSet<String> = diff.deltas()
-            .filter_map(|d| {
-                d.new_file().path()
-                    .or_else(|| d.old_file().path())
-                    .map(|p| p.to_string_lossy().to_string())
-            })
+        let changed: HashSet<String> = changes.iter()
+            .map(|c| c.location().to_string())
             .collect();
 
         Some((boundary_oid, changed))
@@ -290,8 +284,8 @@ impl EngineerBlame {
         let until_ts = self.until_ts;
         let repo_path = self.repo_path.clone();
         let workdir = self.repo.lock().unwrap().workdir()
-            .unwrap_or(Path::new("."))
-            .to_path_buf();
+            .map(|p| p.to_path_buf())
+            .unwrap_or_else(|| PathBuf::from("."));
         let bar_inner = bar.clone();
 
         let results_mutex: Mutex<Vec<(String, String)>> = Mutex::new(Vec::new());
@@ -384,10 +378,8 @@ impl EngineerBlame {
             None => return,
         };
 
-        let workdir = {
-            let repo = self.repo.lock().unwrap();
-            repo.workdir().map(|p| p.to_path_buf())
-        };
+        let workdir = self.repo.lock().unwrap().workdir()
+            .map(|p| p.to_path_buf());
 
         // Pre-compute old file contents from boundary tree (fast blob lookups, no revwalk)
         let file_paths: Vec<String> = results.files.keys().cloned().collect();
