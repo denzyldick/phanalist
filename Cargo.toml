@@ -27,7 +27,6 @@ mago-syntax = "1.30"
 mago-database = "1.30"
 mago-span = "1.30"
 bumpalo = "3"
-git2 = "0.20"
 gix = { version = "0.84", features = ["blame"] }
 chrono = "0.4"
 
