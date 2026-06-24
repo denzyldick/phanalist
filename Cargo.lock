@@ -1902,9 +1902,9 @@ checksum = "953f07c43838f8e6f9758cab68bf5bed85465e7587ebe0b823f1bcd81978ad3a"
 
 [[package]]
 name = "mago-database"
-version = "1.30.0"
+version = "1.40.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37272cb48a1cb50018b6587600817acff61d6b300b80d2b488c4d8d05c2036e2"
+checksum = "5e3b37db9341472523ec99ad52a93a6b0690b86d6abf2d0acf4f87a2583645a9"
 dependencies = [
  "foldhash",
  "glob",
@@ -1912,7 +1912,6 @@ dependencies = [
  "memchr",
  "notify",
  "rayon",
- "serde",
  "tracing",
  "walkdir",
 ]
