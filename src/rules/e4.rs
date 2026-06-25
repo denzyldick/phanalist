@@ -1,5 +1,5 @@
 use mago_span::HasSpan;
-use mago_syntax::ast::{ClassLikeMember, Statement};
+use mago_syntax::cst::{ClassLikeMember, Statement};
 
 use crate::file::File;
 use crate::results::{Message, Violation};
@@ -59,7 +59,7 @@ impl crate::rules::Rule for Rule {
 fn collect_member_constants(
     rule: &Rule,
     file: &File<'_>,
-    members: &mago_syntax::ast::Sequence<'_, ClassLikeMember<'_>>,
+    members: &mago_syntax::cst::Sequence<'_, ClassLikeMember<'_>>,
     violations: &mut Vec<Violation>,
 ) {
     for member in members.iter() {

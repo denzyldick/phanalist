@@ -1,14 +1,14 @@
 use std::{collections::HashMap, path::PathBuf};
 
-use bumpalo::Bump;
+use mago_allocator::prelude::Arena;
 use mago_database::file::FileId;
 use mago_span::Span;
-use mago_syntax::ast::{Program, Statement};
+use mago_syntax::cst::{Program, Statement};
 use serde::{Deserialize, Serialize};
 
 /// A PHP source file paired with its parsed AST.
 ///
-/// The AST is allocated inside an external `bumpalo::Bump` arena; the same arena
+/// The AST is allocated inside an external arena; the same arena
 /// is reused across every file in a scan and freed in one go when the scan ends,
 /// instead of doing per-file heap allocations.
 #[derive(Debug, Clone)]
@@ -47,7 +47,7 @@ impl RC {
 }
 
 impl<'arena> File<'arena> {
-    pub fn new(arena: &'arena Bump, path: PathBuf, content: String) -> Self {
+    pub fn new(arena: &'arena impl Arena, path: PathBuf, content: String) -> Self {
         let file_id = FileId::new(path.to_string_lossy().as_bytes());
         let program = mago_syntax::parser::parse_file_content(arena, file_id, content.as_bytes());
 

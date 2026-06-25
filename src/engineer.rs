@@ -2,8 +2,8 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
-use bumpalo::Bump;
 use chrono::{DateTime, FixedOffset, NaiveDate, NaiveDateTime, NaiveTime, TimeDelta, Utc};
+use mago_allocator::prelude::LocalArena;
 use gix::revision::walk::Sorting;
 use gix::traverse::commit::simple::CommitTimeOrder;
 use indicatif::ProgressBar;
@@ -443,7 +443,7 @@ impl EngineerBlame {
                     for (file_path, old_content_opt, current_violations) in &chunk {
                         let old_violations: Vec<Violation> = match old_content_opt {
                             Some(content) => {
-                                let arena = Bump::new();
+                                let arena = LocalArena::new();
                                 let mut old_file = File::new(&arena, PathBuf::from(file_path), content.clone());
                                 let (violations, _) = analyse.analyse_file(&mut old_file, false);
                                 violations
