@@ -1,5 +1,5 @@
 use mago_span::HasSpan;
-use mago_syntax::ast::{
+use mago_syntax::cst::{
     ClassLikeMember, ForBody, ForeachBody, IfBody, MethodBody, Sequence, Statement, SwitchBody,
     SwitchCase, WhileBody,
 };

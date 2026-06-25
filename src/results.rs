@@ -138,7 +138,7 @@ impl Results {
 mod tests {
     use std::path::PathBuf;
 
-    use bumpalo::Bump;
+    use mago_allocator::prelude::LocalArena;
 
     use super::*;
 
@@ -152,7 +152,7 @@ mod tests {
             engineer_report: None,
         }
     }
-    fn get_file<'a>(arena: &'a Bump, name: &str) -> File<'a> {
+    fn get_file<'a>(arena: &'a LocalArena, name: &str) -> File<'a> {
         File::new(arena, PathBuf::from(name), "Content".to_string())
     }
     fn get_violation(rule: &str) -> Violation {
@@ -207,7 +207,7 @@ mod tests {
     fn test_add_file_violations_expected_file_violations() {
         let mut results = get_results();
 
-        let arena = Bump::new();
+        let arena = LocalArena::new();
         let file1 = get_file(&arena, "./class1.php");
         let file2 = get_file(&arena, "./class2.php");
 
@@ -237,7 +237,7 @@ mod tests {
     fn test_add_file_violations_expected_codes_count() {
         let mut results = get_results();
 
-        let arena = Bump::new();
+        let arena = LocalArena::new();
         let file1 = get_file(&arena, "./class1.php");
         let file2 = get_file(&arena, "./class2.php");
 
@@ -261,7 +261,7 @@ mod tests {
     #[test]
     fn test_has_any_violations_expected_true() {
         let mut results = get_results();
-        let arena = Bump::new();
+        let arena = LocalArena::new();
         let file1 = get_file(&arena, "./class1.php");
         let violation1 = get_violation("E001");
 

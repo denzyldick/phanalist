@@ -1,5 +1,5 @@
 use mago_span::HasSpan;
-use mago_syntax::ast::{Call, Expression, Statement, UnaryPrefixOperator};
+use mago_syntax::cst::{Call, Expression, Statement, UnaryPrefixOperator};
 
 use crate::file::File;
 use crate::results::{Message, Violation};

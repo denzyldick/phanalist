@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use mago_span::{HasSpan, Span};
-use mago_syntax::ast::*;
+use mago_syntax::cst::*;
 
 use crate::file::File;
 use crate::results::{Message, Violation};
@@ -1514,10 +1514,9 @@ impl Rule {
 
 #[cfg(test)]
 mod tests {
-    use bumpalo::Bump;
-
     use super::*;
     use crate::rules::tests::analyze_file_for_rule;
+    use mago_allocator::prelude::LocalArena;
 
     #[test]
     fn valid_fluent_interface() {
@@ -1615,7 +1614,7 @@ mod tests {
     #[test]
     fn valid_cross_file() {
         let rule = Rule::default();
-        let arena = Bump::new();
+        let arena = LocalArena::new();
 
         let path1 = std::path::PathBuf::from("./src/rules/examples/e14/dependency.php");
         let content1 =

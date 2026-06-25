@@ -1,4 +1,4 @@
-use mago_syntax::ast::Statement;
+use mago_syntax::cst::Statement;
 
 use crate::file::File;
 use crate::results::Violation;

@@ -23,10 +23,10 @@ exitcode = "1.1.2"
 memory-stats = "1.0.0"
 human_bytes = "0.4"
 serde-sarif = "=0.5.0"
-mago-syntax = "1.30"
-mago-database = "1.30"
-mago-span = "1.30"
-bumpalo = "3"
+mago-syntax = "1.40"
+mago-database = "1.40"
+mago-span = { version = "1.40", features = ["serde"] }
+mago-allocator = "1.40"
 gix = { version = "0.85", features = ["blame"] }
 chrono = "0.4"
 

@@ -1,5 +1,5 @@
 use mago_span::HasSpan;
-use mago_syntax::ast::{ClassLikeMember, Modifier, Property, Statement};
+use mago_syntax::cst::{ClassLikeMember, Modifier, Property, Statement};
 
 use crate::file::File;
 use crate::results::{Message, Violation};

@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use mago_span::{HasSpan, Span};
-use mago_syntax::ast::*;
+use mago_syntax::cst::*;
 
 use crate::file::File;
 use crate::results::{Message, Violation};

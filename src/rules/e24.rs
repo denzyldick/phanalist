@@ -1,5 +1,5 @@
 use mago_span::HasSpan;
-use mago_syntax::ast::{ClassLikeMember, Statement, MethodBody};
+use mago_syntax::cst::{ClassLikeMember, Statement, MethodBody};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -30,7 +30,7 @@ impl Rule {
     fn check_methods(
         &self,
         file: &File<'_>,
-        members: &mago_syntax::ast::Sequence<'_, ClassLikeMember<'_>>,
+        members: &mago_syntax::cst::Sequence<'_, ClassLikeMember<'_>>,
         violations: &mut Vec<Violation>,
     ) {
         for member in members.iter() {

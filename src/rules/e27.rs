@@ -1,5 +1,5 @@
 use mago_span::HasSpan;
-use mago_syntax::ast::{ClassLikeMember, Statement};
+use mago_syntax::cst::{ClassLikeMember, Statement};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -35,7 +35,7 @@ impl Rule {
         &self,
         file: &File<'_>,
         name: &str,
-        members: &mago_syntax::ast::Sequence<'_, ClassLikeMember<'_>>,
+        members: &mago_syntax::cst::Sequence<'_, ClassLikeMember<'_>>,
         span: mago_span::Span,
         violations: &mut Vec<Violation>,
     ) {

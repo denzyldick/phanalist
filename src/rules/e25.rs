@@ -1,5 +1,5 @@
 use mago_span::HasSpan;
-use mago_syntax::ast::Statement;
+use mago_syntax::cst::Statement;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
