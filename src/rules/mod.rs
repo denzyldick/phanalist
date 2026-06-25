@@ -5,7 +5,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use mago_span::Span;
-use mago_syntax::ast::*;
+use mago_syntax::cst::*;
 use serde_json::Value;
 
 use crate::config::Config;
@@ -356,7 +356,7 @@ pub fn all_rules() -> HashMap<String, Box<dyn Rule>> {
 
 #[cfg(test)]
 mod tests {
-    use bumpalo::Bump;
+    use mago_allocator::prelude::LocalArena;
     use std::fs;
 
     use crate::analyse::Analyse;
@@ -370,7 +370,7 @@ mod tests {
             .join("examples")
             .join(path);
         let content = fs::read_to_string(&path).unwrap();
-        let arena = Bump::new();
+        let arena = LocalArena::new();
         let mut file = File::new(&arena, path, content);
 
         let config = Config {

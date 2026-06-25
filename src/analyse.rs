@@ -5,11 +5,11 @@ use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 use std::time::Instant;
 
-use bumpalo::Bump;
 use colored::Colorize;
 use indicatif::ProgressBar;
 use jwalk::WalkDir;
-use mago_syntax::ast::Statement;
+use mago_allocator::prelude::LocalArena;
+use mago_syntax::cst::Statement;
 
 use crate::config::Config;
 use crate::debug_stats::{FileTimings, RuleTimings};
@@ -152,7 +152,7 @@ impl Analyse {
             self::scan_folder(path, send, verbose, thread_bar, exclude_paths);
         });
 
-        let arena = Bump::new();
+        let arena = LocalArena::new();
 
         // 1. Collect all files
         let mut scanned_files: Vec<File<'_>> = Vec::new();

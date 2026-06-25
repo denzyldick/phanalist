@@ -1,4 +1,4 @@
-use mago_syntax::ast::{OpeningTag, Statement};
+use mago_syntax::cst::{OpeningTag, Statement};
 
 use crate::file::File;
 use crate::results::{Message, Violation};

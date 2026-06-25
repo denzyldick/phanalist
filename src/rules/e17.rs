@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use mago_span::HasSpan;
-use mago_syntax::ast::*;
+use mago_syntax::cst::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -539,7 +539,9 @@ impl Rule {
                 }
                 if let Some(argument_list) = &anonymous_class.argument_list {
                     for argument in argument_list.arguments.iter() {
-                        self.scan_argument(argument, current_class, coupled_types);
+                        if let Some(value) = argument.value() {
+                            self.scan_expression(value, current_class, coupled_types);
+                        }
                     }
                 }
             }

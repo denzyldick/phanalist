@@ -1,5 +1,5 @@
 use mago_span::HasSpan;
-use mago_syntax::ast::{ClassLikeMember, MethodBody, Statement};
+use mago_syntax::cst::{ClassLikeMember, MethodBody, Statement};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -35,7 +35,7 @@ impl Rule {
         &self,
         file: &File<'_>,
         name: &str,
-        members: &mago_syntax::ast::Sequence<'_, ClassLikeMember<'_>>,
+        members: &mago_syntax::cst::Sequence<'_, ClassLikeMember<'_>>,
         span: mago_span::Span,
         violations: &mut Vec<Violation>,
     ) {
@@ -133,7 +133,7 @@ impl crate::rules::Rule for Rule {
     }
 }
 
-fn is_accessor_method(method: &mago_syntax::ast::Method<'_>, name: &str) -> bool {
+fn is_accessor_method(method: &mago_syntax::cst::Method<'_>, name: &str) -> bool {
     let is_getter = name.starts_with("get") && name.len() > 3
         && name.chars().nth(3).is_some_and(|c| c.is_uppercase());
     let is_isser = (name.starts_with("is") || name.starts_with("has")) && name.len() > 2
