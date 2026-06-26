@@ -139,7 +139,7 @@ fn handle_document_update(
 }
 
 /// Build AST, run rules on the updated file content, and format results as LSP Diagnostics.
-fn analyze_single_file(
+pub(crate) fn analyze_single_file(
     analyse: &Analyse,
     uri: &Url,
     content: String,
@@ -184,4 +184,108 @@ fn analyze_single_file(
         .collect();
 
     Ok(diagnostics)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::analyse::Analyse;
+    use crate::config::Config;
+    use lsp_types::{DiagnosticSeverity, NumberOrString};
+
+    fn make_uri(path: &str) -> Url {
+        Url::parse(&format!("file://{path}")).unwrap()
+    }
+
+    #[test]
+    fn clean_file_returns_no_diagnostics() {
+        let config = Config::default();
+        let analyse = Analyse::new(&config);
+        let content = "<?php\n".to_string();
+
+        let diagnostics = analyze_single_file(&analyse, &make_uri("/test.php"), content).unwrap();
+        assert!(diagnostics.is_empty(), "expected no diagnostics for a minimal PHP file, got {diagnostics:?}");
+    }
+
+    #[test]
+    fn file_with_too_many_params_triggers_e0007() {
+        let config = Config::default();
+        let analyse = Analyse::new(&config);
+        let content = "<?php\n\nnamespace App;\n\nclass Demo {\n    public function foo($a, $b, $c, $d, $e, $f, $g, $h, $i) {}\n}\n".to_string();
+
+        let diagnostics = analyze_single_file(&analyse, &make_uri("/test.php"), content).unwrap();
+        assert!(!diagnostics.is_empty(), "expected at least one diagnostic for method with 9 parameters");
+
+        let has_e0007 = diagnostics.iter().any(|d| {
+            matches!(&d.code, Some(NumberOrString::String(code)) if code == "E0007")
+        });
+        assert!(has_e0007, "expected E0007 diagnostic among {diagnostics:?}");
+    }
+
+    #[test]
+    fn diagnostics_use_warning_severity_and_phanalist_source() {
+        let config = Config::default();
+        let analyse = Analyse::new(&config);
+        let content = "<?php\n\nnamespace App;\n\nclass Demo {\n    public function foo($a, $b, $c, $d, $e, $f, $g, $h, $i) {}\n}\n".to_string();
+
+        let diagnostics = analyze_single_file(&analyse, &make_uri("/test.php"), content).unwrap();
+        let d = diagnostics.iter().find(|d| {
+            matches!(&d.code, Some(NumberOrString::String(code)) if code == "E0007")
+        }).expect("expected E0007 diagnostic");
+
+        assert_eq!(d.severity, Some(DiagnosticSeverity::WARNING));
+        assert_eq!(d.source.as_deref(), Some("phanalist"));
+        assert!(d.message.contains("foo"), "message should mention the method name: {}", d.message);
+        assert!(d.message.contains("8"), "message should mention the max parameter count: {}", d.message);
+    }
+
+    #[test]
+    fn diagnostics_use_zero_indexed_lines() {
+        let config = Config::default();
+        let analyse = Analyse::new(&config);
+        // Line 6 (1-based) has the method with too many params → 5 (0-based)
+        let content = "<?php\n\nnamespace App;\n\nclass Demo {\n    public function foo($a, $b, $c, $d, $e, $f, $g, $h, $i) {}\n}\n".to_string();
+
+        let diagnostics = analyze_single_file(&analyse, &make_uri("/test.php"), content).unwrap();
+        let d = diagnostics.iter().find(|d| {
+            matches!(&d.code, Some(NumberOrString::String(code)) if code == "E0007")
+        }).expect("expected E0007 diagnostic");
+
+        // The violation is on line 6 (1-based) → 5 (0-based)
+        assert_eq!(d.range.start.line, 5, "expected 0-indexed line 5 for the method");
+        assert_eq!(d.range.end.line, 5, "expected end line to match start line for a single-line method signature");
+    }
+
+    #[test]
+    fn invalid_uri_returns_error() {
+        let config = Config::default();
+        let analyse = Analyse::new(&config);
+        let uri = Url::parse("https://example.com/test.php").unwrap();
+        let content = "<?php\n".to_string();
+
+        let result = analyze_single_file(&analyse, &uri, content);
+        assert!(result.is_err(), "expected error for non-file URI");
+    }
+
+    #[test]
+    fn namespace_without_class_does_not_crash() {
+        let config = Config::default();
+        let analyse = Analyse::new(&config);
+        let content = "<?php\n\nnamespace App;\n\nfunction helper() {}\n".to_string();
+
+        let diagnostics = analyze_single_file(&analyse, &make_uri("/test.php"), content).unwrap();
+        // Should not panic; may or may not have diagnostics depending on rules
+        assert!(diagnostics.is_empty() || !diagnostics.is_empty());
+    }
+
+    #[test]
+    fn invalid_php_syntax_is_handled_gracefully() {
+        let config = Config::default();
+        let analyse = Analyse::new(&config);
+        let content = "<?php\n\nsyntax error !!! @@@\n".to_string();
+
+        // Should not panic
+        let result = analyze_single_file(&analyse, &make_uri("/test.php"), content);
+        assert!(result.is_ok(), "should handle parse errors without crashing");
+    }
 }

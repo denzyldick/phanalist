@@ -6,6 +6,7 @@ pub mod config;
 pub mod debug_stats;
 pub mod engineer;
 pub mod file;
+pub mod lsp;
 pub mod outputs;
 pub mod paths;
 pub mod results;
