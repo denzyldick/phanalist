@@ -22,6 +22,7 @@ mod file;
 mod outputs;
 mod paths;
 mod results;
+mod lsp;
 mod rules;
 
 ///
@@ -85,21 +86,16 @@ struct Args {
     #[arg(long, default_value = "total")]
     /// Sort the engineer report by: total (default), net, name, fixed, introduced
     sort: String,
+    #[arg(long)]
+    /// Start as a Language Server (LSP) for editor integrations
+    lsp: bool,
 }
 
 fn main() {
     std::env::set_var("RUST_BACKTRACE", "1");
     let args = Args::parse();
 
-    let quiet = args.quiet;
-
-    let paths = args.src;
-    for path in paths.iter() {
-        if !Path::new(&path).exists() {
-            println!("Path {} does not exist", path);
-            process::exit(exitcode::IOERR);
-        }
-    }
+    let quiet = args.quiet || args.lsp;
 
     let format = match outputs::Format::from_str(args.output_format.as_str()) {
         Ok(format) => format,
@@ -109,10 +105,29 @@ fn main() {
         }
     };
 
-    let mut config = Analyse::parse_config(args.config, &format, quiet);
-    if let Some(rules) = args.rules {
+    let mut config = Analyse::parse_config(args.config.clone(), &format, quiet);
+    if let Some(rules) = args.rules.clone() {
         config.enabled_rules = rules;
     }
+
+    if args.lsp {
+        match lsp::run_server(&config) {
+            Ok(()) => process::exit(exitcode::OK),
+            Err(err) => {
+                eprintln!("LSP server error: {:?}", err);
+                process::exit(exitcode::SOFTWARE);
+            }
+        }
+    }
+
+    let paths = args.src;
+    for path in paths.iter() {
+        if !Path::new(&path).exists() {
+            println!("Path {} does not exist", path);
+            process::exit(exitcode::IOERR);
+        }
+    }
+
     let mut analyze = Analyse::new(&config);
 
     if args.update_baseline && args.use_baseline.is_none() {

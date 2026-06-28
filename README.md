@@ -104,6 +104,7 @@ On the first run `phanalist.yaml` will be created with the default configuration
 | `--export-chart` | Export engineer chart as PNG/SVG image (requires `--blame`) | — |
 | `--exclude-author` | Exclude authors from the report (repeatable, e.g. `--exclude-author dependabot`) | — |
 | `--min-violations` | Minimum total violations to include an engineer in the report | `0` |
+| `--lsp` | Start as a Language Server (LSP) for editor integrations | — |
 
 ---
 
@@ -271,6 +272,40 @@ rules:
 | [E0030](/src/rules/examples/e30/e30.md) | Cyclomatic Complexity Density | `max_density: 0.3` |
 
 Adding a new rule is straightforward — [this tutorial](./docs/adding_new_rule.md) explains how.
+
+---
+
+### 🔌 Language Server Protocol (LSP)
+
+Phanalist includes built-in LSP support to provide real-time, as-you-type diagnostics directly in your editor.
+
+To start the language server, run:
+```bash
+phanalist --lsp
+```
+
+#### Editor Configuration Examples
+
+##### Neovim (using `vim.lsp`)
+Add the following to your `init.lua` or filetype plugin (`ftplugin/php.lua`):
+```lua
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "php",
+  callback = function()
+    local root_dir = vim.fs.dirname(vim.fs.find({'phanalist.yaml', '.git'}, { upward = true })[1])
+    if root_dir then
+      vim.lsp.start({
+        name = "phanalist-lsp",
+        cmd = { "phanalist", "--lsp" },
+        root_dir = root_dir,
+      })
+    end
+  end,
+})
+```
+
+##### VS Code
+You can use any generic LSP extension or configure your settings to run `phanalist --lsp` as a language client for PHP files.
 
 ---
 
