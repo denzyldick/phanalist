@@ -18,7 +18,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Settings {
-            check_constructor: false,
+            check_constructor: true,
             max_parameters: 8,
         }
     }

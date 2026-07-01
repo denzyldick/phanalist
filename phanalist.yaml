@@ -6,7 +6,7 @@ rules:
   E0010:
     max_paths: 200
   E0007:
-    check_constructor: false
+    check_constructor: true
     max_parameters: 8
   E0012:
     exclude_namespaces: []
@@ -16,11 +16,11 @@ rules:
     reset_interfaces:
     - ResetInterface
   E0024:
-    max_loc: 30
+    max_loc: 50
   E0025:
     max_loc: 500
   E0026:
-    min_ratio: 0.1
+    min_ratio: 0.05
     max_ratio: 0.5
   E0027:
     max_methods: 15

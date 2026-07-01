@@ -17,7 +17,7 @@ pub struct Settings {
 
 impl Default for Settings {
     fn default() -> Self {
-        Settings { max_loc: 30 }
+        Settings { max_loc: 50 }
     }
 }
 

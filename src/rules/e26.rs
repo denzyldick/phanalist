@@ -18,7 +18,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Settings {
-            min_ratio: 0.1,
+            min_ratio: 0.05,
             max_ratio: 0.5,
         }
     }
