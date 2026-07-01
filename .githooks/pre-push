@@ -1,0 +1,9 @@
+#!/bin/sh
+
+set -e
+
+echo "Running tests before push..."
+
+cargo test 2>&1
+
+echo "All tests passed."
