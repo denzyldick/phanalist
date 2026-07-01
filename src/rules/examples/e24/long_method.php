@@ -37,5 +37,26 @@ class LongMethodExample
         $cc = 29;
         $dd = 30;
         $ee = 31;
+        $ff = 32;
+        $gg = 33;
+        $hh = 34;
+        $ii = 35;
+        $jj = 36;
+        $kk = 37;
+        $ll = 38;
+        $mm = 39;
+        $nn = 40;
+        $oo = 41;
+        $pp = 42;
+        $qq = 43;
+        $rr = 44;
+        $ss = 45;
+        $tt = 46;
+        $uu = 47;
+        $vv = 48;
+        $ww = 49;
+        $xx = 50;
+        $yy = 51;
+        $zz = 52;
     }
 }
