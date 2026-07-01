@@ -149,7 +149,7 @@ mod tests {
     fn undercommented() {
         let violations = analyze_file_for_rule("e26/undercommented.php", CODE);
         assert!(violations.len().gt(&0));
-        assert!(violations[0].message.render().contains("10%"));
+        assert!(violations[0].message.render().contains("5%"));
     }
 
     #[test]
