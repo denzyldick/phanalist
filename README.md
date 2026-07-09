@@ -2,7 +2,6 @@
 
 [![Crates.io](https://img.shields.io/crates/v/phanalist.svg)](https://crates.io/crates/phanalist)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
-[![CI](https://github.com/denzyldick/phanalist/actions/workflows/rust.yml/badge.svg)](https://github.com/denzyldick/phanalist/actions)
 
 > Performant static analyzer for PHP, written in Rust. Catches common mistakes and enforces best practices with zero configuration required.
 
