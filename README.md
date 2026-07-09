@@ -1,12 +1,7 @@
 <img src="https://raw.githubusercontent.com/denzyldick/phanalist/main/docs/branding/banner-cropped.png"/>
 
-[![Crates.io](https://img.shields.io/crates/v/phanalist.svg)](https://crates.io/crates/phanalist)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
-
 > Performant static analyzer for PHP, written in Rust. Catches common mistakes and enforces best practices with zero configuration required.
-
 ---
-
 ### 🤔 Why Phanalist?
 
 PHP codebases grow. As they grow, they accumulate technical debt — god classes that do everything, methods no one can follow, hidden complexity that breaks with every change. Traditional linters catch syntax errors and style issues, but they don't tell you if your code is **maintainable**.
