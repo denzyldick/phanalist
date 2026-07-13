@@ -29,7 +29,7 @@ mago-span = { version = "1.40", features = ["serde"] }
 mago-allocator = "1.40"
 gix = { version = "0.85", features = ["blame"] }
 chrono = "0.4"
-lsp-server = "0.8.0"
+lsp-server = "0.9.0"
 lsp-types = "0.94.1"
 
 
