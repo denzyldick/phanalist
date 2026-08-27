@@ -2137,9 +2137,9 @@ dependencies = [
 
 [[package]]
 name = "mago-database"
-version = "1.46.0"
+version = "1.47.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b60dce5cace39618d13cd7e6b54ca83c86e66a31be87a9ab2f497c67fdf2dd29"
+checksum = "dfba1b16cab879d752136c8f407ebbb261e239f37ece7c5da5cff7f7386a6319"
 dependencies = [
  "foldhash",
  "glob",
@@ -2183,9 +2183,9 @@ dependencies = [
 
 [[package]]
 name = "mago-span"
-version = "1.46.0"
+version = "1.47.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "15a1958f8482f3a7a327ea428f3a2e5cbc0d954d2a977bac02fbec227a55fda8"
+checksum = "88f9a0cd0f98ec96374f2e5b52ed43c46e811c3c2f898d2184e9462fad42375f"
 dependencies = [
  "mago-database",
  "serde",
