@@ -771,9 +771,9 @@ dependencies = [
 
 [[package]]
 name = "gix"
-version = "0.87.0"
+version = "0.87.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed40a10602b5b58cfc354da6b94e07024a49aa4c2eb8c94d07f760dfc2560f7a"
+checksum = "fdefc1465d8631807deaf504dacdeff628b978de515653b47976ca7c28ab2a7a"
 dependencies = [
  "gix-actor",
  "gix-archive",
