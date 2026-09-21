@@ -2164,9 +2164,9 @@ dependencies = [
 
 [[package]]
 name = "mago-allocator"
-version = "1.48.1"
+version = "1.49.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac5fcb5ff2404cd4b614a75a5193757f12fd7efbf056fe9336686ca5ae7c68f4"
+checksum = "084389d51b6a015ebdda58531ca9cd6f026f842493c300bf8a709d55b91bcab3"
 dependencies = [
  "allocator-api2",
  "blink-alloc",
