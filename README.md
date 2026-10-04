@@ -233,6 +233,19 @@ rules:
 - **`rules`** — per-rule configuration options
 - **`exclude_paths`** — files skipped before any rule runs, as directory prefixes (`var/cache`, `bootstrap/cache`) or globs (`**/*.generated.php`). Handy for framework caches and frozen code like migrations that would only add noise. Literal (non-glob) patterns that don't exist on disk trigger a warning at `-v` verbosity — a helpful catch for typos. Globs that match nothing are silently accepted.
 
+#### Scanning a whole project
+
+Pointing `--src .` at a project root works and stays memory-safe: each file's parse tree is released before the next one is read, so peak memory tracks the largest single file rather than the size of the tree.
+
+Two things do still scale with the run: the violations you asked to report, and the time spent parsing. Excluding dependencies and generated code with `exclude_paths` is the cheapest way to cut both:
+
+```yaml
+exclude_paths:
+  - vendor
+  - node_modules
+  - var/generated
+```
+
 ---
 
 ### Rules

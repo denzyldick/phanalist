@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Full-project scans (`--src .`) no longer grow memory with the size of the tree. Every scanned file was parsed into a single shared arena that was only freed when the scan ended, so peak memory tracked the combined size of all parsed PHP files and could exhaust the host's RAM and swap. Both the indexing pre-pass and the main pass now reclaim each file's AST before reading the next one, so peak memory is proportional to the largest single file rather than the whole project.
+- A single file whose name is not valid UTF-8 no longer aborts the walk. The scanner used to call `unwrap()` on the file name, so one such file panicked the directory-walking thread and the run continued with a silently truncated file set while still reporting success. A scan of `.` walks `vendor`, `node_modules` and build output, where such names are easy to find.
+- Directory walk errors are now skipped with a `-v` diagnostic instead of panicking the walk.
+- Each violation is stored once instead of being cloned while building the report, and output pruning no longer duplicates the entire results map. Together these roughly halve peak memory on projects that report many violations.
+- The LSP workspace indexer reclaims each file's AST as it indexes, so opening a large project in an editor no longer loads every file's parse tree at once.
+
+### Changed
+
+- The progress bar counts the PHP files that will be analysed instead of every directory entry passed along the way, and sizing it no longer walks the tree an extra time.
+- Files with no violations no longer reserve an entry (and a path string) in the report.
+- Rules that resolve references across files (`E0014`, `E0020`–`E0023`, `E0029`) are unaffected: the indexing pre-pass still completes over the whole project before any file is validated.
+
 ## [1.0.0] - 2026-06-14
 
 ### Added

@@ -105,28 +105,24 @@ pub struct Results {
 
 impl Results {
     pub fn add_file_violations(&mut self, file: &File<'_>, violations: Vec<Violation>) {
-        let path = file.path.display().to_string();
-
-        let mut current_file_violations = if let Some(s) = self.files.get(&path) {
-            s.to_owned()
-        } else {
-            vec![]
-        };
-
-        for violation in violations {
-            current_file_violations.push(violation.clone());
-
-            let mut rule_count = if let Some(count) = self.codes_count.get(&violation.rule) {
-                count.to_owned()
-            } else {
-                0
-            };
-            rule_count += 1;
-
-            self.codes_count.insert(violation.rule, rule_count);
+        if violations.is_empty() {
+            // Don't reserve an entry (and its path string) for files with
+            // nothing to report: a full-project scan touches far more files
+            // than it reports on.
+            return;
         }
 
-        self.files.insert(path, current_file_violations);
+        // Count per rule before touching `self.files`; the two maps cannot be
+        // borrowed at once.
+        for violation in &violations {
+            *self.codes_count.entry(violation.rule.clone()).or_insert(0) += 1;
+        }
+
+        let path = file.path.display().to_string();
+        // `violations` is owned, so entries are moved in rather than cloned.
+        // Every violation carries several `String`s, so cloning them all was
+        // doubling the allocation churn on the scan's hottest path.
+        self.files.entry(path).or_default().extend(violations);
     }
 
     pub fn has_any_violations(&self) -> bool {
