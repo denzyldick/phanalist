@@ -488,13 +488,30 @@ mod tests {
         let base = std::env::temp_dir().join(format!("phanalist_utf8_{}", std::process::id()));
         fs::create_dir_all(&base).unwrap();
         fs::write(base.join("Plain.php"), "<?php\n").unwrap();
-        fs::write(base.join(OsStr::from_bytes(b"Weird\xffName.php")), "<?php\n").unwrap();
+
+        // Not every filesystem can store such a name: macOS/APFS refuses with
+        // `EILSEQ` ("Illegal byte sequence") instead of creating the file.
+        // Writing it is therefore best-effort, and the assertions below are
+        // stated in terms of what actually ended up on disk.
+        let odd_name_created = fs::write(base.join(OsStr::from_bytes(b"Weird\xffName.php")), "<?php\n").is_ok();
 
         let found = collect_php_files(base.clone(), 0, None, &[]);
-        let count = found.len();
+        let names: Vec<String> = found
+            .iter()
+            .map(|p| p.file_name().unwrap().to_string_lossy().to_string())
+            .collect();
         fs::remove_dir_all(&base).ok();
 
-        assert_eq!(count, 2, "both files must be collected: {found:?}");
+        // The regression being guarded is that the walk aborted on such a name.
+        // `Plain.php` must always be collected; the odd name is only expected
+        // back where the filesystem accepted it.
+        assert!(
+            names.contains(&"Plain.php".to_string()),
+            "the walk must not abort on a non-UTF-8 sibling: collected {names:?}"
+        );
+        if odd_name_created {
+            assert_eq!(found.len(), 2, "both files must be collected: {names:?}");
+        }
     }
 
     #[test]
