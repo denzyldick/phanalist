@@ -20,9 +20,25 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Run tests
-        run: cargo test --release
+        shell: bash
+        run: |
+          set -o pipefail
+          cargo test --release 2>&1 | tee "${RUNNER_TEMP:-/tmp}/test-output.log"
         env:
           RUST_MIN_STACK: 8388608
+
+      # Job logs are only readable with admin rights, so a bare "exit code 101"
+      # on the summary tells a contributor nothing about which test broke.
+      # Re-emit the failing test names as check annotations instead, which are
+      # visible on the PR without any extra permissions.
+      - name: Report failing tests
+        if: failure()
+        shell: bash
+        run: |
+          grep -E "^test .+ \.\.\. FAILED" "${RUNNER_TEMP:-/tmp}/test-output.log" | head -40 \
+            | while IFS= read -r line; do
+                echo "::error title=failing test::${line#test }"
+              done || true
 
   create-release:
     if: startsWith(github.ref, 'refs/tags/')
