@@ -90,18 +90,28 @@ pub fn run_server(config: &Config) -> Result<(), Box<dyn Error>> {
 }
 
 /// Index files in the workspace on startup to populate rule internal models (e.g. class hierarchies/extends)
+///
+/// Indexing only needs lightweight summaries, so each file's AST is dropped and
+/// the arena reclaimed before the next one is read. Opening a large project in
+/// an editor therefore costs the summaries, not the project's whole ASTs.
 fn index_workspace(analyse: &Analyse, root: &Path, config: &Config) {
-    let (send, recv) = std::sync::mpsc::channel();
-    let exclude_paths = config.exclude_paths.clone();
-    crate::analyse::scan_folder(root.to_path_buf(), send, 0, None, exclude_paths);
+    let paths = crate::analyse::collect_php_files(root.to_path_buf(), 0, None, &config.exclude_paths);
 
-    let arena = LocalArena::new();
+    let mut arena = LocalArena::new();
     let mut count = 0;
-    for (content, path) in recv {
-        let file = File::new(&arena, path, content);
-        for rule in analyse.rules.values() {
-            rule.index_file(&file);
+    for path in &paths {
+        let Some(content) = crate::analyse::read_source(path) else {
+            continue;
+        };
+
+        {
+            let file = File::new(&arena, path.clone(), content);
+            for rule in analyse.rules.values() {
+                rule.index_file(&file);
+            }
         }
+
+        arena.reset();
         count += 1;
     }
     eprintln!("Indexed {} workspace files.", count);
