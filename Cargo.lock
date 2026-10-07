@@ -2164,9 +2164,9 @@ dependencies = [
 
 [[package]]
 name = "mago-allocator"
-version = "1.48.1"
+version = "1.49.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac5fcb5ff2404cd4b614a75a5193757f12fd7efbf056fe9336686ca5ae7c68f4"
+checksum = "084389d51b6a015ebdda58531ca9cd6f026f842493c300bf8a709d55b91bcab3"
 dependencies = [
  "allocator-api2",
  "blink-alloc",
@@ -2192,18 +2192,18 @@ dependencies = [
 
 [[package]]
 name = "mago-php-version"
-version = "1.48.1"
+version = "1.49.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9002dae30dfc1d47ce0335f351d795625e8fb5c88e5ac406f5755796e27b26a7"
+checksum = "d8a9bb7748433c084ec22ce1e1370d94f0e088e9595ff560bdf53ab5920f01e3"
 dependencies = [
  "schemars",
 ]
 
 [[package]]
 name = "mago-reporting"
-version = "1.48.1"
+version = "1.49.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5036f7a07db5f19c51340aed8eac78694251a81c83133e53c1bcd9e662b90ec0"
+checksum = "392d8b2b1a8f6284a37175f52feb25d9b39eff7bd0643437c143f7d196b71141"
 dependencies = [
  "ariadne",
  "blake3",
@@ -2231,9 +2231,9 @@ dependencies = [
 
 [[package]]
 name = "mago-syntax"
-version = "1.48.1"
+version = "1.49.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b53990fb8923a7dba0f0871743165d142c7db377008ebcb13f8126e0a59c04bb"
+checksum = "0def83137b0b04110ae49d09fa88de217ee00f4bedbae9c5fb6837511a301acd"
 dependencies = [
  "mago-allocator",
  "mago-database",
@@ -2249,9 +2249,9 @@ dependencies = [
 
 [[package]]
 name = "mago-syntax-core"
-version = "1.48.1"
+version = "1.49.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56af18119b743b01e56c8b4f81c4310b27864c886d7149d01dafe66062ce1e58"
+checksum = "3649d6a0152f8440f157ee4d4534da54a16fe04706b4bb36f119ae533bb989ac"
 dependencies = [
  "mago-allocator",
  "mago-database",
@@ -2261,9 +2261,9 @@ dependencies = [
 
 [[package]]
 name = "mago-text-edit"
-version = "1.48.1"
+version = "1.49.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b278352be8fd8b49e8be178b5b3babb7fd8fe35ccceeacb9e4a4dc1036fd32c"
+checksum = "129c3bc43e5c0434f710878cd2f299b73bb267d0c79ed0cfd9980587a07a44a3"
 
 [[package]]
 name = "memchr"
