@@ -83,6 +83,18 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
+      - name: Extract version from tag
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+      - name: Set Cargo version from tag
+        shell: bash
+        run: |
+          if command -v cargo-set-version >/dev/null 2>&1; then
+            cargo set-version "$VERSION"
+          else
+            cargo install cargo-edit --no-default-features --features set-version --locked || true
+            cargo set-version "$VERSION" || sed -i.bak -E "s/^version = \".*\"/version = \"$VERSION\"/" Cargo.toml && rm -f Cargo.toml.bak
+          fi
       - name: Upload binary
         uses: taiki-e/upload-rust-binary-action@v1
         with:
