@@ -95,26 +95,8 @@ pub fn run_server(config: &Config) -> Result<(), Box<dyn Error>> {
 /// the arena reclaimed before the next one is read. Opening a large project in
 /// an editor therefore costs the summaries, not the project's whole ASTs.
 fn index_workspace(analyse: &Analyse, root: &Path, config: &Config) {
-    let paths = crate::analyse::collect_php_files(root.to_path_buf(), 0, None, &config.exclude_paths);
-
-    let mut arena = LocalArena::new();
-    let mut count = 0;
-    for path in &paths {
-        let Some(content) = crate::analyse::read_source(path) else {
-            continue;
-        };
-
-        {
-            let file = File::new(&arena, path.clone(), content);
-            for rule in analyse.rules.values() {
-                rule.index_file(&file);
-            }
-        }
-
-        arena.reset();
-        count += 1;
-    }
-    eprintln!("Indexed {} workspace files.", count);
+    analyse.prepare_project(&[root.to_string_lossy().into_owned()], config, 0, None);
+    eprintln!("Indexed workspace files.");
 }
 
 /// Run analysis on the document's new text content and report diagnostics back to the IDE.
@@ -162,6 +144,9 @@ pub(crate) fn analyze_single_file(
     // Re-run indexing for this file to update the rule indices with the latest content
     for rule in analyse.rules.values() {
         rule.index_file(&file);
+    }
+    for rule in analyse.rules.values() {
+        rule.finalize_index();
     }
 
     // Run active static analysis rules

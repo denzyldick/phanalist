@@ -129,6 +129,7 @@ fn main() {
     }
 
     let mut analyze = Analyse::new(&config);
+    analyze.prepare_project(&paths, &config, args.verbose, None);
 
     if args.update_baseline && args.use_baseline.is_none() {
         eprintln!("--update-baseline requires --use-baseline <path>");
@@ -168,7 +169,7 @@ fn main() {
 
     // Silence unused warning when --blame is not used
     for path in paths.iter() {
-        let mut results = analyze.scan(
+        let mut results = analyze.scan_prepared(
             path.clone(),
             &config,
             format != Format::json && !quiet && !args.blame,

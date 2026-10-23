@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
@@ -131,8 +131,92 @@ impl Analyse {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::too_many_arguments, dead_code)]
     pub(crate) fn scan(
+        &self,
+        path: String,
+        config: &Config,
+        show_bar: bool,
+        format: &Format,
+        verbose: u8,
+        collect_rule_metrics: bool,
+        external_bar: Option<ProgressBar>,
+    ) -> Results {
+        self.prepare_project(
+            std::slice::from_ref(&path),
+            config,
+            verbose,
+            external_bar.as_ref(),
+        );
+        self.scan_prepared(
+            path,
+            config,
+            show_bar,
+            format,
+            verbose,
+            collect_rule_metrics,
+            external_bar,
+        )
+    }
+
+    /// Index every file reachable from `paths` before validation starts.
+    ///
+    /// Cross-file rules need one project-wide indexing pass. Keeping this
+    /// separate from `scan_prepared` lets the CLI index all `--src` roots once
+    /// instead of re-indexing each root independently.
+    pub(crate) fn prepare_project(
+        &self,
+        paths: &[String],
+        config: &Config,
+        verbose: u8,
+        bar: Option<&ProgressBar>,
+    ) {
+        let mut seen = HashSet::new();
+        let mut files = Vec::new();
+        for root in paths {
+            for file in collect_php_files(
+                PathBuf::from(root),
+                verbose,
+                bar,
+                &config.exclude_paths,
+            ) {
+                let key = crate::paths::normalize_relative(&file);
+                if seen.insert(key) {
+                    files.push(file);
+                }
+            }
+        }
+
+        for rule in self.rules.values() {
+            rule.begin_index();
+        }
+
+        let mut arena = LocalArena::new();
+        for file_path in &files {
+            if verbose >= 3 {
+                log_line(bar, format!("[vvv] indexing {}", file_path.display()));
+            }
+            let Some(content) = read_source(file_path) else {
+                continue;
+            };
+
+            {
+                let file = File::new(&arena, file_path.clone(), content);
+                for rule in self.rules.values() {
+                    rule.index_file(&file);
+                }
+            }
+
+            arena.reset();
+        }
+
+        for rule in self.rules.values() {
+            rule.finalize_index();
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn scan_prepared(
         &self,
         path: String,
         config: &Config,
@@ -194,34 +278,7 @@ impl Analyse {
         // instead of growing to the size of the entire project.
         let mut arena = LocalArena::new();
 
-        // 2. Pre-pass (indexing). Rules that resolve references across files
-        //    need the whole project indexed before any file is validated, so
-        //    every file is visited once up front. `index_file` implementations
-        //    extract only lightweight summaries (class and member names,
-        //    parents, namespaces), so nothing here needs the AST to outlive
-        //    the file it came from.
-        for file_path in &paths {
-            if verbose >= 3 {
-                log_line(
-                    progress_bar.as_ref(),
-                    format!("[vvv] indexing {}", file_path.display()),
-                );
-            }
-            let Some(content) = read_source(file_path) else {
-                continue;
-            };
-
-            {
-                let file = File::new(&arena, file_path.clone(), content);
-                for rule in self.rules.values() {
-                    rule.index_file(&file);
-                }
-            }
-
-            arena.reset();
-        }
-
-        // 3. Main pass. Each file is re-read and re-parsed, then dropped with
+        // 2. Main pass. Each file is re-read and re-parsed, then dropped with
         //    the arena reset, so only one file's AST is live at a time. The
         //    re-read is served from the OS page cache and parsing is a fraction
         //    of the cost of validating, which buys the bounded memory profile.
@@ -364,6 +421,23 @@ impl Analyse {
 
         if let Some(program) = file.ast {
             file.reference_counter.build_reference_counter(program);
+
+            for rule in self.rules.values() {
+                let rule_start = timings.as_ref().map(|_| Instant::now());
+                let Some(mut file_violations) = rule.validate_file(file) else {
+                    continue;
+                };
+                violations.append(&mut file_violations);
+
+                if let Some(t) = timings.as_mut() {
+                    let elapsed = rule_start.unwrap().elapsed();
+                    let entry = t.entry(rule.get_code()).or_default();
+                    entry.duration += elapsed;
+                    entry.validated = true;
+                    entry.statements += 1;
+                }
+            }
+
             for statement in program.statements.iter() {
                 violations.append(&mut self.analyse_file_statement(
                     file,
