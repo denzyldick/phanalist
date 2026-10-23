@@ -42,11 +42,27 @@ pub mod e27;
 pub mod e28;
 pub mod e29;
 pub mod e30;
+pub mod e31;
 
 pub trait Rule: Sync {
     /// Optional hook for cross-file type resolution or indexing.
     /// Called once for every file before main validation pass.
     fn index_file(&self, _file: &File<'_>) {}
+
+    /// Optional hook called before a project-wide indexing pass. Rules that
+    /// accumulate cross-file state should clear it here.
+    fn begin_index(&self) {}
+
+    /// Optional hook called after every file has been indexed. Rules that need
+    /// a fixed point or cross-file resolution finalize their state here.
+    fn finalize_index(&self) {}
+
+    /// Optional hook for whole-file validation. Most rules validate each
+    /// top-level statement through `validate`; verification rules need the
+    /// entire file (and its CFG) at once and override this instead.
+    fn validate_file(&self, _file: &File<'_>) -> Option<Vec<Violation>> {
+        None
+    }
 
     /// Would be a good idea to have default implementation which extracts the code from struct name
     /// Haven't found a way to implement it
@@ -350,6 +366,7 @@ pub fn all_rules() -> HashMap<String, Box<dyn Rule>> {
     add_rule(&mut rules, Box::default() as Box<e28::Rule>);
     add_rule(&mut rules, Box::default() as Box<e29::Rule>);
     add_rule(&mut rules, Box::default() as Box<e30::Rule>);
+    add_rule(&mut rules, Box::default() as Box<e31::Rule>);
 
     rules
 }
@@ -380,7 +397,13 @@ mod tests {
         let analyse = Analyse::new(&config);
 
         for rule in analyse.rules.values() {
+            rule.begin_index();
+        }
+        for rule in analyse.rules.values() {
             rule.index_file(&file);
+        }
+        for rule in analyse.rules.values() {
+            rule.finalize_index();
         }
 
         analyse.analyse_file(&mut file, false).0

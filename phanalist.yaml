@@ -33,3 +33,20 @@ rules:
     max_fan_in: 20
   E0030:
     max_density: 0.3
+  E0031:
+    php_version: "8.4"
+    check_division: true
+    check_modulo: true
+    check_intdiv: true
+    check_array_index: true
+    check_string_offset: true
+    check_nullability: true
+    check_types: true
+    check_assertions: true
+    check_unreachable: true
+    check_return_contracts: true
+    loop_strategy: auto
+    unroll_depth: 16
+    timeout_ms: 1000
+    unknown_policy: report
+    max_findings_per_function: 50
