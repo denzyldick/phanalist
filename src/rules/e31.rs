@@ -465,6 +465,41 @@ mod phpdoc_tests {
             .join(path)
     }
 
+    fn messages_with_settings(path: &str, settings: Settings) -> Vec<String> {
+        let path = fixture_path(path);
+        let content = std::fs::read_to_string(&path).unwrap();
+        let arena = mago_allocator::prelude::LocalArena::new();
+        let file = crate::file::File::new(&arena, path, content);
+        let rule = Rule {
+            settings,
+            ..Rule::default()
+        };
+
+        rule.begin_index();
+        rule.index_file(&file);
+        rule.finalize_index();
+
+        rule.validate_file(&file)
+            .unwrap()
+            .into_iter()
+            .map(|violation| violation.message.render())
+            .collect()
+    }
+
+    #[test]
+    fn check_types_disables_documented_type_refinements() {
+        let settings = Settings {
+            check_types: false,
+            ..Settings::default()
+        };
+
+        assert!(messages("e31/phpdoc_param_positive.php").is_empty());
+        assert_eq!(
+            messages_with_settings("e31/phpdoc_param_positive.php", settings).len(),
+            1
+        );
+    }
+
     #[test]
     fn proves_division_by_a_positive_int_parameter() {
         assert!(messages("e31/phpdoc_param_positive.php").is_empty());
