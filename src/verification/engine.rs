@@ -9,6 +9,7 @@ use z3::{Params, SatResult, Solver};
 use crate::file::File;
 use crate::results::Message;
 
+use super::summary::{ConstantValue, FunctionSummary};
 use super::value::{ArrayKey, Value};
 use super::Settings;
 
@@ -53,9 +54,20 @@ struct Analyzer<'a, 'arena> {
     strict_types: bool,
     finding_limit_start: usize,
     suppress_access_checks: bool,
+    summaries: &'a HashMap<String, FunctionSummary>,
+    namespace: Option<String>,
 }
 
 pub fn analyze_file(file: &File<'_>, settings: &Settings) -> Vec<Finding> {
+    let summaries = HashMap::new();
+    analyze_file_with_summaries(file, settings, &summaries)
+}
+
+pub fn analyze_file_with_summaries(
+    file: &File<'_>,
+    settings: &Settings,
+    summaries: &HashMap<String, FunctionSummary>,
+) -> Vec<Finding> {
     let Some(program) = file.ast else {
         return Vec::new();
     };
@@ -69,6 +81,11 @@ pub fn analyze_file(file: &File<'_>, settings: &Settings) -> Vec<Finding> {
         strict_types: file_declares_strict_types(program),
         finding_limit_start: 0,
         suppress_access_checks: false,
+        summaries,
+        namespace: file
+            .namespace
+            .as_ref()
+            .map(|namespace| namespace.to_ascii_lowercase()),
     };
 
     let mut state = State::new();
@@ -833,6 +850,21 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         }
     }
 
+    fn function_summary(&self, expression: &Expression<'_>) -> Option<&FunctionSummary> {
+        let name = function_identifier_name(expression)?;
+        if name.contains('\\') {
+            return self.summaries.get(&name);
+        }
+
+        if let Some(namespace) = &self.namespace {
+            if let Some(summary) = self.summaries.get(&format!("{namespace}\\{name}")) {
+                return Some(summary);
+            }
+        }
+
+        self.summaries.get(&name)
+    }
+
     fn eval_call(&mut self, call: &'arena Call<'arena>, state: &mut State) -> Value {
         match call {
             Call::Function(function) => {
@@ -855,6 +887,11 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                             call.span(),
                             "?",
                         );
+                    }
+                }
+                if let Some(summary) = self.function_summary(function.function) {
+                    if let Some(value) = summary.return_value.as_ref() {
+                        return constant_to_value(value);
                     }
                 }
                 Value::Unknown
@@ -1535,6 +1572,27 @@ fn model_value(solver: &Solver, value: &Value) -> Option<String> {
             .and_then(|value| value.as_bool())
             .map(|value| value.to_string()),
         _ => None,
+    }
+}
+
+fn function_identifier_name(expression: &Expression<'_>) -> Option<String> {
+    match expression.unparenthesized() {
+        Expression::Identifier(identifier) => Some(
+            String::from_utf8_lossy(identifier.value())
+                .trim_start_matches('\\')
+                .to_ascii_lowercase(),
+        ),
+        _ => None,
+    }
+}
+
+fn constant_to_value(value: &ConstantValue) -> Value {
+    match value {
+        ConstantValue::Int(value) => Value::Int(Int::from_i64(*value)),
+        ConstantValue::Float(value) => Value::Float(Float::from_f64(*value)),
+        ConstantValue::Bool(value) => Value::Bool(Bool::from_bool(*value)),
+        ConstantValue::String(value) => Value::String(Some(value.clone())),
+        ConstantValue::Null => Value::Null,
     }
 }
 
