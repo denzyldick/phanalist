@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 
 use mago_span::HasSpan;
 use mago_syntax::cst::*;
@@ -35,6 +36,8 @@ pub struct ParameterAssertion {
 #[derive(Default)]
 pub struct SummaryIndex {
     files: HashMap<PathBuf, FileSummaries>,
+    snapshot_cache: Mutex<Option<Arc<HashMap<String, FunctionSummary>>>>,
+    parent_cache: Mutex<Option<Arc<HashMap<String, String>>>>,
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -52,14 +55,17 @@ struct FileSummaries {
 impl SummaryIndex {
     pub fn clear(&mut self) {
         self.files.clear();
+        self.invalidate();
     }
 
     pub fn remove_file(&mut self, path: &Path) {
         self.files.remove(path);
+        self.invalidate();
     }
 
     pub fn replace_file(&mut self, file: &File<'_>) {
         self.files.remove(&file.path);
+        self.invalidate();
 
         let Some(program) = file.ast else {
             return;
@@ -80,7 +86,16 @@ impl SummaryIndex {
             .insert(file.path.clone(), FileSummaries { summaries, parents });
     }
 
-    pub fn snapshot(&self) -> HashMap<String, FunctionSummary> {
+    pub fn snapshot(&self) -> Arc<HashMap<String, FunctionSummary>> {
+        if let Some(snapshot) = self
+            .snapshot_cache
+            .lock()
+            .ok()
+            .and_then(|cache| cache.clone())
+        {
+            return snapshot;
+        }
+
         let mut counts: HashMap<&str, usize> = HashMap::new();
         for (name, _) in self.files.values().flat_map(|file| file.summaries.iter()) {
             *counts.entry(name.as_str()).or_default() += 1;
@@ -134,11 +149,24 @@ impl SummaryIndex {
             }
         }
 
-        summaries
+        let snapshot = Arc::new(summaries);
+        if let Ok(mut cache) = self.snapshot_cache.lock() {
+            *cache = Some(snapshot.clone());
+        }
+        snapshot
     }
 
     /// Return the unique parent of each class or trait, when exactly one is known.
-    pub fn parent_map(&self) -> HashMap<String, String> {
+    pub fn parent_map(&self) -> Arc<HashMap<String, String>> {
+        if let Some(parents) = self
+            .parent_cache
+            .lock()
+            .ok()
+            .and_then(|cache| cache.clone())
+        {
+            return parents;
+        }
+
         let mut parents: HashMap<String, Vec<String>> = HashMap::new();
         for file in self.files.values() {
             for (child, parent, kind) in &file.parents {
@@ -154,16 +182,31 @@ impl SummaryIndex {
             inheritors.sort();
             inheritors.dedup();
         }
+        let parents = Arc::new(
+            parents
+                .into_iter()
+                .filter_map(|(child, mut parents)| {
+                    if parents.len() == 1 {
+                        Some((child, parents.remove(0)))
+                    } else {
+                        None
+                    }
+                })
+                .collect::<HashMap<_, _>>(),
+        );
+        if let Ok(mut cache) = self.parent_cache.lock() {
+            *cache = Some(parents.clone());
+        }
         parents
-            .into_iter()
-            .filter_map(|(child, mut parents)| {
-                if parents.len() == 1 {
-                    Some((child, parents.remove(0)))
-                } else {
-                    None
-                }
-            })
-            .collect()
+    }
+
+    fn invalidate(&self) {
+        if let Ok(mut cache) = self.snapshot_cache.lock() {
+            *cache = None;
+        }
+        if let Ok(mut cache) = self.parent_cache.lock() {
+            *cache = None;
+        }
     }
 
     fn inheritors(&self) -> HashMap<String, Vec<String>> {
@@ -693,7 +736,7 @@ mod tests {
         File::new(arena, PathBuf::from(path), content.to_string())
     }
 
-    fn summarize(content: &str) -> HashMap<String, FunctionSummary> {
+    fn summarize(content: &str) -> Arc<HashMap<String, FunctionSummary>> {
         let mut index = SummaryIndex::default();
         let arena = LocalArena::new();
         let file = file(&arena, "summary.php", content);
