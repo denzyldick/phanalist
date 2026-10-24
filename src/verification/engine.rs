@@ -1091,7 +1091,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 let array = self.eval_expr(access.array, state);
                 let index = self.eval_expr(access.index, state);
                 self.check_array_access(&array, &index, access.span(), &state.path);
-                Value::Unknown
+                self.array_access_value(access.array, &array, &index, state)
             }
             Expression::Access(access) => match access {
                 Access::Property(access) => {
@@ -1380,7 +1380,11 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 Some(condition) if condition.as_bool() == Some(false) => return left,
                 Some(condition) => {
                     let right = self.eval_expr(binary.rhs, state);
-                    return Value::merge(Some(&condition), &right, &left);
+                    return match condition.as_bool() {
+                        Some(true) => right,
+                        Some(false) => left,
+                        None => Value::merge(Some(&condition), &right, &left),
+                    };
                 }
                 None => {
                     let mut right_state = state.clone();
@@ -2055,6 +2059,34 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         }
 
         Some(pairs)
+    }
+
+    fn array_access_value(
+        &self,
+        expression: &Expression<'_>,
+        array: &Value,
+        index: &Value,
+        state: &State,
+    ) -> Value {
+        let Some(name) = direct_variable_name(expression) else {
+            return Value::Unknown;
+        };
+        let Some(pairs) = state.array_values.get(&name) else {
+            return Value::Unknown;
+        };
+        let Some(key) = array_key(index) else {
+            return Value::Unknown;
+        };
+        for (candidate, value) in pairs {
+            if array_key(candidate).as_ref() == Some(&key) {
+                return value.clone();
+            }
+        }
+        if self.suppress_access_checks && matches!(array, Value::Array(Some(_))) {
+            Value::Null
+        } else {
+            Value::Unknown
+        }
     }
 
     fn check_array_access(&mut self, array: &Value, index: &Value, span: Span, path: &Bool) {
