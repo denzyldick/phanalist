@@ -22,6 +22,7 @@ struct State {
     env: HashMap<String, Value>,
     path: Bool,
     reachable: bool,
+    loop_exits: Bool,
     modified: HashSet<String>,
 }
 
@@ -31,6 +32,7 @@ impl State {
             env: HashMap::new(),
             path: Bool::from_bool(true),
             reachable: true,
+            loop_exits: Bool::from_bool(false),
             modified: HashSet::new(),
         }
     }
@@ -112,10 +114,8 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             Statement::Enum(enum_) => self.analyze_members(&enum_.members),
             Statement::If(if_statement) => self.analyze_if(if_statement, state),
             Statement::While(while_statement) => {
-                let condition = self.eval_expr(while_statement.condition, state);
-                let condition = condition.truthiness();
                 let body = while_statement.body.statements();
-                self.analyze_loop(condition.as_ref(), body, state);
+                self.analyze_loop(Some(while_statement.condition), body, None, state);
             }
             Statement::DoWhile(do_while) => {
                 let mut body_state = state.clone();
@@ -127,16 +127,14 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 for expression in for_statement.initializations.iter() {
                     self.eval_expr(expression, state);
                 }
-                let mut condition = None;
-                for expression in for_statement.conditions.iter() {
-                    condition = self.eval_expr(expression, state).truthiness();
-                }
+                let condition = for_statement.conditions.iter().last().copied();
                 let body = for_statement.body.statements();
-                let mut body_state = self.analyze_loop(condition.as_ref(), body, state);
-                for expression in for_statement.increments.iter() {
-                    self.eval_expr(expression, &mut body_state);
-                }
-                self.havoc_modified(state, &body_state);
+                self.analyze_loop(
+                    condition,
+                    body,
+                    Some(for_statement.increments.as_slice()),
+                    state,
+                );
             }
             Statement::Foreach(foreach) => {
                 self.eval_expr(foreach.expression, state);
@@ -192,7 +190,12 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 state.path = Bool::from_bool(false);
                 state.reachable = false;
             }
-            Statement::Break(_) | Statement::Continue(_) => {
+            Statement::Break(_) => {
+                state.loop_exits = Bool::or(&[&state.loop_exits, &state.path]);
+                state.path = Bool::from_bool(false);
+                state.reachable = false;
+            }
+            Statement::Continue(_) => {
                 state.path = Bool::from_bool(false);
                 state.reachable = false;
             }
@@ -290,7 +293,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         branches.push((condition.clone(), if_statement.body.statements()));
 
         let mut remaining_path = match &condition {
-            Some(condition) => Bool::and(&[&state.path, &condition.not()]),
+            Some(condition) => path_and(&state.path, &path_not(condition)),
             None => state.path.clone(),
         };
 
@@ -301,7 +304,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             let value = value.truthiness();
             branches.push((value.clone(), statements));
             if let Some(value) = value {
-                remaining_path = Bool::and(&[&remaining_path, &value.not()]);
+                remaining_path = path_and(&remaining_path, &path_not(&value));
             }
         }
 
@@ -310,7 +313,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         for (branch_condition, statements) in &branches {
             let mut branch_state = state.clone();
             if let Some(branch_condition) = branch_condition {
-                branch_state.path = Bool::and(&[&state.path, branch_condition]);
+                branch_state.path = path_and(&state.path, branch_condition);
             }
             self.analyze_statements(statements, &mut branch_state);
             branch_states.push(branch_state);
@@ -353,24 +356,96 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         for branch_state in &branch_states {
             paths.push(branch_state.path.clone());
         }
-        merged.path = Bool::or(&paths);
+        merged.path = path_or_many(&paths);
+        let loop_exits = branch_states
+            .iter()
+            .map(|branch| branch.loop_exits.clone())
+            .collect::<Vec<_>>();
+        merged.loop_exits = Bool::or(&loop_exits.iter().collect::<Vec<_>>());
         merged.reachable = branch_states.iter().any(|branch| branch.reachable);
         *state = merged;
     }
 
     fn analyze_loop(
         &mut self,
-        condition: Option<&Bool>,
+        condition: Option<&'arena Expression<'arena>>,
         body: &'arena [Statement<'arena>],
+        increments: Option<&'arena [&'arena Expression<'arena>]>,
         state: &mut State,
     ) -> State {
-        let mut body_state = state.clone();
-        if let Some(condition) = condition {
-            body_state.path = Bool::and(&[&state.path, condition]);
+        let depth = self.loop_unroll_depth();
+        let mut current = state.clone();
+        let mut exit_paths = Vec::new();
+        let mut reachable = false;
+        let mut modified = state.modified.clone();
+
+        for _ in 0..depth {
+            let condition_value =
+                condition.map(|condition| self.eval_expr(condition, &mut current));
+            let condition = condition_value.as_ref().and_then(Value::truthiness);
+
+            let mut body_state = current.clone();
+            let mut exit_state = current.clone();
+            match &condition {
+                Some(condition) => {
+                    body_state.path = path_and(&current.path, condition);
+                    exit_state.path = path_and(&current.path, &path_not(condition));
+                }
+                None => {
+                    body_state.path = current.path.clone();
+                    exit_state.path = if condition_value.is_some() {
+                        current.path.clone()
+                    } else {
+                        Bool::from_bool(false)
+                    };
+                }
+            }
+            exit_paths.push(exit_state.path.clone());
+            reachable |= exit_state.reachable && path_may_be_true(&exit_state.path);
+
+            self.analyze_statements(body, &mut body_state);
+            if let Some(increments) = increments {
+                for increment in increments {
+                    self.eval_expr(increment, &mut body_state);
+                }
+            }
+            modified.extend(body_state.modified.iter().cloned());
+
+            let break_path = body_state.loop_exits.clone();
+            if !matches!(break_path.as_bool(), Some(false)) {
+                exit_paths.push(break_path);
+                reachable = true;
+            }
+            body_state.loop_exits = Bool::from_bool(false);
+
+            current = body_state;
+            if !current.reachable {
+                break;
+            }
+            if condition.and_then(|condition| condition.as_bool()) == Some(false) {
+                break;
+            }
         }
-        self.analyze_statements(body, &mut body_state);
-        self.havoc_modified(state, &body_state);
-        body_state
+
+        exit_paths.push(current.path.clone());
+        reachable |= current.reachable && path_may_be_true(&current.path);
+
+        for name in modified {
+            state.env.insert(name.clone(), Value::Unknown);
+            state.modified.insert(name);
+        }
+        state.path = path_or_many(&exit_paths);
+        state.reachable = reachable;
+
+        current
+    }
+
+    fn loop_unroll_depth(&self) -> usize {
+        if self.settings.loop_strategy == "none" {
+            return 1;
+        }
+
+        self.settings.unroll_depth.clamp(1, 64)
     }
 
     fn havoc_modified(&self, state: &mut State, body_state: &State) {
@@ -738,7 +813,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
 
         let mut then_state = state.clone();
         if let Some(condition) = &condition {
-            then_state.path = Bool::and(&[&state.path, condition]);
+            then_state.path = path_and(&state.path, condition);
         }
         let then_value = match conditional.then {
             Some(value) => self.eval_expr(value, &mut then_state),
@@ -747,7 +822,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
 
         let mut else_state = state.clone();
         if let Some(condition) = &condition {
-            else_state.path = Bool::and(&[&state.path, &condition.not()]);
+            else_state.path = path_and(&state.path, &path_not(condition));
         }
         let else_value = self.eval_expr(conditional.r#else, &mut else_state);
 
@@ -772,7 +847,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 if self.settings.check_assertions && name.as_deref() == Some("assert") {
                     if let Some(condition) = arguments.first().and_then(Value::truthiness) {
                         self.check_assertion(&condition, &state.path, call.span());
-                        state.path = Bool::and(&[&state.path, &condition]);
+                        state.path = path_and(&state.path, &condition);
                     } else if self.settings.unknown_policy == "report" {
                         self.push_finding(
                             "unverified",
@@ -1494,6 +1569,48 @@ fn hint_is_numeric(hint: Option<&Hint<'_>>) -> bool {
             _ => false,
         },
     }
+}
+
+fn path_not(value: &Bool) -> Bool {
+    match value.as_bool() {
+        Some(value) => Bool::from_bool(!value),
+        None => value.not(),
+    }
+}
+
+fn path_and(left: &Bool, right: &Bool) -> Bool {
+    match (left.as_bool(), right.as_bool()) {
+        (Some(false), _) | (_, Some(false)) => Bool::from_bool(false),
+        (Some(true), Some(true)) => Bool::from_bool(true),
+        (Some(true), None) => right.clone(),
+        (None, Some(true)) => left.clone(),
+        _ => Bool::and(&[left, right]),
+    }
+}
+
+fn path_or_many(values: &[Bool]) -> Bool {
+    if values.is_empty() {
+        return Bool::from_bool(false);
+    }
+
+    if values.iter().any(|value| value.as_bool() == Some(true)) {
+        return Bool::from_bool(true);
+    }
+
+    let values = values
+        .iter()
+        .filter(|value| value.as_bool() != Some(false))
+        .collect::<Vec<_>>();
+
+    match values.as_slice() {
+        [] => Bool::from_bool(false),
+        [value] => (*value).clone(),
+        _ => Bool::or(&values),
+    }
+}
+
+fn path_may_be_true(path: &Bool) -> bool {
+    !matches!(path.as_bool(), Some(false))
 }
 
 fn array_key(value: &Value) -> Option<ArrayKey> {

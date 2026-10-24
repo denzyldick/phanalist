@@ -274,3 +274,48 @@ mod context_tests {
         assert!(messages("e31/coalesce_null_property.php").is_empty());
     }
 }
+
+#[cfg(test)]
+mod loop_tests {
+    use crate::rules::tests::analyze_file_for_rule;
+
+    use super::*;
+
+    fn messages(path: &str) -> Vec<String> {
+        analyze_file_for_rule(path, CODE)
+            .into_iter()
+            .map(|violation| violation.message.render())
+            .collect()
+    }
+
+    #[test]
+    fn finds_division_by_zero_on_first_loop_iteration() {
+        let messages = messages("e31/while_division_first_iteration.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+
+    #[test]
+    fn unrolls_guarded_while_loop() {
+        assert!(messages("e31/while_division_guarded.php").is_empty());
+    }
+
+    #[test]
+    fn unrolls_guarded_for_loop() {
+        assert!(messages("e31/for_division_guarded.php").is_empty());
+    }
+
+    #[test]
+    fn break_makes_the_code_after_the_loop_reachable() {
+        assert!(messages("e31/loop_break_reachable.php").is_empty());
+    }
+
+    #[test]
+    fn return_in_an_infinite_loop_makes_following_code_unreachable() {
+        let messages = messages("e31/loop_return_unreachable.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("unreachable"));
+    }
+}
