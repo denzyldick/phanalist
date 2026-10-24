@@ -1188,6 +1188,9 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                         );
                     }
                 }
+                if let Some(value) = builtin_call_value(name.as_deref(), &arguments) {
+                    return value;
+                }
                 if let Some(summary) = self.function_summary(function.function) {
                     if let Some(value) = summary.return_value.as_ref() {
                         return constant_to_value(value);
@@ -1951,6 +1954,53 @@ fn function_identifier_name(expression: &Expression<'_>) -> Option<String> {
                 .trim_start_matches('\\')
                 .to_ascii_lowercase(),
         ),
+        _ => None,
+    }
+}
+
+fn builtin_call_value(name: Option<&str>, arguments: &[Value]) -> Option<Value> {
+    let name = name?;
+    match name {
+        "strlen" => match arguments.first()? {
+            Value::String(Some(value)) => Some(Value::Int(Int::from_u64(value.len() as u64))),
+            _ => None,
+        },
+        "count" | "sizeof" => match arguments.first()? {
+            Value::Array(Some(keys)) => Some(Value::Int(Int::from_u64(keys.len() as u64))),
+            _ => None,
+        },
+        "array_key_exists" => {
+            let key = array_key(arguments.first()?)?;
+            match arguments.get(1)? {
+                Value::Array(Some(keys)) => Some(Value::Bool(Bool::from_bool(keys.contains(&key)))),
+                Value::Array(None) => None,
+                _ => None,
+            }
+        }
+        "is_int" | "is_integer" | "is_long" => Some(Value::Bool(Bool::from_bool(matches!(
+            arguments.first()?,
+            Value::Int(_)
+        )))),
+        "is_float" | "is_double" => Some(Value::Bool(Bool::from_bool(matches!(
+            arguments.first()?,
+            Value::Float(_)
+        )))),
+        "is_string" => Some(Value::Bool(Bool::from_bool(matches!(
+            arguments.first()?,
+            Value::String(_)
+        )))),
+        "is_bool" => Some(Value::Bool(Bool::from_bool(matches!(
+            arguments.first()?,
+            Value::Bool(_)
+        )))),
+        "is_array" => Some(Value::Bool(Bool::from_bool(matches!(
+            arguments.first()?,
+            Value::Array(_)
+        )))),
+        "is_null" => Some(Value::Bool(Bool::from_bool(matches!(
+            arguments.first()?,
+            Value::Null
+        )))),
         _ => None,
     }
 }
