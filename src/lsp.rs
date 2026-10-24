@@ -84,7 +84,7 @@ pub fn run_server(config: &Config) -> Result<(), Box<dyn Error>> {
                     }
                     DidCloseTextDocument::METHOD => {
                         if let Ok(params) = serde_json::from_value::<lsp_types::DidCloseTextDocumentParams>(not.params) {
-                            remove_document(&connection, &analyse, params.text_document.uri);
+                            close_document(&connection, &analyse, params.text_document.uri);
                         }
                     }
                     DidDeleteFiles::METHOD => {
@@ -99,8 +99,16 @@ pub fn run_server(config: &Config) -> Result<(), Box<dyn Error>> {
                     DidChangeWatchedFiles::METHOD => {
                         if let Ok(params) = serde_json::from_value::<lsp_types::DidChangeWatchedFilesParams>(not.params) {
                             for event in params.changes {
-                                if event.typ == FileChangeType::DELETED {
-                                    remove_document(&connection, &analyse, event.uri);
+                                match event.typ {
+                                    FileChangeType::DELETED => {
+                                        remove_document(&connection, &analyse, event.uri);
+                                    }
+                                    FileChangeType::CREATED | FileChangeType::CHANGED => {
+                                        if let Ok(path) = event.uri.to_file_path() {
+                                            analyse.index_file_from_disk(&path);
+                                        }
+                                    }
+                                    _ => {}
                                 }
                             }
                         }
@@ -142,6 +150,13 @@ fn handle_document_update(
     };
 
     publish_diagnostics(connection, uri, diagnostics);
+}
+
+fn close_document(connection: &Connection, analyse: &Analyse, uri: Url) {
+    if let Ok(path) = uri.to_file_path() {
+        analyse.index_file_from_disk(&path);
+    }
+    publish_diagnostics(connection, uri, Vec::new());
 }
 
 fn remove_document(connection: &Connection, analyse: &Analyse, uri: Url) {
@@ -310,6 +325,54 @@ mod tests {
         let diagnostics = analyze_single_file(&analyse, &make_uri("/test.php"), content).unwrap();
         // Should not panic; may or may not have diagnostics depending on rules
         assert!(diagnostics.is_empty() || !diagnostics.is_empty());
+    }
+
+    #[test]
+    fn closing_a_document_restores_its_summaries_from_disk() {
+        let config = Config::default();
+        let analyse = Analyse::new(&config);
+        let stamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "phanalist-lsp-close-{}-{stamp}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&root).unwrap();
+
+        let parent = root.join("parent.php");
+        let child = root.join("child.php");
+        let use_path = root.join("use.php");
+        std::fs::write(
+            &parent,
+            "<?php\nnamespace App;\nclass ParentCalc { public static function zero(): int { return 0; } }\n",
+        )
+        .unwrap();
+        std::fs::write(
+            &child,
+            "<?php\nnamespace App;\nclass ChildCalc extends ParentCalc {}\n",
+        )
+        .unwrap();
+        let use_content =
+            "<?php\nnamespace App;\nfunction useChild(): float { return 1 / ChildCalc::zero(); }\n"
+                .to_string();
+        std::fs::write(&use_path, &use_content).unwrap();
+
+        analyse.prepare_project(&[root.to_string_lossy().into_owned()], &config, 0, None);
+        analyse.remove_indexed_file(&child);
+        analyse.index_file_from_disk(&child);
+
+        let uri = Url::from_file_path(&use_path).unwrap();
+        let diagnostics = analyze_single_file(&analyse, &uri, use_content).unwrap();
+        assert!(
+            diagnostics
+                .iter()
+                .any(|d| matches!(&d.code, Some(NumberOrString::String(code)) if code == "E0031")),
+            "expected inherited summary after close, got {diagnostics:?}"
+        );
+
+        std::fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

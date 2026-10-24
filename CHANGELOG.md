@@ -14,7 +14,7 @@
 - Directory walk errors are now skipped with a `-v` diagnostic instead of panicking the walk.
 - Each violation is stored once instead of being cloned while building the report, and output pruning no longer duplicates the entire results map. Together these roughly halve peak memory on projects that report many violations.
 - The LSP workspace indexer reclaims each file's AST as it indexes, so opening a large project in an editor no longer loads every file's parse tree at once.
-- The LSP server now drops cross-file rule summaries when a document is closed or deleted, or when a watched file is deleted, instead of leaving stale interprocedural data behind.
+- The LSP server now restores a document's cross-file summaries from disk when it is closed, reindexes watched files on change or creation, and drops summaries when a file is deleted, instead of leaving stale interprocedural data behind.
 
 ### Changed
 
