@@ -352,15 +352,20 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         let mut state = State::new();
         for parameter in parameters.parameters.iter() {
             let parameter_name = String::from_utf8_lossy(parameter.variable.name).to_string();
-            let doc_type = docblock
-                .params
-                .get(parameter_name.strip_prefix('$').unwrap_or(&parameter_name));
-            let value = parameter_value(
-                parameter.hint.as_ref(),
-                doc_type.map(String::as_str),
-                name,
-                &parameter_name,
-            );
+            let hint = if self.settings.check_types {
+                parameter.hint.as_ref()
+            } else {
+                None
+            };
+            let doc_type = if self.settings.check_types {
+                docblock
+                    .params
+                    .get(parameter_name.strip_prefix('$').unwrap_or(&parameter_name))
+                    .map(String::as_str)
+            } else {
+                None
+            };
+            let value = parameter_value(hint, doc_type, name, &parameter_name);
             if let Some(doc_type) = doc_type {
                 if let Some(constraint) = contracts::constraint(&value, doc_type) {
                     state.path = path_and(&state.path, &constraint);
@@ -398,11 +403,20 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         }
         for parameter in closure.parameter_list.parameters.iter() {
             let name = String::from_utf8_lossy(parameter.variable.name).to_string();
-            let doc_type = docblock
-                .params
-                .get(name.strip_prefix('$').unwrap_or(&name))
-                .map(String::as_str);
-            let value = parameter_value(parameter.hint.as_ref(), doc_type, "closure", &name);
+            let hint = if self.settings.check_types {
+                parameter.hint.as_ref()
+            } else {
+                None
+            };
+            let doc_type = if self.settings.check_types {
+                docblock
+                    .params
+                    .get(name.strip_prefix('$').unwrap_or(&name))
+                    .map(String::as_str)
+            } else {
+                None
+            };
+            let value = parameter_value(hint, doc_type, "closure", &name);
             body_state.env.insert(name, value);
         }
 
@@ -425,11 +439,20 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         let mut body_state = state.clone();
         for parameter in arrow.parameter_list.parameters.iter() {
             let name = String::from_utf8_lossy(parameter.variable.name).to_string();
-            let doc_type = docblock
-                .params
-                .get(name.strip_prefix('$').unwrap_or(&name))
-                .map(String::as_str);
-            let value = parameter_value(parameter.hint.as_ref(), doc_type, "arrow function", &name);
+            let hint = if self.settings.check_types {
+                parameter.hint.as_ref()
+            } else {
+                None
+            };
+            let doc_type = if self.settings.check_types {
+                docblock
+                    .params
+                    .get(name.strip_prefix('$').unwrap_or(&name))
+                    .map(String::as_str)
+            } else {
+                None
+            };
+            let value = parameter_value(hint, doc_type, "arrow function", &name);
             body_state.env.insert(name, value);
         }
 
@@ -449,6 +472,9 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         state: &mut State,
         assignment: Option<&str>,
     ) {
+        if !self.settings.check_types {
+            return;
+        }
         for (name, ty) in &docblock.vars {
             self.apply_docblock_var(name, ty, state);
         }
