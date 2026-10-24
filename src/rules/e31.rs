@@ -1,56 +1,13 @@
-use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::file::File;
 use crate::results::Violation;
+use crate::verification;
 
 pub(crate) static CODE: &str = "E0031";
 static DESCRIPTION: &str = "Formal Verification";
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(default)]
-#[allow(dead_code)]
-pub struct Settings {
-    pub php_version: String,
-    pub check_division: bool,
-    pub check_modulo: bool,
-    pub check_intdiv: bool,
-    pub check_array_index: bool,
-    pub check_string_offset: bool,
-    pub check_nullability: bool,
-    pub check_types: bool,
-    pub check_assertions: bool,
-    pub check_unreachable: bool,
-    pub check_return_contracts: bool,
-    pub loop_strategy: String,
-    pub unroll_depth: usize,
-    pub timeout_ms: u64,
-    pub unknown_policy: String,
-    pub max_findings_per_function: usize,
-}
-
-impl Default for Settings {
-    fn default() -> Self {
-        Self {
-            php_version: String::from("8.4"),
-            check_division: true,
-            check_modulo: true,
-            check_intdiv: true,
-            check_array_index: true,
-            check_string_offset: true,
-            check_nullability: true,
-            check_types: true,
-            check_assertions: true,
-            check_unreachable: true,
-            check_return_contracts: true,
-            loop_strategy: String::from("auto"),
-            unroll_depth: 16,
-            timeout_ms: 1_000,
-            unknown_policy: String::from("report"),
-            max_findings_per_function: 50,
-        }
-    }
-}
+pub use crate::verification::Settings;
 
 #[derive(Default)]
 pub struct Rule {
@@ -81,7 +38,74 @@ impl crate::rules::Rule for Rule {
         Vec::new()
     }
 
-    fn validate_file(&self, _file: &File<'_>) -> Option<Vec<Violation>> {
-        Some(Vec::new())
+    fn validate_file(&self, file: &File<'_>) -> Option<Vec<Violation>> {
+        let findings = verification::analyze_file(file, &self.settings);
+        Some(
+            findings
+                .into_iter()
+                .map(|finding| self.new_violation(file, finding.message, finding.span))
+                .collect(),
+        )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::rules::tests::analyze_file_for_rule;
+
+    use super::*;
+
+    #[test]
+    fn reports_literal_division_by_zero() {
+        let violations = analyze_file_for_rule("e31/division_by_zero_literal.php", CODE);
+
+        assert_eq!(violations.len(), 1);
+        assert!(violations[0].message.render().contains("Division by zero"));
+    }
+
+    #[test]
+    fn proves_nonzero_literal_division_safe() {
+        let violations = analyze_file_for_rule("e31/division_by_nonzero.php", CODE);
+
+        assert!(violations.is_empty());
+    }
+
+    #[test]
+    fn reports_unconstrained_divisor() {
+        let violations = analyze_file_for_rule("e31/division_by_parameter.php", CODE);
+
+        assert_eq!(violations.len(), 1);
+        assert!(violations[0].message.render().contains("Division by zero"));
+    }
+
+    #[test]
+    fn proves_guarded_division_safe() {
+        let violations = analyze_file_for_rule("e31/division_guarded.php", CODE);
+
+        assert!(violations.is_empty());
+    }
+
+    #[test]
+    fn reports_unconstrained_modulo() {
+        let violations = analyze_file_for_rule("e31/modulo_by_parameter.php", CODE);
+
+        assert_eq!(violations.len(), 1);
+        assert!(violations[0].message.render().contains("Modulo by zero"));
+    }
+
+    #[test]
+    fn reports_unconstrained_intdiv() {
+        let violations = analyze_file_for_rule("e31/intdiv_by_parameter.php", CODE);
+
+        assert_eq!(violations.len(), 1);
+        assert!(violations[0].message.render().contains("intdiv() by zero"));
+    }
+
+    #[test]
+    fn reports_intdiv_overflow() {
+        let violations = analyze_file_for_rule("e31/intdiv_overflow.php", CODE);
+
+        assert_eq!(violations.len(), 1);
+        assert!(violations[0].message.render().contains("overflows"));
     }
 }

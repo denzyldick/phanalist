@@ -31,6 +31,7 @@ gix = { version = "0.87", features = ["blame"] }
 chrono = "0.4"
 lsp-server = "0.10.0"
 lsp-types = "0.94.1"
+z3 = { version = "0.21.1", features = ["vendored"] }
 
 
 [lib]

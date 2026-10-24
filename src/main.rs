@@ -24,6 +24,7 @@ mod paths;
 mod results;
 mod lsp;
 mod rules;
+mod verification;
 
 ///
 /// A static analyser for your PHP project.
