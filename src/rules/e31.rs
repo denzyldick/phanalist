@@ -339,6 +339,59 @@ mod loop_tests {
 }
 
 #[cfg(test)]
+mod switch_tests {
+    use crate::rules::tests::analyze_file_for_rule;
+
+    use super::*;
+
+    fn messages(path: &str) -> Vec<String> {
+        analyze_file_for_rule(path, CODE)
+            .into_iter()
+            .map(|violation| violation.message.render())
+            .collect()
+    }
+
+    #[test]
+    fn proves_a_switch_case_guard() {
+        assert!(messages("e31/switch_division_guarded.php").is_empty());
+    }
+
+    #[test]
+    fn reports_division_in_a_zero_switch_case() {
+        let messages = messages("e31/switch_division_zero.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+
+    #[test]
+    fn follows_switch_case_fallthrough() {
+        let messages = messages("e31/switch_fallthrough_zero.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+
+    #[test]
+    fn proves_a_match_arm_guard() {
+        assert!(messages("e31/match_division_guarded.php").is_empty());
+    }
+
+    #[test]
+    fn reports_division_in_a_zero_match_arm() {
+        let messages = messages("e31/match_division_zero.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+
+    #[test]
+    fn break_inside_switch_does_not_exit_the_surrounding_loop() {
+        assert!(messages("e31/switch_break_inside_loop.php").is_empty());
+    }
+}
+
+#[cfg(test)]
 mod summary_tests {
     use std::fs;
     use std::path::PathBuf;

@@ -24,6 +24,7 @@ struct State {
     path: Bool,
     reachable: bool,
     loop_exits: Bool,
+    switch_exits: Bool,
     modified: HashSet<String>,
 }
 
@@ -34,6 +35,7 @@ impl State {
             path: Bool::from_bool(true),
             reachable: true,
             loop_exits: Bool::from_bool(false),
+            switch_exits: Bool::from_bool(false),
             modified: HashSet::new(),
         }
     }
@@ -56,6 +58,7 @@ struct Analyzer<'a, 'arena> {
     suppress_access_checks: bool,
     summaries: &'a HashMap<String, FunctionSummary>,
     namespace: Option<String>,
+    switch_depth: usize,
 }
 
 pub fn analyze_file_with_summaries(
@@ -81,6 +84,7 @@ pub fn analyze_file_with_summaries(
             .namespace
             .as_ref()
             .map(|namespace| namespace.to_ascii_lowercase()),
+        switch_depth: 0,
     };
 
     let mut state = State::new();
@@ -148,6 +152,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     state,
                 );
             }
+            Statement::Switch(switch) => self.analyze_switch(switch, state),
             Statement::Foreach(foreach) => {
                 self.eval_expr(foreach.expression, state);
                 let mut body_state = state.clone();
@@ -203,7 +208,11 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 state.reachable = false;
             }
             Statement::Break(_) => {
-                state.loop_exits = Bool::or(&[&state.loop_exits, &state.path]);
+                if self.switch_depth > 0 {
+                    state.switch_exits = Bool::or(&[&state.switch_exits, &state.path]);
+                } else {
+                    state.loop_exits = Bool::or(&[&state.loop_exits, &state.path]);
+                }
                 state.path = Bool::from_bool(false);
                 state.reachable = false;
             }
@@ -378,6 +387,100 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         *state = merged;
     }
 
+    fn analyze_switch(&mut self, switch: &'arena Switch<'arena>, state: &mut State) {
+        let subject = self.eval_expr(switch.expression, state);
+        let has_default = switch.body.has_default_case();
+        let mut pending: Vec<Bool> = Vec::new();
+        let mut known_conditions: Vec<Bool> = Vec::new();
+        let mut has_unknown_condition = false;
+        let mut branch_states = Vec::new();
+
+        self.switch_depth += 1;
+        for case in switch.body.cases() {
+            let case_condition = case.expression().map(|expression| {
+                let value = self.eval_expr(expression, state);
+                self.compare_identical(&subject, &value, false).truthiness()
+            });
+
+            if let Some(Some(condition)) = &case_condition {
+                known_conditions.push(condition.clone());
+            } else if !case.is_default() {
+                has_unknown_condition = true;
+            }
+
+            if case.is_empty() {
+                if let Some(Some(condition)) = case_condition {
+                    pending.push(condition);
+                }
+                continue;
+            }
+
+            let condition = match case_condition.flatten() {
+                Some(condition) => {
+                    pending.push(condition);
+                    Some(path_or_many(&pending))
+                }
+                None => None,
+            };
+            pending.clear();
+
+            let mut branch_state = state.clone();
+            if let Some(condition) = &condition {
+                branch_state.path = path_and(&state.path, condition);
+            }
+            self.analyze_statements(case.statements(), &mut branch_state);
+            branch_states.push(branch_state);
+        }
+        self.switch_depth -= 1;
+
+        if !has_default {
+            let mut fallthrough = state.clone();
+            if !has_unknown_condition {
+                let any_case = path_or_many(&known_conditions);
+                fallthrough.path = path_and(&state.path, &path_not(&any_case));
+            }
+            branch_states.push(fallthrough);
+        }
+
+        if branch_states.is_empty() {
+            return;
+        }
+
+        let mut merged = state.clone();
+        let mut modified = HashSet::new();
+        for branch_state in &branch_states {
+            modified.extend(branch_state.modified.iter().cloned());
+        }
+        for name in modified {
+            merged.env.insert(name.clone(), Value::Unknown);
+            merged.modified.insert(name);
+        }
+
+        let mut paths = Vec::new();
+        for branch_state in &branch_states {
+            paths.push(branch_state.path.clone());
+            if !matches!(branch_state.switch_exits.as_bool(), Some(false)) {
+                paths.push(branch_state.switch_exits.clone());
+            }
+        }
+        merged.path = path_or_many(&paths);
+        merged.switch_exits = Bool::from_bool(false);
+        merged.loop_exits = Bool::or(
+            &branch_states
+                .iter()
+                .map(|branch| branch.loop_exits.clone())
+                .collect::<Vec<_>>()
+                .iter()
+                .collect::<Vec<_>>(),
+        );
+        merged.reachable = branch_states.iter().any(|branch| {
+            branch.reachable
+                || (!matches!(branch.switch_exits.as_bool(), Some(false))
+                    && path_may_be_true(&branch.switch_exits))
+        });
+        *state = merged;
+    }
+
     fn analyze_loop(
         &mut self,
         condition: Option<&'arena Expression<'arena>>,
@@ -549,12 +652,58 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 }
             },
             Expression::Construct(construct) => self.eval_construct(construct, state),
-            Expression::Match(match_) => {
-                self.eval_expr(match_.expression, state);
-                Value::Unknown
-            }
+            Expression::Match(match_) => self.eval_match(match_, state),
             _ => Value::Unknown,
         }
+    }
+
+    fn eval_match(&mut self, match_: &'arena Match<'arena>, state: &mut State) -> Value {
+        let subject = self.eval_expr(match_.expression, state);
+        let mut fallback = Value::Unknown;
+        let mut branches = Vec::new();
+
+        for arm in match_.arms.iter() {
+            match arm {
+                MatchArm::Default(arm) => {
+                    fallback = self.eval_expr(arm.expression, state);
+                }
+                MatchArm::Expression(arm) => {
+                    let mut conditions = Vec::new();
+                    let mut has_unknown_condition = false;
+                    for condition in arm.conditions.iter() {
+                        let value = self.eval_expr(condition, state);
+                        match self.compare_identical(&subject, &value, false).truthiness() {
+                            Some(condition) => conditions.push(condition),
+                            None => has_unknown_condition = true,
+                        }
+                    }
+                    let condition = if has_unknown_condition {
+                        None
+                    } else {
+                        Some(path_or_many(&conditions))
+                    };
+                    let mut branch_state = state.clone();
+                    if let Some(condition) = &condition {
+                        branch_state.path = path_and(&state.path, condition);
+                    }
+                    let value = self.eval_expr(arm.expression, &mut branch_state);
+                    for name in &branch_state.modified {
+                        state.env.insert(name.clone(), Value::Unknown);
+                        state.modified.insert(name.clone());
+                    }
+                    branches.push((condition, value));
+                }
+            }
+        }
+
+        let mut result = fallback;
+        for (condition, value) in branches.into_iter().rev() {
+            result = match condition {
+                Some(condition) => Value::merge(Some(&condition), &value, &result),
+                None => Value::Unknown,
+            };
+        }
+        result
     }
 
     fn eval_literal(&self, literal: &'arena Literal<'arena>) -> Value {
