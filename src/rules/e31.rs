@@ -339,6 +339,46 @@ mod loop_tests {
 }
 
 #[cfg(test)]
+mod builtin_tests {
+    use crate::rules::tests::analyze_file_for_rule;
+
+    use super::*;
+
+    fn messages(path: &str) -> Vec<String> {
+        analyze_file_for_rule(path, CODE)
+            .into_iter()
+            .map(|violation| violation.message.render())
+            .collect()
+    }
+
+    #[test]
+    fn proves_a_strlen_derived_string_offset() {
+        assert!(messages("e31/strlen_offset_in_bounds.php").is_empty());
+    }
+
+    #[test]
+    fn reports_a_strlen_derived_string_offset_out_of_bounds() {
+        let messages = messages("e31/strlen_offset_out_of_bounds.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("String offset"));
+    }
+
+    #[test]
+    fn proves_a_count_derived_array_index() {
+        assert!(messages("e31/count_array_in_bounds.php").is_empty());
+    }
+
+    #[test]
+    fn reports_a_count_derived_array_index_out_of_bounds() {
+        let messages = messages("e31/count_array_out_of_bounds.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Array key"));
+    }
+}
+
+#[cfg(test)]
 mod foreach_tests {
     use crate::rules::tests::analyze_file_for_rule;
 
