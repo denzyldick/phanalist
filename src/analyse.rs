@@ -222,6 +222,26 @@ impl Analyse {
         }
     }
 
+    /// Rebuild cross-file rule state for a single file from its on-disk content.
+    ///
+    /// Editors close documents that still exist, so their summaries must be
+    /// restored instead of discarded.
+    pub(crate) fn index_file_from_disk(&self, path: &Path) {
+        let Some(content) = read_source(path) else {
+            self.remove_indexed_file(path);
+            return;
+        };
+
+        let arena = LocalArena::new();
+        let file = File::new(&arena, path.to_path_buf(), content);
+        for rule in self.rules.values() {
+            rule.index_file(&file);
+        }
+        for rule in self.rules.values() {
+            rule.finalize_index();
+        }
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn scan_prepared(
         &self,
