@@ -646,6 +646,44 @@ mod switch_tests {
 }
 
 #[cfg(test)]
+mod try_tests {
+    use crate::rules::tests::analyze_file_for_rule;
+
+    use super::*;
+
+    fn messages(path: &str) -> Vec<String> {
+        analyze_file_for_rule(path, CODE)
+            .into_iter()
+            .map(|violation| violation.message.render())
+            .collect()
+    }
+
+    #[test]
+    fn analyzes_catches_even_when_the_try_block_returns() {
+        let messages = messages("e31/try_catch_after_return.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+
+    #[test]
+    fn analyzes_finally_blocks_after_returns() {
+        let messages = messages("e31/try_finally_after_return.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+
+    #[test]
+    fn reports_findings_inside_try_blocks() {
+        let messages = messages("e31/try_catch_clean.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+}
+
+#[cfg(test)]
 mod closure_tests {
     use crate::rules::tests::analyze_file_for_rule;
 
