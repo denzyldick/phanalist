@@ -158,6 +158,16 @@ mod verification_tests {
     }
 
     #[test]
+    fn reads_tracked_literal_array_values() {
+        let violations = analyze_file_for_rule("e31/array_access_tracked.php", CODE);
+
+        assert_eq!(violations.len(), 2);
+        assert!(violations
+            .iter()
+            .all(|violation| violation.message.render().contains("Division by zero")));
+    }
+
+    #[test]
     fn reports_array_access_out_of_bounds() {
         let messages = messages("e31/array_out_of_bounds.php");
 
