@@ -20,7 +20,7 @@ Think of it as a health checkup for your PHP code. It doesn't just tell you *tha
 ### ✨ Features
 
 - 🚀 **Fast** — built in Rust, analyzes large codebases in seconds
-- 🔍 **31 built-in rules** — covering complexity, style, design patterns, and more
+- 🔍 **32 built-in rules** — covering complexity, style, design patterns, and more
 - ⚙️ **Zero config to start** — works out of the box, configure only what you need
 - 📄 **Multiple output formats** — `text`, `json`, `sarif` (for CI pipelines with inline PR annotations via [GitHub Action](https://github.com/marketplace/actions/phanalist)), and `codeclimate` (for Code Quality platforms)
 - 🔌 **Extensible** — adding a custom rule takes minutes
@@ -220,6 +220,23 @@ rules:
     max_fan_in: 20
   E0030:
     max_density: 0.3
+  E0031:
+    php_version: "8.4"
+    check_division: true
+    check_modulo: true
+    check_intdiv: true
+    check_array_index: true
+    check_string_offset: true
+    check_nullability: true
+    check_types: true
+    check_assertions: true
+    check_unreachable: true
+    check_return_contracts: true
+    loop_strategy: auto
+    unroll_depth: 16
+    timeout_ms: 1000
+    unknown_policy: report
+    max_findings_per_function: 50
 ```
 
 - **`enabled_rules`** — whitelist of rules to run (empty = all)
@@ -277,6 +294,7 @@ exclude_paths:
 | [E0028](/src/rules/examples/e28/e28.md) | Data Class | `max_getter_setter_ratio: 0.7`, `min_methods: 3` |
 | [E0029](/src/rules/examples/e29/e29.md) | Fan-in / Fan-out | `max_fan_out: 10`, `max_fan_in: 20` |
 | [E0030](/src/rules/examples/e30/e30.md) | Cyclomatic Complexity Density | `max_density: 0.3` |
+| [E0031](/src/rules/examples/e31/e31.md) | Formal Verification | `php_version`, `check_division`, `check_modulo`, `check_intdiv`, `check_array_index`, `check_string_offset`, `check_nullability`, `check_types`, `check_assertions`, `check_unreachable`, `check_return_contracts`, `loop_strategy`, `unroll_depth`, `timeout_ms`, `unknown_policy`, `max_findings_per_function` |
 
 Adding a new rule is straightforward — [this tutorial](./docs/adding_new_rule.md) explains how.
 
