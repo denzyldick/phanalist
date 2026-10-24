@@ -1,0 +1,4 @@
+[target.aarch64-unknown-linux-gnu]
+pre-build = [
+    "apt-get update && apt-get install -y --no-install-recommends cmake",
+]

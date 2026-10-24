@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Added
+
+- `E0031` formal verification rule backed by Z3. It proves division, modulo and `intdiv()` safety; array and string bounds; null method and property access; declared return contracts; assertions; and unreachable statements. It uses bounded loop unrolling and project-wide constant-return summaries, and reports unverified properties according to `unknown_policy`.
+- Vendored Z3 so the verifier builds without a system Z3 installation. Release binaries now target GNU Linux (musl builds are no longer produced).
+
 ### Fixed
 
 - Full-project scans (`--src .`) no longer grow memory with the size of the tree. Every scanned file was parsed into a single shared arena that was only freed when the scan ended, so peak memory tracked the combined size of all parsed PHP files and could exhaust the host's RAM and swap. Both the indexing pre-pass and the main pass now reclaim each file's AST before reading the next one, so peak memory is proportional to the largest single file rather than the whole project.
