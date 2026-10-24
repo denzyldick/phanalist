@@ -4,7 +4,7 @@
 
 ### Added
 
-- `E0031` formal verification rule backed by Z3. It proves division, modulo and `intdiv()` safety; array and string bounds; null method and property access; declared and PHPDoc return contracts; PHPDoc parameter refinements; assertions; unreachable statements; `switch`/`match` guards; per-element `foreach` analysis; and `strlen()`/`count()` derived bounds. It uses bounded loop unrolling and project-wide constant-return and identity function and method summaries, and reports unverified properties according to `unknown_policy`.
+- `E0031` formal verification rule backed by Z3. It proves division, modulo and `intdiv()` safety; array and string bounds; null method and property access; declared and PHPDoc return contracts; PHPDoc parameter and `@var` refinements; `@phpstan-assert`/`@psalm-assert` contracts; assertions; unreachable statements; `switch`/`match` guards; numbered `break`/`continue`; per-element `foreach` analysis; and `strlen()`/`count()` derived bounds. It uses bounded loop unrolling and project-wide constant-return and identity function and method summaries, and reports unverified properties according to `unknown_policy`.
 - Vendored Z3 so the verifier builds without a system Z3 installation. Release binaries now target GNU Linux (musl builds are no longer produced).
 
 ### Fixed
@@ -14,6 +14,7 @@
 - Directory walk errors are now skipped with a `-v` diagnostic instead of panicking the walk.
 - Each violation is stored once instead of being cloned while building the report, and output pruning no longer duplicates the entire results map. Together these roughly halve peak memory on projects that report many violations.
 - The LSP workspace indexer reclaims each file's AST as it indexes, so opening a large project in an editor no longer loads every file's parse tree at once.
+- The LSP server now drops cross-file rule summaries when a document is closed or deleted, or when a watched file is deleted, instead of leaving stale interprocedural data behind.
 
 ### Changed
 

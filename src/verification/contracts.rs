@@ -4,15 +4,29 @@ use z3::ast::{Ast, Bool, Int};
 
 use super::value::Value;
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct Assertion {
+    pub parameter: String,
+    pub ty: String,
+    pub negated: bool,
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct Docblock {
     pub params: HashMap<String, String>,
+    pub vars: HashMap<String, String>,
+    pub var: Option<String>,
+    pub asserts: Vec<Assertion>,
     pub return_type: Option<String>,
 }
 
 impl Docblock {
     pub fn is_empty(&self) -> bool {
-        self.params.is_empty() && self.return_type.is_none()
+        self.params.is_empty()
+            && self.vars.is_empty()
+            && self.var.is_none()
+            && self.asserts.is_empty()
+            && self.return_type.is_none()
     }
 }
 
@@ -37,6 +51,20 @@ pub fn parse_docblock(raw: &[u8]) -> Docblock {
             .or_else(|| tagged_param(line, "@param"))
         {
             docblock.params.entry(name).or_insert(ty);
+        } else if let Some((name, ty)) = tagged_var(line, "@phpstan-var")
+            .or_else(|| tagged_var(line, "@psalm-var"))
+            .or_else(|| tagged_var(line, "@var"))
+        {
+            if let Some(name) = name {
+                docblock.vars.entry(name).or_insert(ty);
+            } else {
+                docblock.var.get_or_insert(ty);
+            }
+        } else if let Some(assertion) = tagged_assert(line, "@phpstan-assert")
+            .or_else(|| tagged_assert(line, "@psalm-assert"))
+            .or_else(|| tagged_assert(line, "@assert"))
+        {
+            docblock.asserts.push(assertion);
         }
     }
 
@@ -74,6 +102,62 @@ fn tagged_param(line: &str, tag: &str) -> Option<(String, String)> {
         return None;
     }
     Some((name.to_string(), normalize(ty)))
+}
+
+fn tagged_assert(line: &str, tag: &str) -> Option<Assertion> {
+    let rest = line.strip_prefix(tag)?;
+    if !rest.starts_with(char::is_whitespace) {
+        return None;
+    }
+    let dollar = rest.find('$')?;
+    let mut ty = rest[..dollar].trim();
+    if ty.is_empty() {
+        return None;
+    }
+    let negated = ty.starts_with('!');
+    ty = ty.trim_start_matches('!').trim();
+    if ty.is_empty() {
+        return None;
+    }
+    let parameter = rest[dollar + 1..]
+        .split(|c: char| c.is_whitespace() || c == ',')
+        .next()?;
+    if parameter.is_empty() {
+        return None;
+    }
+    Some(Assertion {
+        parameter: format!("${parameter}"),
+        ty: normalize(ty),
+        negated,
+    })
+}
+
+fn tagged_var(line: &str, tag: &str) -> Option<(Option<String>, String)> {
+    let rest = line.strip_prefix(tag)?;
+    if !rest.starts_with(char::is_whitespace) {
+        return None;
+    }
+
+    if let Some(dollar) = rest.find('$') {
+        let ty = rest[..dollar].trim();
+        if ty.is_empty() {
+            return None;
+        }
+        let name = rest[dollar + 1..]
+            .split(|c: char| c.is_whitespace() || c == ',')
+            .next()?;
+        if name.is_empty() {
+            return None;
+        }
+        return Some((Some(format!("${name}")), normalize(ty)));
+    }
+
+    let ty = rest.split_whitespace().next()?.trim();
+    if ty.is_empty() {
+        None
+    } else {
+        Some((None, normalize(ty)))
+    }
 }
 
 fn normalize(ty: &str) -> String {

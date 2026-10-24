@@ -215,6 +215,13 @@ impl Analyse {
         }
     }
 
+    /// Drop cross-file rule state for a file removed by the editor.
+    pub(crate) fn remove_indexed_file(&self, path: &Path) {
+        for rule in self.rules.values() {
+            rule.remove_file(path);
+        }
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn scan_prepared(
         &self,

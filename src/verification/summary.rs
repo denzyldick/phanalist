@@ -1,9 +1,12 @@
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
+use mago_span::HasSpan;
 use mago_syntax::cst::*;
 
 use crate::file::File;
+
+use super::contracts::{self, Docblock};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ConstantValue {
@@ -18,6 +21,14 @@ pub enum ConstantValue {
 pub struct FunctionSummary {
     pub return_value: Option<ConstantValue>,
     pub return_parameter: Option<usize>,
+    pub asserts: Vec<ParameterAssertion>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ParameterAssertion {
+    pub index: usize,
+    pub ty: String,
+    pub negated: bool,
 }
 
 #[derive(Default)]
@@ -30,6 +41,10 @@ impl SummaryIndex {
         self.files.clear();
     }
 
+    pub fn remove_file(&mut self, path: &Path) {
+        self.files.remove(path);
+    }
+
     pub fn replace_file(&mut self, file: &File<'_>) {
         self.files.remove(&file.path);
 
@@ -38,7 +53,12 @@ impl SummaryIndex {
         };
 
         let mut summaries = Vec::new();
-        collect_summaries(program.statements.as_slice(), None, &mut summaries);
+        collect_summaries(
+            program.statements.as_slice(),
+            program.trivia.as_slice(),
+            None,
+            &mut summaries,
+        );
         self.files.insert(file.path.clone(), summaries);
     }
 
@@ -59,6 +79,7 @@ impl SummaryIndex {
 
 fn collect_summaries(
     statements: &[Statement<'_>],
+    trivia: &[Trivia<'_>],
     namespace: Option<&str>,
     summaries: &mut Vec<(String, FunctionSummary)>,
 ) {
@@ -72,6 +93,7 @@ fn collect_summaries(
                 });
                 collect_summaries(
                     namespace_statement.statements().as_slice(),
+                    trivia,
                     name.as_deref(),
                     summaries,
                 );
@@ -85,6 +107,7 @@ fn collect_summaries(
                         function.body.statements.as_slice(),
                         &function.parameter_list,
                         function.return_type_hint.is_none(),
+                        &docblock_before(trivia, function.span()),
                     ),
                 ));
             }
@@ -93,6 +116,7 @@ fn collect_summaries(
                     namespace,
                     &String::from_utf8_lossy(class.name.value),
                     &class.members,
+                    trivia,
                     summaries,
                 );
             }
@@ -101,6 +125,7 @@ fn collect_summaries(
                     namespace,
                     &String::from_utf8_lossy(interface.name.value),
                     &interface.members,
+                    trivia,
                     summaries,
                 );
             }
@@ -109,6 +134,7 @@ fn collect_summaries(
                     namespace,
                     &String::from_utf8_lossy(trait_.name.value),
                     &trait_.members,
+                    trivia,
                     summaries,
                 );
             }
@@ -117,6 +143,7 @@ fn collect_summaries(
                     namespace,
                     &String::from_utf8_lossy(enum_.name.value),
                     &enum_.members,
+                    trivia,
                     summaries,
                 );
             }
@@ -129,6 +156,7 @@ fn collect_member_summaries(
     namespace: Option<&str>,
     class: &str,
     members: &Sequence<'_, ClassLikeMember<'_>>,
+    trivia: &[Trivia<'_>],
     summaries: &mut Vec<(String, FunctionSummary)>,
 ) {
     let class = qualify(namespace, &class.to_ascii_lowercase());
@@ -142,6 +170,7 @@ fn collect_member_summaries(
                         block.statements.as_slice(),
                         &method.parameter_list,
                         method.return_type_hint.is_none(),
+                        &docblock_before(trivia, method.span()),
                     ),
                 ));
             }
@@ -160,12 +189,16 @@ fn summarize_function(
     statements: &[Statement<'_>],
     parameters: &FunctionLikeParameterList<'_>,
     untyped_return: bool,
+    docblock: &Docblock,
 ) -> FunctionSummary {
+    let asserts = parameter_assertions(parameters, docblock);
+
     if untyped_return {
         if let Some(index) = identity_parameter(statements, parameters) {
             return FunctionSummary {
                 return_value: None,
                 return_parameter: Some(index),
+                asserts,
             };
         }
     }
@@ -179,14 +212,54 @@ fn summarize_function(
         match (&value, constant) {
             (None, Some(constant)) if !expression.is_none() => value = Some(constant),
             (Some(previous), Some(constant)) if previous == &constant => {}
-            _ => return FunctionSummary::default(),
+            _ => {
+                return FunctionSummary {
+                    asserts,
+                    ..FunctionSummary::default()
+                };
+            }
         }
     }
 
     FunctionSummary {
         return_value: value,
         return_parameter: None,
+        asserts,
     }
+}
+
+fn parameter_assertions(
+    parameters: &FunctionLikeParameterList<'_>,
+    docblock: &Docblock,
+) -> Vec<ParameterAssertion> {
+    docblock
+        .asserts
+        .iter()
+        .filter_map(|assertion| {
+            let index = parameters.parameters.iter().position(|parameter| {
+                String::from_utf8_lossy(parameter.variable.name) == assertion.parameter
+            })?;
+            Some(ParameterAssertion {
+                index,
+                ty: assertion.ty.clone(),
+                negated: assertion.negated,
+            })
+        })
+        .collect()
+}
+
+fn docblock_before(trivia: &[Trivia<'_>], span: mago_span::Span) -> Docblock {
+    let mut best = None;
+    for trivia in trivia {
+        if !trivia.kind.is_docblock() || trivia.span.end.offset > span.start.offset {
+            continue;
+        }
+        if best.is_none_or(|best: &Trivia<'_>| trivia.span.end.offset > best.span.end.offset) {
+            best = Some(trivia);
+        }
+    }
+    best.map(|trivia| contracts::parse_docblock(trivia.value))
+        .unwrap_or_default()
 }
 
 fn identity_parameter(
@@ -359,6 +432,37 @@ mod tests {
 
         let typed_return = summarize("<?php function pass($value): int { return $value; }");
         assert_eq!(typed_return["pass"].return_parameter, None);
+    }
+
+    #[test]
+    fn removing_a_file_drops_only_its_summaries() {
+        let mut index = SummaryIndex::default();
+        let removed = PathBuf::from("removed.php");
+
+        {
+            let arena = LocalArena::new();
+            let file = file(
+                &arena,
+                removed.to_str().unwrap(),
+                "<?php function removed_constant(): int { return 0; }",
+            );
+            index.replace_file(&file);
+        }
+        {
+            let arena = LocalArena::new();
+            let file = file(
+                &arena,
+                "kept.php",
+                "<?php function kept_constant(): int { return 2; }",
+            );
+            index.replace_file(&file);
+        }
+
+        index.remove_file(&removed);
+
+        let snapshot = index.snapshot();
+        assert_eq!(snapshot.len(), 1);
+        assert!(snapshot.contains_key("kept_constant"));
     }
 
     #[test]
