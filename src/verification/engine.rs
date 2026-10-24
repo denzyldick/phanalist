@@ -27,6 +27,7 @@ struct State {
     loop_exits: Bool,
     switch_exits: Bool,
     modified: HashSet<String>,
+    array_values: HashMap<String, Vec<(Value, Value)>>,
 }
 
 impl State {
@@ -38,12 +39,14 @@ impl State {
             loop_exits: Bool::from_bool(false),
             switch_exits: Bool::from_bool(false),
             modified: HashSet::new(),
+            array_values: HashMap::new(),
         }
     }
 
     fn assign(&mut self, name: String, value: Value) {
         self.env.insert(name.clone(), value);
-        self.modified.insert(name);
+        self.modified.insert(name.clone());
+        self.array_values.remove(&name);
     }
 }
 
@@ -164,27 +167,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 );
             }
             Statement::Switch(switch) => self.analyze_switch(switch, state),
-            Statement::Foreach(foreach) => {
-                self.eval_expr(foreach.expression, state);
-                let mut body_state = state.clone();
-                match &foreach.target {
-                    ForeachTarget::Value(target) => {
-                        if let Some(name) = direct_variable_name(target.value) {
-                            body_state.assign(name, Value::Unknown);
-                        }
-                    }
-                    ForeachTarget::KeyValue(target) => {
-                        if let Some(name) = direct_variable_name(target.key) {
-                            body_state.assign(name, Value::Unknown);
-                        }
-                        if let Some(name) = direct_variable_name(target.value) {
-                            body_state.assign(name, Value::Unknown);
-                        }
-                    }
-                }
-                self.analyze_statements(foreach.body.statements(), &mut body_state);
-                self.havoc_modified(state, &body_state);
-            }
+            Statement::Foreach(foreach) => self.analyze_foreach(foreach, state),
             Statement::Try(try_statement) => {
                 self.analyze_statements(try_statement.block.statements.as_slice(), state);
                 for catch in try_statement.catch_clauses.iter() {
@@ -258,8 +241,9 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             }
             Statement::Unset(unset) => {
                 for value in unset.values.iter() {
-                    if let Some(name) = direct_variable_name(value) {
+                    if let Some(name) = root_variable_name(value) {
                         state.env.remove(&name);
+                        state.array_values.remove(&name);
                     }
                 }
             }
@@ -434,6 +418,90 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         merged.loop_exits = Bool::or(&loop_exits.iter().collect::<Vec<_>>());
         merged.reachable = branch_states.iter().any(|branch| branch.reachable);
         *state = merged;
+    }
+
+    fn analyze_foreach(&mut self, foreach: &'arena Foreach<'arena>, state: &mut State) {
+        let elements = match foreach.expression.unparenthesized() {
+            Expression::Array(array) => Some(array.elements.as_slice()),
+            Expression::LegacyArray(array) => Some(array.elements.as_slice()),
+            _ => None,
+        };
+
+        if let Some(elements) = elements {
+            if !elements
+                .iter()
+                .any(|element| matches!(element, ArrayElement::Variadic(_)))
+            {
+                if let Some(pairs) = self.eval_array_pairs(elements, state) {
+                    self.analyze_foreach_pairs(pairs, foreach, state);
+                }
+                return;
+            }
+        }
+
+        if let Some(name) = direct_variable_name(foreach.expression) {
+            if let Some(pairs) = state.array_values.get(&name).cloned() {
+                self.analyze_foreach_pairs(pairs, foreach, state);
+                return;
+            }
+        }
+
+        self.eval_expr(foreach.expression, state);
+        let mut body_state = state.clone();
+        match &foreach.target {
+            ForeachTarget::Value(target) => {
+                if let Some(name) = direct_variable_name(target.value) {
+                    body_state.assign(name, Value::Unknown);
+                }
+            }
+            ForeachTarget::KeyValue(target) => {
+                if let Some(name) = direct_variable_name(target.key) {
+                    body_state.assign(name, Value::Unknown);
+                }
+                if let Some(name) = direct_variable_name(target.value) {
+                    body_state.assign(name, Value::Unknown);
+                }
+            }
+        }
+        self.analyze_statements(foreach.body.statements(), &mut body_state);
+        self.havoc_modified(state, &body_state);
+    }
+
+    fn analyze_foreach_pairs(
+        &mut self,
+        pairs: Vec<(Value, Value)>,
+        foreach: &'arena Foreach<'arena>,
+        state: &mut State,
+    ) {
+        let mut modified = HashSet::new();
+
+        for (key, value) in pairs {
+            let mut body_state = state.clone();
+            match &foreach.target {
+                ForeachTarget::Value(target) => {
+                    if let Some(name) = direct_variable_name(target.value) {
+                        body_state.assign(name, value);
+                    }
+                }
+                ForeachTarget::KeyValue(target) => {
+                    if let Some(name) = direct_variable_name(target.key) {
+                        body_state.assign(name, key);
+                    }
+                    if let Some(name) = direct_variable_name(target.value) {
+                        body_state.assign(name, value);
+                    }
+                }
+            }
+
+            self.analyze_statements(foreach.body.statements(), &mut body_state);
+            modified.extend(body_state.modified.iter().cloned());
+        }
+
+        for name in modified {
+            state.env.insert(name.clone(), Value::Unknown);
+            state.modified.insert(name.clone());
+            state.array_values.remove(&name);
+        }
     }
 
     fn analyze_switch(&mut self, switch: &'arena Switch<'arena>, state: &mut State) {
@@ -790,7 +858,21 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         assignment: &'arena Assignment<'arena>,
         state: &mut State,
     ) -> Value {
-        let right = self.eval_expr(assignment.rhs, state);
+        let array_elements = if matches!(assignment.operator, AssignmentOperator::Assign(_)) {
+            match assignment.rhs.unparenthesized() {
+                Expression::Array(array) => Some(array.elements.as_slice()),
+                Expression::LegacyArray(array) => Some(array.elements.as_slice()),
+                _ => None,
+            }
+        } else {
+            None
+        };
+        let array_pairs =
+            array_elements.and_then(|elements| self.eval_array_pairs(elements, state));
+        let right = match &array_pairs {
+            Some(pairs) => value_from_pairs(pairs),
+            None => self.eval_expr(assignment.rhs, state),
+        };
         let name = direct_variable_name(assignment.lhs);
 
         let value = match assignment.operator {
@@ -836,8 +918,32 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             _ => Value::Unknown,
         };
 
+        let assigned_name = name.clone();
         if let Some(name) = name {
-            state.assign(name, value.clone());
+            let array_value = if matches!(assignment.operator, AssignmentOperator::Assign(_)) {
+                match &array_pairs {
+                    Some(pairs) => Some(pairs.clone()),
+                    None => match assignment.rhs.unparenthesized() {
+                        Expression::Variable(Variable::Direct(variable)) => state
+                            .array_values
+                            .get(&String::from_utf8_lossy(variable.name).to_string())
+                            .cloned(),
+                        _ => None,
+                    },
+                }
+            } else {
+                None
+            };
+            state.assign(name.clone(), value.clone());
+            if let Some(pairs) = array_value {
+                state.array_values.insert(name, pairs);
+            }
+        }
+
+        if assigned_name.is_none() {
+            if let Some(root) = root_variable_name(assignment.lhs) {
+                state.array_values.remove(&root);
+            }
         }
         value
     }
@@ -1303,6 +1409,37 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         } else {
             Value::Array(None)
         }
+    }
+
+    fn eval_array_pairs(
+        &mut self,
+        elements: &'arena [ArrayElement<'arena>],
+        state: &mut State,
+    ) -> Option<Vec<(Value, Value)>> {
+        let mut pairs = Vec::new();
+        let mut next_index = 0_i64;
+
+        for element in elements {
+            match element {
+                ArrayElement::KeyValue(element) => {
+                    let key = self.eval_expr(element.key, state);
+                    let value = self.eval_expr(element.value, state);
+                    if let ArrayKey::Int(index) = array_key(&key)? {
+                        next_index = next_index.max(index.saturating_add(1));
+                    }
+                    pairs.push((key, value));
+                }
+                ArrayElement::Value(element) => {
+                    let value = self.eval_expr(element.value, state);
+                    pairs.push((Value::Int(Int::from_i64(next_index)), value));
+                    next_index = next_index.saturating_add(1);
+                }
+                ArrayElement::Missing(_) => next_index = next_index.saturating_add(1),
+                ArrayElement::Variadic(_) => return None,
+            }
+        }
+
+        Some(pairs)
     }
 
     fn check_array_access(&mut self, array: &Value, index: &Value, span: Span, path: &Bool) {
@@ -1911,6 +2048,31 @@ fn direct_variable_name(expression: &Expression<'_>) -> Option<String> {
         }
         _ => None,
     }
+}
+
+fn root_variable_name(expression: &Expression<'_>) -> Option<String> {
+    match expression.unparenthesized() {
+        Expression::Variable(Variable::Direct(variable)) => {
+            Some(String::from_utf8_lossy(variable.name).to_string())
+        }
+        Expression::ArrayAccess(access) => root_variable_name(access.array),
+        Expression::Access(Access::Property(access)) => root_variable_name(access.object),
+        Expression::Access(Access::NullSafeProperty(access)) => root_variable_name(access.object),
+        _ => None,
+    }
+}
+
+fn value_from_pairs(pairs: &[(Value, Value)]) -> Value {
+    let mut keys = BTreeSet::new();
+    for (key, _) in pairs {
+        match array_key(key) {
+            Some(key) => {
+                keys.insert(key);
+            }
+            None => return Value::Array(None),
+        }
+    }
+    Value::Array(Some(keys))
 }
 
 fn path_not(value: &Bool) -> Bool {
