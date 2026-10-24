@@ -62,12 +62,13 @@ impl crate::rules::Rule for Rule {
     }
 
     fn validate_file(&self, file: &File<'_>) -> Option<Vec<Violation>> {
-        let summaries = self
+        let (summaries, parents) = self
             .summaries
             .lock()
-            .map(|summaries| summaries.snapshot())
+            .map(|summaries| (summaries.snapshot(), summaries.parent_map()))
             .unwrap_or_default();
-        let findings = verification::analyze_file_with_summaries(file, &self.settings, &summaries);
+        let findings =
+            verification::analyze_file_with_summaries(file, &self.settings, &summaries, &parents);
         Some(
             findings
                 .into_iter()
@@ -888,6 +889,22 @@ mod summary_tests {
     #[test]
     fn uses_trait_method_summaries() {
         let messages = messages("e31/method_inheritance_trait.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+
+    #[test]
+    fn resolves_parent_method_summaries() {
+        let messages = messages("e31/parent_method_call.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+
+    #[test]
+    fn resolves_parent_method_summaries_when_the_child_overrides_them() {
+        let messages = messages("e31/parent_method_override.php");
 
         assert_eq!(messages.len(), 1);
         assert!(messages[0].contains("Division by zero"));

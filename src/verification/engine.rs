@@ -63,6 +63,7 @@ struct Analyzer<'a, 'arena> {
     finding_limit_start: usize,
     suppress_access_checks: bool,
     summaries: &'a HashMap<String, FunctionSummary>,
+    parents: &'a HashMap<String, String>,
     namespace: Option<String>,
     class: Option<String>,
     switch_depth: usize,
@@ -74,6 +75,7 @@ pub fn analyze_file_with_summaries(
     file: &File<'_>,
     settings: &Settings,
     summaries: &HashMap<String, FunctionSummary>,
+    parents: &HashMap<String, String>,
 ) -> Vec<Finding> {
     let Some(program) = file.ast else {
         return Vec::new();
@@ -89,6 +91,7 @@ pub fn analyze_file_with_summaries(
         finding_limit_start: 0,
         suppress_access_checks: false,
         summaries,
+        parents,
         namespace: file
             .namespace
             .as_ref()
@@ -1436,6 +1439,11 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 }
             }
             Expression::Self_(_) | Expression::Static(_) => self.class.clone(),
+            Expression::Parent(_) => self
+                .class
+                .as_ref()
+                .and_then(|class| self.parents.get(class))
+                .cloned(),
             _ => None,
         }
     }

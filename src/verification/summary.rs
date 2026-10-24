@@ -37,10 +37,16 @@ pub struct SummaryIndex {
     files: HashMap<PathBuf, FileSummaries>,
 }
 
+#[derive(Clone, Copy, PartialEq)]
+enum ParentKind {
+    Extends,
+    Trait,
+}
+
 #[derive(Default)]
 struct FileSummaries {
     summaries: Vec<(String, FunctionSummary)>,
-    parents: Vec<(String, String)>,
+    parents: Vec<(String, String, ParentKind)>,
 }
 
 impl SummaryIndex {
@@ -87,19 +93,7 @@ impl SummaryIndex {
             .map(|(name, summary)| (name.clone(), summary.clone()))
             .collect();
 
-        let mut parents: HashMap<String, Vec<String>> = HashMap::new();
-        for file in self.files.values() {
-            for (child, parent) in &file.parents {
-                parents
-                    .entry(child.clone())
-                    .or_default()
-                    .push(parent.clone());
-            }
-        }
-        for inheritors in parents.values_mut() {
-            inheritors.sort();
-            inheritors.dedup();
-        }
+        let parents = self.inheritors();
 
         for _ in 0..32 {
             let mut additions = Vec::new();
@@ -141,6 +135,52 @@ impl SummaryIndex {
 
         summaries
     }
+
+    /// Return the unique parent of each class or trait, when exactly one is known.
+    pub fn parent_map(&self) -> HashMap<String, String> {
+        let mut parents: HashMap<String, Vec<String>> = HashMap::new();
+        for file in self.files.values() {
+            for (child, parent, kind) in &file.parents {
+                if *kind == ParentKind::Extends {
+                    parents
+                        .entry(child.clone())
+                        .or_default()
+                        .push(parent.clone());
+                }
+            }
+        }
+        for inheritors in parents.values_mut() {
+            inheritors.sort();
+            inheritors.dedup();
+        }
+        parents
+            .into_iter()
+            .filter_map(|(child, mut parents)| {
+                if parents.len() == 1 {
+                    Some((child, parents.remove(0)))
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
+    fn inheritors(&self) -> HashMap<String, Vec<String>> {
+        let mut parents: HashMap<String, Vec<String>> = HashMap::new();
+        for file in self.files.values() {
+            for (child, parent, _) in &file.parents {
+                parents
+                    .entry(child.clone())
+                    .or_default()
+                    .push(parent.clone());
+            }
+        }
+        for inheritors in parents.values_mut() {
+            inheritors.sort();
+            inheritors.dedup();
+        }
+        parents
+    }
 }
 
 fn collect_summaries(
@@ -149,7 +189,7 @@ fn collect_summaries(
     source: &[u8],
     namespace: Option<&str>,
     summaries: &mut Vec<(String, FunctionSummary)>,
-    parents: &mut Vec<(String, String)>,
+    parents: &mut Vec<(String, String, ParentKind)>,
 ) {
     for statement in statements {
         match statement {
@@ -192,7 +232,11 @@ fn collect_summaries(
                 );
                 if let Some(extends) = &class.extends {
                     for parent in extends.types.iter() {
-                        parents.push((class_name.clone(), resolve_name(parent, namespace)));
+                        parents.push((
+                            class_name.clone(),
+                            resolve_name(parent, namespace),
+                            ParentKind::Extends,
+                        ));
                     }
                 }
                 collect_member_summaries(
@@ -212,7 +256,11 @@ fn collect_summaries(
                 );
                 if let Some(extends) = &interface.extends {
                     for parent in extends.types.iter() {
-                        parents.push((class_name.clone(), resolve_name(parent, namespace)));
+                        parents.push((
+                            class_name.clone(),
+                            resolve_name(parent, namespace),
+                            ParentKind::Extends,
+                        ));
                     }
                 }
                 collect_member_summaries(
@@ -259,13 +307,17 @@ fn collect_member_summaries(
     trivia: &[Trivia<'_>],
     source: &[u8],
     summaries: &mut Vec<(String, FunctionSummary)>,
-    parents: &mut Vec<(String, String)>,
+    parents: &mut Vec<(String, String, ParentKind)>,
 ) {
     let class = qualify(namespace, &class.to_ascii_lowercase());
     for member in members.iter() {
         if let ClassLikeMember::TraitUse(trait_use) = member {
             for trait_name in trait_use.trait_names.iter() {
-                parents.push((class.clone(), resolve_name(trait_name, namespace)));
+                parents.push((
+                    class.clone(),
+                    resolve_name(trait_name, namespace),
+                    ParentKind::Trait,
+                ));
             }
         } else if let ClassLikeMember::Method(method) = member {
             if let MethodBody::Concrete(block) = &method.body {
