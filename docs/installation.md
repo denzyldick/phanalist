@@ -21,8 +21,6 @@ You can also manually download your platform-specific binary from the [latest Gi
 Available tarballs:
 - `phanalist-aarch64-apple-darwin.tar.gz`
 - `phanalist-x86_64-apple-darwin.tar.gz`
-- `phanalist-aarch64-unknown-linux-musl.tar.gz`
-- `phanalist-x86_64-unknown-linux-musl.tar.gz`
 - `phanalist-aarch64-unknown-linux-gnu.tar.gz`
 - `phanalist-x86_64-unknown-linux-gnu.tar.gz`
 - `phanalist-x86_64-pc-windows-msvc.zip`

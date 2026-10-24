@@ -58,11 +58,6 @@ struct Analyzer<'a, 'arena> {
     namespace: Option<String>,
 }
 
-pub fn analyze_file(file: &File<'_>, settings: &Settings) -> Vec<Finding> {
-    let summaries = HashMap::new();
-    analyze_file_with_summaries(file, settings, &summaries)
-}
-
 pub fn analyze_file_with_summaries(
     file: &File<'_>,
     settings: &Settings,
