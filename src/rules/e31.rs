@@ -339,6 +339,67 @@ mod loop_tests {
 }
 
 #[cfg(test)]
+mod phpdoc_tests {
+    use crate::rules::tests::analyze_file_for_rule;
+
+    use super::*;
+
+    fn messages(path: &str) -> Vec<String> {
+        analyze_file_for_rule(path, CODE)
+            .into_iter()
+            .map(|violation| violation.message.render())
+            .collect()
+    }
+
+    #[test]
+    fn proves_division_by_a_positive_int_parameter() {
+        assert!(messages("e31/phpdoc_param_positive.php").is_empty());
+    }
+
+    #[test]
+    fn reports_division_by_an_unconstrained_documented_int() {
+        let messages = messages("e31/phpdoc_param_unconstrained.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+
+    #[test]
+    fn reports_a_documented_return_type_mismatch() {
+        let messages = messages("e31/phpdoc_return_bad.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("does not satisfy"));
+    }
+
+    #[test]
+    fn accepts_a_matching_documented_return_type() {
+        assert!(messages("e31/phpdoc_return_good.php").is_empty());
+    }
+
+    #[test]
+    fn reports_a_documented_positive_int_violation() {
+        let messages = messages("e31/phpdoc_return_negative.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("does not satisfy"));
+    }
+
+    #[test]
+    fn accepts_a_nullable_documented_return_type() {
+        assert!(messages("e31/phpdoc_nullable_return.php").is_empty());
+    }
+
+    #[test]
+    fn reports_division_by_an_unconstrained_float_parameter() {
+        let messages = messages("e31/phpdoc_param_float.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+}
+
+#[cfg(test)]
 mod switch_tests {
     use crate::rules::tests::analyze_file_for_rule;
 

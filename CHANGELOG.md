@@ -4,7 +4,7 @@
 
 ### Added
 
-- `E0031` formal verification rule backed by Z3. It proves division, modulo and `intdiv()` safety; array and string bounds; null method and property access; declared return contracts; assertions; and unreachable statements. It uses bounded loop unrolling and project-wide constant-return summaries, and reports unverified properties according to `unknown_policy`.
+- `E0031` formal verification rule backed by Z3. It proves division, modulo and `intdiv()` safety; array and string bounds; null method and property access; declared and PHPDoc return contracts; PHPDoc parameter refinements; assertions; and unreachable statements. It uses bounded loop unrolling and project-wide constant-return summaries, and reports unverified properties according to `unknown_policy`.
 - Vendored Z3 so the verifier builds without a system Z3 installation. Release binaries now target GNU Linux (musl builds are no longer produced).
 
 ### Fixed

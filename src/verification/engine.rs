@@ -9,6 +9,7 @@ use z3::{Params, SatResult, Solver};
 use crate::file::File;
 use crate::results::Message;
 
+use super::contracts::{self, Docblock};
 use super::summary::{ConstantValue, FunctionSummary};
 use super::value::{ArrayKey, Value};
 use super::Settings;
@@ -59,6 +60,8 @@ struct Analyzer<'a, 'arena> {
     summaries: &'a HashMap<String, FunctionSummary>,
     namespace: Option<String>,
     switch_depth: usize,
+    docblocks: Vec<Trivia<'arena>>,
+    doc_return: Option<String>,
 }
 
 pub fn analyze_file_with_summaries(
@@ -85,6 +88,13 @@ pub fn analyze_file_with_summaries(
             .as_ref()
             .map(|namespace| namespace.to_ascii_lowercase()),
         switch_depth: 0,
+        docblocks: program
+            .trivia
+            .iter()
+            .filter(|trivia| trivia.kind.is_docblock())
+            .copied()
+            .collect(),
+        doc_return: None,
     };
 
     let mut state = State::new();
@@ -122,6 +132,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     &function.parameter_list,
                     function.return_type_hint.as_ref(),
                     &function.body,
+                    function.span(),
                 );
             }
             Statement::Class(class) => self.analyze_members(&class.members),
@@ -271,6 +282,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                         &method.parameter_list,
                         method.return_type_hint.as_ref(),
                         block,
+                        method.span(),
                     );
                 }
             }
@@ -283,27 +295,64 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         parameters: &'arena FunctionLikeParameterList<'arena>,
         return_hint: Option<&'arena FunctionLikeReturnTypeHint<'arena>>,
         body: &'arena Block<'arena>,
+        span: Span,
     ) {
         let previous_hint = self.return_hint;
+        let previous_doc_return = self.doc_return.take();
         let previous_limit = self.finding_limit_start;
         self.return_hint = return_hint.map(|hint| &hint.hint);
         self.finding_limit_start = self.findings.len();
 
+        let docblock = self.docblock_before(span).unwrap_or_default();
+        self.doc_return = docblock.return_type.clone();
+
         let mut state = State::new();
         for parameter in parameters.parameters.iter() {
             let parameter_name = String::from_utf8_lossy(parameter.variable.name).to_string();
-            let value = if hint_is_numeric(parameter.hint.as_ref()) {
-                Value::Int(Int::new_const(format!("{name}::{parameter_name}")))
-            } else {
-                Value::Unknown
-            };
+            let doc_type = docblock
+                .params
+                .get(parameter_name.strip_prefix('$').unwrap_or(&parameter_name));
+            let value = parameter_value(
+                parameter.hint.as_ref(),
+                doc_type.map(String::as_str),
+                name,
+                &parameter_name,
+            );
+            if let Some(doc_type) = doc_type {
+                if let Some(constraint) = contracts::constraint(&value, doc_type) {
+                    state.path = path_and(&state.path, &constraint);
+                }
+            }
             state.env.insert(parameter_name, value);
         }
 
         self.analyze_statements(body.statements.as_slice(), &mut state);
 
         self.return_hint = previous_hint;
+        self.doc_return = previous_doc_return;
         self.finding_limit_start = previous_limit;
+    }
+
+    fn docblock_before(&self, span: Span) -> Option<Docblock> {
+        let program = self.file.ast?;
+        let mut best: Option<&Trivia<'arena>> = None;
+        for trivia in &self.docblocks {
+            if trivia.span.end.offset > span.start.offset {
+                continue;
+            }
+            if best.is_none_or(|best| trivia.span.end.offset > best.span.end.offset) {
+                best = Some(trivia);
+            }
+        }
+        let best = best?;
+        let start = best.span.end.offset as usize;
+        let end = span.start.offset as usize;
+        let gap = program.source_text.get(start..end)?;
+        if !gap.iter().all(u8::is_ascii_whitespace) {
+            return None;
+        }
+        let docblock = contracts::parse_docblock(best.value);
+        (!docblock.is_empty()).then_some(docblock)
     }
 
     fn analyze_if(&mut self, if_statement: &'arena If<'arena>, state: &mut State) {
@@ -1528,10 +1577,15 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
     }
 
     fn check_return_contract(&mut self, value: Option<&Value>, span: Span) {
-        let Some(hint) = self.return_hint else {
-            return;
-        };
+        if let Some(hint) = self.return_hint {
+            self.check_native_return_contract(value, hint, span);
+        }
+        if let Some(doc_type) = self.doc_return.clone() {
+            self.check_doc_return_contract(value, &doc_type, span);
+        }
+    }
 
+    fn check_native_return_contract(&mut self, value: Option<&Value>, hint: &Hint<'_>, span: Span) {
         let Some(value) = value else {
             if !matches!(hint, Hint::Void(_) | Hint::Never(_) | Hint::Mixed(_))
                 && !hint.contains_null()
@@ -1562,6 +1616,40 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 )
                 .arg("value", value_type_name(value))
                 .arg("type", hint_name(hint)),
+                span,
+            );
+        }
+    }
+
+    fn check_doc_return_contract(&mut self, value: Option<&Value>, doc_type: &str, span: Span) {
+        let Some(value) = value else {
+            if doc_type != "void" && doc_type != "never" && !contracts::is_nullable(doc_type) {
+                self.push_message(
+                    "return-contract",
+                    Message::new(
+                        "E0031:return-contract",
+                        "The function can return without a value but documents return type {type}.",
+                    )
+                    .arg("type", doc_type),
+                    span,
+                );
+            }
+            return;
+        };
+
+        if matches!(value, Value::Unknown) {
+            return;
+        }
+
+        if contracts::accepts_value(value, doc_type, true) == Some(false) {
+            self.push_message(
+                "return-contract",
+                Message::new(
+                    "E0031:return-contract",
+                    "Returned {value} does not satisfy the documented return type {type}.",
+                )
+                .arg("value", value_type_name(value))
+                .arg("type", doc_type),
                 span,
             );
         }
@@ -1730,6 +1818,73 @@ fn function_identifier_name(expression: &Expression<'_>) -> Option<String> {
     }
 }
 
+fn parameter_value(
+    hint: Option<&Hint<'_>>,
+    doc_type: Option<&str>,
+    function: &str,
+    parameter: &str,
+) -> Value {
+    if let Some(doc_type) = doc_type {
+        let doc_type = doc_type.trim();
+        if doc_type.starts_with('?') || doc_type.contains('|') || doc_type == "mixed" {
+            return Value::Unknown;
+        }
+        if doc_type == "int"
+            || doc_type == "integer"
+            || doc_type.starts_with("int<")
+            || matches!(
+                doc_type,
+                "positive-int"
+                    | "non-negative-int"
+                    | "negative-int"
+                    | "non-positive-int"
+                    | "non-zero-int"
+            )
+        {
+            return Value::Int(Int::new_const(format!("{function}::{parameter}")));
+        }
+        if doc_type == "float" || doc_type == "double" {
+            return Value::Float(Float::new_const(format!("{function}::{parameter}"), 11, 53));
+        }
+        if doc_type == "string" || doc_type == "non-empty-string" || doc_type == "numeric-string" {
+            return Value::String(None);
+        }
+        if doc_type == "bool" || doc_type == "boolean" || doc_type == "true" || doc_type == "false"
+        {
+            return Value::Bool(Bool::new_const(format!("{function}::{parameter}")));
+        }
+        if doc_type == "array"
+            || doc_type == "iterable"
+            || doc_type == "non-empty-array"
+            || doc_type == "non-empty-list"
+            || doc_type.starts_with("array<")
+            || doc_type.starts_with("list<")
+        {
+            return Value::Array(None);
+        }
+        if doc_type == "null" {
+            return Value::Null;
+        }
+        return Value::Unknown;
+    }
+
+    match hint {
+        Some(Hint::Integer(_)) | Some(Hint::Mixed(_)) | None => {
+            Value::Int(Int::new_const(format!("{function}::{parameter}")))
+        }
+        Some(Hint::Float(_)) => {
+            Value::Float(Float::new_const(format!("{function}::{parameter}"), 11, 53))
+        }
+        Some(Hint::String(_)) => Value::String(None),
+        Some(Hint::Bool(_)) => Value::Bool(Bool::new_const(format!("{function}::{parameter}"))),
+        Some(Hint::Array(_)) | Some(Hint::Iterable(_)) => Value::Array(None),
+        Some(Hint::True(_)) => Value::Bool(Bool::from_bool(true)),
+        Some(Hint::False(_)) => Value::Bool(Bool::from_bool(false)),
+        Some(Hint::Null(_)) => Value::Null,
+        _ => Value::Unknown,
+    }
+}
+
 fn constant_to_value(value: &ConstantValue) -> Value {
     match value {
         ConstantValue::Int(value) => Value::Int(Int::from_i64(*value)),
@@ -1755,21 +1910,6 @@ fn direct_variable_name(expression: &Expression<'_>) -> Option<String> {
             Some(String::from_utf8_lossy(variable.name).to_string())
         }
         _ => None,
-    }
-}
-
-fn hint_is_numeric(hint: Option<&Hint<'_>>) -> bool {
-    match hint {
-        None => true,
-        Some(hint) => match hint {
-            Hint::Integer(_) | Hint::Float(_) | Hint::Mixed(_) => true,
-            Hint::Nullable(nullable) => hint_is_numeric(Some(nullable.hint)),
-            Hint::Union(union) => {
-                hint_is_numeric(Some(union.left)) || hint_is_numeric(Some(union.right))
-            }
-            Hint::Parenthesized(parenthesized) => hint_is_numeric(Some(parenthesized.hint)),
-            _ => false,
-        },
     }
 }
 

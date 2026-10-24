@@ -1,3 +1,4 @@
+mod contracts;
 mod engine;
 mod settings;
 mod summary;
