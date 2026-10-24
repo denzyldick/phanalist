@@ -339,6 +339,43 @@ mod loop_tests {
 }
 
 #[cfg(test)]
+mod foreach_tests {
+    use crate::rules::tests::analyze_file_for_rule;
+
+    use super::*;
+
+    fn messages(path: &str) -> Vec<String> {
+        analyze_file_for_rule(path, CODE)
+            .into_iter()
+            .map(|violation| violation.message.render())
+            .collect()
+    }
+
+    #[test]
+    fn reports_division_by_a_zero_array_element() {
+        let messages = messages("e31/foreach_array_zero.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+
+    #[test]
+    fn proves_division_by_every_array_element() {
+        assert!(messages("e31/foreach_array_guarded.php").is_empty());
+    }
+
+    #[test]
+    fn unrolls_key_value_array_iteration() {
+        assert!(messages("e31/foreach_key_value.php").is_empty());
+    }
+
+    #[test]
+    fn invalidates_a_tracked_array_after_element_assignment() {
+        assert!(messages("e31/foreach_array_reassigned.php").is_empty());
+    }
+}
+
+#[cfg(test)]
 mod phpdoc_tests {
     use crate::rules::tests::analyze_file_for_rule;
 
