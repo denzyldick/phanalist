@@ -34,7 +34,11 @@ impl crate::rules::Rule for Rule {
         }
     }
 
-    fn validate(&self, _file: &File<'_>, _statement: &mago_syntax::cst::Statement<'_>) -> Vec<Violation> {
+    fn validate(
+        &self,
+        _file: &File<'_>,
+        _statement: &mago_syntax::cst::Statement<'_>,
+    ) -> Vec<Violation> {
         Vec::new()
     }
 
@@ -107,5 +111,166 @@ mod tests {
 
         assert_eq!(violations.len(), 1);
         assert!(violations[0].message.render().contains("overflows"));
+    }
+}
+
+#[cfg(test)]
+mod verification_tests {
+    use crate::rules::tests::analyze_file_for_rule;
+
+    use super::*;
+
+    fn messages(path: &str) -> Vec<String> {
+        analyze_file_for_rule(path, CODE)
+            .into_iter()
+            .map(|violation| violation.message.render())
+            .collect()
+    }
+
+    #[test]
+    fn proves_array_access_in_bounds() {
+        assert!(messages("e31/array_in_bounds.php").is_empty());
+    }
+
+    #[test]
+    fn reports_array_access_out_of_bounds() {
+        let messages = messages("e31/array_out_of_bounds.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Array key"));
+    }
+
+    #[test]
+    fn reports_missing_string_array_key() {
+        let messages = messages("e31/array_missing_string_key.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Array key"));
+    }
+
+    #[test]
+    fn reports_symbolic_array_access_out_of_bounds() {
+        let messages = messages("e31/array_symbolic_out_of_bounds.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Array key"));
+    }
+
+    #[test]
+    fn proves_string_offset_in_bounds() {
+        assert!(messages("e31/string_offset_in_bounds.php").is_empty());
+    }
+
+    #[test]
+    fn proves_negative_string_offset_in_bounds() {
+        assert!(messages("e31/string_offset_negative.php").is_empty());
+    }
+
+    #[test]
+    fn reports_string_offset_out_of_bounds() {
+        let messages = messages("e31/string_offset_out_of_bounds.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("String offset"));
+    }
+
+    #[test]
+    fn reports_method_call_on_null() {
+        let messages = messages("e31/null_method_call.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Method call on null"));
+    }
+
+    #[test]
+    fn allows_null_safe_method_call() {
+        assert!(messages("e31/nullsafe_method_call.php").is_empty());
+    }
+
+    #[test]
+    fn reports_property_access_on_null() {
+        let messages = messages("e31/null_property_access.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Property access on null"));
+    }
+
+    #[test]
+    fn assertion_narrows_the_path() {
+        assert!(messages("e31/assertion_guard.php").is_empty());
+    }
+
+    #[test]
+    fn reports_assertion_that_can_never_hold() {
+        let messages = messages("e31/assertion_always_false.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("assertion can never hold"));
+    }
+
+    #[test]
+    fn reports_return_contract_mismatch() {
+        let messages = messages("e31/return_contract_bad_string.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("does not satisfy"));
+    }
+
+    #[test]
+    fn reports_strict_return_contract_mismatch() {
+        let messages = messages("e31/return_contract_strict.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("does not satisfy"));
+    }
+
+    #[test]
+    fn allows_weak_return_coercion() {
+        assert!(messages("e31/return_contract_weak.php").is_empty());
+    }
+
+    #[test]
+    fn reports_missing_return_value() {
+        let messages = messages("e31/return_contract_missing.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("return without a value"));
+    }
+
+    #[test]
+    fn reports_unreachable_statement() {
+        let messages = messages("e31/unreachable_after_return.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("unreachable"));
+    }
+}
+
+#[cfg(test)]
+mod context_tests {
+    use crate::rules::tests::analyze_file_for_rule;
+
+    use super::*;
+
+    fn messages(path: &str) -> Vec<String> {
+        analyze_file_for_rule(path, CODE)
+            .into_iter()
+            .map(|violation| violation.message.render())
+            .collect()
+    }
+
+    #[test]
+    fn does_not_flag_isset_on_null_property() {
+        assert!(messages("e31/isset_null_property.php").is_empty());
+    }
+
+    #[test]
+    fn does_not_flag_isset_on_missing_array_key() {
+        assert!(messages("e31/isset_missing_array_key.php").is_empty());
+    }
+
+    #[test]
+    fn does_not_flag_null_coalesce_on_null_property() {
+        assert!(messages("e31/coalesce_null_property.php").is_empty());
     }
 }

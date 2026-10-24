@@ -1,4 +1,12 @@
+use std::collections::BTreeSet;
+
 use z3::ast::{Bool, Float, Int};
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ArrayKey {
+    Int(i64),
+    String(String),
+}
 
 #[derive(Clone, Debug)]
 pub enum Value {
@@ -6,6 +14,7 @@ pub enum Value {
     Float(Float),
     Bool(Bool),
     String(Option<String>),
+    Array(Option<BTreeSet<ArrayKey>>),
     Null,
     Unknown,
 }
@@ -25,25 +34,9 @@ impl Value {
             Value::Int(value) => Some(value.eq(0).not()),
             Value::Float(value) => Some(value.is_zero().not()),
             Value::Null => Some(Bool::from_bool(false)),
-            Value::String(Some(value)) => {
-                Some(Bool::from_bool(!value.is_empty() && value != "0"))
-            }
-            Value::String(None) | Value::Unknown => None,
-        }
-    }
-
-    pub fn as_literal_i64(&self) -> Option<i64> {
-        match self {
-            Value::Int(value) => value.as_i64(),
-            _ => None,
-        }
-    }
-
-    pub fn as_literal_f64(&self) -> Option<f64> {
-        match self {
-            Value::Float(value) => Some(value.as_f64()),
-            Value::Int(value) => value.as_i64().map(|value| value as f64),
-            _ => None,
+            Value::String(Some(value)) => Some(Bool::from_bool(!value.is_empty() && value != "0")),
+            Value::Array(Some(keys)) => Some(Bool::from_bool(!keys.is_empty())),
+            Value::String(None) | Value::Array(None) | Value::Unknown => None,
         }
     }
 
@@ -76,6 +69,15 @@ impl Value {
                 Value::String(Some(left.clone()))
             }
             (None, Value::Null, Value::Null) => Value::Null,
+            (Some(condition), Value::Array(Some(left)), Value::Array(Some(right)))
+                if left == right =>
+            {
+                let _ = condition;
+                Value::Array(Some(left.clone()))
+            }
+            (None, Value::Array(Some(left)), Value::Array(Some(right))) if left == right => {
+                Value::Array(Some(left.clone()))
+            }
             _ => Value::Unknown,
         }
     }

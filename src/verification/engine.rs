@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::ops::{Add, Mul, Sub};
 
 use mago_span::{HasSpan, Span};
@@ -9,7 +9,7 @@ use z3::{Params, SatResult, Solver};
 use crate::file::File;
 use crate::results::Message;
 
-use super::value::Value;
+use super::value::{ArrayKey, Value};
 use super::Settings;
 
 pub struct Finding {
@@ -21,6 +21,7 @@ pub struct Finding {
 struct State {
     env: HashMap<String, Value>,
     path: Bool,
+    reachable: bool,
     modified: HashSet<String>,
 }
 
@@ -29,6 +30,7 @@ impl State {
         Self {
             env: HashMap::new(),
             path: Bool::from_bool(true),
+            reachable: true,
             modified: HashSet::new(),
         }
     }
@@ -45,6 +47,10 @@ struct Analyzer<'a, 'arena> {
     settings: &'a Settings,
     findings: Vec<Finding>,
     seen: HashSet<(u32, u32, &'static str)>,
+    return_hint: Option<&'arena Hint<'arena>>,
+    strict_types: bool,
+    finding_limit_start: usize,
+    suppress_access_checks: bool,
 }
 
 pub fn analyze_file(file: &File<'_>, settings: &Settings) -> Vec<Finding> {
@@ -57,6 +63,10 @@ pub fn analyze_file(file: &File<'_>, settings: &Settings) -> Vec<Finding> {
         settings,
         findings: Vec::new(),
         seen: HashSet::new(),
+        return_hint: None,
+        strict_types: file_declares_strict_types(program),
+        finding_limit_start: 0,
+        suppress_access_checks: false,
     };
 
     let mut state = State::new();
@@ -69,13 +79,30 @@ pub fn analyze_file(file: &File<'_>, settings: &Settings) -> Vec<Finding> {
 
 impl<'a, 'arena> Analyzer<'a, 'arena> {
     fn analyze_statement(&mut self, statement: &'arena Statement<'arena>, state: &mut State) {
+        if !state.reachable {
+            if !is_declaration(statement) {
+                if self.settings.check_unreachable {
+                    self.push_finding(
+                        "unreachable",
+                        "This statement is unreachable.",
+                        statement.span(),
+                        "?",
+                    );
+                }
+                return;
+            }
+        }
+
         match statement {
             Statement::Block(block) => self.analyze_statements(block.statements.as_slice(), state),
-            Statement::Namespace(namespace) => self.analyze_statements(namespace.statements().as_slice(), state),
+            Statement::Namespace(namespace) => {
+                self.analyze_statements(namespace.statements().as_slice(), state)
+            }
             Statement::Function(function) => {
                 self.analyze_function(
                     &String::from_utf8_lossy(function.name.value),
                     &function.parameter_list,
+                    function.return_type_hint.as_ref(),
                     &function.body,
                 );
             }
@@ -156,13 +183,25 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 }
             }
             Statement::Return(return_statement) => {
-                if let Some(value) = return_statement.value {
-                    self.eval_expr(value, state);
+                let value = return_statement
+                    .value
+                    .map(|value| self.eval_expr(value, state));
+                if self.settings.check_return_contracts {
+                    self.check_return_contract(value.as_ref(), return_statement.span());
                 }
                 state.path = Bool::from_bool(false);
+                state.reachable = false;
             }
             Statement::Break(_) | Statement::Continue(_) => {
                 state.path = Bool::from_bool(false);
+                state.reachable = false;
+            }
+            Statement::Declare(declare) => {
+                if let DeclareBody::Statement(statement) = &declare.body {
+                    self.analyze_statement(statement, state);
+                } else if let DeclareBody::ColonDelimited(body) = &declare.body {
+                    self.analyze_statements(body.statements.as_slice(), state);
+                }
             }
             Statement::Global(global) => {
                 for variable in global.variables.iter() {
@@ -206,6 +245,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     self.analyze_function(
                         &String::from_utf8_lossy(method.name.value),
                         &method.parameter_list,
+                        method.return_type_hint.as_ref(),
                         block,
                     );
                 }
@@ -217,8 +257,14 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         &mut self,
         name: &str,
         parameters: &'arena FunctionLikeParameterList<'arena>,
+        return_hint: Option<&'arena FunctionLikeReturnTypeHint<'arena>>,
         body: &'arena Block<'arena>,
     ) {
+        let previous_hint = self.return_hint;
+        let previous_limit = self.finding_limit_start;
+        self.return_hint = return_hint.map(|hint| &hint.hint);
+        self.finding_limit_start = self.findings.len();
+
         let mut state = State::new();
         for parameter in parameters.parameters.iter() {
             let parameter_name = String::from_utf8_lossy(parameter.variable.name).to_string();
@@ -231,6 +277,9 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         }
 
         self.analyze_statements(body.statements.as_slice(), &mut state);
+
+        self.return_hint = previous_hint;
+        self.finding_limit_start = previous_limit;
     }
 
     fn analyze_if(&mut self, if_statement: &'arena If<'arena>, state: &mut State) {
@@ -282,8 +331,16 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
 
         for name in modified {
             let value = if branch_states.len() == 2 {
-                let left = branch_states[0].env.get(&name).cloned().unwrap_or(Value::Unknown);
-                let right = branch_states[1].env.get(&name).cloned().unwrap_or(Value::Unknown);
+                let left = branch_states[0]
+                    .env
+                    .get(&name)
+                    .cloned()
+                    .unwrap_or(Value::Unknown);
+                let right = branch_states[1]
+                    .env
+                    .get(&name)
+                    .cloned()
+                    .unwrap_or(Value::Unknown);
                 Value::merge(condition.as_ref(), &left, &right)
             } else {
                 Value::Unknown
@@ -297,6 +354,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             paths.push(branch_state.path.clone());
         }
         merged.path = Bool::or(&paths);
+        merged.reachable = branch_states.iter().any(|branch| branch.reachable);
         *state = merged;
     }
 
@@ -335,9 +393,13 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             Expression::UnaryPostfix(unary) => {
                 let value = self.eval_expr(unary.operand, state);
                 match unary.operator {
-                    UnaryPostfixOperator::PostIncrement(_) | UnaryPostfixOperator::PostDecrement(_) => {
+                    UnaryPostfixOperator::PostIncrement(_)
+                    | UnaryPostfixOperator::PostDecrement(_) => {
                         if let Some(name) = direct_variable_name(unary.operand) {
-                            let next = self.increment_value(&value, matches!(unary.operator, UnaryPostfixOperator::PostIncrement(_)));
+                            let next = self.increment_value(
+                                &value,
+                                matches!(unary.operator, UnaryPostfixOperator::PostIncrement(_)),
+                            );
                             state.assign(name, next);
                         }
                     }
@@ -355,50 +417,50 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             Expression::Clone(clone) => self.eval_expr(clone.object, state),
             Expression::Throw(throw) => {
                 self.eval_expr(throw.exception, state);
+                state.path = Bool::from_bool(false);
+                state.reachable = false;
                 Value::Unknown
             }
             Expression::CompositeString(string) => self.eval_string(string, state),
-            Expression::Array(array) => {
-                for element in array.elements.nodes.iter() {
-                    match element {
-                        ArrayElement::KeyValue(element) => {
-                            self.eval_expr(element.key, state);
-                            self.eval_expr(element.value, state);
-                        }
-                        ArrayElement::Value(element) => {
-                            self.eval_expr(element.value, state);
-                        }
-                        ArrayElement::Variadic(element) => {
-                            self.eval_expr(element.value, state);
-                        }
-                        ArrayElement::Missing(_) => {}
-                    }
-                }
-                Value::Unknown
-            }
+            Expression::Array(array) => self.eval_array_elements(array.elements.as_slice(), state),
             Expression::LegacyArray(array) => {
-                for element in array.elements.nodes.iter() {
-                    match element {
-                        ArrayElement::KeyValue(element) => {
-                            self.eval_expr(element.key, state);
-                            self.eval_expr(element.value, state);
-                        }
-                        ArrayElement::Value(element) => {
-                            self.eval_expr(element.value, state);
-                        }
-                        ArrayElement::Variadic(element) => {
-                            self.eval_expr(element.value, state);
-                        }
-                        ArrayElement::Missing(_) => {}
-                    }
-                }
-                Value::Unknown
+                self.eval_array_elements(array.elements.as_slice(), state)
             }
             Expression::ArrayAccess(access) => {
-                self.eval_expr(access.array, state);
-                self.eval_expr(access.index, state);
+                let array = self.eval_expr(access.array, state);
+                let index = self.eval_expr(access.index, state);
+                self.check_array_access(&array, &index, access.span(), &state.path);
                 Value::Unknown
             }
+            Expression::Access(access) => match access {
+                Access::Property(access) => {
+                    let object = self.eval_expr(access.object, state);
+                    if self.settings.check_nullability
+                        && !self.suppress_access_checks
+                        && matches!(object, Value::Null)
+                    {
+                        self.push_finding(
+                            "null-property-access",
+                            "Property access on null.",
+                            access.span(),
+                            "null",
+                        );
+                    }
+                    Value::Unknown
+                }
+                Access::NullSafeProperty(access) => {
+                    self.eval_expr(access.object, state);
+                    Value::Unknown
+                }
+                Access::StaticProperty(access) => {
+                    self.eval_expr(access.class, state);
+                    Value::Unknown
+                }
+                Access::ClassConstant(access) => {
+                    self.eval_expr(access.class, state);
+                    Value::Unknown
+                }
+            },
             Expression::Construct(construct) => self.eval_construct(construct, state),
             Expression::Match(match_) => {
                 self.eval_expr(match_.expression, state);
@@ -418,7 +480,8 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             Literal::String(string) => Value::String(
                 string
                     .value
-                    .map(|value| String::from_utf8_lossy(value).to_string()),
+                    .and_then(|value| std::str::from_utf8(value).ok())
+                    .map(str::to_string),
             ),
             Literal::True(_) => Value::Bool(Bool::from_bool(true)),
             Literal::False(_) => Value::Bool(Bool::from_bool(false)),
@@ -437,7 +500,11 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         }
     }
 
-    fn eval_assignment(&mut self, assignment: &'arena Assignment<'arena>, state: &mut State) -> Value {
+    fn eval_assignment(
+        &mut self,
+        assignment: &'arena Assignment<'arena>,
+        state: &mut State,
+    ) -> Value {
         let right = self.eval_expr(assignment.rhs, state);
         let name = direct_variable_name(assignment.lhs);
 
@@ -457,14 +524,26 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             }
             AssignmentOperator::Division(_) => {
                 if self.settings.check_division {
-                    self.check_nonzero(&right, &state.path, assignment.span(), "division-by-zero", "Division by zero: the divisor can be {value}.");
+                    self.check_nonzero(
+                        &right,
+                        &state.path,
+                        assignment.span(),
+                        "division-by-zero",
+                        "Division by zero: the divisor can be {value}.",
+                    );
                 }
                 let left = self.eval_expr(assignment.lhs, state);
                 self.divide_values(&left, &right)
             }
             AssignmentOperator::Modulo(_) => {
                 if self.settings.check_modulo && matches!(right, Value::Int(_)) {
-                    self.check_nonzero(&right, &state.path, assignment.span(), "modulo-by-zero", "Modulo by zero: the divisor can be {value}.");
+                    self.check_nonzero(
+                        &right,
+                        &state.path,
+                        assignment.span(),
+                        "modulo-by-zero",
+                        "Modulo by zero: the divisor can be {value}.",
+                    );
                 }
                 let left = self.eval_expr(assignment.lhs, state);
                 self.mod_values(&left, &right)
@@ -479,7 +558,10 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
     }
 
     fn eval_binary(&mut self, binary: &'arena Binary<'arena>, state: &mut State) -> Value {
-        if matches!(binary.operator, BinaryOperator::And(_) | BinaryOperator::LowAnd(_)) {
+        if matches!(
+            binary.operator,
+            BinaryOperator::And(_) | BinaryOperator::LowAnd(_)
+        ) {
             let left = self.eval_expr(binary.lhs, state);
             if let Some(left) = left.truthiness() {
                 if left.as_bool() == Some(false) {
@@ -493,7 +575,10 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             };
         }
 
-        if matches!(binary.operator, BinaryOperator::Or(_) | BinaryOperator::LowOr(_)) {
+        if matches!(
+            binary.operator,
+            BinaryOperator::Or(_) | BinaryOperator::LowOr(_)
+        ) {
             let left = self.eval_expr(binary.lhs, state);
             if let Some(left) = left.truthiness() {
                 if left.as_bool() == Some(true) {
@@ -507,19 +592,39 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             };
         }
 
-        let left = self.eval_expr(binary.lhs, state);
+        let left = if matches!(binary.operator, BinaryOperator::NullCoalesce(_)) {
+            let previous = self.suppress_access_checks;
+            self.suppress_access_checks = true;
+            let value = self.eval_expr(binary.lhs, state);
+            self.suppress_access_checks = previous;
+            value
+        } else {
+            self.eval_expr(binary.lhs, state)
+        };
         let right = self.eval_expr(binary.rhs, state);
 
         match binary.operator {
             BinaryOperator::Division(_) => {
                 if self.settings.check_division {
-                    self.check_nonzero(&right, &state.path, binary.span(), "division-by-zero", "Division by zero: the divisor can be {value}.");
+                    self.check_nonzero(
+                        &right,
+                        &state.path,
+                        binary.span(),
+                        "division-by-zero",
+                        "Division by zero: the divisor can be {value}.",
+                    );
                 }
                 self.divide_values(&left, &right)
             }
             BinaryOperator::Modulo(_) => {
                 if self.settings.check_modulo && matches!(right, Value::Int(_)) {
-                    self.check_nonzero(&right, &state.path, binary.span(), "modulo-by-zero", "Modulo by zero: the divisor can be {value}.");
+                    self.check_nonzero(
+                        &right,
+                        &state.path,
+                        binary.span(),
+                        "modulo-by-zero",
+                        "Modulo by zero: the divisor can be {value}.",
+                    );
                 }
                 self.mod_values(&left, &right)
             }
@@ -532,12 +637,22 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 Value::Unknown => Value::Unknown,
                 value => value,
             },
-            BinaryOperator::Equal(_) | BinaryOperator::NotEqual(_) | BinaryOperator::AngledNotEqual(_) => {
-                self.compare_equal(&left, &right, matches!(binary.operator, BinaryOperator::NotEqual(_) | BinaryOperator::AngledNotEqual(_)))
-            }
-            BinaryOperator::Identical(_) | BinaryOperator::NotIdentical(_) => {
-                self.compare_identical(&left, &right, matches!(binary.operator, BinaryOperator::NotIdentical(_)))
-            }
+            BinaryOperator::Equal(_)
+            | BinaryOperator::NotEqual(_)
+            | BinaryOperator::AngledNotEqual(_) => self.compare_equal(
+                &left,
+                &right,
+                matches!(
+                    binary.operator,
+                    BinaryOperator::NotEqual(_) | BinaryOperator::AngledNotEqual(_)
+                ),
+            ),
+            BinaryOperator::Identical(_) | BinaryOperator::NotIdentical(_) => self
+                .compare_identical(
+                    &left,
+                    &right,
+                    matches!(binary.operator, BinaryOperator::NotIdentical(_)),
+                ),
             BinaryOperator::LessThan(_) => self.compare_less(&left, &right, false),
             BinaryOperator::LessThanOrEqual(_) => self.compare_less(&left, &right, true),
             BinaryOperator::GreaterThan(_) => self.compare_greater(&left, &right, false),
@@ -546,7 +661,11 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         }
     }
 
-    fn eval_unary_prefix(&mut self, unary: &'arena UnaryPrefix<'arena>, state: &mut State) -> Value {
+    fn eval_unary_prefix(
+        &mut self,
+        unary: &'arena UnaryPrefix<'arena>,
+        state: &mut State,
+    ) -> Value {
         match unary.operator {
             UnaryPrefixOperator::Not(_) => self
                 .eval_expr(unary.operand, state)
@@ -566,7 +685,10 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     Value::Int(value) => Value::Int(value),
                     Value::Float(value) => {
                         let literal = value.as_f64();
-                        if literal.is_finite() && literal >= i64::MIN as f64 && literal <= i64::MAX as f64 {
+                        if literal.is_finite()
+                            && literal >= i64::MIN as f64
+                            && literal <= i64::MAX as f64
+                        {
                             Value::Int(Int::from_i64(literal.trunc() as i64))
                         } else {
                             Value::Unknown
@@ -590,7 +712,10 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 .unwrap_or(Value::Unknown),
             UnaryPrefixOperator::PreIncrement(_) | UnaryPrefixOperator::PreDecrement(_) => {
                 let value = self.eval_expr(unary.operand, state);
-                let next = self.increment_value(&value, matches!(unary.operator, UnaryPrefixOperator::PreIncrement(_)));
+                let next = self.increment_value(
+                    &value,
+                    matches!(unary.operator, UnaryPrefixOperator::PreIncrement(_)),
+                );
                 if let Some(name) = direct_variable_name(unary.operand) {
                     state.assign(name, next.clone());
                 }
@@ -603,7 +728,11 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         }
     }
 
-    fn eval_conditional(&mut self, conditional: &'arena Conditional<'arena>, state: &mut State) -> Value {
+    fn eval_conditional(
+        &mut self,
+        conditional: &'arena Conditional<'arena>,
+        state: &mut State,
+    ) -> Value {
         let condition_value = self.eval_expr(conditional.condition, state);
         let condition = condition_value.truthiness();
 
@@ -634,13 +763,40 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             Call::Function(function) => {
                 let arguments = self.eval_arguments(&function.argument_list, state);
                 let name = function_name(function.function);
-                if self.settings.check_intdiv && name.as_deref() == Some("intdiv") && arguments.len() >= 2 {
+                if self.settings.check_intdiv
+                    && name.as_deref() == Some("intdiv")
+                    && arguments.len() >= 2
+                {
                     self.check_intdiv(&arguments[0], &arguments[1], call.span(), &state.path);
+                }
+                if self.settings.check_assertions && name.as_deref() == Some("assert") {
+                    if let Some(condition) = arguments.first().and_then(Value::truthiness) {
+                        self.check_assertion(&condition, &state.path, call.span());
+                        state.path = Bool::and(&[&state.path, &condition]);
+                    } else if self.settings.unknown_policy == "report" {
+                        self.push_finding(
+                            "unverified",
+                            "Could not verify this assertion: its condition is unknown.",
+                            call.span(),
+                            "?",
+                        );
+                    }
                 }
                 Value::Unknown
             }
             Call::Method(method) => {
-                self.eval_expr(method.object, state);
+                let object = self.eval_expr(method.object, state);
+                if self.settings.check_nullability
+                    && !self.suppress_access_checks
+                    && matches!(object, Value::Null)
+                {
+                    self.push_finding(
+                        "null-method-call",
+                        "Method call on null.",
+                        method.object.span(),
+                        "null",
+                    );
+                }
                 self.eval_arguments(&method.argument_list, state);
                 Value::Unknown
             }
@@ -657,7 +813,11 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         }
     }
 
-    fn eval_arguments(&mut self, arguments: &'arena ArgumentList<'arena>, state: &mut State) -> Vec<Value> {
+    fn eval_arguments(
+        &mut self,
+        arguments: &'arena ArgumentList<'arena>,
+        state: &mut State,
+    ) -> Vec<Value> {
         let mut values = Vec::new();
         for argument in arguments.arguments.iter() {
             match argument {
@@ -675,13 +835,19 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
     fn eval_construct(&mut self, construct: &'arena Construct<'arena>, state: &mut State) -> Value {
         match construct {
             Construct::Isset(isset) => {
+                let previous = self.suppress_access_checks;
+                self.suppress_access_checks = true;
                 for value in isset.values.iter() {
                     self.eval_expr(value, state);
                 }
+                self.suppress_access_checks = previous;
                 Value::Unknown
             }
             Construct::Empty(empty) => {
+                let previous = self.suppress_access_checks;
+                self.suppress_access_checks = true;
                 self.eval_expr(empty.value, state);
+                self.suppress_access_checks = previous;
                 Value::Unknown
             }
             Construct::Eval(eval) => {
@@ -722,6 +888,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     }
                 }
                 state.path = Bool::from_bool(false);
+                state.reachable = false;
                 Value::Unknown
             }
             Construct::Die(die) => {
@@ -738,6 +905,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     }
                 }
                 state.path = Bool::from_bool(false);
+                state.reachable = false;
                 Value::Unknown
             }
         }
@@ -786,48 +954,176 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         }
     }
 
+    fn eval_array_elements(
+        &mut self,
+        elements: &'arena [ArrayElement<'arena>],
+        state: &mut State,
+    ) -> Value {
+        let mut keys = BTreeSet::new();
+        let mut next_index = 0_i64;
+        let mut known = true;
+
+        for element in elements {
+            match element {
+                ArrayElement::KeyValue(element) => {
+                    let key_value = self.eval_expr(element.key, state);
+                    self.eval_expr(element.value, state);
+                    match array_key(&key_value) {
+                        Some(key) => {
+                            if let ArrayKey::Int(index) = &key {
+                                next_index = next_index.max(index.saturating_add(1));
+                            }
+                            keys.insert(key);
+                        }
+                        None => known = false,
+                    }
+                }
+                ArrayElement::Value(element) => {
+                    self.eval_expr(element.value, state);
+                    keys.insert(ArrayKey::Int(next_index));
+                    next_index = next_index.saturating_add(1);
+                }
+                ArrayElement::Variadic(element) => {
+                    self.eval_expr(element.value, state);
+                    known = false;
+                }
+                ArrayElement::Missing(_) => {
+                    next_index = next_index.saturating_add(1);
+                }
+            }
+        }
+
+        if known {
+            Value::Array(Some(keys))
+        } else {
+            Value::Array(None)
+        }
+    }
+
+    fn check_array_access(&mut self, array: &Value, index: &Value, span: Span, path: &Bool) {
+        if self.suppress_access_checks {
+            return;
+        }
+        if !self.settings.check_array_index && !self.settings.check_string_offset {
+            return;
+        }
+
+        match array {
+            Value::Array(Some(keys)) => {
+                if !self.settings.check_array_index {
+                    return;
+                }
+
+                match array_key(index) {
+                    Some(key) => {
+                        if !keys.contains(&key) {
+                            self.push_finding(
+                                "array-key",
+                                "Array key {value} is not present in the array.",
+                                span,
+                                &render_array_key(&key),
+                            );
+                        }
+                    }
+                    None => {
+                        if let Value::Int(index) = index {
+                            let mut present = Vec::new();
+                            for key in keys {
+                                if let ArrayKey::Int(value) = key {
+                                    present.push(index.eq(*value));
+                                }
+                            }
+                            let present = if present.is_empty() {
+                                Bool::from_bool(false)
+                            } else {
+                                Bool::or(&present.iter().collect::<Vec<_>>())
+                            };
+                            let index_value = Value::Int(index.clone());
+                            self.check_condition(
+                                &present.not(),
+                                path,
+                                span,
+                                "array-key",
+                                "Array key {value} is not present in the array.",
+                                Some(&index_value),
+                            );
+                        }
+                    }
+                }
+            }
+            Value::String(Some(string)) => {
+                if !self.settings.check_string_offset {
+                    return;
+                }
+                if let Value::Int(index) = index {
+                    let length = Int::from_i64(string.len() as i64);
+                    let out_of_bounds = Bool::or(&[&index.lt(-length.clone()), &index.ge(length)]);
+                    let index_value = Value::Int(index.clone());
+                    self.check_condition(
+                        &out_of_bounds,
+                        path,
+                        span,
+                        "string-offset",
+                        "String offset {value} is out of bounds.",
+                        Some(&index_value),
+                    );
+                }
+            }
+            _ => {}
+        }
+    }
+
     fn add_values(&self, left: &Value, right: &Value) -> Value {
         match (left, right) {
             (Value::Int(left), Value::Int(right)) => Value::Int(left.add(right)),
-            (Value::Float(left), Value::Float(right)) => {
-                Value::Float(left.add_with_rounding_mode(right, &RoundingMode::round_nearest_ties_to_even()))
-            }
-            _ => match (left.to_float(), right.to_float()) {
-                (Some(left), Some(right)) => {
-                    Value::Float(left.add_with_rounding_mode(&right, &RoundingMode::round_nearest_ties_to_even()))
+            (Value::Float(left), Value::Float(right)) => Value::Float(
+                left.add_with_rounding_mode(right, &RoundingMode::round_nearest_ties_to_even()),
+            ),
+            _ => {
+                match (left.to_float(), right.to_float()) {
+                    (Some(left), Some(right)) => Value::Float(left.add_with_rounding_mode(
+                        &right,
+                        &RoundingMode::round_nearest_ties_to_even(),
+                    )),
+                    _ => Value::Unknown,
                 }
-                _ => Value::Unknown,
-            },
+            }
         }
     }
 
     fn sub_values(&self, left: &Value, right: &Value) -> Value {
         match (left, right) {
             (Value::Int(left), Value::Int(right)) => Value::Int(left.sub(right)),
-            (Value::Float(left), Value::Float(right)) => {
-                Value::Float(left.sub_with_rounding_mode(right, &RoundingMode::round_nearest_ties_to_even()))
-            }
-            _ => match (left.to_float(), right.to_float()) {
-                (Some(left), Some(right)) => {
-                    Value::Float(left.sub_with_rounding_mode(&right, &RoundingMode::round_nearest_ties_to_even()))
+            (Value::Float(left), Value::Float(right)) => Value::Float(
+                left.sub_with_rounding_mode(right, &RoundingMode::round_nearest_ties_to_even()),
+            ),
+            _ => {
+                match (left.to_float(), right.to_float()) {
+                    (Some(left), Some(right)) => Value::Float(left.sub_with_rounding_mode(
+                        &right,
+                        &RoundingMode::round_nearest_ties_to_even(),
+                    )),
+                    _ => Value::Unknown,
                 }
-                _ => Value::Unknown,
-            },
+            }
         }
     }
 
     fn mul_values(&self, left: &Value, right: &Value) -> Value {
         match (left, right) {
             (Value::Int(left), Value::Int(right)) => Value::Int(left.mul(right)),
-            (Value::Float(left), Value::Float(right)) => {
-                Value::Float(left.mul_with_rounding_mode(right, &RoundingMode::round_nearest_ties_to_even()))
-            }
-            _ => match (left.to_float(), right.to_float()) {
-                (Some(left), Some(right)) => {
-                    Value::Float(left.mul_with_rounding_mode(&right, &RoundingMode::round_nearest_ties_to_even()))
+            (Value::Float(left), Value::Float(right)) => Value::Float(
+                left.mul_with_rounding_mode(right, &RoundingMode::round_nearest_ties_to_even()),
+            ),
+            _ => {
+                match (left.to_float(), right.to_float()) {
+                    (Some(left), Some(right)) => Value::Float(left.mul_with_rounding_mode(
+                        &right,
+                        &RoundingMode::round_nearest_ties_to_even(),
+                    )),
+                    _ => Value::Unknown,
                 }
-                _ => Value::Unknown,
-            },
+            }
         }
     }
 
@@ -860,12 +1156,8 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         let comparison = match (left, right) {
             (Value::Int(left), Value::Int(right)) => Some(left.eq(right)),
             (Value::Float(left), Value::Float(right)) => Some(left.eq_fpa(right)),
-            (Value::Int(left), Value::Float(right)) => {
-                Some(left.to_real().eq(&right.to_real()))
-            }
-            (Value::Float(left), Value::Int(right)) => {
-                Some(left.to_real().eq(&right.to_real()))
-            }
+            (Value::Int(left), Value::Float(right)) => Some(left.to_real().eq(&right.to_real())),
+            (Value::Float(left), Value::Int(right)) => Some(left.to_real().eq(&right.to_real())),
             (Value::Bool(left), Value::Bool(right)) => Some(left.eq(right)),
             (Value::Null, Value::Null) => Some(Bool::from_bool(true)),
             _ => None,
@@ -901,18 +1193,26 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
 
     fn compare_less(&self, left: &Value, right: &Value, or_equal: bool) -> Value {
         let comparison = match (left, right) {
-            (Value::Int(left), Value::Int(right)) => {
-                Some(if or_equal { left.le(right) } else { left.lt(right) })
-            }
-            (Value::Float(left), Value::Float(right)) => {
-                Some(if or_equal { left.le(right) } else { left.lt(right) })
-            }
-            (Value::Int(left), Value::Float(right)) => {
-                Some(if or_equal { left.to_real().le(&right.to_real()) } else { left.to_real().lt(&right.to_real()) })
-            }
-            (Value::Float(left), Value::Int(right)) => {
-                Some(if or_equal { left.to_real().le(&right.to_real()) } else { left.to_real().lt(&right.to_real()) })
-            }
+            (Value::Int(left), Value::Int(right)) => Some(if or_equal {
+                left.le(right)
+            } else {
+                left.lt(right)
+            }),
+            (Value::Float(left), Value::Float(right)) => Some(if or_equal {
+                left.le(right)
+            } else {
+                left.lt(right)
+            }),
+            (Value::Int(left), Value::Float(right)) => Some(if or_equal {
+                left.to_real().le(&right.to_real())
+            } else {
+                left.to_real().lt(&right.to_real())
+            }),
+            (Value::Float(left), Value::Int(right)) => Some(if or_equal {
+                left.to_real().le(&right.to_real())
+            } else {
+                left.to_real().lt(&right.to_real())
+            }),
             _ => None,
         };
         comparison.map(Value::Bool).unwrap_or(Value::Unknown)
@@ -920,18 +1220,26 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
 
     fn compare_greater(&self, left: &Value, right: &Value, or_equal: bool) -> Value {
         let comparison = match (left, right) {
-            (Value::Int(left), Value::Int(right)) => {
-                Some(if or_equal { left.ge(right) } else { left.gt(right) })
-            }
-            (Value::Float(left), Value::Float(right)) => {
-                Some(if or_equal { left.ge(right) } else { left.gt(right) })
-            }
-            (Value::Int(left), Value::Float(right)) => {
-                Some(if or_equal { left.to_real().ge(&right.to_real()) } else { left.to_real().gt(&right.to_real()) })
-            }
-            (Value::Float(left), Value::Int(right)) => {
-                Some(if or_equal { left.to_real().ge(&right.to_real()) } else { left.to_real().gt(&right.to_real()) })
-            }
+            (Value::Int(left), Value::Int(right)) => Some(if or_equal {
+                left.ge(right)
+            } else {
+                left.gt(right)
+            }),
+            (Value::Float(left), Value::Float(right)) => Some(if or_equal {
+                left.ge(right)
+            } else {
+                left.gt(right)
+            }),
+            (Value::Int(left), Value::Float(right)) => Some(if or_equal {
+                left.to_real().ge(&right.to_real())
+            } else {
+                left.to_real().gt(&right.to_real())
+            }),
+            (Value::Float(left), Value::Int(right)) => Some(if or_equal {
+                left.to_real().ge(&right.to_real())
+            } else {
+                left.to_real().gt(&right.to_real())
+            }),
             _ => None,
         };
         comparison.map(Value::Bool).unwrap_or(Value::Unknown)
@@ -948,12 +1256,58 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             }
             Value::Float(value) => {
                 if increment {
-                    Value::Float(value.add_with_rounding_mode(Float::from_f64(1.0), &RoundingMode::round_nearest_ties_to_even()))
+                    Value::Float(value.add_with_rounding_mode(
+                        Float::from_f64(1.0),
+                        &RoundingMode::round_nearest_ties_to_even(),
+                    ))
                 } else {
-                    Value::Float(value.sub_with_rounding_mode(Float::from_f64(1.0), &RoundingMode::round_nearest_ties_to_even()))
+                    Value::Float(value.sub_with_rounding_mode(
+                        Float::from_f64(1.0),
+                        &RoundingMode::round_nearest_ties_to_even(),
+                    ))
                 }
             }
             _ => Value::Unknown,
+        }
+    }
+
+    fn check_return_contract(&mut self, value: Option<&Value>, span: Span) {
+        let Some(hint) = self.return_hint else {
+            return;
+        };
+
+        let Some(value) = value else {
+            if !matches!(hint, Hint::Void(_) | Hint::Never(_) | Hint::Mixed(_))
+                && !hint.contains_null()
+            {
+                self.push_message(
+                    "return-contract",
+                    Message::new(
+                        "E0031:return-contract",
+                        "The function can return without a value but declares return type {type}.",
+                    )
+                    .arg("type", hint_name(hint)),
+                    span,
+                );
+            }
+            return;
+        };
+
+        if matches!(value, Value::Unknown) {
+            return;
+        }
+
+        if hint_accepts_value(value, hint, self.strict_types) == Some(false) {
+            self.push_message(
+                "return-contract",
+                Message::new(
+                    "E0031:return-contract",
+                    "Returned {value} does not satisfy the declared return type {type}.",
+                )
+                .arg("value", value_type_name(value))
+                .arg("type", hint_name(hint)),
+                span,
+            );
         }
     }
 
@@ -1000,6 +1354,35 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         self.check_condition(&zero, path, span, id, template, Some(value));
     }
 
+    fn check_assertion(&mut self, condition: &Bool, path: &Bool, span: Span) {
+        let solver = Solver::new();
+        let mut params = Params::new();
+        params.set_u32(
+            "timeout",
+            self.settings.timeout_ms.min(u32::MAX as u64) as u32,
+        );
+        solver.set_params(&params);
+        solver.assert(path);
+        solver.assert(condition);
+
+        match solver.check() {
+            SatResult::Unsat => {
+                self.push_finding("assertion", "This assertion can never hold.", span, "false");
+            }
+            SatResult::Unknown => {
+                if self.settings.unknown_policy == "report" {
+                    self.push_finding(
+                        "unverified",
+                        "Could not verify this assertion: the solver returned unknown.",
+                        span,
+                        "?",
+                    );
+                }
+            }
+            SatResult::Sat => {}
+        }
+    }
+
     fn check_condition(
         &mut self,
         condition: &Bool,
@@ -1011,7 +1394,10 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
     ) {
         let solver = Solver::new();
         let mut params = Params::new();
-        params.set_u32("timeout", self.settings.timeout_ms.min(u32::MAX as u64) as u32);
+        params.set_u32(
+            "timeout",
+            self.settings.timeout_ms.min(u32::MAX as u64) as u32,
+        );
         solver.set_params(&params);
         solver.assert(path);
         solver.assert(condition);
@@ -1038,12 +1424,23 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
     }
 
     fn push_finding(&mut self, id: &'static str, template: &'static str, span: Span, value: &str) {
+        let message = Message::new(format!("E0031:{id}"), template).arg("value", value);
+        self.push_message(id, message, span);
+    }
+
+    fn push_message(&mut self, id: &'static str, message: Message, span: Span) {
+        if self.settings.max_findings_per_function > 0
+            && self.findings.len().saturating_sub(self.finding_limit_start)
+                >= self.settings.max_findings_per_function
+        {
+            return;
+        }
+
         let key = (span.start.offset, span.end.offset, id);
         if !self.seen.insert(key) {
             return;
         }
 
-        let message = Message::new(format!("E0031:{id}"), template).arg("value", value);
         self.findings.push(Finding { message, span });
     }
 }
@@ -1068,10 +1465,9 @@ fn model_value(solver: &Solver, value: &Value) -> Option<String> {
 
 fn function_name(expression: &Expression<'_>) -> Option<String> {
     match expression.unparenthesized() {
-        Expression::Identifier(identifier) => Some(
-            String::from_utf8_lossy(identifier.last_segment())
-                .to_ascii_lowercase(),
-        ),
+        Expression::Identifier(identifier) => {
+            Some(String::from_utf8_lossy(identifier.last_segment()).to_ascii_lowercase())
+        }
         _ => None,
     }
 }
@@ -1091,9 +1487,176 @@ fn hint_is_numeric(hint: Option<&Hint<'_>>) -> bool {
         Some(hint) => match hint {
             Hint::Integer(_) | Hint::Float(_) | Hint::Mixed(_) => true,
             Hint::Nullable(nullable) => hint_is_numeric(Some(nullable.hint)),
-            Hint::Union(union) => hint_is_numeric(Some(union.left)) || hint_is_numeric(Some(union.right)),
+            Hint::Union(union) => {
+                hint_is_numeric(Some(union.left)) || hint_is_numeric(Some(union.right))
+            }
             Hint::Parenthesized(parenthesized) => hint_is_numeric(Some(parenthesized.hint)),
             _ => false,
         },
     }
+}
+
+fn array_key(value: &Value) -> Option<ArrayKey> {
+    match value {
+        Value::Int(value) => value.as_i64().map(ArrayKey::Int),
+        Value::String(Some(value)) => Some(normalize_array_key(value)),
+        _ => None,
+    }
+}
+
+fn normalize_array_key(value: &str) -> ArrayKey {
+    if let Ok(index) = value.parse::<i64>() {
+        if index.to_string() == value {
+            return ArrayKey::Int(index);
+        }
+    }
+
+    ArrayKey::String(value.to_string())
+}
+
+fn render_array_key(key: &ArrayKey) -> String {
+    match key {
+        ArrayKey::Int(value) => value.to_string(),
+        ArrayKey::String(value) => format!("'{value}'"),
+    }
+}
+
+fn value_type_name(value: &Value) -> &'static str {
+    match value {
+        Value::Int(_) => "int",
+        Value::Float(_) => "float",
+        Value::Bool(_) => "bool",
+        Value::String(_) => "string",
+        Value::Array(_) => "array",
+        Value::Null => "null",
+        Value::Unknown => "unknown",
+    }
+}
+
+fn hint_name(hint: &Hint<'_>) -> String {
+    hint.to_string()
+}
+
+fn hint_accepts_value(value: &Value, hint: &Hint<'_>, strict: bool) -> Option<bool> {
+    match hint {
+        Hint::Nullable(hint) => {
+            if matches!(value, Value::Null) {
+                Some(true)
+            } else {
+                hint_accepts_value(value, hint.hint, strict)
+            }
+        }
+        Hint::Union(union) => match (
+            hint_accepts_value(value, union.left, strict),
+            hint_accepts_value(value, union.right, strict),
+        ) {
+            (Some(true), _) | (_, Some(true)) => Some(true),
+            (Some(false), Some(false)) => Some(false),
+            _ => None,
+        },
+        Hint::Parenthesized(hint) => hint_accepts_value(value, hint.hint, strict),
+        Hint::Mixed(_) => Some(true),
+        Hint::Null(_) => Some(matches!(value, Value::Null)),
+        Hint::True(_) | Hint::False(_) => match value {
+            Value::Bool(value) => value.as_bool(),
+            _ => Some(false),
+        },
+        Hint::Array(_) => Some(matches!(value, Value::Array(_))),
+        Hint::Callable(_) => Some(false),
+        Hint::Integer(_) => match value {
+            Value::Int(_) => Some(true),
+            Value::Float(_) => {
+                if strict {
+                    Some(false)
+                } else {
+                    None
+                }
+            }
+            Value::Bool(_) => Some(!strict),
+            Value::String(Some(value)) => {
+                if strict {
+                    Some(false)
+                } else {
+                    Some(value.parse::<i64>().is_ok())
+                }
+            }
+            Value::String(None) => None,
+            _ => Some(false),
+        },
+        Hint::Float(_) => match value {
+            Value::Float(_) | Value::Int(_) => Some(true),
+            Value::Bool(_) => Some(!strict),
+            Value::String(Some(value)) => {
+                if strict {
+                    Some(false)
+                } else {
+                    Some(value.parse::<f64>().is_ok())
+                }
+            }
+            Value::String(None) => None,
+            _ => Some(false),
+        },
+        Hint::String(_) => match value {
+            Value::String(_) => Some(true),
+            Value::Int(_) | Value::Float(_) | Value::Bool(_) => Some(!strict),
+            _ => Some(false),
+        },
+        Hint::Bool(_) => match value {
+            Value::Bool(_) => Some(true),
+            Value::Int(_) | Value::Float(_) | Value::String(_) => Some(!strict),
+            _ => Some(false),
+        },
+        Hint::Void(_) | Hint::Never(_) => Some(false),
+        Hint::Iterable(_) => Some(matches!(value, Value::Array(_))),
+        Hint::Object(_)
+        | Hint::Identifier(_)
+        | Hint::Intersection(_)
+        | Hint::Self_(_)
+        | Hint::Parent(_)
+        | Hint::Static(_) => Some(false),
+    }
+}
+
+fn is_declaration(statement: &Statement<'_>) -> bool {
+    matches!(
+        statement,
+        Statement::Function(_)
+            | Statement::Class(_)
+            | Statement::Interface(_)
+            | Statement::Trait(_)
+            | Statement::Enum(_)
+    )
+}
+
+fn file_declares_strict_types(program: &Program<'_>) -> bool {
+    statements_declare_strict_types(program.statements.as_slice())
+}
+
+fn statements_declare_strict_types(statements: &[Statement<'_>]) -> bool {
+    for statement in statements {
+        match statement {
+            Statement::Declare(declare) => {
+                for item in declare.items.iter() {
+                    if String::from_utf8_lossy(item.name.value) != "strict_types" {
+                        continue;
+                    }
+                    if let Expression::Literal(Literal::Integer(integer)) =
+                        item.value.unparenthesized()
+                    {
+                        if integer.value == Some(1) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            Statement::Namespace(namespace) => {
+                if statements_declare_strict_types(namespace.statements().as_slice()) {
+                    return true;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    false
 }
