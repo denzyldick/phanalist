@@ -11,6 +11,7 @@ pub mod outputs;
 pub mod paths;
 pub mod results;
 pub mod rules;
+pub mod verification;
 
 pub fn scan(path: String) -> results::Results {
     let output_format = Format::json;
