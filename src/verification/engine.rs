@@ -375,6 +375,73 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         self.finding_limit_start = previous_limit;
     }
 
+    fn analyze_closure(&mut self, closure: &'arena Closure<'arena>, state: &State) {
+        let docblock = self.docblock_before(closure.span()).unwrap_or_default();
+        let previous_hint = self.return_hint;
+        let previous_doc_return =
+            std::mem::replace(&mut self.doc_return, docblock.return_type.clone());
+        let previous_limit = self.finding_limit_start;
+        self.return_hint = closure.return_type_hint.as_ref().map(|hint| &hint.hint);
+        self.finding_limit_start = self.findings.len();
+
+        let mut body_state = state.clone();
+        if let Some(use_clause) = &closure.use_clause {
+            for variable in use_clause.variables.iter() {
+                let name = String::from_utf8_lossy(variable.variable.name).to_string();
+                let value = state.env.get(&name).cloned().unwrap_or(Value::Unknown);
+                body_state.env.insert(name.clone(), value);
+                if variable.ampersand.is_some() {
+                    body_state.assign(name, Value::Unknown);
+                }
+            }
+        }
+        for parameter in closure.parameter_list.parameters.iter() {
+            let name = String::from_utf8_lossy(parameter.variable.name).to_string();
+            let doc_type = docblock
+                .params
+                .get(name.strip_prefix('$').unwrap_or(&name))
+                .map(String::as_str);
+            let value = parameter_value(parameter.hint.as_ref(), doc_type, "closure", &name);
+            body_state.env.insert(name, value);
+        }
+
+        self.analyze_statements(closure.body.statements.as_slice(), &mut body_state);
+
+        self.return_hint = previous_hint;
+        self.doc_return = previous_doc_return;
+        self.finding_limit_start = previous_limit;
+    }
+
+    fn analyze_arrow_function(&mut self, arrow: &'arena ArrowFunction<'arena>, state: &State) {
+        let docblock = self.docblock_before(arrow.span()).unwrap_or_default();
+        let previous_hint = self.return_hint;
+        let previous_doc_return =
+            std::mem::replace(&mut self.doc_return, docblock.return_type.clone());
+        let previous_limit = self.finding_limit_start;
+        self.return_hint = arrow.return_type_hint.as_ref().map(|hint| &hint.hint);
+        self.finding_limit_start = self.findings.len();
+
+        let mut body_state = state.clone();
+        for parameter in arrow.parameter_list.parameters.iter() {
+            let name = String::from_utf8_lossy(parameter.variable.name).to_string();
+            let doc_type = docblock
+                .params
+                .get(name.strip_prefix('$').unwrap_or(&name))
+                .map(String::as_str);
+            let value = parameter_value(parameter.hint.as_ref(), doc_type, "arrow function", &name);
+            body_state.env.insert(name, value);
+        }
+
+        let value = self.eval_expr(arrow.expression, &mut body_state);
+        if self.settings.check_return_contracts {
+            self.check_return_contract(Some(&value), arrow.expression.span());
+        }
+
+        self.return_hint = previous_hint;
+        self.doc_return = previous_doc_return;
+        self.finding_limit_start = previous_limit;
+    }
+
     fn apply_docblock_vars(
         &self,
         docblock: &Docblock,
@@ -835,6 +902,14 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 Value::Unknown
             }
             Expression::Clone(clone) => self.eval_expr(clone.object, state),
+            Expression::Closure(closure) => {
+                self.analyze_closure(closure, state);
+                Value::Unknown
+            }
+            Expression::ArrowFunction(arrow) => {
+                self.analyze_arrow_function(arrow, state);
+                Value::Unknown
+            }
             Expression::Throw(throw) => {
                 self.eval_expr(throw.exception, state);
                 state.path = Bool::from_bool(false);
