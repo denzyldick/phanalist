@@ -40,6 +40,12 @@ impl crate::rules::Rule for Rule {
         }
     }
 
+    fn remove_file(&self, path: &std::path::Path) {
+        if let Ok(mut summaries) = self.summaries.lock() {
+            summaries.remove_file(path);
+        }
+    }
+
     fn set_config(&mut self, json: &Value) {
         match serde_json::from_value(json.to_owned()) {
             Ok(settings) => self.settings = settings,
@@ -418,6 +424,7 @@ mod foreach_tests {
 #[cfg(test)]
 mod phpdoc_tests {
     use crate::rules::tests::analyze_file_for_rule;
+    use crate::rules::Rule as _;
 
     use super::*;
 
@@ -426,6 +433,14 @@ mod phpdoc_tests {
             .into_iter()
             .map(|violation| violation.message.render())
             .collect()
+    }
+
+    fn fixture_path(path: &str) -> std::path::PathBuf {
+        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("src")
+            .join("rules")
+            .join("examples")
+            .join(path)
     }
 
     #[test]
@@ -473,6 +488,75 @@ mod phpdoc_tests {
 
         assert_eq!(messages.len(), 1);
         assert!(messages[0].contains("Division by zero"));
+    }
+
+    #[test]
+    fn applies_named_phpdoc_var_refinements() {
+        assert!(messages("e31/phpdoc_var_nonzero.php").is_empty());
+    }
+
+    #[test]
+    fn applies_phpdoc_var_refinements_to_existing_variables() {
+        assert!(messages("e31/phpdoc_var_named_existing.php").is_empty());
+    }
+
+    #[test]
+    fn applies_unnamed_phpdoc_var_refinements_to_assignments() {
+        assert!(messages("e31/phpdoc_var_unnamed.php").is_empty());
+    }
+
+    #[test]
+    fn reports_division_without_a_phpdoc_var_refinement() {
+        let messages = messages("e31/phpdoc_var_unconstrained.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+
+    #[test]
+    fn applies_phpstan_assertions_after_function_calls() {
+        let path = "e31/phpdoc_assert_function.php";
+        let content = std::fs::read_to_string(fixture_path(path)).unwrap();
+        let arena = mago_allocator::prelude::LocalArena::new();
+        let file = File::new(&arena, fixture_path(path), content);
+        let rule = Rule::default();
+
+        rule.begin_index();
+        rule.index_file(&file);
+        rule.finalize_index();
+
+        assert!(rule.validate_file(&file).unwrap().is_empty());
+    }
+
+    #[test]
+    fn applies_psalm_assertions_after_static_method_calls() {
+        let path = "e31/phpdoc_assert_method.php";
+        let content = std::fs::read_to_string(fixture_path(path)).unwrap();
+        let arena = mago_allocator::prelude::LocalArena::new();
+        let file = File::new(&arena, fixture_path(path), content);
+        let rule = Rule::default();
+
+        rule.begin_index();
+        rule.index_file(&file);
+        rule.finalize_index();
+
+        assert!(rule.validate_file(&file).unwrap().is_empty());
+    }
+
+    #[test]
+    fn reports_division_without_a_phpdoc_assertion() {
+        let messages = messages("e31/phpdoc_assert_missing.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+
+    #[test]
+    fn applies_negated_phpstan_assertions() {
+        let messages = messages("e31/phpdoc_assert_negated.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("unreachable"));
     }
 }
 
@@ -526,6 +610,30 @@ mod switch_tests {
     #[test]
     fn break_inside_switch_does_not_exit_the_surrounding_loop() {
         assert!(messages("e31/switch_break_inside_loop.php").is_empty());
+    }
+
+    #[test]
+    fn continue_inside_switch_acts_like_break() {
+        let messages = messages("e31/switch_continue_acts_like_break.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+
+    #[test]
+    fn continue_two_inside_switch_skips_the_rest_of_the_loop_body() {
+        let messages = messages("e31/switch_continue_two_skips_following_statement.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("unreachable"));
+    }
+
+    #[test]
+    fn break_two_inside_switch_exits_the_loop_and_keeps_following_code_reachable() {
+        let messages = messages("e31/switch_break_two_exits_loop.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("unreachable"));
     }
 }
 

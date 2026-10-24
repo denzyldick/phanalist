@@ -3,9 +3,13 @@ use std::path::{Path, PathBuf};
 
 use lsp_server::{Connection, Message, Notification, Response};
 use lsp_types::{
-    notification::{DidChangeTextDocument, DidOpenTextDocument, Notification as _, PublishDiagnostics},
-    Diagnostic, DiagnosticSeverity, InitializeParams, Position, PublishDiagnosticsParams, Range,
-    ServerCapabilities, TextDocumentSyncCapability, TextDocumentSyncKind, Url,
+    notification::{
+        DidChangeTextDocument, DidChangeWatchedFiles, DidCloseTextDocument, DidDeleteFiles,
+        DidOpenTextDocument, Notification as _, PublishDiagnostics,
+    },
+    Diagnostic, DiagnosticSeverity, FileChangeType, InitializeParams, Position,
+    PublishDiagnosticsParams, Range, ServerCapabilities, TextDocumentSyncCapability,
+    TextDocumentSyncKind, Url,
 };
 use mago_allocator::prelude::LocalArena;
 use serde_json::Value;
@@ -78,6 +82,29 @@ pub fn run_server(config: &Config) -> Result<(), Box<dyn Error>> {
                             }
                         }
                     }
+                    DidCloseTextDocument::METHOD => {
+                        if let Ok(params) = serde_json::from_value::<lsp_types::DidCloseTextDocumentParams>(not.params) {
+                            remove_document(&connection, &analyse, params.text_document.uri);
+                        }
+                    }
+                    DidDeleteFiles::METHOD => {
+                        if let Ok(params) = serde_json::from_value::<lsp_types::DeleteFilesParams>(not.params) {
+                            for file in params.files {
+                                if let Ok(uri) = Url::parse(&file.uri) {
+                                    remove_document(&connection, &analyse, uri);
+                                }
+                            }
+                        }
+                    }
+                    DidChangeWatchedFiles::METHOD => {
+                        if let Ok(params) = serde_json::from_value::<lsp_types::DidChangeWatchedFilesParams>(not.params) {
+                            for event in params.changes {
+                                if event.typ == FileChangeType::DELETED {
+                                    remove_document(&connection, &analyse, event.uri);
+                                }
+                            }
+                        }
+                    }
                     _ => {}
                 }
             }
@@ -114,6 +141,17 @@ fn handle_document_update(
         }
     };
 
+    publish_diagnostics(connection, uri, diagnostics);
+}
+
+fn remove_document(connection: &Connection, analyse: &Analyse, uri: Url) {
+    if let Ok(path) = uri.to_file_path() {
+        analyse.remove_indexed_file(&path);
+    }
+    publish_diagnostics(connection, uri, Vec::new());
+}
+
+fn publish_diagnostics(connection: &Connection, uri: Url, diagnostics: Vec<Diagnostic>) {
     let params = PublishDiagnosticsParams {
         uri,
         diagnostics,

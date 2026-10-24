@@ -25,6 +25,7 @@ struct State {
     path: Bool,
     reachable: bool,
     loop_exits: Bool,
+    loop_continues: Bool,
     switch_exits: Bool,
     modified: HashSet<String>,
     array_values: HashMap<String, Vec<(Value, Value)>>,
@@ -37,6 +38,7 @@ impl State {
             path: Bool::from_bool(true),
             reachable: true,
             loop_exits: Bool::from_bool(false),
+            loop_continues: Bool::from_bool(false),
             switch_exits: Bool::from_bool(false),
             modified: HashSet::new(),
             array_values: HashMap::new(),
@@ -199,7 +201,14 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 }
             }
             Statement::Expression(expression) => {
+                let docblock = self.docblock_before(expression.span()).unwrap_or_default();
+                let assignment = match expression.expression.unparenthesized() {
+                    Expression::Assignment(assignment) => direct_variable_name(assignment.lhs),
+                    _ => None,
+                };
+                self.apply_docblock_vars(&docblock, state, assignment.as_deref());
                 self.eval_expr(expression.expression, state);
+                self.apply_docblock_vars(&docblock, state, assignment.as_deref());
             }
             Statement::Echo(echo) => {
                 for value in echo.values.iter() {
@@ -212,6 +221,10 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 }
             }
             Statement::Return(return_statement) => {
+                let docblock = self
+                    .docblock_before(return_statement.span())
+                    .unwrap_or_default();
+                self.apply_docblock_vars(&docblock, state, None);
                 let value = return_statement
                     .value
                     .map(|value| self.eval_expr(value, state));
@@ -221,8 +234,9 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 state.path = Bool::from_bool(false);
                 state.reachable = false;
             }
-            Statement::Break(_) => {
-                if self.switch_depth > 0 {
+            Statement::Break(break_statement) => {
+                let level = control_flow_level(break_statement.level);
+                if level == 1 && self.switch_depth > 0 {
                     state.switch_exits = Bool::or(&[&state.switch_exits, &state.path]);
                 } else {
                     state.loop_exits = Bool::or(&[&state.loop_exits, &state.path]);
@@ -230,7 +244,13 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 state.path = Bool::from_bool(false);
                 state.reachable = false;
             }
-            Statement::Continue(_) => {
+            Statement::Continue(continue_statement) => {
+                let level = control_flow_level(continue_statement.level);
+                if level == 1 && self.switch_depth > 0 {
+                    state.switch_exits = Bool::or(&[&state.switch_exits, &state.path]);
+                } else {
+                    state.loop_continues = Bool::or(&[&state.loop_continues, &state.path]);
+                }
                 state.path = Bool::from_bool(false);
                 state.reachable = false;
             }
@@ -355,6 +375,37 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         self.finding_limit_start = previous_limit;
     }
 
+    fn apply_docblock_vars(
+        &self,
+        docblock: &Docblock,
+        state: &mut State,
+        assignment: Option<&str>,
+    ) {
+        for (name, ty) in &docblock.vars {
+            self.apply_docblock_var(name, ty, state);
+        }
+        if let (Some(name), Some(ty)) = (assignment, docblock.var.as_deref()) {
+            self.apply_docblock_var(name, ty, state);
+        }
+    }
+
+    fn apply_docblock_var(&self, name: &str, ty: &str, state: &mut State) {
+        let value = state.env.get(name).cloned().unwrap_or(Value::Unknown);
+        let value = match value {
+            Value::Unknown => parameter_value(
+                None,
+                Some(ty),
+                "docblock",
+                name.strip_prefix('$').unwrap_or(name),
+            ),
+            value => value,
+        };
+        if let Some(constraint) = contracts::constraint(&value, ty) {
+            state.path = path_and(&state.path, &constraint);
+        }
+        state.env.insert(name.to_string(), value);
+    }
+
     fn docblock_before(&self, span: Span) -> Option<Docblock> {
         let program = self.file.ast?;
         let mut best: Option<&Trivia<'arena>> = None;
@@ -449,11 +500,24 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             paths.push(branch_state.path.clone());
         }
         merged.path = path_or_many(&paths);
-        let loop_exits = branch_states
-            .iter()
-            .map(|branch| branch.loop_exits.clone())
-            .collect::<Vec<_>>();
-        merged.loop_exits = Bool::or(&loop_exits.iter().collect::<Vec<_>>());
+        merged.loop_exits = path_or_many(
+            &branch_states
+                .iter()
+                .map(|branch| branch.loop_exits.clone())
+                .collect::<Vec<_>>(),
+        );
+        merged.loop_continues = path_or_many(
+            &branch_states
+                .iter()
+                .map(|branch| branch.loop_continues.clone())
+                .collect::<Vec<_>>(),
+        );
+        merged.switch_exits = path_or_many(
+            &branch_states
+                .iter()
+                .map(|branch| branch.switch_exits.clone())
+                .collect::<Vec<_>>(),
+        );
         merged.reachable = branch_states.iter().any(|branch| branch.reachable);
         *state = merged;
     }
@@ -620,12 +684,16 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         }
         merged.path = path_or_many(&paths);
         merged.switch_exits = Bool::from_bool(false);
-        merged.loop_exits = Bool::or(
+        merged.loop_exits = path_or_many(
             &branch_states
                 .iter()
                 .map(|branch| branch.loop_exits.clone())
-                .collect::<Vec<_>>()
+                .collect::<Vec<_>>(),
+        );
+        merged.loop_continues = path_or_many(
+            &branch_states
                 .iter()
+                .map(|branch| branch.loop_continues.clone())
                 .collect::<Vec<_>>(),
         );
         merged.reachable = branch_states.iter().any(|branch| {
@@ -687,6 +755,13 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 reachable = true;
             }
             body_state.loop_exits = Bool::from_bool(false);
+
+            let continue_path = body_state.loop_continues.clone();
+            if !matches!(continue_path.as_bool(), Some(false)) {
+                body_state.path = path_or_many(&[body_state.path.clone(), continue_path.clone()]);
+                body_state.reachable |= path_may_be_true(&continue_path);
+            }
+            body_state.loop_continues = Bool::from_bool(false);
 
             current = body_state;
             if !current.reachable {
@@ -1256,6 +1331,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     return value;
                 }
                 if let Some(summary) = self.function_summary(function.function) {
+                    self.apply_call_assertions(summary, &arguments, &function.argument_list, state);
                     if let Some(value) = summary_call_value(
                         summary,
                         &arguments,
@@ -1288,6 +1364,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 if let Some(summary) =
                     class.and_then(|class| self.method_summary(class, &method.method))
                 {
+                    self.apply_call_assertions(summary, &arguments, &method.argument_list, state);
                     if let Some(value) = summary_call_value(
                         summary,
                         &arguments,
@@ -1309,6 +1386,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 if let Some(summary) =
                     class.and_then(|class| self.method_summary(class, &method.method))
                 {
+                    self.apply_call_assertions(summary, &arguments, &method.argument_list, state);
                     if let Some(value) = summary_call_value(
                         summary,
                         &arguments,
@@ -1327,6 +1405,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     .as_deref()
                     .and_then(|class| self.method_summary(class, &method.method))
                 {
+                    self.apply_call_assertions(summary, &arguments, &method.argument_list, state);
                     if let Some(value) = summary_call_value(
                         summary,
                         &arguments,
@@ -1336,6 +1415,65 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     }
                 }
                 Value::Unknown
+            }
+        }
+    }
+
+    fn apply_call_assertions(
+        &self,
+        summary: &FunctionSummary,
+        arguments: &[Value],
+        argument_list: &'arena ArgumentList<'arena>,
+        state: &mut State,
+    ) {
+        if summary.asserts.is_empty() || !arguments_are_positional(argument_list) {
+            return;
+        }
+
+        let positional = argument_list
+            .arguments
+            .iter()
+            .filter_map(|argument| match argument {
+                Argument::Positional(argument) => Some(argument),
+                Argument::Named(_) => None,
+            })
+            .collect::<Vec<_>>();
+
+        for assertion in &summary.asserts {
+            let Some(value) = arguments.get(assertion.index).cloned() else {
+                continue;
+            };
+            let name = positional
+                .get(assertion.index)
+                .and_then(|argument| direct_variable_name(argument.value));
+            let value = if !assertion.negated && matches!(value, Value::Unknown) {
+                let value = parameter_value(
+                    None,
+                    Some(&assertion.ty),
+                    "assertion",
+                    name.as_deref()
+                        .unwrap_or("value")
+                        .strip_prefix('$')
+                        .unwrap_or("value"),
+                );
+                if let Some(name) = &name {
+                    state.env.insert(name.clone(), value.clone());
+                }
+                value
+            } else {
+                value
+            };
+
+            if let Some(constraint) = contracts::constraint(&value, &assertion.ty) {
+                let constraint = if assertion.negated {
+                    path_not(&constraint)
+                } else {
+                    constraint
+                };
+                state.path = path_and(&state.path, &constraint);
+            } else if assertion.negated && assertion.ty == "null" && matches!(value, Value::Null) {
+                state.path = Bool::from_bool(false);
+                state.reachable = false;
             }
         }
     }
@@ -2191,6 +2329,20 @@ fn parameter_value(
         Some(Hint::False(_)) => Value::Bool(Bool::from_bool(false)),
         Some(Hint::Null(_)) => Value::Null,
         _ => Value::Unknown,
+    }
+}
+
+fn control_flow_level(level: Option<&Expression<'_>>) -> usize {
+    let Some(level) = level else {
+        return 1;
+    };
+    match level.unparenthesized() {
+        Expression::Literal(Literal::Integer(integer)) => integer
+            .value
+            .and_then(|value| usize::try_from(value).ok())
+            .filter(|level| *level > 0)
+            .unwrap_or(1),
+        _ => 1,
     }
 }
 

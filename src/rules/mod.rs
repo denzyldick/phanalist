@@ -57,6 +57,9 @@ pub trait Rule: Sync {
     /// a fixed point or cross-file resolution finalize their state here.
     fn finalize_index(&self) {}
 
+    /// Optional hook for dropping state when a file is removed or closed.
+    fn remove_file(&self, _path: &Path) {}
+
     /// Optional hook for whole-file validation. Most rules validate each
     /// top-level statement through `validate`; verification rules need the
     /// entire file (and its CFG) at once and override this instead.
