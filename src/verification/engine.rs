@@ -178,12 +178,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 let body = while_statement.body.statements();
                 self.analyze_loop(Some(while_statement.condition), body, None, state);
             }
-            Statement::DoWhile(do_while) => {
-                let mut body_state = state.clone();
-                self.analyze_statement(do_while.statement, &mut body_state);
-                self.eval_expr(do_while.condition, &mut body_state);
-                self.havoc_modified(state, &body_state);
-            }
+            Statement::DoWhile(do_while) => self.analyze_do_while(do_while, state),
             Statement::For(for_statement) => {
                 for expression in for_statement.initializations.iter() {
                     self.eval_expr(expression, state);
@@ -921,6 +916,78 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         state.reachable = reachable;
 
         current
+    }
+
+    fn analyze_do_while(
+        &mut self,
+        do_while: &'arena DoWhile<'arena>,
+        state: &mut State,
+    ) {
+        let depth = self.loop_unroll_depth();
+        let mut current = state.clone();
+        let mut exit_paths = Vec::new();
+        let mut reachable = false;
+        let mut modified = state.modified.clone();
+
+        for _ in 0..depth {
+            let mut body_state = current.clone();
+            self.analyze_statement(do_while.statement, &mut body_state);
+
+            let break_path = body_state.loop_exits.clone();
+            if !matches!(break_path.as_bool(), Some(false)) {
+                exit_paths.push(break_path);
+                reachable = true;
+            }
+            body_state.loop_exits = Bool::from_bool(false);
+
+            let continue_path = body_state.loop_continues.clone();
+            if !matches!(continue_path.as_bool(), Some(false)) {
+                body_state.path =
+                    path_or_many(&[body_state.path.clone(), continue_path.clone()]);
+                body_state.reachable |= path_may_be_true(&continue_path);
+            }
+            body_state.loop_continues = Bool::from_bool(false);
+
+            let condition_value = self.eval_expr(do_while.condition, &mut body_state);
+            let condition = condition_value.truthiness();
+            let known_condition = !matches!(condition_value, Value::Unknown);
+            modified.extend(body_state.modified.iter().cloned());
+
+            let mut next_state = body_state.clone();
+            let mut exit_state = body_state;
+            match &condition {
+                Some(condition) => {
+                    next_state.path = path_and(&next_state.path, condition);
+                    exit_state.path = path_and(&exit_state.path, &path_not(condition));
+                }
+                None => {
+                    exit_state.path = if known_condition {
+                        exit_state.path.clone()
+                    } else {
+                        Bool::from_bool(false)
+                    };
+                }
+            }
+
+            exit_paths.push(exit_state.path.clone());
+            reachable |= exit_state.reachable && path_may_be_true(&exit_state.path);
+
+            current = next_state;
+            if !current.reachable || condition.and_then(|condition| condition.as_bool()) == Some(false)
+            {
+                break;
+            }
+        }
+
+        exit_paths.push(current.path.clone());
+        reachable |= current.reachable && path_may_be_true(&current.path);
+
+        for name in modified {
+            state.env.insert(name.clone(), Value::Unknown);
+            state.modified.insert(name);
+        }
+        state.path = path_or_many(&exit_paths);
+        state.reachable = reachable;
     }
 
     fn loop_unroll_depth(&self) -> usize {
