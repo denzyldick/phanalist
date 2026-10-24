@@ -13,7 +13,11 @@
 - A single file whose name is not valid UTF-8 no longer aborts the walk. The scanner used to call `unwrap()` on the file name, so one such file panicked the directory-walking thread and the run continued with a silently truncated file set while still reporting success. A scan of `.` walks `vendor`, `node_modules` and build output, where such names are easy to find.
 - Directory walk errors are now skipped with a `-v` diagnostic instead of panicking the walk.
 - Each violation is stored once instead of being cloned while building the report, and output pruning no longer duplicates the entire results map. Together these roughly halve peak memory on projects that report many violations.
-- `check_types` now controls PHP type hints and PHPDoc `@param`/`@var` refinements instead of being ignored.
+- `check_types` now controls PHPDoc `@param`/`@var` refinements instead of being ignored; native PHP type hints are always honoured.
+- `E0031` no longer treats an unknown value as failing `is_*()` type predicates, which caused false "assertion can never hold" findings on dynamic values.
+- `E0031` no longer marks code after `??`, `&&`, `||`, ternary, or `match` branches as unreachable when the branch merely throws on one path.
+- `E0031` no longer checks `return;` inside generators against the generator return type, and PHPDoc return types containing spaces in generics or shaped arrays are parsed in full.
+- `E0031` assertion diagnostics only report assertions that provably cannot hold; unknown assertion conditions are treated as assumptions.
 - The LSP workspace indexer reclaims each file's AST as it indexes, so opening a large project in an editor no longer loads every file's parse tree at once.
 - The LSP server now restores a document's cross-file summaries from disk when it is closed, reindexes watched files on change or creation, and drops summaries when a file is deleted, instead of leaving stale interprocedural data behind.
 

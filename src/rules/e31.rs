@@ -221,6 +221,26 @@ mod verification_tests {
     }
 
     #[test]
+    fn assertions_on_unknown_values_are_treated_as_assumptions() {
+        assert!(messages("e31/type_predicate_unknown.php").is_empty());
+    }
+
+    #[test]
+    fn match_default_throws_do_not_make_following_code_unreachable() {
+        assert!(messages("e31/match_default_throw.php").is_empty());
+    }
+
+    #[test]
+    fn throws_in_conditional_expressions_do_not_make_following_code_unreachable() {
+        assert!(messages("e31/throw_in_short_circuit.php").is_empty());
+    }
+
+    #[test]
+    fn generator_returns_are_not_checked_as_return_contracts() {
+        assert!(messages("e31/generator_return.php").is_empty());
+    }
+
+    #[test]
     fn assertion_narrows_the_path() {
         assert!(messages("e31/assertion_guard.php").is_empty());
     }
@@ -252,6 +272,11 @@ mod verification_tests {
     #[test]
     fn allows_weak_return_coercion() {
         assert!(messages("e31/return_contract_weak.php").is_empty());
+    }
+
+    #[test]
+    fn accepts_generic_and_shaped_nullable_documented_return_types() {
+        assert!(messages("e31/phpdoc_generic_nullable_return.php").is_empty());
     }
 
     #[test]
@@ -493,9 +518,9 @@ mod phpdoc_tests {
             ..Settings::default()
         };
 
-        assert!(messages("e31/phpdoc_param_positive.php").is_empty());
+        assert!(messages("e31/phpdoc_param_native_positive.php").is_empty());
         assert_eq!(
-            messages_with_settings("e31/phpdoc_param_positive.php", settings).len(),
+            messages_with_settings("e31/phpdoc_param_native_positive.php", settings).len(),
             1
         );
     }
