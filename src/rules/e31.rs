@@ -343,6 +343,27 @@ mod loop_tests {
         assert_eq!(messages.len(), 1);
         assert!(messages[0].contains("unreachable"));
     }
+
+    #[test]
+    fn unrolls_do_while_bodies() {
+        let messages = messages("e31/do_while_second_iteration.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+
+    #[test]
+    fn proves_guarded_do_while_loop() {
+        assert!(messages("e31/do_while_guarded.php").is_empty());
+    }
+
+    #[test]
+    fn return_in_a_do_while_loop_makes_following_code_unreachable() {
+        let messages = messages("e31/do_while_return_unreachable.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("unreachable"));
+    }
 }
 
 #[cfg(test)]
