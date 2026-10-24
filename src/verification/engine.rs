@@ -65,6 +65,7 @@ struct Analyzer<'a, 'arena> {
     summaries: &'a HashMap<String, FunctionSummary>,
     parents: &'a HashMap<String, String>,
     imports: HashMap<String, HashMap<String, String>>,
+    function_imports: HashMap<String, HashMap<String, String>>,
     namespace: Option<String>,
     class: Option<String>,
     switch_depth: usize,
@@ -94,6 +95,7 @@ pub fn analyze_file_with_summaries(
         summaries,
         parents,
         imports: HashMap::new(),
+        function_imports: HashMap::new(),
         namespace: file
             .namespace
             .as_ref()
@@ -137,7 +139,11 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             Statement::Block(block) => self.analyze_statements(block.statements.as_slice(), state),
             Statement::Use(use_) => {
                 let namespace = self.namespace.clone().unwrap_or_default();
-                summary::add_imports(&use_.items, self.imports.entry(namespace).or_default());
+                summary::add_imports(&use_.items, self.imports.entry(namespace.clone()).or_default());
+                summary::add_function_imports(
+                    &use_.items,
+                    self.function_imports.entry(namespace).or_default(),
+                );
             }
             Statement::Namespace(namespace) => {
                 let previous = self.namespace.take();
@@ -1479,6 +1485,15 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         let name = function_identifier_name(expression)?;
         if name.contains('\\') {
             return self.summaries.get(&name);
+        }
+
+        let namespace = self.namespace.clone().unwrap_or_default();
+        if let Some(import) = self
+            .function_imports
+            .get(&namespace)
+            .and_then(|imports| imports.get(&name))
+        {
+            return self.summaries.get(import);
         }
 
         if let Some(namespace) = &self.namespace {
