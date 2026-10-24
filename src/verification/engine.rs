@@ -190,16 +190,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             }
             Statement::Switch(switch) => self.analyze_switch(switch, state),
             Statement::Foreach(foreach) => self.analyze_foreach(foreach, state),
-            Statement::Try(try_statement) => {
-                self.analyze_statements(try_statement.block.statements.as_slice(), state);
-                for catch in try_statement.catch_clauses.iter() {
-                    let mut catch_state = state.clone();
-                    self.analyze_statements(catch.block.statements.as_slice(), &mut catch_state);
-                }
-                if let Some(finally) = &try_statement.finally_clause {
-                    self.analyze_statements(finally.block.statements.as_slice(), state);
-                }
-            }
+            Statement::Try(try_statement) => self.analyze_try(try_statement, state),
             Statement::Expression(expression) => {
                 let docblock = self.docblock_before(expression.span()).unwrap_or_default();
                 let assignment = match expression.expression.unparenthesized() {
@@ -493,6 +484,77 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         }
         let docblock = contracts::parse_docblock(best.value);
         (!docblock.is_empty()).then_some(docblock)
+    }
+
+    fn analyze_try(&mut self, try_statement: &'arena Try<'arena>, state: &mut State) {
+        let entry = state.clone();
+        let mut try_state = entry.clone();
+        self.analyze_statements(try_statement.block.statements.as_slice(), &mut try_state);
+
+        let mut branch_states = vec![try_state];
+        for catch in try_statement.catch_clauses.iter() {
+            let mut catch_state = entry.clone();
+            if let Some(variable) = &catch.variable {
+                catch_state.assign(
+                    String::from_utf8_lossy(variable.name).to_string(),
+                    Value::Unknown,
+                );
+            }
+            self.analyze_statements(catch.block.statements.as_slice(), &mut catch_state);
+            branch_states.push(catch_state);
+        }
+
+        let mut merged = entry.clone();
+        let mut paths = Vec::new();
+        let mut modified = HashSet::new();
+        for branch in &branch_states {
+            paths.push(branch.path.clone());
+            modified.extend(branch.modified.iter().cloned());
+        }
+        for name in modified {
+            merged.env.insert(name.clone(), Value::Unknown);
+            merged.modified.insert(name);
+        }
+        merged.path = path_or_many(&paths);
+        merged.loop_exits = path_or_many(
+            &branch_states
+                .iter()
+                .map(|branch| branch.loop_exits.clone())
+                .collect::<Vec<_>>(),
+        );
+        merged.loop_continues = path_or_many(
+            &branch_states
+                .iter()
+                .map(|branch| branch.loop_continues.clone())
+                .collect::<Vec<_>>(),
+        );
+        merged.switch_exits = path_or_many(
+            &branch_states
+                .iter()
+                .map(|branch| branch.switch_exits.clone())
+                .collect::<Vec<_>>(),
+        );
+        merged.reachable = branch_states.iter().any(|branch| branch.reachable);
+
+        if let Some(finally) = &try_statement.finally_clause {
+            let mut finally_state = merged.clone();
+            finally_state.reachable = entry.reachable || merged.reachable;
+            if !path_may_be_true(&finally_state.path) {
+                finally_state.path = entry.path.clone();
+            }
+            self.analyze_statements(finally.block.statements.as_slice(), &mut finally_state);
+
+            for name in &finally_state.modified {
+                merged.env.insert(name.clone(), Value::Unknown);
+                merged.modified.insert(name.clone());
+            }
+            if !finally_state.reachable {
+                merged.reachable = false;
+                merged.path = Bool::from_bool(false);
+            }
+        }
+
+        *state = merged;
     }
 
     fn analyze_if(&mut self, if_statement: &'arena If<'arena>, state: &mut State) {
