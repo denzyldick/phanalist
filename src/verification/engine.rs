@@ -62,6 +62,7 @@ struct Analyzer<'a, 'arena> {
     suppress_access_checks: bool,
     summaries: &'a HashMap<String, FunctionSummary>,
     namespace: Option<String>,
+    class: Option<String>,
     switch_depth: usize,
     docblocks: Vec<Trivia<'arena>>,
     doc_return: Option<String>,
@@ -90,6 +91,7 @@ pub fn analyze_file_with_summaries(
             .namespace
             .as_ref()
             .map(|namespace| namespace.to_ascii_lowercase()),
+        class: None,
         switch_depth: 0,
         docblocks: program
             .trivia
@@ -127,9 +129,17 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         match statement {
             Statement::Block(block) => self.analyze_statements(block.statements.as_slice(), state),
             Statement::Namespace(namespace) => {
-                self.analyze_statements(namespace.statements().as_slice(), state)
+                let previous = self.namespace.take();
+                self.namespace = namespace.name.as_ref().map(|name| {
+                    String::from_utf8_lossy(name.value())
+                        .trim_start_matches('\\')
+                        .to_ascii_lowercase()
+                });
+                self.analyze_statements(namespace.statements().as_slice(), state);
+                self.namespace = previous;
             }
             Statement::Function(function) => {
+                let previous_class = self.class.take();
                 self.analyze_function(
                     &String::from_utf8_lossy(function.name.value),
                     &function.parameter_list,
@@ -137,11 +147,21 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     &function.body,
                     function.span(),
                 );
+                self.class = previous_class;
             }
-            Statement::Class(class) => self.analyze_members(&class.members),
-            Statement::Interface(interface) => self.analyze_members(&interface.members),
-            Statement::Trait(trait_) => self.analyze_members(&trait_.members),
-            Statement::Enum(enum_) => self.analyze_members(&enum_.members),
+            Statement::Class(class) => {
+                self.analyze_class(&String::from_utf8_lossy(class.name.value), &class.members)
+            }
+            Statement::Interface(interface) => self.analyze_class(
+                &String::from_utf8_lossy(interface.name.value),
+                &interface.members,
+            ),
+            Statement::Trait(trait_) => {
+                self.analyze_class(&String::from_utf8_lossy(trait_.name.value), &trait_.members)
+            }
+            Statement::Enum(enum_) => {
+                self.analyze_class(&String::from_utf8_lossy(enum_.name.value), &enum_.members)
+            }
             Statement::If(if_statement) => self.analyze_if(if_statement, state),
             Statement::While(while_statement) => {
                 let body = while_statement.body.statements();
@@ -257,6 +277,17 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         }
     }
 
+    fn analyze_class(
+        &mut self,
+        name: &str,
+        members: &'arena Sequence<'arena, ClassLikeMember<'arena>>,
+    ) {
+        let previous = self.class.take();
+        self.class = Some(self.qualified_name(&name.to_ascii_lowercase()));
+        self.analyze_members(members);
+        self.class = previous;
+    }
+
     fn analyze_members(&mut self, members: &'arena Sequence<'arena, ClassLikeMember<'arena>>) {
         for member in members.iter() {
             if let ClassLikeMember::Method(method) = member {
@@ -270,6 +301,13 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     );
                 }
             }
+        }
+    }
+
+    fn qualified_name(&self, name: &str) -> String {
+        match &self.namespace {
+            Some(namespace) if !namespace.is_empty() => format!("{namespace}\\{name}"),
+            _ => name.to_string(),
         }
     }
 
@@ -1164,6 +1202,32 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         self.summaries.get(&name)
     }
 
+    fn method_summary(
+        &self,
+        class: &str,
+        method: &ClassLikeMemberSelector<'_>,
+    ) -> Option<&FunctionSummary> {
+        let name = member_selector_name(method)?;
+        self.summaries.get(&format!("{class}::{name}"))
+    }
+
+    fn static_class_name(&self, expression: &Expression<'_>) -> Option<String> {
+        match expression.unparenthesized() {
+            Expression::Identifier(identifier) => {
+                let name = String::from_utf8_lossy(identifier.value()).to_ascii_lowercase();
+                match identifier {
+                    Identifier::FullyQualified(_) => {
+                        Some(name.trim_start_matches('\\').to_string())
+                    }
+                    Identifier::Local(_) => Some(self.qualified_name(&name)),
+                    Identifier::Qualified(_) => Some(self.qualified_name(&name)),
+                }
+            }
+            Expression::Self_(_) | Expression::Static(_) => self.class.clone(),
+            _ => None,
+        }
+    }
+
     fn eval_call(&mut self, call: &'arena Call<'arena>, state: &mut State) -> Value {
         match call {
             Call::Function(function) => {
@@ -1212,16 +1276,49 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     );
                 }
                 self.eval_arguments(&method.argument_list, state);
+                let class = if direct_variable_name(method.object).as_deref() == Some("$this") {
+                    self.class.as_deref()
+                } else {
+                    None
+                };
+                if let Some(summary) =
+                    class.and_then(|class| self.method_summary(class, &method.method))
+                {
+                    if let Some(value) = summary.return_value.as_ref() {
+                        return constant_to_value(value);
+                    }
+                }
                 Value::Unknown
             }
             Call::NullSafeMethod(method) => {
                 self.eval_expr(method.object, state);
                 self.eval_arguments(&method.argument_list, state);
+                let class = if direct_variable_name(method.object).as_deref() == Some("$this") {
+                    self.class.as_deref()
+                } else {
+                    None
+                };
+                if let Some(summary) =
+                    class.and_then(|class| self.method_summary(class, &method.method))
+                {
+                    if let Some(value) = summary.return_value.as_ref() {
+                        return constant_to_value(value);
+                    }
+                }
                 Value::Unknown
             }
             Call::StaticMethod(method) => {
+                let class = self.static_class_name(method.class);
                 self.eval_expr(method.class, state);
                 self.eval_arguments(&method.argument_list, state);
+                if let Some(summary) = class
+                    .as_deref()
+                    .and_then(|class| self.method_summary(class, &method.method))
+                {
+                    if let Some(value) = summary.return_value.as_ref() {
+                        return constant_to_value(value);
+                    }
+                }
                 Value::Unknown
             }
         }
@@ -1943,6 +2040,15 @@ fn model_value(solver: &Solver, value: &Value) -> Option<String> {
             .eval(value, true)
             .and_then(|value| value.as_bool())
             .map(|value| value.to_string()),
+        _ => None,
+    }
+}
+
+fn member_selector_name(selector: &ClassLikeMemberSelector<'_>) -> Option<String> {
+    match selector {
+        ClassLikeMemberSelector::Identifier(identifier) => {
+            Some(String::from_utf8_lossy(identifier.value).to_ascii_lowercase())
+        }
         _ => None,
     }
 }

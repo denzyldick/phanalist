@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 use mago_syntax::cst::*;
@@ -21,25 +21,16 @@ pub struct FunctionSummary {
 
 #[derive(Default)]
 pub struct SummaryIndex {
-    functions: HashMap<String, FunctionSummary>,
-    files: HashMap<PathBuf, Vec<String>>,
-    ambiguous: HashSet<String>,
+    files: HashMap<PathBuf, Vec<(String, FunctionSummary)>>,
 }
 
 impl SummaryIndex {
     pub fn clear(&mut self) {
-        self.functions.clear();
         self.files.clear();
-        self.ambiguous.clear();
     }
 
     pub fn replace_file(&mut self, file: &File<'_>) {
-        if let Some(previous) = self.files.remove(&file.path) {
-            for name in previous {
-                self.functions.remove(&name);
-                self.ambiguous.remove(&name);
-            }
-        }
+        self.files.remove(&file.path);
 
         let Some(program) = file.ast else {
             return;
@@ -47,20 +38,19 @@ impl SummaryIndex {
 
         let mut summaries = Vec::new();
         collect_summaries(program.statements.as_slice(), None, &mut summaries);
-        let mut names = Vec::new();
-        for (name, summary) in summaries {
-            if self.functions.insert(name.clone(), summary).is_some() {
-                self.ambiguous.insert(name.clone());
-            }
-            names.push(name);
-        }
-        self.files.insert(file.path.clone(), names);
+        self.files.insert(file.path.clone(), summaries);
     }
 
     pub fn snapshot(&self) -> HashMap<String, FunctionSummary> {
-        self.functions
-            .iter()
-            .filter(|(name, _)| !self.ambiguous.contains(*name))
+        let mut counts: HashMap<&str, usize> = HashMap::new();
+        for (name, _) in self.files.values().flat_map(|summaries| summaries.iter()) {
+            *counts.entry(name.as_str()).or_default() += 1;
+        }
+
+        self.files
+            .values()
+            .flat_map(|summaries| summaries.iter())
+            .filter(|(name, _)| counts.get(name.as_str()) == Some(&1))
             .map(|(name, summary)| (name.clone(), summary.clone()))
             .collect()
     }
@@ -88,19 +78,72 @@ fn collect_summaries(
             Statement::Function(function) => {
                 let function_name =
                     String::from_utf8_lossy(function.name.value).to_ascii_lowercase();
-                let full_name = match namespace {
-                    Some(namespace) if !namespace.is_empty() => {
-                        format!("{namespace}\\{function_name}")
-                    }
-                    _ => function_name,
-                };
                 summaries.push((
-                    full_name,
+                    qualify(namespace, &function_name),
                     summarize_function(function.body.statements.as_slice()),
                 ));
             }
+            Statement::Class(class) => {
+                collect_member_summaries(
+                    namespace,
+                    &String::from_utf8_lossy(class.name.value),
+                    &class.members,
+                    summaries,
+                );
+            }
+            Statement::Interface(interface) => {
+                collect_member_summaries(
+                    namespace,
+                    &String::from_utf8_lossy(interface.name.value),
+                    &interface.members,
+                    summaries,
+                );
+            }
+            Statement::Trait(trait_) => {
+                collect_member_summaries(
+                    namespace,
+                    &String::from_utf8_lossy(trait_.name.value),
+                    &trait_.members,
+                    summaries,
+                );
+            }
+            Statement::Enum(enum_) => {
+                collect_member_summaries(
+                    namespace,
+                    &String::from_utf8_lossy(enum_.name.value),
+                    &enum_.members,
+                    summaries,
+                );
+            }
             _ => {}
         }
+    }
+}
+
+fn collect_member_summaries(
+    namespace: Option<&str>,
+    class: &str,
+    members: &Sequence<'_, ClassLikeMember<'_>>,
+    summaries: &mut Vec<(String, FunctionSummary)>,
+) {
+    let class = qualify(namespace, &class.to_ascii_lowercase());
+    for member in members.iter() {
+        if let ClassLikeMember::Method(method) = member {
+            if let MethodBody::Concrete(block) = &method.body {
+                let method_name = String::from_utf8_lossy(method.name.value).to_ascii_lowercase();
+                summaries.push((
+                    format!("{class}::{method_name}"),
+                    summarize_function(block.statements.as_slice()),
+                ));
+            }
+        }
+    }
+}
+
+fn qualify(namespace: Option<&str>, name: &str) -> String {
+    match namespace {
+        Some(namespace) if !namespace.is_empty() => format!("{namespace}\\{name}"),
+        _ => name.to_string(),
     }
 }
 
@@ -218,5 +261,55 @@ fn constant_value(expression: &Expression<'_>) -> Option<ConstantValue> {
             _ => None,
         },
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use mago_allocator::prelude::LocalArena;
+
+    use super::*;
+
+    fn file<'arena>(arena: &'arena LocalArena, path: &str, content: &str) -> File<'arena> {
+        File::new(arena, PathBuf::from(path), content.to_string())
+    }
+
+    #[test]
+    fn ambiguous_definitions_are_omitted_and_reindexing_keeps_other_files() {
+        let mut index = SummaryIndex::default();
+
+        {
+            let arena = LocalArena::new();
+            let file = file(
+                &arena,
+                "ambiguous_a.php",
+                "<?php function duplicate_constant(): int { return 2; }",
+            );
+            index.replace_file(&file);
+        }
+        {
+            let arena = LocalArena::new();
+            let file = file(
+                &arena,
+                "ambiguous_b.php",
+                "<?php function duplicate_constant(): int { return 2; }",
+            );
+            index.replace_file(&file);
+        }
+
+        assert!(index.snapshot().is_empty());
+
+        {
+            let arena = LocalArena::new();
+            let file = file(&arena, "ambiguous_a.php", "<?php");
+            index.replace_file(&file);
+        }
+
+        let snapshot = index.snapshot();
+        assert_eq!(snapshot.len(), 1);
+        assert_eq!(
+            snapshot["duplicate_constant"].return_value,
+            Some(ConstantValue::Int(2))
+        );
     }
 }

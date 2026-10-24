@@ -568,6 +568,51 @@ mod summary_tests {
     }
 
     #[test]
+    fn uses_static_and_instance_method_summaries_in_the_same_file() {
+        let path = fixture("e31/method_summary_same_file.php");
+        let content = fs::read_to_string(&path).unwrap();
+        let arena = LocalArena::new();
+        let file = File::new(&arena, path, content);
+        let rule = Rule::default();
+
+        rule.begin_index();
+        rule.index_file(&file);
+        rule.finalize_index();
+
+        let violations = rule.validate_file(&file).unwrap();
+
+        assert_eq!(violations.len(), 2);
+        assert!(violations
+            .iter()
+            .all(|violation| violation.message.render().contains("Division by zero")));
+    }
+
+    #[test]
+    fn uses_cross_file_static_method_summaries() {
+        let definition_path = fixture("e31/method_summary_definition.php");
+        let use_path = fixture("e31/method_summary_use.php");
+        let definition = fs::read_to_string(&definition_path).unwrap();
+        let use_content = fs::read_to_string(&use_path).unwrap();
+
+        let arena = LocalArena::new();
+        let use_file = File::new(&arena, use_path, use_content);
+        let rule = Rule::default();
+
+        rule.begin_index();
+        {
+            let arena = LocalArena::new();
+            let file = File::new(&arena, definition_path, definition);
+            rule.index_file(&file);
+        }
+        rule.finalize_index();
+
+        let violations = rule.validate_file(&use_file).unwrap();
+
+        assert_eq!(violations.len(), 1);
+        assert!(violations[0].message.render().contains("Division by zero"));
+    }
+
+    #[test]
     fn uses_cross_file_summaries_and_replaces_them_on_reindex() {
         let definition_path = fixture("e31/summary_definition.php");
         let use_path = fixture("e31/summary_use.php");
