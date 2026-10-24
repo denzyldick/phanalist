@@ -17,7 +17,7 @@ pub enum ConstantValue {
     Null,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct FunctionSummary {
     pub return_value: Option<ConstantValue>,
     pub return_parameter: Option<usize>,
@@ -34,7 +34,13 @@ pub struct ParameterAssertion {
 
 #[derive(Default)]
 pub struct SummaryIndex {
-    files: HashMap<PathBuf, Vec<(String, FunctionSummary)>>,
+    files: HashMap<PathBuf, FileSummaries>,
+}
+
+#[derive(Default)]
+struct FileSummaries {
+    summaries: Vec<(String, FunctionSummary)>,
+    parents: Vec<(String, String)>,
 }
 
 impl SummaryIndex {
@@ -54,28 +60,86 @@ impl SummaryIndex {
         };
 
         let mut summaries = Vec::new();
+        let mut parents = Vec::new();
         collect_summaries(
             program.statements.as_slice(),
             program.trivia.as_slice(),
             program.source_text,
             None,
             &mut summaries,
+            &mut parents,
         );
-        self.files.insert(file.path.clone(), summaries);
+        self.files
+            .insert(file.path.clone(), FileSummaries { summaries, parents });
     }
 
     pub fn snapshot(&self) -> HashMap<String, FunctionSummary> {
         let mut counts: HashMap<&str, usize> = HashMap::new();
-        for (name, _) in self.files.values().flat_map(|summaries| summaries.iter()) {
+        for (name, _) in self.files.values().flat_map(|file| file.summaries.iter()) {
             *counts.entry(name.as_str()).or_default() += 1;
         }
 
-        self.files
+        let mut summaries: HashMap<String, FunctionSummary> = self
+            .files
             .values()
-            .flat_map(|summaries| summaries.iter())
+            .flat_map(|file| file.summaries.iter())
             .filter(|(name, _)| counts.get(name.as_str()) == Some(&1))
             .map(|(name, summary)| (name.clone(), summary.clone()))
-            .collect()
+            .collect();
+
+        let mut parents: HashMap<String, Vec<String>> = HashMap::new();
+        for file in self.files.values() {
+            for (child, parent) in &file.parents {
+                parents
+                    .entry(child.clone())
+                    .or_default()
+                    .push(parent.clone());
+            }
+        }
+        for inheritors in parents.values_mut() {
+            inheritors.sort();
+            inheritors.dedup();
+        }
+
+        for _ in 0..32 {
+            let mut additions = Vec::new();
+            for (child, inheritors) in &parents {
+                let mut candidates: HashMap<String, Option<FunctionSummary>> = HashMap::new();
+                for parent in inheritors {
+                    let prefix = format!("{parent}::");
+                    for (name, summary) in &summaries {
+                        let Some(method) = name.strip_prefix(&prefix) else {
+                            continue;
+                        };
+                        let key = format!("{child}::{method}");
+                        if summaries.contains_key(&key) {
+                            continue;
+                        }
+                        candidates
+                            .entry(key)
+                            .and_modify(|candidate| {
+                                if candidate.as_ref() != Some(summary) {
+                                    *candidate = None;
+                                }
+                            })
+                            .or_insert_with(|| Some(summary.clone()));
+                    }
+                }
+                for (name, summary) in candidates {
+                    if let Some(summary) = summary {
+                        additions.push((name, summary));
+                    }
+                }
+            }
+            if additions.is_empty() {
+                break;
+            }
+            for (name, summary) in additions {
+                summaries.entry(name).or_insert(summary);
+            }
+        }
+
+        summaries
     }
 }
 
@@ -85,6 +149,7 @@ fn collect_summaries(
     source: &[u8],
     namespace: Option<&str>,
     summaries: &mut Vec<(String, FunctionSummary)>,
+    parents: &mut Vec<(String, String)>,
 ) {
     for statement in statements {
         match statement {
@@ -100,6 +165,7 @@ fn collect_summaries(
                     source,
                     name.as_deref(),
                     summaries,
+                    parents,
                 );
             }
             Statement::Function(function) => {
@@ -120,6 +186,15 @@ fn collect_summaries(
                 ));
             }
             Statement::Class(class) => {
+                let class_name = qualify(
+                    namespace,
+                    &String::from_utf8_lossy(class.name.value).to_ascii_lowercase(),
+                );
+                if let Some(extends) = &class.extends {
+                    for parent in extends.types.iter() {
+                        parents.push((class_name.clone(), resolve_name(parent, namespace)));
+                    }
+                }
                 collect_member_summaries(
                     namespace,
                     &String::from_utf8_lossy(class.name.value),
@@ -127,9 +202,19 @@ fn collect_summaries(
                     trivia,
                     source,
                     summaries,
+                    parents,
                 );
             }
             Statement::Interface(interface) => {
+                let class_name = qualify(
+                    namespace,
+                    &String::from_utf8_lossy(interface.name.value).to_ascii_lowercase(),
+                );
+                if let Some(extends) = &interface.extends {
+                    for parent in extends.types.iter() {
+                        parents.push((class_name.clone(), resolve_name(parent, namespace)));
+                    }
+                }
                 collect_member_summaries(
                     namespace,
                     &String::from_utf8_lossy(interface.name.value),
@@ -137,6 +222,7 @@ fn collect_summaries(
                     trivia,
                     source,
                     summaries,
+                    parents,
                 );
             }
             Statement::Trait(trait_) => {
@@ -147,6 +233,7 @@ fn collect_summaries(
                     trivia,
                     source,
                     summaries,
+                    parents,
                 );
             }
             Statement::Enum(enum_) => {
@@ -157,6 +244,7 @@ fn collect_summaries(
                     trivia,
                     source,
                     summaries,
+                    parents,
                 );
             }
             _ => {}
@@ -171,10 +259,15 @@ fn collect_member_summaries(
     trivia: &[Trivia<'_>],
     source: &[u8],
     summaries: &mut Vec<(String, FunctionSummary)>,
+    parents: &mut Vec<(String, String)>,
 ) {
     let class = qualify(namespace, &class.to_ascii_lowercase());
     for member in members.iter() {
-        if let ClassLikeMember::Method(method) = member {
+        if let ClassLikeMember::TraitUse(trait_use) = member {
+            for trait_name in trait_use.trait_names.iter() {
+                parents.push((class.clone(), resolve_name(trait_name, namespace)));
+            }
+        } else if let ClassLikeMember::Method(method) = member {
             if let MethodBody::Concrete(block) = &method.body {
                 let method_name = String::from_utf8_lossy(method.name.value).to_ascii_lowercase();
                 summaries.push((
@@ -199,6 +292,14 @@ fn qualify(namespace: Option<&str>, name: &str) -> String {
     match namespace {
         Some(namespace) if !namespace.is_empty() => format!("{namespace}\\{name}"),
         _ => name.to_string(),
+    }
+}
+
+fn resolve_name(identifier: &Identifier<'_>, namespace: Option<&str>) -> String {
+    let name = String::from_utf8_lossy(identifier.value()).to_ascii_lowercase();
+    match identifier {
+        Identifier::FullyQualified(_) => name.trim_start_matches('\\').to_string(),
+        Identifier::Local(_) | Identifier::Qualified(_) => qualify(namespace, &name),
     }
 }
 

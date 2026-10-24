@@ -776,6 +776,24 @@ mod summary_tests {
             .join(path)
     }
 
+    fn messages(path: &str) -> Vec<String> {
+        let path = fixture(path);
+        let content = fs::read_to_string(&path).unwrap();
+        let arena = LocalArena::new();
+        let file = File::new(&arena, path, content);
+        let rule = Rule::default();
+
+        rule.begin_index();
+        rule.index_file(&file);
+        rule.finalize_index();
+
+        rule.validate_file(&file)
+            .unwrap()
+            .into_iter()
+            .map(|violation| violation.message.render())
+            .collect()
+    }
+
     #[test]
     fn uses_a_constant_return_summary_in_the_same_file() {
         let path = fixture("e31/summary_same_file.php");
@@ -855,6 +873,52 @@ mod summary_tests {
 
         let violations = rule.validate_file(&use_file).unwrap();
 
+        assert_eq!(violations.len(), 1);
+        assert!(violations[0].message.render().contains("Division by zero"));
+    }
+
+    #[test]
+    fn uses_inherited_method_summaries() {
+        let messages = messages("e31/method_inheritance.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+
+    #[test]
+    fn uses_trait_method_summaries() {
+        let messages = messages("e31/method_inheritance_trait.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+
+    #[test]
+    fn prefers_overridden_method_summaries() {
+        assert!(messages("e31/method_inheritance_override.php").is_empty());
+    }
+
+    #[test]
+    fn uses_cross_file_inherited_method_summaries() {
+        let definition_path = fixture("e31/method_inheritance_definition.php");
+        let use_path = fixture("e31/method_inheritance_use.php");
+        let definition = fs::read_to_string(&definition_path).unwrap();
+        let use_content = fs::read_to_string(&use_path).unwrap();
+
+        let arena = LocalArena::new();
+        let use_file = File::new(&arena, use_path, use_content);
+        let rule = Rule::default();
+
+        rule.begin_index();
+        {
+            let arena = LocalArena::new();
+            let file = File::new(&arena, definition_path, definition);
+            rule.index_file(&file);
+        }
+        rule.index_file(&use_file);
+        rule.finalize_index();
+
+        let violations = rule.validate_file(&use_file).unwrap();
         assert_eq!(violations.len(), 1);
         assert!(violations[0].message.render().contains("Division by zero"));
     }
