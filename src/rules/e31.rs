@@ -558,6 +558,14 @@ mod phpdoc_tests {
         assert_eq!(messages.len(), 1);
         assert!(messages[0].contains("unreachable"));
     }
+
+    #[test]
+    fn does_not_apply_docblocks_from_other_declarations() {
+        let messages = messages("e31/phpdoc_assert_unrelated.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
 }
 
 #[cfg(test)]
@@ -690,11 +698,9 @@ mod summary_tests {
         let violations = rule.validate_file(&file).unwrap();
 
         assert_eq!(violations.len(), 2);
-        assert!(
-            violations
-                .iter()
-                .all(|violation| violation.message.render().contains("Division by zero"))
-        );
+        assert!(violations
+            .iter()
+            .all(|violation| violation.message.render().contains("Division by zero")));
     }
 
     #[test]
@@ -712,11 +718,9 @@ mod summary_tests {
         let violations = rule.validate_file(&file).unwrap();
 
         assert_eq!(violations.len(), 3);
-        assert!(
-            violations
-                .iter()
-                .all(|violation| violation.message.render().contains("Division by zero"))
-        );
+        assert!(violations
+            .iter()
+            .all(|violation| violation.message.render().contains("Division by zero")));
     }
 
     #[test]

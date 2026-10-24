@@ -56,6 +56,7 @@ impl SummaryIndex {
         collect_summaries(
             program.statements.as_slice(),
             program.trivia.as_slice(),
+            program.source_text,
             None,
             &mut summaries,
         );
@@ -80,6 +81,7 @@ impl SummaryIndex {
 fn collect_summaries(
     statements: &[Statement<'_>],
     trivia: &[Trivia<'_>],
+    source: &[u8],
     namespace: Option<&str>,
     summaries: &mut Vec<(String, FunctionSummary)>,
 ) {
@@ -94,6 +96,7 @@ fn collect_summaries(
                 collect_summaries(
                     namespace_statement.statements().as_slice(),
                     trivia,
+                    source,
                     name.as_deref(),
                     summaries,
                 );
@@ -107,7 +110,7 @@ fn collect_summaries(
                         function.body.statements.as_slice(),
                         &function.parameter_list,
                         function.return_type_hint.is_none(),
-                        &docblock_before(trivia, function.span()),
+                        &docblock_before(trivia, source, function.span()),
                     ),
                 ));
             }
@@ -117,6 +120,7 @@ fn collect_summaries(
                     &String::from_utf8_lossy(class.name.value),
                     &class.members,
                     trivia,
+                    source,
                     summaries,
                 );
             }
@@ -126,6 +130,7 @@ fn collect_summaries(
                     &String::from_utf8_lossy(interface.name.value),
                     &interface.members,
                     trivia,
+                    source,
                     summaries,
                 );
             }
@@ -135,6 +140,7 @@ fn collect_summaries(
                     &String::from_utf8_lossy(trait_.name.value),
                     &trait_.members,
                     trivia,
+                    source,
                     summaries,
                 );
             }
@@ -144,6 +150,7 @@ fn collect_summaries(
                     &String::from_utf8_lossy(enum_.name.value),
                     &enum_.members,
                     trivia,
+                    source,
                     summaries,
                 );
             }
@@ -157,6 +164,7 @@ fn collect_member_summaries(
     class: &str,
     members: &Sequence<'_, ClassLikeMember<'_>>,
     trivia: &[Trivia<'_>],
+    source: &[u8],
     summaries: &mut Vec<(String, FunctionSummary)>,
 ) {
     let class = qualify(namespace, &class.to_ascii_lowercase());
@@ -170,7 +178,7 @@ fn collect_member_summaries(
                         block.statements.as_slice(),
                         &method.parameter_list,
                         method.return_type_hint.is_none(),
-                        &docblock_before(trivia, method.span()),
+                        &docblock_before(trivia, source, method.span()),
                     ),
                 ));
             }
@@ -248,7 +256,7 @@ fn parameter_assertions(
         .collect()
 }
 
-fn docblock_before(trivia: &[Trivia<'_>], span: mago_span::Span) -> Docblock {
+fn docblock_before(trivia: &[Trivia<'_>], source: &[u8], span: mago_span::Span) -> Docblock {
     let mut best = None;
     for trivia in trivia {
         if !trivia.kind.is_docblock() || trivia.span.end.offset > span.start.offset {
@@ -258,8 +266,18 @@ fn docblock_before(trivia: &[Trivia<'_>], span: mago_span::Span) -> Docblock {
             best = Some(trivia);
         }
     }
-    best.map(|trivia| contracts::parse_docblock(trivia.value))
-        .unwrap_or_default()
+    let Some(trivia) = best else {
+        return Docblock::default();
+    };
+    let start = trivia.span.end.offset as usize;
+    let end = span.start.offset as usize;
+    if !source
+        .get(start..end)
+        .is_some_and(|gap| gap.iter().all(u8::is_ascii_whitespace))
+    {
+        return Docblock::default();
+    }
+    contracts::parse_docblock(trivia.value)
 }
 
 fn identity_parameter(
