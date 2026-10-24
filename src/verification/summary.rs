@@ -22,6 +22,7 @@ pub struct FunctionSummary {
     pub return_value: Option<ConstantValue>,
     pub return_parameter: Option<usize>,
     pub asserts: Vec<ParameterAssertion>,
+    pub never_returns: bool,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -110,6 +111,10 @@ fn collect_summaries(
                         function.body.statements.as_slice(),
                         &function.parameter_list,
                         function.return_type_hint.is_none(),
+                        function
+                            .return_type_hint
+                            .as_ref()
+                            .is_some_and(|hint| hint_is_never(&hint.hint)),
                         &docblock_before(trivia, source, function.span()),
                     ),
                 ));
@@ -178,6 +183,10 @@ fn collect_member_summaries(
                         block.statements.as_slice(),
                         &method.parameter_list,
                         method.return_type_hint.is_none(),
+                        method
+                            .return_type_hint
+                            .as_ref()
+                            .is_some_and(|hint| hint_is_never(&hint.hint)),
                         &docblock_before(trivia, source, method.span()),
                     ),
                 ));
@@ -197,6 +206,7 @@ fn summarize_function(
     statements: &[Statement<'_>],
     parameters: &FunctionLikeParameterList<'_>,
     untyped_return: bool,
+    never_returns: bool,
     docblock: &Docblock,
 ) -> FunctionSummary {
     let asserts = parameter_assertions(parameters, docblock);
@@ -207,6 +217,7 @@ fn summarize_function(
                 return_value: None,
                 return_parameter: Some(index),
                 asserts,
+                never_returns,
             };
         }
     }
@@ -223,6 +234,7 @@ fn summarize_function(
             _ => {
                 return FunctionSummary {
                     asserts,
+                    never_returns,
                     ..FunctionSummary::default()
                 };
             }
@@ -233,7 +245,12 @@ fn summarize_function(
         return_value: value,
         return_parameter: None,
         asserts,
+        never_returns,
     }
+}
+
+fn hint_is_never(hint: &Hint<'_>) -> bool {
+    matches!(hint, Hint::Never(_))
 }
 
 fn parameter_assertions(

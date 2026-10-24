@@ -646,6 +646,36 @@ mod switch_tests {
 }
 
 #[cfg(test)]
+mod never_tests {
+    use crate::rules::tests::analyze_file_for_rule;
+
+    use super::*;
+
+    fn messages(path: &str) -> Vec<String> {
+        analyze_file_for_rule(path, CODE)
+            .into_iter()
+            .map(|violation| violation.message.render())
+            .collect()
+    }
+
+    #[test]
+    fn functions_declared_never_make_following_code_unreachable() {
+        let messages = messages("e31/never_return_function.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("unreachable"));
+    }
+
+    #[test]
+    fn methods_declared_never_make_following_code_unreachable() {
+        let messages = messages("e31/never_return_method.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("unreachable"));
+    }
+}
+
+#[cfg(test)]
 mod try_tests {
     use crate::rules::tests::analyze_file_for_rule;
 

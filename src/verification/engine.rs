@@ -1474,8 +1474,10 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                         &arguments,
                         arguments_are_positional(&function.argument_list),
                     ) {
+                        self.apply_never_returns(summary, state);
                         return value;
                     }
+                    self.apply_never_returns(summary, state);
                 }
                 Value::Unknown
             }
@@ -1502,6 +1504,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     class.and_then(|class| self.method_summary(class, &method.method))
                 {
                     self.apply_call_assertions(summary, &arguments, &method.argument_list, state);
+                    self.apply_never_returns(summary, state);
                     if let Some(value) = summary_call_value(
                         summary,
                         &arguments,
@@ -1524,6 +1527,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     class.and_then(|class| self.method_summary(class, &method.method))
                 {
                     self.apply_call_assertions(summary, &arguments, &method.argument_list, state);
+                    self.apply_never_returns(summary, state);
                     if let Some(value) = summary_call_value(
                         summary,
                         &arguments,
@@ -1543,6 +1547,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     .and_then(|class| self.method_summary(class, &method.method))
                 {
                     self.apply_call_assertions(summary, &arguments, &method.argument_list, state);
+                    self.apply_never_returns(summary, state);
                     if let Some(value) = summary_call_value(
                         summary,
                         &arguments,
@@ -1553,6 +1558,13 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 }
                 Value::Unknown
             }
+        }
+    }
+
+    fn apply_never_returns(&self, summary: &FunctionSummary, state: &mut State) {
+        if summary.never_returns {
+            state.path = Bool::from_bool(false);
+            state.reachable = false;
         }
     }
 
