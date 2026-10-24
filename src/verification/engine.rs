@@ -10,7 +10,7 @@ use crate::file::File;
 use crate::results::Message;
 
 use super::contracts::{self, Docblock};
-use super::summary::{ConstantValue, FunctionSummary};
+use super::summary::{self, ConstantValue, FunctionSummary};
 use super::value::{ArrayKey, Value};
 use super::Settings;
 
@@ -64,6 +64,7 @@ struct Analyzer<'a, 'arena> {
     suppress_access_checks: bool,
     summaries: &'a HashMap<String, FunctionSummary>,
     parents: &'a HashMap<String, String>,
+    imports: HashMap<String, HashMap<String, String>>,
     namespace: Option<String>,
     class: Option<String>,
     switch_depth: usize,
@@ -92,6 +93,7 @@ pub fn analyze_file_with_summaries(
         suppress_access_checks: false,
         summaries,
         parents,
+        imports: HashMap::new(),
         namespace: file
             .namespace
             .as_ref()
@@ -133,6 +135,10 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
 
         match statement {
             Statement::Block(block) => self.analyze_statements(block.statements.as_slice(), state),
+            Statement::Use(use_) => {
+                let namespace = self.namespace.clone().unwrap_or_default();
+                summary::add_imports(&use_.items, self.imports.entry(namespace).or_default());
+            }
             Statement::Namespace(namespace) => {
                 let previous = self.namespace.take();
                 self.namespace = namespace.name.as_ref().map(|name| {
@@ -1428,16 +1434,28 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
 
     fn static_class_name(&self, expression: &Expression<'_>) -> Option<String> {
         match expression.unparenthesized() {
-            Expression::Identifier(identifier) => {
-                let name = String::from_utf8_lossy(identifier.value()).to_ascii_lowercase();
-                match identifier {
-                    Identifier::FullyQualified(_) => {
-                        Some(name.trim_start_matches('\\').to_string())
+            Expression::Identifier(identifier) => match identifier {
+                Identifier::FullyQualified(_) => Some(
+                    String::from_utf8_lossy(identifier.value())
+                        .trim_start_matches('\\')
+                        .to_ascii_lowercase(),
+                ),
+                Identifier::Local(_) | Identifier::Qualified(_) => {
+                    let namespace = self.namespace.clone().unwrap_or_default();
+                    match self.imports.get(&namespace) {
+                        Some(imports) => Some(summary::resolve_name(
+                            identifier,
+                            self.namespace.as_deref(),
+                            imports,
+                        )),
+                        None => Some(summary::resolve_name(
+                            identifier,
+                            self.namespace.as_deref(),
+                            &HashMap::new(),
+                        )),
                     }
-                    Identifier::Local(_) => Some(self.qualified_name(&name)),
-                    Identifier::Qualified(_) => Some(self.qualified_name(&name)),
                 }
-            }
+            },
             Expression::Self_(_) | Expression::Static(_) => self.class.clone(),
             Expression::Parent(_) => self
                 .class

@@ -911,6 +911,30 @@ mod summary_tests {
     }
 
     #[test]
+    fn resolves_imported_parent_classes() {
+        let messages = messages("e31/method_import_alias.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+
+    #[test]
+    fn resolves_imported_static_method_calls() {
+        let messages = messages("e31/method_import_call.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+
+    #[test]
+    fn resolves_parent_calls_through_imported_classes() {
+        let messages = messages("e31/parent_method_import.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+
+    #[test]
     fn prefers_overridden_method_summaries() {
         assert!(messages("e31/method_inheritance_override.php").is_empty());
     }

@@ -72,6 +72,7 @@ impl SummaryIndex {
             program.trivia.as_slice(),
             program.source_text,
             None,
+            &HashMap::new(),
             &mut summaries,
             &mut parents,
         );
@@ -188,11 +189,14 @@ fn collect_summaries(
     trivia: &[Trivia<'_>],
     source: &[u8],
     namespace: Option<&str>,
+    imports: &HashMap<String, String>,
     summaries: &mut Vec<(String, FunctionSummary)>,
     parents: &mut Vec<(String, String, ParentKind)>,
 ) {
+    let mut imports = imports.clone();
     for statement in statements {
         match statement {
+            Statement::Use(use_) => add_imports(&use_.items, &mut imports),
             Statement::Namespace(namespace_statement) => {
                 let name = namespace_statement.name.as_ref().map(|name| {
                     String::from_utf8_lossy(name.value())
@@ -204,6 +208,7 @@ fn collect_summaries(
                     trivia,
                     source,
                     name.as_deref(),
+                    &HashMap::new(),
                     summaries,
                     parents,
                 );
@@ -234,7 +239,7 @@ fn collect_summaries(
                     for parent in extends.types.iter() {
                         parents.push((
                             class_name.clone(),
-                            resolve_name(parent, namespace),
+                            resolve_name(parent, namespace, &imports),
                             ParentKind::Extends,
                         ));
                     }
@@ -245,6 +250,7 @@ fn collect_summaries(
                     &class.members,
                     trivia,
                     source,
+                    &imports,
                     summaries,
                     parents,
                 );
@@ -258,7 +264,7 @@ fn collect_summaries(
                     for parent in extends.types.iter() {
                         parents.push((
                             class_name.clone(),
-                            resolve_name(parent, namespace),
+                            resolve_name(parent, namespace, &imports),
                             ParentKind::Extends,
                         ));
                     }
@@ -269,6 +275,7 @@ fn collect_summaries(
                     &interface.members,
                     trivia,
                     source,
+                    &imports,
                     summaries,
                     parents,
                 );
@@ -280,6 +287,7 @@ fn collect_summaries(
                     &trait_.members,
                     trivia,
                     source,
+                    &imports,
                     summaries,
                     parents,
                 );
@@ -291,6 +299,7 @@ fn collect_summaries(
                     &enum_.members,
                     trivia,
                     source,
+                    &imports,
                     summaries,
                     parents,
                 );
@@ -306,6 +315,7 @@ fn collect_member_summaries(
     members: &Sequence<'_, ClassLikeMember<'_>>,
     trivia: &[Trivia<'_>],
     source: &[u8],
+    imports: &HashMap<String, String>,
     summaries: &mut Vec<(String, FunctionSummary)>,
     parents: &mut Vec<(String, String, ParentKind)>,
 ) {
@@ -315,7 +325,7 @@ fn collect_member_summaries(
             for trait_name in trait_use.trait_names.iter() {
                 parents.push((
                     class.clone(),
-                    resolve_name(trait_name, namespace),
+                    resolve_name(trait_name, namespace, &imports),
                     ParentKind::Trait,
                 ));
             }
@@ -347,12 +357,76 @@ fn qualify(namespace: Option<&str>, name: &str) -> String {
     }
 }
 
-fn resolve_name(identifier: &Identifier<'_>, namespace: Option<&str>) -> String {
+pub(crate) fn resolve_name(
+    identifier: &Identifier<'_>,
+    namespace: Option<&str>,
+    imports: &HashMap<String, String>,
+) -> String {
     let name = String::from_utf8_lossy(identifier.value()).to_ascii_lowercase();
     match identifier {
         Identifier::FullyQualified(_) => name.trim_start_matches('\\').to_string(),
-        Identifier::Local(_) | Identifier::Qualified(_) => qualify(namespace, &name),
+        Identifier::Local(_) | Identifier::Qualified(_) => {
+            if let Some((first, rest)) = name.split_once('\\') {
+                if let Some(import) = imports.get(first) {
+                    return format!("{import}\\{rest}");
+                }
+            } else if let Some(import) = imports.get(name.as_str()) {
+                return import.clone();
+            }
+            qualify(namespace, &name)
+        }
     }
+}
+
+pub(crate) fn add_imports(items: &UseItems<'_>, imports: &mut HashMap<String, String>) {
+    match items {
+        UseItems::Sequence(items) => {
+            for item in items.items.iter() {
+                add_import(item, None, imports);
+            }
+        }
+        UseItems::MixedList(items) => {
+            let prefix = String::from_utf8_lossy(items.namespace.value())
+                .trim_start_matches('\\')
+                .to_ascii_lowercase();
+            for item in items.items.iter() {
+                if item
+                    .r#type
+                    .as_ref()
+                    .is_some_and(|ty| ty.is_function() || ty.is_const())
+                {
+                    continue;
+                }
+                add_import(&item.item, Some(&prefix), imports);
+            }
+        }
+        UseItems::TypedSequence(_) | UseItems::TypedList(_) => {}
+    }
+}
+
+fn add_import(item: &UseItem<'_>, prefix: Option<&str>, imports: &mut HashMap<String, String>) {
+    let name = String::from_utf8_lossy(item.name.value())
+        .trim_start_matches('\\')
+        .to_ascii_lowercase();
+    let full = match (prefix, item.name) {
+        (Some(prefix), Identifier::Local(_)) => format!("{prefix}\\{name}"),
+        _ if name.contains('\\') => name.clone(),
+        _ => match prefix {
+            Some(prefix) => format!("{prefix}\\{name}"),
+            None => name.clone(),
+        },
+    };
+    let alias = item
+        .alias
+        .as_ref()
+        .map(|alias| {
+            String::from_utf8_lossy(alias.identifier.value)
+                .trim_start_matches('\\')
+                .to_ascii_lowercase()
+        })
+        .or_else(|| full.rsplit('\\').next().map(str::to_string))
+        .unwrap_or_else(|| full.clone());
+    imports.insert(alias, full);
 }
 
 fn summarize_function(
