@@ -646,6 +646,49 @@ mod switch_tests {
 }
 
 #[cfg(test)]
+mod closure_tests {
+    use crate::rules::tests::analyze_file_for_rule;
+
+    use super::*;
+
+    fn messages(path: &str) -> Vec<String> {
+        analyze_file_for_rule(path, CODE)
+            .into_iter()
+            .map(|violation| violation.message.render())
+            .collect()
+    }
+
+    #[test]
+    fn reports_division_inside_closures() {
+        let messages = messages("e31/closure_division_by_zero.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+
+    #[test]
+    fn proves_guarded_division_inside_closures() {
+        assert!(messages("e31/closure_guarded_division.php").is_empty());
+    }
+
+    #[test]
+    fn reports_division_inside_arrow_functions() {
+        let messages = messages("e31/arrow_division_by_zero.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+
+    #[test]
+    fn analyzes_values_captured_by_closures() {
+        let messages = messages("e31/closure_use_division_by_zero.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+}
+
+#[cfg(test)]
 mod summary_tests {
     use std::fs;
     use std::path::PathBuf;
