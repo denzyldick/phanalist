@@ -3,6 +3,7 @@ use std::ops::{Add, Mul, Sub};
 
 use mago_span::{HasSpan, Span};
 use mago_syntax::cst::*;
+use mago_syntax::walker::Walker;
 use z3::ast::{Bool, Float, Int, RoundingMode};
 use z3::{Params, SatResult, Solver};
 
@@ -71,6 +72,7 @@ struct Analyzer<'a, 'arena> {
     switch_depth: usize,
     docblocks: Vec<Trivia<'arena>>,
     doc_return: Option<String>,
+    in_generator: bool,
 }
 
 pub fn analyze_file_with_summaries(
@@ -109,6 +111,7 @@ pub fn analyze_file_with_summaries(
             .copied()
             .collect(),
         doc_return: None,
+        in_generator: false,
     };
 
     let mut state = State::new();
@@ -139,7 +142,10 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             Statement::Block(block) => self.analyze_statements(block.statements.as_slice(), state),
             Statement::Use(use_) => {
                 let namespace = self.namespace.clone().unwrap_or_default();
-                summary::add_imports(&use_.items, self.imports.entry(namespace.clone()).or_default());
+                summary::add_imports(
+                    &use_.items,
+                    self.imports.entry(namespace.clone()).or_default(),
+                );
                 summary::add_function_imports(
                     &use_.items,
                     self.function_imports.entry(namespace).or_default(),
@@ -343,7 +349,9 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         let previous_hint = self.return_hint;
         let previous_doc_return = self.doc_return.take();
         let previous_limit = self.finding_limit_start;
+        let previous_generator = self.in_generator;
         self.return_hint = return_hint.map(|hint| &hint.hint);
+        self.in_generator = body_contains_yield(body);
         self.finding_limit_start = self.findings.len();
 
         let docblock = self.docblock_before(span).unwrap_or_default();
@@ -352,11 +360,6 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         let mut state = State::new();
         for parameter in parameters.parameters.iter() {
             let parameter_name = String::from_utf8_lossy(parameter.variable.name).to_string();
-            let hint = if self.settings.check_types {
-                parameter.hint.as_ref()
-            } else {
-                None
-            };
             let doc_type = if self.settings.check_types {
                 docblock
                     .params
@@ -365,7 +368,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             } else {
                 None
             };
-            let value = parameter_value(hint, doc_type, name, &parameter_name);
+            let value = parameter_value(parameter.hint.as_ref(), doc_type, name, &parameter_name);
             if let Some(doc_type) = doc_type {
                 if let Some(constraint) = contracts::constraint(&value, doc_type) {
                     state.path = path_and(&state.path, &constraint);
@@ -379,6 +382,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         self.return_hint = previous_hint;
         self.doc_return = previous_doc_return;
         self.finding_limit_start = previous_limit;
+        self.in_generator = previous_generator;
     }
 
     fn analyze_closure(&mut self, closure: &'arena Closure<'arena>, state: &State) {
@@ -387,7 +391,9 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         let previous_doc_return =
             std::mem::replace(&mut self.doc_return, docblock.return_type.clone());
         let previous_limit = self.finding_limit_start;
+        let previous_generator = self.in_generator;
         self.return_hint = closure.return_type_hint.as_ref().map(|hint| &hint.hint);
+        self.in_generator = body_contains_yield(&closure.body);
         self.finding_limit_start = self.findings.len();
 
         let mut body_state = state.clone();
@@ -403,11 +409,6 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         }
         for parameter in closure.parameter_list.parameters.iter() {
             let name = String::from_utf8_lossy(parameter.variable.name).to_string();
-            let hint = if self.settings.check_types {
-                parameter.hint.as_ref()
-            } else {
-                None
-            };
             let doc_type = if self.settings.check_types {
                 docblock
                     .params
@@ -416,7 +417,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             } else {
                 None
             };
-            let value = parameter_value(hint, doc_type, "closure", &name);
+            let value = parameter_value(parameter.hint.as_ref(), doc_type, "closure", &name);
             body_state.env.insert(name, value);
         }
 
@@ -425,6 +426,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         self.return_hint = previous_hint;
         self.doc_return = previous_doc_return;
         self.finding_limit_start = previous_limit;
+        self.in_generator = previous_generator;
     }
 
     fn analyze_arrow_function(&mut self, arrow: &'arena ArrowFunction<'arena>, state: &State) {
@@ -433,17 +435,14 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         let previous_doc_return =
             std::mem::replace(&mut self.doc_return, docblock.return_type.clone());
         let previous_limit = self.finding_limit_start;
+        let previous_generator = self.in_generator;
         self.return_hint = arrow.return_type_hint.as_ref().map(|hint| &hint.hint);
+        self.in_generator = false;
         self.finding_limit_start = self.findings.len();
 
         let mut body_state = state.clone();
         for parameter in arrow.parameter_list.parameters.iter() {
             let name = String::from_utf8_lossy(parameter.variable.name).to_string();
-            let hint = if self.settings.check_types {
-                parameter.hint.as_ref()
-            } else {
-                None
-            };
             let doc_type = if self.settings.check_types {
                 docblock
                     .params
@@ -452,7 +451,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             } else {
                 None
             };
-            let value = parameter_value(hint, doc_type, "arrow function", &name);
+            let value = parameter_value(parameter.hint.as_ref(), doc_type, "arrow function", &name);
             body_state.env.insert(name, value);
         }
 
@@ -464,6 +463,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         self.return_hint = previous_hint;
         self.doc_return = previous_doc_return;
         self.finding_limit_start = previous_limit;
+        self.in_generator = previous_generator;
     }
 
     fn apply_docblock_vars(
@@ -950,11 +950,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         current
     }
 
-    fn analyze_do_while(
-        &mut self,
-        do_while: &'arena DoWhile<'arena>,
-        state: &mut State,
-    ) {
+    fn analyze_do_while(&mut self, do_while: &'arena DoWhile<'arena>, state: &mut State) {
         let depth = self.loop_unroll_depth();
         let mut current = state.clone();
         let mut exit_paths = Vec::new();
@@ -974,8 +970,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
 
             let continue_path = body_state.loop_continues.clone();
             if !matches!(continue_path.as_bool(), Some(false)) {
-                body_state.path =
-                    path_or_many(&[body_state.path.clone(), continue_path.clone()]);
+                body_state.path = path_or_many(&[body_state.path.clone(), continue_path.clone()]);
                 body_state.reachable |= path_may_be_true(&continue_path);
             }
             body_state.loop_continues = Bool::from_bool(false);
@@ -1005,7 +1000,8 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             reachable |= exit_state.reachable && path_may_be_true(&exit_state.path);
 
             current = next_state;
-            if !current.reachable || condition.and_then(|condition| condition.as_bool()) == Some(false)
+            if !current.reachable
+                || condition.and_then(|condition| condition.as_bool()) == Some(false)
             {
                 break;
             }
@@ -1135,12 +1131,20 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
     fn eval_match(&mut self, match_: &'arena Match<'arena>, state: &mut State) -> Value {
         let subject = self.eval_expr(match_.expression, state);
         let mut fallback = Value::Unknown;
+        let mut fallback_reachable = false;
         let mut branches = Vec::new();
 
         for arm in match_.arms.iter() {
             match arm {
                 MatchArm::Default(arm) => {
-                    fallback = self.eval_expr(arm.expression, state);
+                    let mut fallback_state = state.clone();
+                    fallback = self.eval_expr(arm.expression, &mut fallback_state);
+                    fallback_reachable =
+                        fallback_state.reachable && path_may_be_true(&fallback_state.path);
+                    for name in &fallback_state.modified {
+                        state.env.insert(name.clone(), Value::Unknown);
+                        state.modified.insert(name.clone());
+                    }
                 }
                 MatchArm::Expression(arm) => {
                     let mut conditions = Vec::new();
@@ -1162,17 +1166,23 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                         branch_state.path = path_and(&state.path, condition);
                     }
                     let value = self.eval_expr(arm.expression, &mut branch_state);
+                    let reachable = branch_state.reachable && path_may_be_true(&branch_state.path);
                     for name in &branch_state.modified {
                         state.env.insert(name.clone(), Value::Unknown);
                         state.modified.insert(name.clone());
                     }
-                    branches.push((condition, value));
+                    branches.push((condition, value, reachable));
                 }
             }
         }
 
+        if !fallback_reachable && branches.iter().all(|(_, _, reachable)| !reachable) {
+            state.path = Bool::from_bool(false);
+            state.reachable = false;
+        }
+
         let mut result = fallback;
-        for (condition, value) in branches.into_iter().rev() {
+        for (condition, value, _) in branches.into_iter().rev() {
             result = match condition {
                 Some(condition) => Value::merge(Some(&condition), &value, &result),
                 None => Value::Unknown,
@@ -1312,15 +1322,22 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             BinaryOperator::And(_) | BinaryOperator::LowAnd(_)
         ) {
             let left = self.eval_expr(binary.lhs, state);
-            if let Some(left) = left.truthiness() {
-                if left.as_bool() == Some(false) {
-                    return Value::Bool(Bool::from_bool(false));
-                }
+            let Some(condition) = left.truthiness() else {
+                let mut right_state = state.clone();
+                self.eval_expr(binary.rhs, &mut right_state);
+                self.merge_expression_state(state, &right_state, false);
+                return Value::Unknown;
+            };
+            if condition.as_bool() == Some(false) {
+                return Value::Bool(Bool::from_bool(false));
             }
-            let right = self.eval_expr(binary.rhs, state);
-            return match (left.truthiness(), right.truthiness()) {
-                (Some(left), Some(right)) => Value::Bool(Bool::and(&[&left, &right])),
-                _ => Value::Unknown,
+            let mut right_state = state.clone();
+            right_state.path = path_and(&state.path, &condition);
+            let right = self.eval_expr(binary.rhs, &mut right_state);
+            self.merge_expression_state(state, &right_state, condition.as_bool() == Some(true));
+            return match right.truthiness() {
+                Some(right) => Value::Bool(Bool::and(&[&condition, &right])),
+                None => Value::Unknown,
             };
         }
 
@@ -1329,15 +1346,22 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             BinaryOperator::Or(_) | BinaryOperator::LowOr(_)
         ) {
             let left = self.eval_expr(binary.lhs, state);
-            if let Some(left) = left.truthiness() {
-                if left.as_bool() == Some(true) {
-                    return Value::Bool(Bool::from_bool(true));
-                }
+            let Some(condition) = left.truthiness() else {
+                let mut right_state = state.clone();
+                self.eval_expr(binary.rhs, &mut right_state);
+                self.merge_expression_state(state, &right_state, false);
+                return Value::Unknown;
+            };
+            if condition.as_bool() == Some(true) {
+                return Value::Bool(Bool::from_bool(true));
             }
-            let right = self.eval_expr(binary.rhs, state);
-            return match (left.truthiness(), right.truthiness()) {
-                (Some(left), Some(right)) => Value::Bool(Bool::or(&[&left, &right])),
-                _ => Value::Unknown,
+            let mut right_state = state.clone();
+            right_state.path = path_and(&state.path, &path_not(&condition));
+            let right = self.eval_expr(binary.rhs, &mut right_state);
+            self.merge_expression_state(state, &right_state, condition.as_bool() == Some(false));
+            return match right.truthiness() {
+                Some(right) => Value::Bool(Bool::or(&[&condition, &right])),
+                None => Value::Unknown,
             };
         }
 
@@ -1350,6 +1374,23 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         } else {
             self.eval_expr(binary.lhs, state)
         };
+
+        if matches!(binary.operator, BinaryOperator::NullCoalesce(_)) {
+            match null_condition(&left) {
+                Some(condition) if condition.as_bool() == Some(false) => return left,
+                Some(condition) => {
+                    let right = self.eval_expr(binary.rhs, state);
+                    return Value::merge(Some(&condition), &right, &left);
+                }
+                None => {
+                    let mut right_state = state.clone();
+                    self.eval_expr(binary.rhs, &mut right_state);
+                    self.merge_expression_state(state, &right_state, false);
+                    return Value::Unknown;
+                }
+            }
+        }
+
         let right = self.eval_expr(binary.rhs, state);
 
         match binary.operator {
@@ -1485,25 +1526,69 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         let condition_value = self.eval_expr(conditional.condition, state);
         let condition = condition_value.truthiness();
 
+        let Some(condition) = condition else {
+            let mut then_state = state.clone();
+            match conditional.then {
+                Some(value) => {
+                    self.eval_expr(value, &mut then_state);
+                }
+                None => {}
+            }
+            let mut else_state = state.clone();
+            self.eval_expr(conditional.r#else, &mut else_state);
+            self.merge_expression_state(state, &then_state, false);
+            self.merge_expression_state(state, &else_state, false);
+            if !then_state.reachable && !else_state.reachable {
+                state.path = Bool::from_bool(false);
+                state.reachable = false;
+            }
+            return Value::Unknown;
+        };
+
         let mut then_state = state.clone();
-        if let Some(condition) = &condition {
-            then_state.path = path_and(&state.path, condition);
-        }
+        then_state.path = path_and(&state.path, &condition);
         let then_value = match conditional.then {
             Some(value) => self.eval_expr(value, &mut then_state),
             None => condition_value.clone(),
         };
 
         let mut else_state = state.clone();
-        if let Some(condition) = &condition {
-            else_state.path = path_and(&state.path, &path_not(condition));
-        }
+        else_state.path = path_and(&state.path, &path_not(&condition));
         let else_value = self.eval_expr(conditional.r#else, &mut else_state);
 
-        if let Some(condition) = condition {
-            Value::merge(Some(&condition), &then_value, &else_value)
-        } else {
-            Value::Unknown
+        match condition.as_bool() {
+            Some(true) => {
+                self.merge_expression_state(state, &then_state, true);
+                then_value
+            }
+            Some(false) => {
+                self.merge_expression_state(state, &else_state, true);
+                else_value
+            }
+            None => {
+                self.merge_expression_state(state, &then_state, false);
+                self.merge_expression_state(state, &else_state, false);
+                if !then_state.reachable && !else_state.reachable {
+                    state.path = Bool::from_bool(false);
+                    state.reachable = false;
+                }
+                Value::merge(Some(&condition), &then_value, &else_value)
+            }
+        }
+    }
+
+    fn merge_expression_state(&self, state: &mut State, branch: &State, definite: bool) {
+        for name in &branch.modified {
+            state.env.insert(name.clone(), Value::Unknown);
+            state.modified.insert(name.clone());
+        }
+        if definite {
+            state.reachable = branch.reachable;
+            if branch.reachable {
+                state.path = branch.path.clone();
+            } else {
+                state.path = Bool::from_bool(false);
+            }
         }
     }
 
@@ -1589,13 +1674,6 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     if let Some(condition) = arguments.first().and_then(Value::truthiness) {
                         self.check_assertion(&condition, &state.path, call.span());
                         state.path = path_and(&state.path, &condition);
-                    } else if self.settings.unknown_policy == "report" {
-                        self.push_finding(
-                            "unverified",
-                            "Could not verify this assertion: its condition is unknown.",
-                            call.span(),
-                            "?",
-                        );
                     }
                 }
                 if let Some(value) = builtin_call_value(name.as_deref(), &arguments) {
@@ -2251,6 +2329,9 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
     }
 
     fn check_return_contract(&mut self, value: Option<&Value>, span: Span) {
+        if self.in_generator {
+            return;
+        }
         if let Some(hint) = self.return_hint {
             self.check_native_return_contract(value, hint, span);
         }
@@ -2373,31 +2454,25 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
     }
 
     fn check_assertion(&mut self, condition: &Bool, path: &Bool, span: Span) {
-        let solver = Solver::new();
+        let path_solver = Solver::new();
         let mut params = Params::new();
         params.set_u32(
             "timeout",
             self.settings.timeout_ms.min(u32::MAX as u64) as u32,
         );
+        path_solver.set_params(&params);
+        path_solver.assert(path);
+        if !matches!(path_solver.check(), SatResult::Sat) {
+            return;
+        }
+
+        let solver = Solver::new();
         solver.set_params(&params);
         solver.assert(path);
         solver.assert(condition);
 
-        match solver.check() {
-            SatResult::Unsat => {
-                self.push_finding("assertion", "This assertion can never hold.", span, "false");
-            }
-            SatResult::Unknown => {
-                if self.settings.unknown_policy == "report" {
-                    self.push_finding(
-                        "unverified",
-                        "Could not verify this assertion: the solver returned unknown.",
-                        span,
-                        "?",
-                    );
-                }
-            }
-            SatResult::Sat => {}
+        if matches!(solver.check(), SatResult::Unsat) {
+            self.push_finding("assertion", "This assertion can never hold.", span, "false");
         }
     }
 
@@ -2520,32 +2595,27 @@ fn builtin_call_value(name: Option<&str>, arguments: &[Value]) -> Option<Value> 
                 _ => None,
             }
         }
-        "is_int" | "is_integer" | "is_long" => Some(Value::Bool(Bool::from_bool(matches!(
-            arguments.first()?,
-            Value::Int(_)
-        )))),
-        "is_float" | "is_double" => Some(Value::Bool(Bool::from_bool(matches!(
-            arguments.first()?,
-            Value::Float(_)
-        )))),
-        "is_string" => Some(Value::Bool(Bool::from_bool(matches!(
-            arguments.first()?,
-            Value::String(_)
-        )))),
-        "is_bool" => Some(Value::Bool(Bool::from_bool(matches!(
-            arguments.first()?,
-            Value::Bool(_)
-        )))),
-        "is_array" => Some(Value::Bool(Bool::from_bool(matches!(
-            arguments.first()?,
-            Value::Array(_)
-        )))),
-        "is_null" => Some(Value::Bool(Bool::from_bool(matches!(
-            arguments.first()?,
-            Value::Null
-        )))),
+        "is_int" | "is_integer" | "is_long" => {
+            type_predicate(arguments.first()?, |value| matches!(value, Value::Int(_)))
+        }
+        "is_float" | "is_double" => {
+            type_predicate(arguments.first()?, |value| matches!(value, Value::Float(_)))
+        }
+        "is_string" => type_predicate(arguments.first()?, |value| {
+            matches!(value, Value::String(_))
+        }),
+        "is_bool" => type_predicate(arguments.first()?, |value| matches!(value, Value::Bool(_))),
+        "is_array" => type_predicate(arguments.first()?, |value| matches!(value, Value::Array(_))),
+        "is_null" => type_predicate(arguments.first()?, |value| matches!(value, Value::Null)),
         _ => None,
     }
+}
+
+fn type_predicate(value: &Value, predicate: impl Fn(&Value) -> bool) -> Option<Value> {
+    if matches!(value, Value::Unknown) {
+        return None;
+    }
+    Some(Value::Bool(Bool::from_bool(predicate(value))))
 }
 
 fn parameter_value(
@@ -2599,9 +2669,8 @@ fn parameter_value(
     }
 
     match hint {
-        Some(Hint::Integer(_)) | Some(Hint::Mixed(_)) | None => {
-            Value::Int(Int::new_const(format!("{function}::{parameter}")))
-        }
+        Some(Hint::Integer(_)) => Value::Int(Int::new_const(format!("{function}::{parameter}"))),
+        Some(Hint::Mixed(_)) | None => Value::Unknown,
         Some(Hint::Float(_)) => {
             Value::Float(Float::new_const(format!("{function}::{parameter}"), 11, 53))
         }
@@ -2744,6 +2813,14 @@ fn path_or_many(values: &[Bool]) -> Bool {
     }
 }
 
+fn null_condition(value: &Value) -> Option<Bool> {
+    match value {
+        Value::Null => Some(Bool::from_bool(true)),
+        Value::Unknown => None,
+        _ => Some(Bool::from_bool(false)),
+    }
+}
+
 fn path_may_be_true(path: &Bool) -> bool {
     !matches!(path.as_bool(), Some(false))
 }
@@ -2785,8 +2862,49 @@ fn value_type_name(value: &Value) -> &'static str {
     }
 }
 
+struct YieldFinder;
+
+impl<'ast, 'arena> Walker<'ast, 'arena, bool> for YieldFinder {
+    fn walk_yield(&self, _: &'ast Yield<'arena>, found: &mut bool) {
+        *found = true;
+    }
+
+    fn walk_yield_from(&self, _: &'ast YieldFrom<'arena>, found: &mut bool) {
+        *found = true;
+    }
+}
+
+fn body_contains_yield(block: &Block<'_>) -> bool {
+    let mut found = false;
+    YieldFinder.walk_block(block, &mut found);
+    found
+}
+
 fn hint_name(hint: &Hint<'_>) -> String {
-    hint.to_string()
+    match hint {
+        Hint::Identifier(identifier) => String::from_utf8_lossy(identifier.value()).into_owned(),
+        Hint::Parenthesized(hint) => format!("({})", hint_name(hint.hint)),
+        Hint::Nullable(hint) => format!("?{}", hint_name(hint.hint)),
+        Hint::Union(hint) => format!("{}|{}", hint_name(hint.left), hint_name(hint.right)),
+        Hint::Intersection(hint) => format!("{}&{}", hint_name(hint.left), hint_name(hint.right)),
+        Hint::Null(_) => String::from("null"),
+        Hint::True(_) => String::from("true"),
+        Hint::False(_) => String::from("false"),
+        Hint::Array(_) => String::from("array"),
+        Hint::Callable(_) => String::from("callable"),
+        Hint::Static(_) => String::from("static"),
+        Hint::Self_(_) => String::from("self"),
+        Hint::Parent(_) => String::from("parent"),
+        Hint::Void(identifier)
+        | Hint::Never(identifier)
+        | Hint::Float(identifier)
+        | Hint::Bool(identifier)
+        | Hint::Integer(identifier)
+        | Hint::String(identifier)
+        | Hint::Object(identifier)
+        | Hint::Mixed(identifier)
+        | Hint::Iterable(identifier) => String::from_utf8_lossy(identifier.value).into_owned(),
+    }
 }
 
 fn hint_accepts_value(value: &Value, hint: &Hint<'_>, strict: bool) -> Option<bool> {

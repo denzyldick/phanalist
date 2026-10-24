@@ -76,7 +76,19 @@ fn tagged_type(line: &str, tag: &str) -> Option<String> {
     if !rest.starts_with(char::is_whitespace) {
         return None;
     }
-    let ty = rest.trim().split_whitespace().next()?.trim();
+    let rest = rest.trim_start();
+    let mut depth = 0_i32;
+    let mut end = 0;
+    for (index, character) in rest.char_indices() {
+        match character {
+            '<' | '(' | '{' | '[' => depth += 1,
+            '>' | ')' | '}' | ']' => depth -= 1,
+            character if character.is_whitespace() && depth <= 0 => break,
+            _ => {}
+        }
+        end = index + character.len_utf8();
+    }
+    let ty = rest[..end].trim();
     if ty.is_empty() {
         None
     } else {
@@ -190,7 +202,7 @@ pub fn is_nullable(ty: &str) -> bool {
     }
     split_union(&ty)
         .iter()
-        .any(|part| *part == "null" || part.starts_with('?'))
+        .any(|part| *part == "null" || *part == "mixed" || *part == "void" || part.starts_with('?'))
 }
 
 pub fn accepts_value(value: &Value, ty: &str, strict: bool) -> Option<bool> {
