@@ -582,9 +582,33 @@ mod summary_tests {
         let violations = rule.validate_file(&file).unwrap();
 
         assert_eq!(violations.len(), 2);
-        assert!(violations
-            .iter()
-            .all(|violation| violation.message.render().contains("Division by zero")));
+        assert!(
+            violations
+                .iter()
+                .all(|violation| violation.message.render().contains("Division by zero"))
+        );
+    }
+
+    #[test]
+    fn propagates_identity_arguments_through_functions_and_methods() {
+        let path = fixture("e31/summary_identity.php");
+        let content = fs::read_to_string(&path).unwrap();
+        let arena = LocalArena::new();
+        let file = File::new(&arena, path, content);
+        let rule = Rule::default();
+
+        rule.begin_index();
+        rule.index_file(&file);
+        rule.finalize_index();
+
+        let violations = rule.validate_file(&file).unwrap();
+
+        assert_eq!(violations.len(), 3);
+        assert!(
+            violations
+                .iter()
+                .all(|violation| violation.message.render().contains("Division by zero"))
+        );
     }
 
     #[test]

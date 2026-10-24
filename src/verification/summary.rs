@@ -17,6 +17,7 @@ pub enum ConstantValue {
 #[derive(Clone, Debug, Default)]
 pub struct FunctionSummary {
     pub return_value: Option<ConstantValue>,
+    pub return_parameter: Option<usize>,
 }
 
 #[derive(Default)]
@@ -80,7 +81,11 @@ fn collect_summaries(
                     String::from_utf8_lossy(function.name.value).to_ascii_lowercase();
                 summaries.push((
                     qualify(namespace, &function_name),
-                    summarize_function(function.body.statements.as_slice()),
+                    summarize_function(
+                        function.body.statements.as_slice(),
+                        &function.parameter_list,
+                        function.return_type_hint.is_none(),
+                    ),
                 ));
             }
             Statement::Class(class) => {
@@ -133,7 +138,11 @@ fn collect_member_summaries(
                 let method_name = String::from_utf8_lossy(method.name.value).to_ascii_lowercase();
                 summaries.push((
                     format!("{class}::{method_name}"),
-                    summarize_function(block.statements.as_slice()),
+                    summarize_function(
+                        block.statements.as_slice(),
+                        &method.parameter_list,
+                        method.return_type_hint.is_none(),
+                    ),
                 ));
             }
         }
@@ -147,7 +156,20 @@ fn qualify(namespace: Option<&str>, name: &str) -> String {
     }
 }
 
-fn summarize_function(statements: &[Statement<'_>]) -> FunctionSummary {
+fn summarize_function(
+    statements: &[Statement<'_>],
+    parameters: &FunctionLikeParameterList<'_>,
+    untyped_return: bool,
+) -> FunctionSummary {
+    if untyped_return {
+        if let Some(index) = identity_parameter(statements, parameters) {
+            return FunctionSummary {
+                return_value: None,
+                return_parameter: Some(index),
+            };
+        }
+    }
+
     let mut returns = Vec::new();
     collect_returns(statements, &mut returns);
 
@@ -163,7 +185,39 @@ fn summarize_function(statements: &[Statement<'_>]) -> FunctionSummary {
 
     FunctionSummary {
         return_value: value,
+        return_parameter: None,
     }
+}
+
+fn identity_parameter(
+    statements: &[Statement<'_>],
+    parameters: &FunctionLikeParameterList<'_>,
+) -> Option<usize> {
+    let mut significant = statements
+        .iter()
+        .filter(|statement| !matches!(statement, Statement::Noop(_)));
+    let Statement::Return(return_statement) = significant.next()? else {
+        return None;
+    };
+    if significant.next().is_some() {
+        return None;
+    }
+
+    let value = return_statement.value?;
+    let Expression::Variable(Variable::Direct(variable)) = value.unparenthesized() else {
+        return None;
+    };
+
+    if parameters.parameters.iter().any(|parameter| {
+        parameter.hint.is_some() || parameter.ampersand.is_some() || parameter.ellipsis.is_some()
+    }) {
+        return None;
+    }
+
+    parameters
+        .parameters
+        .iter()
+        .position(|parameter| parameter.variable.name == variable.name)
 }
 
 fn collect_returns<'arena>(
@@ -272,6 +326,39 @@ mod tests {
 
     fn file<'arena>(arena: &'arena LocalArena, path: &str, content: &str) -> File<'arena> {
         File::new(arena, PathBuf::from(path), content.to_string())
+    }
+
+    fn summarize(content: &str) -> HashMap<String, FunctionSummary> {
+        let mut index = SummaryIndex::default();
+        let arena = LocalArena::new();
+        let file = file(&arena, "summary.php", content);
+        index.replace_file(&file);
+        index.snapshot()
+    }
+
+    #[test]
+    fn summarizes_unmodified_identity_parameters() {
+        let summaries = summarize("<?php function pass($value) { return $value; }");
+
+        assert_eq!(summaries["pass"].return_parameter, Some(0));
+        assert_eq!(summaries["pass"].return_value, None);
+    }
+
+    #[test]
+    fn does_not_summarize_modified_or_reference_parameters() {
+        let modified = summarize("<?php function pass($value) { $value = 2; return $value; }");
+        assert_eq!(modified["pass"].return_parameter, None);
+        assert_eq!(modified["pass"].return_value, None);
+
+        let referenced = summarize("<?php function pass(&$value) { return $value; }");
+        assert_eq!(referenced["pass"].return_parameter, None);
+        assert_eq!(referenced["pass"].return_value, None);
+
+        let typed = summarize("<?php function pass(int $value): int { return $value; }");
+        assert_eq!(typed["pass"].return_parameter, None);
+
+        let typed_return = summarize("<?php function pass($value): int { return $value; }");
+        assert_eq!(typed_return["pass"].return_parameter, None);
     }
 
     #[test]

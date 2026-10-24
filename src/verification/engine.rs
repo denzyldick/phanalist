@@ -1256,8 +1256,12 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     return value;
                 }
                 if let Some(summary) = self.function_summary(function.function) {
-                    if let Some(value) = summary.return_value.as_ref() {
-                        return constant_to_value(value);
+                    if let Some(value) = summary_call_value(
+                        summary,
+                        &arguments,
+                        arguments_are_positional(&function.argument_list),
+                    ) {
+                        return value;
                     }
                 }
                 Value::Unknown
@@ -1275,7 +1279,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                         "null",
                     );
                 }
-                self.eval_arguments(&method.argument_list, state);
+                let arguments = self.eval_arguments(&method.argument_list, state);
                 let class = if direct_variable_name(method.object).as_deref() == Some("$this") {
                     self.class.as_deref()
                 } else {
@@ -1284,15 +1288,19 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 if let Some(summary) =
                     class.and_then(|class| self.method_summary(class, &method.method))
                 {
-                    if let Some(value) = summary.return_value.as_ref() {
-                        return constant_to_value(value);
+                    if let Some(value) = summary_call_value(
+                        summary,
+                        &arguments,
+                        arguments_are_positional(&method.argument_list),
+                    ) {
+                        return value;
                     }
                 }
                 Value::Unknown
             }
             Call::NullSafeMethod(method) => {
                 self.eval_expr(method.object, state);
-                self.eval_arguments(&method.argument_list, state);
+                let arguments = self.eval_arguments(&method.argument_list, state);
                 let class = if direct_variable_name(method.object).as_deref() == Some("$this") {
                     self.class.as_deref()
                 } else {
@@ -1301,8 +1309,12 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 if let Some(summary) =
                     class.and_then(|class| self.method_summary(class, &method.method))
                 {
-                    if let Some(value) = summary.return_value.as_ref() {
-                        return constant_to_value(value);
+                    if let Some(value) = summary_call_value(
+                        summary,
+                        &arguments,
+                        arguments_are_positional(&method.argument_list),
+                    ) {
+                        return value;
                     }
                 }
                 Value::Unknown
@@ -1310,13 +1322,17 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             Call::StaticMethod(method) => {
                 let class = self.static_class_name(method.class);
                 self.eval_expr(method.class, state);
-                self.eval_arguments(&method.argument_list, state);
+                let arguments = self.eval_arguments(&method.argument_list, state);
                 if let Some(summary) = class
                     .as_deref()
                     .and_then(|class| self.method_summary(class, &method.method))
                 {
-                    if let Some(value) = summary.return_value.as_ref() {
-                        return constant_to_value(value);
+                    if let Some(value) = summary_call_value(
+                        summary,
+                        &arguments,
+                        arguments_are_positional(&method.argument_list),
+                    ) {
+                        return value;
                     }
                 }
                 Value::Unknown
@@ -2176,6 +2192,30 @@ fn parameter_value(
         Some(Hint::Null(_)) => Value::Null,
         _ => Value::Unknown,
     }
+}
+
+fn arguments_are_positional(arguments: &ArgumentList<'_>) -> bool {
+    arguments
+        .arguments
+        .iter()
+        .all(|argument| matches!(argument, Argument::Positional(_)))
+}
+
+fn summary_call_value(
+    summary: &FunctionSummary,
+    arguments: &[Value],
+    positional: bool,
+) -> Option<Value> {
+    if let Some(value) = summary.return_value.as_ref() {
+        return Some(constant_to_value(value));
+    }
+    if !positional {
+        return None;
+    }
+    summary
+        .return_parameter
+        .and_then(|index| arguments.get(index))
+        .cloned()
 }
 
 fn constant_to_value(value: &ConstantValue) -> Value {
