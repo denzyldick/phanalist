@@ -948,6 +948,14 @@ mod summary_tests {
     }
 
     #[test]
+    fn resolves_group_use_imports() {
+        let messages = messages("e31/method_import_group.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+
+    #[test]
     fn resolves_imported_static_method_calls() {
         let messages = messages("e31/method_import_call.php");
 

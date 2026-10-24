@@ -184,6 +184,7 @@ impl SummaryIndex {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn collect_summaries(
     statements: &[Statement<'_>],
     trivia: &[Trivia<'_>],
@@ -309,6 +310,7 @@ fn collect_summaries(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn collect_member_summaries(
     namespace: Option<&str>,
     class: &str,
@@ -325,7 +327,7 @@ fn collect_member_summaries(
             for trait_name in trait_use.trait_names.iter() {
                 parents.push((
                     class.clone(),
-                    resolve_name(trait_name, namespace, &imports),
+                    resolve_name(trait_name, namespace, imports),
                     ParentKind::Trait,
                 ));
             }
@@ -437,9 +439,8 @@ fn add_import(item: &UseItem<'_>, prefix: Option<&str>, imports: &mut HashMap<St
     let name = String::from_utf8_lossy(item.name.value())
         .trim_start_matches('\\')
         .to_ascii_lowercase();
-    let full = match (prefix, item.name) {
-        (Some(prefix), Identifier::Local(_)) => format!("{prefix}\\{name}"),
-        _ if name.contains('\\') => name.clone(),
+    let full = match item.name {
+        Identifier::FullyQualified(_) => name.clone(),
         _ => match prefix {
             Some(prefix) => format!("{prefix}\\{name}"),
             None => name.clone(),
