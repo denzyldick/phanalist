@@ -18,6 +18,7 @@
 - `E0031` no longer marks code after `??`, `&&`, `||`, ternary, or `match` branches as unreachable when the branch merely throws on one path.
 - `E0031` no longer checks `return;` inside generators against the generator return type, and PHPDoc return types containing spaces in generics or shaped arrays are parsed in full.
 - `E0031` assertion diagnostics only report assertions that provably cannot hold; unknown assertion conditions are treated as assumptions.
+- `E0031` caches its project-wide summary snapshot and parent map, so validation is no longer quadratic in the number of indexed files.
 - The LSP workspace indexer reclaims each file's AST as it indexes, so opening a large project in an editor no longer loads every file's parse tree at once.
 - The LSP server now restores a document's cross-file summaries from disk when it is closed, reindexes watched files on change or creation, and drops summaries when a file is deleted, instead of leaving stale interprocedural data behind.
 
