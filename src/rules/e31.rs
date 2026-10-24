@@ -932,6 +932,14 @@ mod summary_tests {
     }
 
     #[test]
+    fn resolves_imported_function_aliases() {
+        let messages = messages("e31/function_import_alias.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+
+    #[test]
     fn resolves_imported_parent_classes() {
         let messages = messages("e31/method_import_alias.php");
 

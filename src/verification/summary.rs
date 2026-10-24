@@ -404,6 +404,35 @@ pub(crate) fn add_imports(items: &UseItems<'_>, imports: &mut HashMap<String, St
     }
 }
 
+pub(crate) fn add_function_imports(items: &UseItems<'_>, imports: &mut HashMap<String, String>) {
+    match items {
+        UseItems::TypedSequence(items) if items.r#type.is_function() => {
+            for item in items.items.iter() {
+                add_import(item, None, imports);
+            }
+        }
+        UseItems::TypedList(items) if items.r#type.is_function() => {
+            let prefix = String::from_utf8_lossy(items.namespace.value())
+                .trim_start_matches('\\')
+                .to_ascii_lowercase();
+            for item in items.items.iter() {
+                add_import(item, Some(&prefix), imports);
+            }
+        }
+        UseItems::MixedList(items) => {
+            let prefix = String::from_utf8_lossy(items.namespace.value())
+                .trim_start_matches('\\')
+                .to_ascii_lowercase();
+            for item in items.items.iter() {
+                if item.r#type.as_ref().is_some_and(UseType::is_function) {
+                    add_import(&item.item, Some(&prefix), imports);
+                }
+            }
+        }
+        _ => {}
+    }
+}
+
 fn add_import(item: &UseItem<'_>, prefix: Option<&str>, imports: &mut HashMap<String, String>) {
     let name = String::from_utf8_lossy(item.name.value())
         .trim_start_matches('\\')
