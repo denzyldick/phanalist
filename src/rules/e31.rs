@@ -2,7 +2,7 @@ use serde_json::Value;
 
 use crate::file::File;
 use crate::results::Violation;
-use crate::verification;
+use crate::verification::{self, SummaryIndex};
 
 pub(crate) static CODE: &str = "E0031";
 static DESCRIPTION: &str = "Formal Verification";
@@ -12,6 +12,7 @@ pub use crate::verification::Settings;
 #[derive(Default)]
 pub struct Rule {
     pub settings: Settings,
+    pub summaries: std::sync::Mutex<SummaryIndex>,
 }
 
 impl crate::rules::Rule for Rule {
@@ -25,6 +26,18 @@ impl crate::rules::Rule for Rule {
 
     fn do_validate(&self, _file: &File<'_>) -> bool {
         false
+    }
+
+    fn begin_index(&self) {
+        if let Ok(mut summaries) = self.summaries.lock() {
+            summaries.clear();
+        }
+    }
+
+    fn index_file(&self, file: &File<'_>) {
+        if let Ok(mut summaries) = self.summaries.lock() {
+            summaries.replace_file(file);
+        }
     }
 
     fn set_config(&mut self, json: &Value) {
@@ -43,7 +56,12 @@ impl crate::rules::Rule for Rule {
     }
 
     fn validate_file(&self, file: &File<'_>) -> Option<Vec<Violation>> {
-        let findings = verification::analyze_file(file, &self.settings);
+        let summaries = self
+            .summaries
+            .lock()
+            .map(|summaries| summaries.snapshot())
+            .unwrap_or_default();
+        let findings = verification::analyze_file_with_summaries(file, &self.settings, &summaries);
         Some(
             findings
                 .into_iter()
@@ -317,5 +335,77 @@ mod loop_tests {
 
         assert_eq!(messages.len(), 1);
         assert!(messages[0].contains("unreachable"));
+    }
+}
+
+#[cfg(test)]
+mod summary_tests {
+    use std::fs;
+    use std::path::PathBuf;
+
+    use mago_allocator::prelude::LocalArena;
+
+    use crate::file::File;
+    use crate::rules::Rule as _;
+
+    use super::*;
+
+    fn fixture(path: &str) -> PathBuf {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("src")
+            .join("rules")
+            .join("examples")
+            .join(path)
+    }
+
+    #[test]
+    fn uses_a_constant_return_summary_in_the_same_file() {
+        let path = fixture("e31/summary_same_file.php");
+        let content = fs::read_to_string(&path).unwrap();
+        let arena = LocalArena::new();
+        let file = File::new(&arena, path, content);
+        let rule = Rule::default();
+
+        rule.begin_index();
+        rule.index_file(&file);
+        rule.finalize_index();
+
+        let violations = rule.validate_file(&file).unwrap();
+
+        assert_eq!(violations.len(), 1);
+        assert!(violations[0].message.render().contains("Division by zero"));
+    }
+
+    #[test]
+    fn uses_cross_file_summaries_and_replaces_them_on_reindex() {
+        let definition_path = fixture("e31/summary_definition.php");
+        let use_path = fixture("e31/summary_use.php");
+        let definition = fs::read_to_string(&definition_path).unwrap();
+        let use_content = fs::read_to_string(&use_path).unwrap();
+
+        let arena = LocalArena::new();
+        let use_file = File::new(&arena, use_path, use_content);
+        let rule = Rule::default();
+
+        rule.begin_index();
+        {
+            let arena = LocalArena::new();
+            let file = File::new(&arena, definition_path.clone(), definition);
+            rule.index_file(&file);
+        }
+        rule.finalize_index();
+        assert_eq!(rule.validate_file(&use_file).unwrap().len(), 1);
+
+        {
+            let arena = LocalArena::new();
+            let file = File::new(
+                &arena,
+                definition_path,
+                "<?php\n\nfunction summary_constant_divisor(): int\n{\n    return 2;\n}\n"
+                    .to_string(),
+            );
+            rule.index_file(&file);
+        }
+        assert!(rule.validate_file(&use_file).unwrap().is_empty());
     }
 }
