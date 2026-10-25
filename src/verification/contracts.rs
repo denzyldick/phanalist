@@ -18,6 +18,7 @@ pub struct Docblock {
     pub var: Option<String>,
     pub asserts: Vec<Assertion>,
     pub return_type: Option<String>,
+    pub templates: Vec<String>,
 }
 
 impl Docblock {
@@ -27,6 +28,7 @@ impl Docblock {
             && self.var.is_none()
             && self.asserts.is_empty()
             && self.return_type.is_none()
+            && self.templates.is_empty()
     }
 }
 
@@ -65,6 +67,11 @@ pub fn parse_docblock(raw: &[u8]) -> Docblock {
             .or_else(|| tagged_assert(line, "@assert"))
         {
             docblock.asserts.push(assertion);
+        } else if let Some(template) = tagged_template(line, "@template")
+            .or_else(|| tagged_template(line, "@template-covariant"))
+            .or_else(|| tagged_template(line, "@template-contravariant"))
+        {
+            docblock.templates.push(template);
         }
     }
 
@@ -93,6 +100,22 @@ fn tagged_type(line: &str, tag: &str) -> Option<String> {
         None
     } else {
         Some(normalize(ty))
+    }
+}
+
+fn tagged_template(line: &str, tag: &str) -> Option<String> {
+    let rest = line.strip_prefix(tag)?;
+    if !rest.starts_with(char::is_whitespace) {
+        return None;
+    }
+    let name = rest
+        .trim_start()
+        .split(|character: char| character.is_whitespace() || character == '<')
+        .next()?;
+    if name.is_empty() {
+        None
+    } else {
+        Some(name.to_string())
     }
 }
 
@@ -193,6 +216,19 @@ fn split_union(ty: &str) -> Vec<&str> {
     }
     parts.push(&ty[start..]);
     parts
+}
+
+pub fn accepts_null(ty: &str, templates: &[String]) -> bool {
+    if is_nullable(ty) {
+        return true;
+    }
+
+    let ty = normalize(ty);
+    split_union(&ty).iter().any(|member| {
+        let member = member.trim();
+        let member = member.strip_prefix('?').unwrap_or(member);
+        templates.iter().any(|template| member == template)
+    })
 }
 
 pub fn is_nullable(ty: &str) -> bool {

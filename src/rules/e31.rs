@@ -184,6 +184,55 @@ mod verification_tests {
     }
 
     #[test]
+    fn handles_empty_switch_defaults_and_nested_array_writes() {
+        assert!(messages("e31/switch_empty_default.php").is_empty());
+    }
+
+    #[test]
+    fn empty_default_in_the_middle_falls_through_to_the_next_case() {
+        let messages = messages("e31/switch_middle_default.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("unreachable"));
+    }
+
+    #[test]
+    fn reports_nested_missing_keys_but_forgets_mutated_nested_arrays() {
+        let messages = messages("e31/nested_array_keys.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Array key 'missing'"));
+    }
+
+    #[test]
+    fn only_forgets_reference_captures_that_the_closure_writes() {
+        let messages = messages("e31/closure_captures.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Array key 'missing'"));
+    }
+
+    #[test]
+    fn uses_static_constant_and_finite_parameter_sets() {
+        let messages = messages("e31/static_method_constants.php");
+
+        assert_eq!(messages.len(), 3);
+        assert!(messages
+            .iter()
+            .all(|message| message.contains("Modulo by zero")));
+    }
+
+    #[test]
+    fn tracks_array_writes_and_native_false_union() {
+        assert!(messages("e31/array_writes_and_false_union.php").is_empty());
+    }
+
+    #[test]
+    fn forgets_arrays_passed_by_reference_to_unknown_calls() {
+        assert!(messages("e31/array_mutated_by_reference.php").is_empty());
+    }
+
+    #[test]
     fn reports_symbolic_array_access_out_of_bounds() {
         let messages = messages("e31/array_symbolic_out_of_bounds.php");
 
@@ -327,6 +376,11 @@ mod context_tests {
     #[test]
     fn does_not_flag_isset_on_missing_array_key() {
         assert!(messages("e31/isset_missing_array_key.php").is_empty());
+    }
+
+    #[test]
+    fn does_not_flag_nested_isset_on_a_missing_key() {
+        assert!(messages("e31/nested_isset_missing_key.php").is_empty());
     }
 
     #[test]
@@ -689,6 +743,14 @@ mod switch_tests {
     #[test]
     fn follows_switch_case_fallthrough() {
         let messages = messages("e31/switch_fallthrough_zero.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+
+    #[test]
+    fn follows_non_empty_switch_case_fallthrough() {
+        let messages = messages("e31/switch_body_fallthrough.php");
 
         assert_eq!(messages.len(), 1);
         assert!(messages[0].contains("Division by zero"));
@@ -1102,5 +1164,310 @@ mod summary_tests {
             rule.index_file(&file);
         }
         assert!(rule.validate_file(&use_file).unwrap().is_empty());
+    }
+}
+
+#[cfg(test)]
+mod benchmark {
+    use std::collections::BTreeMap;
+
+    use crate::rules::tests::analyze_file_for_rule;
+
+    use super::CODE;
+
+    const DIVISION: &str = "E0031:division-by-zero";
+    const MODULO: &str = "E0031:modulo-by-zero";
+    const INTDIV: &str = "E0031:intdiv-by-zero";
+    const INTDIV_OVERFLOW: &str = "E0031:intdiv-overflow";
+    const ARRAY_KEY: &str = "E0031:array-key";
+    const STRING_OFFSET: &str = "E0031:string-offset";
+    const NULL_METHOD: &str = "E0031:null-method-call";
+    const RETURN_CONTRACT: &str = "E0031:return-contract";
+    const UNREACHABLE: &str = "E0031:unreachable";
+    const ASSERTION: &str = "E0031:assertion";
+
+    struct BenchmarkCase {
+        category: &'static str,
+        path: &'static str,
+        expected: &'static [&'static str],
+    }
+
+    #[derive(Default, Clone, Copy)]
+    struct Counts {
+        true_positives: u32,
+        false_positives: u32,
+        false_negatives: u32,
+    }
+
+    impl Counts {
+        fn add(&mut self, expected: &[&str], actual: &[String]) {
+            let mut unmatched = actual.iter().map(String::as_str).collect::<Vec<_>>();
+            for id in expected {
+                if let Some(index) = unmatched.iter().position(|candidate| candidate == id) {
+                    unmatched.remove(index);
+                    self.true_positives += 1;
+                } else {
+                    self.false_negatives += 1;
+                }
+            }
+            self.false_positives += unmatched.len() as u32;
+        }
+
+        fn merge(&mut self, other: Self) {
+            self.true_positives += other.true_positives;
+            self.false_positives += other.false_positives;
+            self.false_negatives += other.false_negatives;
+        }
+
+        fn precision(self) -> f64 {
+            let reported = self.true_positives + self.false_positives;
+            if reported == 0 {
+                1.0
+            } else {
+                self.true_positives as f64 / reported as f64
+            }
+        }
+
+        fn recall(self) -> f64 {
+            let labelled = self.true_positives + self.false_negatives;
+            if labelled == 0 {
+                1.0
+            } else {
+                self.true_positives as f64 / labelled as f64
+            }
+        }
+    }
+
+    const CASES: &[BenchmarkCase] = &[
+        BenchmarkCase {
+            category: "division",
+            path: "e31/division_by_zero_literal.php",
+            expected: &[DIVISION],
+        },
+        BenchmarkCase {
+            category: "division",
+            path: "e31/division_by_nonzero.php",
+            expected: &[],
+        },
+        BenchmarkCase {
+            category: "division",
+            path: "e31/division_by_parameter.php",
+            expected: &[DIVISION],
+        },
+        BenchmarkCase {
+            category: "division",
+            path: "e31/division_guarded.php",
+            expected: &[],
+        },
+        BenchmarkCase {
+            category: "division",
+            path: "e31/switch_body_fallthrough.php",
+            expected: &[DIVISION],
+        },
+        BenchmarkCase {
+            category: "division",
+            path: "e31/switch_division_guarded.php",
+            expected: &[],
+        },
+        BenchmarkCase {
+            category: "division",
+            path: "e31/closure_division_by_zero.php",
+            expected: &[DIVISION],
+        },
+        BenchmarkCase {
+            category: "division",
+            path: "e31/closure_guarded_division.php",
+            expected: &[],
+        },
+        BenchmarkCase {
+            category: "integer-division",
+            path: "e31/modulo_by_parameter.php",
+            expected: &[MODULO],
+        },
+        BenchmarkCase {
+            category: "integer-division",
+            path: "e31/intdiv_by_parameter.php",
+            expected: &[INTDIV],
+        },
+        BenchmarkCase {
+            category: "integer-division",
+            path: "e31/intdiv_overflow.php",
+            expected: &[INTDIV_OVERFLOW],
+        },
+        BenchmarkCase {
+            category: "integer-division",
+            path: "e31/static_method_constants.php",
+            expected: &[MODULO, MODULO, MODULO],
+        },
+        BenchmarkCase {
+            category: "arrays",
+            path: "e31/array_missing_string_key.php",
+            expected: &[ARRAY_KEY],
+        },
+        BenchmarkCase {
+            category: "arrays",
+            path: "e31/array_out_of_bounds.php",
+            expected: &[ARRAY_KEY],
+        },
+        BenchmarkCase {
+            category: "arrays",
+            path: "e31/array_in_bounds.php",
+            expected: &[],
+        },
+        BenchmarkCase {
+            category: "arrays",
+            path: "e31/nested_array_keys.php",
+            expected: &[ARRAY_KEY],
+        },
+        BenchmarkCase {
+            category: "arrays",
+            path: "e31/nested_isset_missing_key.php",
+            expected: &[],
+        },
+        BenchmarkCase {
+            category: "arrays",
+            path: "e31/isset_missing_array_key.php",
+            expected: &[],
+        },
+        BenchmarkCase {
+            category: "strings",
+            path: "e31/string_offset_out_of_bounds.php",
+            expected: &[STRING_OFFSET],
+        },
+        BenchmarkCase {
+            category: "strings",
+            path: "e31/string_offset_in_bounds.php",
+            expected: &[],
+        },
+        BenchmarkCase {
+            category: "strings",
+            path: "e31/string_offset_negative.php",
+            expected: &[],
+        },
+        BenchmarkCase {
+            category: "nullability",
+            path: "e31/null_method_call.php",
+            expected: &[NULL_METHOD],
+        },
+        BenchmarkCase {
+            category: "nullability",
+            path: "e31/nullsafe_method_call.php",
+            expected: &[],
+        },
+        BenchmarkCase {
+            category: "returns",
+            path: "e31/return_contract_bad_string.php",
+            expected: &[RETURN_CONTRACT],
+        },
+        BenchmarkCase {
+            category: "returns",
+            path: "e31/phpdoc_return_bad.php",
+            expected: &[RETURN_CONTRACT],
+        },
+        BenchmarkCase {
+            category: "returns",
+            path: "e31/phpdoc_return_good.php",
+            expected: &[],
+        },
+        BenchmarkCase {
+            category: "unreachable",
+            path: "e31/unreachable_after_return.php",
+            expected: &[UNREACHABLE],
+        },
+        BenchmarkCase {
+            category: "unreachable",
+            path: "e31/switch_middle_default.php",
+            expected: &[UNREACHABLE],
+        },
+        BenchmarkCase {
+            category: "unreachable",
+            path: "e31/switch_empty_default.php",
+            expected: &[],
+        },
+        BenchmarkCase {
+            category: "assertions",
+            path: "e31/assertion_always_false.php",
+            expected: &[ASSERTION],
+        },
+        BenchmarkCase {
+            category: "assertions",
+            path: "e31/assertion_guard.php",
+            expected: &[],
+        },
+        BenchmarkCase {
+            category: "switch",
+            path: "e31/switch_fallthrough_zero.php",
+            expected: &[DIVISION],
+        },
+        BenchmarkCase {
+            category: "division",
+            path: "e31/benchmark/division.php",
+            expected: &[DIVISION, DIVISION, MODULO, INTDIV, INTDIV_OVERFLOW],
+        },
+        BenchmarkCase {
+            category: "arrays",
+            path: "e31/benchmark/collections.php",
+            expected: &[ARRAY_KEY, ARRAY_KEY, ARRAY_KEY, STRING_OFFSET],
+        },
+        BenchmarkCase {
+            category: "returns",
+            path: "e31/benchmark/contracts.php",
+            expected: &[RETURN_CONTRACT, RETURN_CONTRACT, NULL_METHOD],
+        },
+        BenchmarkCase {
+            category: "control-flow",
+            path: "e31/benchmark/control_flow.php",
+            expected: &[UNREACHABLE, DIVISION, ASSERTION],
+        },
+    ];
+
+    #[test]
+    fn supported_fragment_precision_and_recall() {
+        let mut by_category: BTreeMap<&'static str, Counts> = BTreeMap::new();
+        let mut overall = Counts::default();
+
+        for case in CASES {
+            let actual = analyze_file_for_rule(case.path, CODE)
+                .into_iter()
+                .map(|violation| violation.message.id)
+                .collect::<Vec<_>>();
+            let mut counts = Counts::default();
+            counts.add(case.expected, &actual);
+            by_category.entry(case.category).or_default().merge(counts);
+            overall.merge(counts);
+        }
+
+        println!("E0031 supported-fragment benchmark ({} cases)", CASES.len());
+        for (category, counts) in &by_category {
+            println!(
+                "{category:16} tp={} fp={} fn={} precision={:.1}% recall={:.1}%",
+                counts.true_positives,
+                counts.false_positives,
+                counts.false_negatives,
+                counts.precision() * 100.0,
+                counts.recall() * 100.0,
+            );
+        }
+        println!(
+            "{:16} tp={} fp={} fn={} precision={:.1}% recall={:.1}%",
+            "overall",
+            overall.true_positives,
+            overall.false_positives,
+            overall.false_negatives,
+            overall.precision() * 100.0,
+            overall.recall() * 100.0,
+        );
+
+        assert!(overall.true_positives > 0);
+        assert!(
+            overall.precision() >= 0.95,
+            "precision regressed: {:.1}%",
+            overall.precision() * 100.0
+        );
+        assert!(
+            overall.recall() >= 0.90,
+            "recall regressed: {:.1}%",
+            overall.recall() * 100.0
+        );
     }
 }

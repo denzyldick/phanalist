@@ -294,7 +294,7 @@ exclude_paths:
 | [E0028](/src/rules/examples/e28/e28.md) | Data Class | `max_getter_setter_ratio: 0.7`, `min_methods: 3` |
 | [E0029](/src/rules/examples/e29/e29.md) | Fan-in / Fan-out | `max_fan_out: 10`, `max_fan_in: 20` |
 | [E0030](/src/rules/examples/e30/e30.md) | Cyclomatic Complexity Density | `max_density: 0.3` |
-| [E0031](/src/rules/examples/e31/e31.md) | Formal Verification | `php_version`, `check_division`, `check_modulo`, `check_intdiv`, `check_array_index`, `check_string_offset`, `check_nullability`, `check_types`, `check_assertions`, `check_unreachable`, `check_return_contracts`, `loop_strategy`, `unroll_depth`, `timeout_ms`, `unknown_policy`, `max_findings_per_function` |
+| [E0031](/src/rules/examples/e31/e31.md) | Bounded Formal Verification | `php_version`, `check_division`, `check_modulo`, `check_intdiv`, `check_array_index`, `check_string_offset`, `check_nullability`, `check_types`, `check_assertions`, `check_unreachable`, `check_return_contracts`, `loop_strategy`, `unroll_depth`, `timeout_ms`, `unknown_policy`, `max_findings_per_function` |
 
 Adding a new rule is straightforward — [this tutorial](./docs/adding_new_rule.md) explains how.
 

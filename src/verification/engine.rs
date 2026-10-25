@@ -1,5 +1,6 @@
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::ops::{Add, Mul, Sub};
+use std::sync::Mutex;
 
 use mago_span::{HasSpan, Span};
 use mago_syntax::cst::*;
@@ -51,6 +52,12 @@ impl State {
         self.modified.insert(name.clone());
         self.array_values.remove(&name);
     }
+
+    fn havoc(&mut self, name: &str) {
+        self.env.insert(name.to_string(), Value::Unknown);
+        self.modified.insert(name.to_string());
+        self.array_values.remove(name);
+    }
 }
 
 struct Analyzer<'a, 'arena> {
@@ -72,6 +79,8 @@ struct Analyzer<'a, 'arena> {
     switch_depth: usize,
     docblocks: Vec<Trivia<'arena>>,
     doc_return: Option<String>,
+    doc_templates: Vec<String>,
+    method_constants: HashMap<String, Vec<Option<Vec<ConstantValue>>>>,
     in_generator: bool,
 }
 
@@ -111,6 +120,8 @@ pub fn analyze_file_with_summaries(
             .copied()
             .collect(),
         doc_return: None,
+        doc_templates: Vec::new(),
+        method_constants: HashMap::new(),
         in_generator: false,
     };
 
@@ -310,9 +321,96 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         members: &'arena Sequence<'arena, ClassLikeMember<'arena>>,
     ) {
         let previous = self.class.take();
-        self.class = Some(self.qualified_name(&name.to_ascii_lowercase()));
+        let previous_constants = std::mem::take(&mut self.method_constants);
+        let class = self.qualified_name(&name.to_ascii_lowercase());
+        self.method_constants = self.static_method_constants(&class, members);
+        self.class = Some(class);
         self.analyze_members(members);
         self.class = previous;
+        self.method_constants = previous_constants;
+    }
+
+    fn static_method_constants(
+        &self,
+        class: &str,
+        members: &'arena Sequence<'arena, ClassLikeMember<'arena>>,
+    ) -> HashMap<String, Vec<Option<Vec<ConstantValue>>>> {
+        if members
+            .iter()
+            .any(|member| matches!(member, ClassLikeMember::TraitUse(_)))
+        {
+            return HashMap::new();
+        }
+
+        let no_subclass = !self.parents.values().any(|parent| parent == class);
+        let mut parameters: HashMap<String, Vec<String>> = HashMap::new();
+        for member in members.iter() {
+            let ClassLikeMember::Method(method) = member else {
+                continue;
+            };
+            let callable = method.modifiers.iter().any(Modifier::is_private)
+                || (no_subclass && method.modifiers.iter().any(Modifier::is_protected));
+            if !matches!(method.body, MethodBody::Concrete(_))
+                || !method.is_static()
+                || !callable
+                || method
+                    .parameter_list
+                    .parameters
+                    .iter()
+                    .any(|parameter| parameter.ellipsis.is_some() || parameter.ampersand.is_some())
+            {
+                continue;
+            }
+            let name = String::from_utf8_lossy(method.name.value).to_ascii_lowercase();
+            let names = method
+                .parameter_list
+                .parameters
+                .iter()
+                .map(|parameter| {
+                    String::from_utf8_lossy(parameter.variable.name)
+                        .trim_start_matches('$')
+                        .to_string()
+                })
+                .collect();
+            parameters.insert(name, names);
+        }
+        if parameters.is_empty() {
+            return HashMap::new();
+        }
+
+        let namespace = self.namespace.clone().unwrap_or_default();
+        let imports = self.imports.get(&namespace).cloned().unwrap_or_default();
+        let collector = PrivateStaticCallCollector {
+            class,
+            namespace: self.namespace.as_deref(),
+            imports: &imports,
+            parameters: &parameters,
+            allow_static_binding: no_subclass,
+            calls: Mutex::new(HashMap::new()),
+            invalid: Mutex::new(HashSet::new()),
+        };
+        for member in members.iter() {
+            if let ClassLikeMember::Method(method) = member {
+                if let MethodBody::Concrete(block) = &method.body {
+                    collector.walk_block(block, &mut ());
+                }
+            }
+        }
+
+        let invalid = collector.invalid.into_inner().unwrap_or_default();
+        let collected = collector.calls.into_inner().unwrap_or_default();
+        collected
+            .into_iter()
+            .filter(|(name, _)| !invalid.contains(name))
+            .filter_map(|(name, calls)| {
+                let arity = parameters.get(&name)?.len();
+                let constants = infer_parameter_constants(&calls, arity);
+                constants
+                    .iter()
+                    .any(Option::is_some)
+                    .then_some((name, constants))
+            })
+            .collect()
     }
 
     fn analyze_members(&mut self, members: &'arena Sequence<'arena, ClassLikeMember<'arena>>) {
@@ -348,6 +446,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
     ) {
         let previous_hint = self.return_hint;
         let previous_doc_return = self.doc_return.take();
+        let previous_doc_templates = std::mem::take(&mut self.doc_templates);
         let previous_limit = self.finding_limit_start;
         let previous_generator = self.in_generator;
         self.return_hint = return_hint.map(|hint| &hint.hint);
@@ -356,9 +455,11 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
 
         let docblock = self.docblock_before(span).unwrap_or_default();
         self.doc_return = docblock.return_type.clone();
+        self.doc_templates = docblock.templates.clone();
 
         let mut state = State::new();
-        for parameter in parameters.parameters.iter() {
+        let method_constants = self.method_constants.get(&name.to_ascii_lowercase());
+        for (index, parameter) in parameters.parameters.iter().enumerate() {
             let parameter_name = String::from_utf8_lossy(parameter.variable.name).to_string();
             let doc_type = if self.settings.check_types {
                 docblock
@@ -368,7 +469,19 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             } else {
                 None
             };
-            let value = parameter_value(parameter.hint.as_ref(), doc_type, name, &parameter_name);
+            let inferred = method_constants
+                .and_then(|constants| constants.get(index))
+                .and_then(Option::as_ref)
+                .and_then(|values| finite_parameter_value(name, &parameter_name, values));
+            let (value, constant_constraint) = inferred.unwrap_or_else(|| {
+                (
+                    parameter_value(parameter.hint.as_ref(), doc_type, name, &parameter_name),
+                    None,
+                )
+            });
+            if let Some(constraint) = constant_constraint {
+                state.path = path_and(&state.path, &constraint);
+            }
             if let Some(doc_type) = doc_type {
                 if let Some(constraint) = contracts::constraint(&value, doc_type) {
                     state.path = path_and(&state.path, &constraint);
@@ -381,15 +494,22 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
 
         self.return_hint = previous_hint;
         self.doc_return = previous_doc_return;
+        self.doc_templates = previous_doc_templates;
         self.finding_limit_start = previous_limit;
         self.in_generator = previous_generator;
     }
 
-    fn analyze_closure(&mut self, closure: &'arena Closure<'arena>, state: &State) {
+    fn analyze_closure(
+        &mut self,
+        closure: &'arena Closure<'arena>,
+        state: &State,
+    ) -> HashSet<String> {
         let docblock = self.docblock_before(closure.span()).unwrap_or_default();
         let previous_hint = self.return_hint;
         let previous_doc_return =
             std::mem::replace(&mut self.doc_return, docblock.return_type.clone());
+        let previous_doc_templates =
+            std::mem::replace(&mut self.doc_templates, docblock.templates.clone());
         let previous_limit = self.finding_limit_start;
         let previous_generator = self.in_generator;
         self.return_hint = closure.return_type_hint.as_ref().map(|hint| &hint.hint);
@@ -421,12 +541,17 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             body_state.env.insert(name, value);
         }
 
+        body_state.modified.clear();
         self.analyze_statements(closure.body.statements.as_slice(), &mut body_state);
+        let modified = body_state.modified.clone();
 
         self.return_hint = previous_hint;
         self.doc_return = previous_doc_return;
+        self.doc_templates = previous_doc_templates;
         self.finding_limit_start = previous_limit;
         self.in_generator = previous_generator;
+
+        modified
     }
 
     fn analyze_arrow_function(&mut self, arrow: &'arena ArrowFunction<'arena>, state: &State) {
@@ -434,6 +559,8 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         let previous_hint = self.return_hint;
         let previous_doc_return =
             std::mem::replace(&mut self.doc_return, docblock.return_type.clone());
+        let previous_doc_templates =
+            std::mem::replace(&mut self.doc_templates, docblock.templates.clone());
         let previous_limit = self.finding_limit_start;
         let previous_generator = self.in_generator;
         self.return_hint = arrow.return_type_hint.as_ref().map(|hint| &hint.hint);
@@ -462,6 +589,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
 
         self.return_hint = previous_hint;
         self.doc_return = previous_doc_return;
+        self.doc_templates = previous_doc_templates;
         self.finding_limit_start = previous_limit;
         self.in_generator = previous_generator;
     }
@@ -548,8 +676,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             modified.extend(branch.modified.iter().cloned());
         }
         for name in modified {
-            merged.env.insert(name.clone(), Value::Unknown);
-            merged.modified.insert(name);
+            merged.havoc(&name);
         }
         merged.path = path_or_many(&paths);
         merged.loop_exits = path_or_many(
@@ -581,8 +708,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             self.analyze_statements(finally.block.statements.as_slice(), &mut finally_state);
 
             for name in &finally_state.modified {
-                merged.env.insert(name.clone(), Value::Unknown);
-                merged.modified.insert(name.clone());
+                merged.havoc(name);
             }
             if !finally_state.reachable {
                 merged.reachable = false;
@@ -657,7 +783,8 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 Value::Unknown
             };
             merged.env.insert(name.clone(), value);
-            merged.modified.insert(name);
+            merged.modified.insert(name.clone());
+            merged.array_values.remove(&name);
         }
 
         let mut paths = Vec::new();
@@ -765,108 +892,224 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         }
 
         for name in modified {
-            state.env.insert(name.clone(), Value::Unknown);
-            state.modified.insert(name.clone());
-            state.array_values.remove(&name);
+            state.havoc(&name);
         }
     }
 
     fn analyze_switch(&mut self, switch: &'arena Switch<'arena>, state: &mut State) {
         let subject = self.eval_expr(switch.expression, state);
         let has_default = switch.body.has_default_case();
-        let mut pending: Vec<Bool> = Vec::new();
+        let cases = switch.body.cases();
+        let mut conditions = Vec::with_capacity(cases.len());
         let mut known_conditions: Vec<Bool> = Vec::new();
         let mut has_unknown_condition = false;
-        let mut branch_states = Vec::new();
 
-        self.switch_depth += 1;
-        for case in switch.body.cases() {
-            let case_condition = case.expression().map(|expression| {
+        for case in cases {
+            let condition = case.expression().map(|expression| {
                 let value = self.eval_expr(expression, state);
                 self.compare_identical(&subject, &value, false).truthiness()
             });
-
-            if let Some(Some(condition)) = &case_condition {
+            if let Some(Some(condition)) = &condition {
                 known_conditions.push(condition.clone());
             } else if !case.is_default() {
                 has_unknown_condition = true;
             }
+            conditions.push(condition);
+        }
 
+        let default_condition = if has_default && !has_unknown_condition {
+            Some(path_not(&path_or_many(&known_conditions)))
+        } else {
+            None
+        };
+
+        let mut pending: Vec<Bool> = Vec::new();
+        let mut pending_unknown = false;
+        let mut pending_default = false;
+        let mut exits: Vec<Bool> = Vec::new();
+        let mut after_states: Vec<State> = Vec::new();
+        let mut all_states: Vec<State> = Vec::new();
+        let mut fallthrough: Option<State> = None;
+
+        self.switch_depth += 1;
+        for (case, condition) in cases.iter().zip(conditions) {
+            let case_condition = condition.flatten();
             if case.is_empty() {
-                if let Some(Some(condition)) = case_condition {
+                if case.is_default() {
+                    pending_default = true;
+                } else if let Some(condition) = case_condition {
                     pending.push(condition);
+                } else {
+                    pending_unknown = true;
                 }
                 continue;
             }
 
-            let condition = match case_condition.flatten() {
-                Some(condition) => {
-                    pending.push(condition);
-                    Some(path_or_many(&pending))
+            let mut triggers = std::mem::take(&mut pending);
+            let mut trigger_unknown = std::mem::take(&mut pending_unknown);
+            if case.is_default() {
+                match default_condition.clone() {
+                    Some(condition) => triggers.push(condition),
+                    None => trigger_unknown = true,
                 }
-                None => None,
-            };
-            pending.clear();
-
-            let mut branch_state = state.clone();
-            if let Some(condition) = &condition {
-                branch_state.path = path_and(&state.path, condition);
+            } else {
+                match case_condition {
+                    Some(condition) => triggers.push(condition),
+                    None => trigger_unknown = true,
+                }
             }
-            self.analyze_statements(case.statements(), &mut branch_state);
-            branch_states.push(branch_state);
+            if pending_default {
+                match default_condition.clone() {
+                    Some(condition) => triggers.push(condition),
+                    None => trigger_unknown = true,
+                }
+                pending_default = false;
+            }
+
+            let direct_condition = if trigger_unknown || triggers.is_empty() {
+                None
+            } else {
+                Some(path_or_many(&triggers))
+            };
+
+            let mut case_states = Vec::new();
+            let mut direct_state = state.clone();
+            if let Some(condition) = &direct_condition {
+                direct_state.path = path_and(&state.path, condition);
+            }
+            self.analyze_statements(case.statements(), &mut direct_state);
+            case_states.push(direct_state);
+
+            if let Some(mut fall_state) = fallthrough.take() {
+                fall_state.switch_exits = Bool::from_bool(false);
+                self.analyze_statements(case.statements(), &mut fall_state);
+                case_states.push(fall_state);
+            }
+
+            let mut fall_candidates = Vec::new();
+            for mut case_state in case_states {
+                if !matches!(case_state.switch_exits.as_bool(), Some(false)) {
+                    exits.push(case_state.switch_exits.clone());
+                }
+                case_state.switch_exits = Bool::from_bool(false);
+                if case_state.reachable || path_may_be_true(&case_state.path) {
+                    fall_candidates.push(case_state.clone());
+                }
+                all_states.push(case_state);
+            }
+            fallthrough = self
+                .merge_fallthrough_states(fall_candidates.as_slice(), direct_condition.as_ref());
         }
         self.switch_depth -= 1;
 
-        if !has_default {
-            let mut fallthrough = state.clone();
-            if !has_unknown_condition {
-                let any_case = path_or_many(&known_conditions);
-                fallthrough.path = path_and(&state.path, &path_not(&any_case));
+        if !pending.is_empty() || pending_unknown || pending_default {
+            let mut branch_state = state.clone();
+            if !pending_unknown {
+                let mut triggers = pending;
+                if pending_default {
+                    match default_condition.clone() {
+                        Some(condition) => triggers.push(condition),
+                        None => pending_unknown = true,
+                    }
+                }
+                if !pending_unknown && !triggers.is_empty() {
+                    branch_state.path = path_and(&state.path, &path_or_many(&triggers));
+                }
             }
-            branch_states.push(fallthrough);
+            after_states.push(branch_state.clone());
+            all_states.push(branch_state);
         }
 
-        if branch_states.is_empty() {
+        if !has_default {
+            let mut branch_state = state.clone();
+            if !has_unknown_condition {
+                let any_case = path_or_many(&known_conditions);
+                branch_state.path = path_and(&state.path, &path_not(&any_case));
+            }
+            after_states.push(branch_state.clone());
+            all_states.push(branch_state);
+        }
+
+        if let Some(fall_state) = fallthrough {
+            if fall_state.reachable || path_may_be_true(&fall_state.path) {
+                after_states.push(fall_state.clone());
+            }
+            all_states.push(fall_state);
+        }
+
+        if all_states.is_empty() {
             return;
         }
 
         let mut merged = state.clone();
         let mut modified = HashSet::new();
-        for branch_state in &branch_states {
+        for branch_state in &all_states {
             modified.extend(branch_state.modified.iter().cloned());
         }
         for name in modified {
-            merged.env.insert(name.clone(), Value::Unknown);
-            merged.modified.insert(name);
+            merged.havoc(&name);
         }
 
-        let mut paths = Vec::new();
-        for branch_state in &branch_states {
+        let exits_reachable = exits.iter().any(path_may_be_true);
+        let mut paths = exits;
+        for branch_state in &after_states {
             paths.push(branch_state.path.clone());
-            if !matches!(branch_state.switch_exits.as_bool(), Some(false)) {
-                paths.push(branch_state.switch_exits.clone());
-            }
         }
         merged.path = path_or_many(&paths);
         merged.switch_exits = Bool::from_bool(false);
         merged.loop_exits = path_or_many(
-            &branch_states
+            &all_states
                 .iter()
                 .map(|branch| branch.loop_exits.clone())
                 .collect::<Vec<_>>(),
         );
         merged.loop_continues = path_or_many(
-            &branch_states
+            &all_states
                 .iter()
                 .map(|branch| branch.loop_continues.clone())
                 .collect::<Vec<_>>(),
         );
-        merged.reachable = branch_states.iter().any(|branch| {
-            branch.reachable
-                || (!matches!(branch.switch_exits.as_bool(), Some(false))
-                    && path_may_be_true(&branch.switch_exits))
-        });
+        merged.reachable = exits_reachable
+            || all_states
+                .iter()
+                .any(|branch| branch.reachable || path_may_be_true(&branch.path));
         *state = merged;
+    }
+
+    fn merge_fallthrough_states(
+        &self,
+        states: &[State],
+        condition: Option<&Bool>,
+    ) -> Option<State> {
+        match states {
+            [] => None,
+            [state] => Some(state.clone()),
+            [left, right] => {
+                let mut merged = left.clone();
+                let mut modified = HashSet::new();
+                modified.extend(left.modified.iter().cloned());
+                modified.extend(right.modified.iter().cloned());
+                for name in modified {
+                    let left_value = left.env.get(&name).cloned().unwrap_or(Value::Unknown);
+                    let right_value = right.env.get(&name).cloned().unwrap_or(Value::Unknown);
+                    merged.env.insert(
+                        name.clone(),
+                        Value::merge(condition, &left_value, &right_value),
+                    );
+                    merged.modified.insert(name.clone());
+                    merged.array_values.remove(&name);
+                }
+                merged.path = path_or_many(&[left.path.clone(), right.path.clone()]);
+                merged.loop_exits =
+                    path_or_many(&[left.loop_exits.clone(), right.loop_exits.clone()]);
+                merged.loop_continues =
+                    path_or_many(&[left.loop_continues.clone(), right.loop_continues.clone()]);
+                merged.switch_exits = Bool::from_bool(false);
+                merged.reachable = left.reachable || right.reachable;
+                Some(merged)
+            }
+            _ => None,
+        }
     }
 
     fn analyze_loop(
@@ -941,8 +1184,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         reachable |= current.reachable && path_may_be_true(&current.path);
 
         for name in modified {
-            state.env.insert(name.clone(), Value::Unknown);
-            state.modified.insert(name);
+            state.havoc(&name);
         }
         state.path = path_or_many(&exit_paths);
         state.reachable = reachable;
@@ -1011,8 +1253,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         reachable |= current.reachable && path_may_be_true(&current.path);
 
         for name in modified {
-            state.env.insert(name.clone(), Value::Unknown);
-            state.modified.insert(name);
+            state.havoc(&name);
         }
         state.path = path_or_many(&exit_paths);
         state.reachable = reachable;
@@ -1028,8 +1269,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
 
     fn havoc_modified(&self, state: &mut State, body_state: &State) {
         for name in &body_state.modified {
-            state.env.insert(name.clone(), Value::Unknown);
-            state.modified.insert(name.clone());
+            state.havoc(name);
         }
     }
 
@@ -1064,12 +1304,30 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             Expression::Instantiation(instantiation) => {
                 if let Some(arguments) = &instantiation.argument_list {
                     self.eval_arguments(arguments, state);
+                    self.invalidate_mutated_array_arguments(arguments, state);
                 }
                 Value::Unknown
             }
             Expression::Clone(clone) => self.eval_expr(clone.object, state),
             Expression::Closure(closure) => {
-                self.analyze_closure(closure, state);
+                let by_reference = closure
+                    .use_clause
+                    .as_ref()
+                    .map(|use_clause| {
+                        use_clause
+                            .variables
+                            .iter()
+                            .filter(|variable| variable.ampersand.is_some())
+                            .map(|variable| {
+                                String::from_utf8_lossy(variable.variable.name).to_string()
+                            })
+                            .collect::<HashSet<_>>()
+                    })
+                    .unwrap_or_default();
+                let modified = self.analyze_closure(closure, state);
+                for name in by_reference.intersection(&modified) {
+                    state.assign(name.clone(), Value::Unknown);
+                }
                 Value::Unknown
             }
             Expression::ArrowFunction(arrow) => {
@@ -1142,8 +1400,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     fallback_reachable =
                         fallback_state.reachable && path_may_be_true(&fallback_state.path);
                     for name in &fallback_state.modified {
-                        state.env.insert(name.clone(), Value::Unknown);
-                        state.modified.insert(name.clone());
+                        state.havoc(name);
                     }
                 }
                 MatchArm::Expression(arm) => {
@@ -1168,8 +1425,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     let value = self.eval_expr(arm.expression, &mut branch_state);
                     let reachable = branch_state.reachable && path_may_be_true(&branch_state.path);
                     for name in &branch_state.modified {
-                        state.env.insert(name.clone(), Value::Unknown);
-                        state.modified.insert(name.clone());
+                        state.havoc(name);
                     }
                     branches.push((condition, value, reachable));
                 }
@@ -1308,12 +1564,109 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             }
         }
 
-        if assigned_name.is_none() {
+        if assigned_name.is_none()
+            && !matches!(
+                assignment.lhs.unparenthesized(),
+                Expression::ArrayAccess(_) | Expression::ArrayAppend(_)
+            )
+        {
             if let Some(root) = root_variable_name(assignment.lhs) {
                 state.array_values.remove(&root);
             }
         }
+        if matches!(assignment.operator, AssignmentOperator::Assign(_)) {
+            self.record_array_write(assignment.lhs, &value, state);
+        }
         value
+    }
+
+    fn record_array_write(
+        &mut self,
+        lhs: &'arena Expression<'arena>,
+        value: &Value,
+        state: &mut State,
+    ) {
+        match lhs.unparenthesized() {
+            Expression::ArrayAccess(access) => {
+                let Some(name) = direct_variable_name(access.array) else {
+                    if let Some(root) = root_variable_name(access.array) {
+                        if matches!(state.env.get(&root), Some(Value::Array(_))) {
+                            state.env.insert(root.clone(), Value::Array(None));
+                        }
+                        state.array_values.remove(&root);
+                        state.modified.insert(root);
+                    }
+                    return;
+                };
+                let index = self.eval_expr(access.index, state);
+                let key = array_key(&index);
+                match (state.env.get(&name).cloned(), key) {
+                    (Some(Value::Array(Some(mut keys))), Some(key)) => {
+                        keys.insert(key.clone());
+                        state.env.insert(name.clone(), Value::Array(Some(keys)));
+                        if let Some(pairs) = state.array_values.get_mut(&name) {
+                            if let Some(pair) = pairs
+                                .iter_mut()
+                                .find(|(candidate, _)| array_key(candidate).as_ref() == Some(&key))
+                            {
+                                pair.1 = value.clone();
+                            } else {
+                                pairs.push((index, value.clone()));
+                            }
+                        }
+                    }
+                    (Some(Value::Array(Some(_))), None) => {
+                        state.env.insert(name.clone(), Value::Array(None));
+                        state.array_values.remove(&name);
+                    }
+                    (Some(Value::Array(None)), _) => {
+                        state.array_values.remove(&name);
+                    }
+                    _ => {
+                        state.array_values.remove(&name);
+                    }
+                }
+                state.modified.insert(name);
+            }
+            Expression::ArrayAppend(append) => {
+                let Some(name) = direct_variable_name(append.array) else {
+                    if let Some(root) = root_variable_name(append.array) {
+                        if matches!(state.env.get(&root), Some(Value::Array(_))) {
+                            state.env.insert(root.clone(), Value::Array(None));
+                        }
+                        state.array_values.remove(&root);
+                        state.modified.insert(root);
+                    }
+                    return;
+                };
+                match state.env.get(&name).cloned() {
+                    Some(Value::Array(Some(mut keys))) => {
+                        let next = keys
+                            .iter()
+                            .filter_map(|key| match key {
+                                ArrayKey::Int(index) => Some(*index),
+                                ArrayKey::String(_) => None,
+                            })
+                            .max()
+                            .map(|index| index.saturating_add(1))
+                            .unwrap_or(0);
+                        keys.insert(ArrayKey::Int(next));
+                        state.env.insert(name.clone(), Value::Array(Some(keys)));
+                        if let Some(pairs) = state.array_values.get_mut(&name) {
+                            pairs.push((Value::Int(Int::from_i64(next)), value.clone()));
+                        }
+                    }
+                    Some(Value::Array(None)) => {
+                        state.array_values.remove(&name);
+                    }
+                    _ => {
+                        state.array_values.remove(&name);
+                    }
+                }
+                state.modified.insert(name);
+            }
+            _ => {}
+        }
     }
 
     fn eval_binary(&mut self, binary: &'arena Binary<'arena>, state: &mut State) -> Value {
@@ -1464,7 +1817,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             UnaryPrefixOperator::Not(_) => self
                 .eval_expr(unary.operand, state)
                 .truthiness()
-                .map(|value| Value::Bool(value.not()))
+                .map(|value| Value::Bool(path_not(&value)))
                 .unwrap_or(Value::Unknown),
             UnaryPrefixOperator::Plus(_) => self.eval_expr(unary.operand, state),
             UnaryPrefixOperator::Negation(_) => match self.eval_expr(unary.operand, state) {
@@ -1583,8 +1936,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
 
     fn merge_expression_state(&self, state: &mut State, branch: &State, definite: bool) {
         for name in &branch.modified {
-            state.env.insert(name.clone(), Value::Unknown);
-            state.modified.insert(name.clone());
+            state.havoc(name);
         }
         if definite {
             state.reachable = branch.reachable;
@@ -1668,6 +2020,9 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             Call::Function(function) => {
                 let arguments = self.eval_arguments(&function.argument_list, state);
                 let name = function_name(function.function);
+                if !is_pure_builtin(name.as_deref()) {
+                    self.invalidate_mutated_array_arguments(&function.argument_list, state);
+                }
                 if self.settings.check_intdiv
                     && name.as_deref() == Some("intdiv")
                     && arguments.len() >= 2
@@ -1711,6 +2066,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     );
                 }
                 let arguments = self.eval_arguments(&method.argument_list, state);
+                self.invalidate_mutated_array_arguments(&method.argument_list, state);
                 let class = if direct_variable_name(method.object).as_deref() == Some("$this") {
                     self.class.as_deref()
                 } else {
@@ -1734,6 +2090,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             Call::NullSafeMethod(method) => {
                 self.eval_expr(method.object, state);
                 let arguments = self.eval_arguments(&method.argument_list, state);
+                self.invalidate_mutated_array_arguments(&method.argument_list, state);
                 let class = if direct_variable_name(method.object).as_deref() == Some("$this") {
                     self.class.as_deref()
                 } else {
@@ -1758,6 +2115,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 let class = self.static_class_name(method.class);
                 self.eval_expr(method.class, state);
                 let arguments = self.eval_arguments(&method.argument_list, state);
+                self.invalidate_mutated_array_arguments(&method.argument_list, state);
                 if let Some(summary) = class
                     .as_deref()
                     .and_then(|class| self.method_summary(class, &method.method))
@@ -1862,16 +2220,112 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         values
     }
 
+    fn invalidate_mutated_array_arguments(&self, arguments: &ArgumentList<'_>, state: &mut State) {
+        for argument in arguments.arguments.iter() {
+            let expression = match argument {
+                Argument::Positional(argument) => argument.value,
+                Argument::Named(argument) => argument.value,
+            };
+            if let Some(name) = root_variable_name(expression) {
+                if matches!(state.env.get(&name), Some(Value::Array(_))) {
+                    state.assign(name, Value::Unknown);
+                }
+            }
+        }
+    }
+
+    fn isset_value(
+        &self,
+        expression: &Expression<'_>,
+        evaluated: &Value,
+        state: &State,
+    ) -> Option<Bool> {
+        match expression.unparenthesized() {
+            Expression::ArrayAccess(access) => {
+                let index = array_key(&self.static_index(access.index, state)?)?;
+                if let Expression::ArrayAccess(inner) = access.array.unparenthesized() {
+                    let Some(Value::Array(Some(keys))) =
+                        self.array_access_static_value(inner, state)
+                    else {
+                        return None;
+                    };
+                    return (!keys.contains(&index)).then(|| Bool::from_bool(false));
+                }
+
+                let name = direct_variable_name(access.array)?;
+                match state.env.get(&name) {
+                    Some(Value::Array(Some(keys))) => {
+                        if !keys.contains(&index) {
+                            return Some(Bool::from_bool(false));
+                        }
+                        let value = state.array_values.get(&name).and_then(|pairs| {
+                            pairs.iter().find_map(|(candidate, value)| {
+                                (array_key(candidate).as_ref() == Some(&index)).then_some(value)
+                            })
+                        });
+                        match value {
+                            Some(Value::Null) => Some(Bool::from_bool(false)),
+                            Some(Value::Unknown) | None => None,
+                            Some(_) => Some(Bool::from_bool(true)),
+                        }
+                    }
+                    Some(Value::Array(None)) => None,
+                    _ => None,
+                }
+            }
+            _ => match evaluated {
+                Value::Null => Some(Bool::from_bool(false)),
+                Value::Unknown => None,
+                _ => Some(Bool::from_bool(true)),
+            },
+        }
+    }
+
+    fn array_access_static_value(&self, access: &ArrayAccess<'_>, state: &State) -> Option<Value> {
+        let name = direct_variable_name(access.array)?;
+        let index = array_key(&self.static_index(access.index, state)?)?;
+        state.array_values.get(&name).and_then(|pairs| {
+            pairs.iter().find_map(|(candidate, value)| {
+                (array_key(candidate).as_ref() == Some(&index)).then(|| value.clone())
+            })
+        })
+    }
+
+    fn static_index(&self, expression: &Expression<'_>, state: &State) -> Option<Value> {
+        match expression.unparenthesized() {
+            Expression::Literal(literal) => Some(self.eval_literal(literal)),
+            Expression::Variable(Variable::Direct(variable)) => state
+                .env
+                .get(&String::from_utf8_lossy(variable.name).to_string())
+                .cloned(),
+            _ => None,
+        }
+    }
+
     fn eval_construct(&mut self, construct: &'arena Construct<'arena>, state: &mut State) -> Value {
         match construct {
             Construct::Isset(isset) => {
                 let previous = self.suppress_access_checks;
                 self.suppress_access_checks = true;
+                let mut result = Bool::from_bool(true);
+                let mut unknown = false;
                 for value in isset.values.iter() {
-                    self.eval_expr(value, state);
+                    let evaluated = self.eval_expr(value, state);
+                    match self.isset_value(value, &evaluated, state) {
+                        Some(exists) => {
+                            result = path_and(&result, &exists);
+                        }
+                        None => unknown = true,
+                    }
                 }
                 self.suppress_access_checks = previous;
-                Value::Unknown
+                if result.as_bool() == Some(false) {
+                    Value::Bool(result)
+                } else if unknown {
+                    Value::Unknown
+                } else {
+                    Value::Bool(result)
+                }
             }
             Construct::Empty(empty) => {
                 let previous = self.suppress_access_checks;
@@ -2105,7 +2559,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
 
                 match array_key(index) {
                     Some(key) => {
-                        if !keys.contains(&key) {
+                        if !keys.contains(&key) && path_may_be_true(path) {
                             self.push_finding(
                                 "array-key",
                                 "Array key {value} is not present in the array.",
@@ -2257,6 +2711,10 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
     }
 
     fn compare_identical(&self, left: &Value, right: &Value, negate: bool) -> Value {
+        if matches!(left, Value::Unknown) || matches!(right, Value::Unknown) {
+            return Value::Unknown;
+        }
+
         let comparison = match (left, right) {
             (Value::Int(left), Value::Int(right)) => Some(left.eq(right)),
             (Value::Float(left), Value::Float(right)) => Some(left.eq_fpa(right)),
@@ -2410,7 +2868,10 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
 
     fn check_doc_return_contract(&mut self, value: Option<&Value>, doc_type: &str, span: Span) {
         let Some(value) = value else {
-            if doc_type != "void" && doc_type != "never" && !contracts::is_nullable(doc_type) {
+            if doc_type != "void"
+                && doc_type != "never"
+                && !contracts::accepts_null(doc_type, &self.doc_templates)
+            {
                 self.push_message(
                     "return-contract",
                     Message::new(
@@ -2764,6 +3225,52 @@ fn constant_to_value(value: &ConstantValue) -> Value {
     }
 }
 
+fn is_pure_builtin(name: Option<&str>) -> bool {
+    matches!(
+        name,
+        Some(
+            "strlen"
+                | "count"
+                | "sizeof"
+                | "array_key_exists"
+                | "is_int"
+                | "is_integer"
+                | "is_long"
+                | "is_float"
+                | "is_double"
+                | "is_string"
+                | "is_bool"
+                | "is_array"
+                | "is_null"
+                | "in_array"
+                | "array_keys"
+                | "array_values"
+                | "array_search"
+                | "array_sum"
+                | "array_product"
+                | "array_slice"
+                | "array_merge"
+                | "array_filter"
+                | "array_map"
+                | "array_reduce"
+                | "array_unique"
+                | "array_reverse"
+                | "array_combine"
+                | "array_diff"
+                | "array_intersect"
+                | "array_column"
+                | "array_chunk"
+                | "array_pad"
+                | "array_fill"
+                | "array_fill_keys"
+                | "array_is_list"
+                | "implode"
+                | "join"
+                | "explode"
+        )
+    )
+}
+
 fn function_name(expression: &Expression<'_>) -> Option<String> {
     match expression.unparenthesized() {
         Expression::Identifier(identifier) => {
@@ -2894,6 +3401,234 @@ fn value_type_name(value: &Value) -> &'static str {
     }
 }
 
+struct PrivateStaticCallCollector<'a> {
+    class: &'a str,
+    namespace: Option<&'a str>,
+    imports: &'a HashMap<String, String>,
+    parameters: &'a HashMap<String, Vec<String>>,
+    allow_static_binding: bool,
+    calls: Mutex<HashMap<String, Vec<Vec<Option<ConstantValue>>>>>,
+    invalid: Mutex<HashSet<String>>,
+}
+
+impl PrivateStaticCallCollector<'_> {
+    fn invalidate(&self, method: &str) {
+        if let Ok(mut invalid) = self.invalid.lock() {
+            invalid.insert(method.to_string());
+        }
+    }
+
+    fn invalidate_all(&self) {
+        if let Ok(mut invalid) = self.invalid.lock() {
+            invalid.extend(self.parameters.keys().cloned());
+        }
+    }
+
+    fn record(&self, method: &str, arguments: &ArgumentList<'_>) {
+        let Some(parameters) = self.parameters.get(method) else {
+            return;
+        };
+        let Some(values) = constant_arguments(arguments, parameters) else {
+            if let Ok(mut invalid) = self.invalid.lock() {
+                invalid.insert(method.to_string());
+            }
+            return;
+        };
+        if let Ok(mut calls) = self.calls.lock() {
+            calls.entry(method.to_string()).or_default().push(values);
+        }
+    }
+
+    fn is_current_class(&self, expression: &Expression<'_>) -> bool {
+        match expression.unparenthesized() {
+            Expression::Self_(_) => true,
+            Expression::Static(_) if self.allow_static_binding => true,
+            Expression::Identifier(identifier) => {
+                summary::resolve_name(identifier, self.namespace, self.imports) == self.class
+            }
+            _ => false,
+        }
+    }
+
+    fn is_this(&self, expression: &Expression<'_>) -> bool {
+        direct_variable_name(expression).as_deref() == Some("$this")
+    }
+}
+
+impl<'ast, 'arena> Walker<'ast, 'arena, ()> for PrivateStaticCallCollector<'_> {
+    fn walk_static_method_call(&self, call: &'ast StaticMethodCall<'arena>, context: &mut ()) {
+        if self.is_current_class(call.class) {
+            match selector_identifier(&call.method) {
+                Some(method) if self.parameters.contains_key(&method) => {
+                    self.record(&method, &call.argument_list);
+                }
+                Some(_) => {}
+                None => self.invalidate_all(),
+            }
+        }
+        mago_syntax::walker::walk_static_method_call(self, call, context);
+    }
+
+    fn walk_method_call(&self, call: &'ast MethodCall<'arena>, context: &mut ()) {
+        if self.is_this(call.object) {
+            match selector_identifier(&call.method) {
+                Some(method) if self.parameters.contains_key(&method) => {
+                    self.record(&method, &call.argument_list);
+                }
+                Some(_) => {}
+                None => self.invalidate_all(),
+            }
+        }
+        mago_syntax::walker::walk_method_call(self, call, context);
+    }
+
+    fn walk_null_safe_method_call(&self, call: &'ast NullSafeMethodCall<'arena>, context: &mut ()) {
+        if self.is_this(call.object) {
+            match selector_identifier(&call.method) {
+                Some(method) if self.parameters.contains_key(&method) => {
+                    self.record(&method, &call.argument_list);
+                }
+                Some(_) => {}
+                None => self.invalidate_all(),
+            }
+        }
+        mago_syntax::walker::walk_null_safe_method_call(self, call, context);
+    }
+
+    fn walk_static_method_partial_application(
+        &self,
+        application: &'ast StaticMethodPartialApplication<'arena>,
+        context: &mut (),
+    ) {
+        if self.is_current_class(application.class) {
+            if let Some(method) = selector_identifier(&application.method) {
+                if self.parameters.contains_key(&method) {
+                    self.invalidate(&method);
+                }
+            } else {
+                self.invalidate_all();
+            }
+        }
+        mago_syntax::walker::walk_static_method_partial_application(self, application, context);
+    }
+
+    fn walk_method_partial_application(
+        &self,
+        application: &'ast MethodPartialApplication<'arena>,
+        context: &mut (),
+    ) {
+        if self.is_this(application.object) {
+            if let Some(method) = selector_identifier(&application.method) {
+                if self.parameters.contains_key(&method) {
+                    self.invalidate(&method);
+                }
+            } else {
+                self.invalidate_all();
+            }
+        }
+        mago_syntax::walker::walk_method_partial_application(self, application, context);
+    }
+}
+
+fn infer_parameter_constants(
+    calls: &[Vec<Option<ConstantValue>>],
+    arity: usize,
+) -> Vec<Option<Vec<ConstantValue>>> {
+    (0..arity)
+        .map(|index| {
+            let mut constants: Vec<ConstantValue> = Vec::new();
+            for call in calls {
+                let Some(Some(value)) = call.get(index) else {
+                    return None;
+                };
+                if !constants.contains(value) {
+                    constants.push(value.clone());
+                }
+            }
+            (!constants.is_empty()).then_some(constants)
+        })
+        .collect()
+}
+
+fn finite_parameter_value(
+    function: &str,
+    parameter: &str,
+    values: &[ConstantValue],
+) -> Option<(Value, Option<Bool>)> {
+    if let [value] = values {
+        return Some((constant_to_value(value), None));
+    }
+    if values.is_empty() || values.len() > 32 {
+        return None;
+    }
+    if !values
+        .iter()
+        .all(|value| matches!(value, ConstantValue::Int(_)))
+    {
+        return None;
+    }
+
+    let variable = Int::new_const(format!("{function}::{parameter}::constant-set"));
+    let conditions = values
+        .iter()
+        .map(|value| {
+            let ConstantValue::Int(value) = value else {
+                unreachable!();
+            };
+            variable.eq(Int::from_i64(*value))
+        })
+        .collect::<Vec<_>>();
+    Some((
+        Value::Int(variable),
+        Some(path_or_many(conditions.as_slice())),
+    ))
+}
+
+fn selector_identifier(selector: &ClassLikeMemberSelector<'_>) -> Option<String> {
+    match selector {
+        ClassLikeMemberSelector::Identifier(identifier) => {
+            Some(String::from_utf8_lossy(identifier.value).to_ascii_lowercase())
+        }
+        _ => None,
+    }
+}
+
+fn constant_arguments(
+    arguments: &ArgumentList<'_>,
+    parameters: &[String],
+) -> Option<Vec<Option<ConstantValue>>> {
+    let mut values = vec![None; parameters.len()];
+    let mut assigned = vec![false; parameters.len()];
+    let mut positional = 0;
+    for argument in arguments.arguments.iter() {
+        match argument {
+            Argument::Positional(argument) if argument.ellipsis.is_none() => {
+                if positional < values.len() {
+                    if assigned[positional] {
+                        return None;
+                    }
+                    values[positional] = summary::constant_value(argument.value);
+                    assigned[positional] = true;
+                }
+                positional += 1;
+            }
+            Argument::Named(argument) => {
+                let name = String::from_utf8_lossy(argument.name.value);
+                let index = parameters
+                    .iter()
+                    .position(|parameter| parameter == name.as_ref())?;
+                if assigned[index] {
+                    return None;
+                }
+                values[index] = summary::constant_value(argument.value);
+                assigned[index] = true;
+            }
+            _ => return None,
+        }
+    }
+    Some(values)
+}
+
 struct YieldFinder;
 
 impl<'ast, 'arena> Walker<'ast, 'arena, bool> for YieldFinder {
@@ -2959,8 +3694,20 @@ fn hint_accepts_value(value: &Value, hint: &Hint<'_>, strict: bool) -> Option<bo
         Hint::Parenthesized(hint) => hint_accepts_value(value, hint.hint, strict),
         Hint::Mixed(_) => Some(true),
         Hint::Null(_) => Some(matches!(value, Value::Null)),
-        Hint::True(_) | Hint::False(_) => match value {
-            Value::Bool(value) => value.as_bool(),
+        Hint::True(_) => match value {
+            Value::Bool(value) => match value.as_bool() {
+                Some(true) => Some(true),
+                Some(false) => Some(false),
+                None => None,
+            },
+            _ => Some(false),
+        },
+        Hint::False(_) => match value {
+            Value::Bool(value) => match value.as_bool() {
+                Some(true) => Some(false),
+                Some(false) => Some(true),
+                None => None,
+            },
             _ => Some(false),
         },
         Hint::Array(_) => Some(matches!(value, Value::Array(_))),
