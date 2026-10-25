@@ -20,6 +20,8 @@ pub enum Value {
     Null,
     Unknown,
     Unverified,
+    UnverifiedNumeric { value: Int, loop_accumulator: bool },
+    Object(String),
 }
 
 impl Value {
@@ -27,6 +29,7 @@ impl Value {
         match self {
             Value::Int(value) => Some(value.eq(0)),
             Value::Float(value) => Some(value.is_zero()),
+            Value::UnverifiedNumeric { value, .. } => Some(value.eq(0)),
             _ => None,
         }
     }
@@ -41,6 +44,8 @@ impl Value {
             Value::StringLength(_) => None,
             Value::Array(Some(keys)) => Some(Bool::from_bool(!keys.is_empty())),
             Value::ArrayLength(length) => Some(length.eq(0).not()),
+            Value::UnverifiedNumeric { value, .. } => Some(value.eq(0).not()),
+            Value::Object(_) => Some(Bool::from_bool(true)),
             Value::String(None) | Value::Array(None) | Value::Unknown | Value::Unverified => None,
         }
     }
@@ -72,6 +77,48 @@ impl Value {
             }
             (Some(condition), Value::Bool(left), Value::Bool(right)) => {
                 Value::Bool(condition.ite(left, right))
+            }
+            (
+                Some(condition),
+                Value::UnverifiedNumeric {
+                    value: left,
+                    loop_accumulator: left_loop,
+                },
+                Value::UnverifiedNumeric {
+                    value: right,
+                    loop_accumulator: right_loop,
+                },
+            ) => Value::UnverifiedNumeric {
+                value: condition.ite(left, right),
+                loop_accumulator: *left_loop || *right_loop,
+            },
+            (
+                Some(condition),
+                Value::UnverifiedNumeric {
+                    value: left,
+                    loop_accumulator,
+                },
+                Value::Int(right),
+            ) => Value::UnverifiedNumeric {
+                value: condition.ite(left, right),
+                loop_accumulator: *loop_accumulator,
+            },
+            (
+                Some(condition),
+                Value::Int(left),
+                Value::UnverifiedNumeric {
+                    value: right,
+                    loop_accumulator,
+                },
+            ) => Value::UnverifiedNumeric {
+                value: condition.ite(left, right),
+                loop_accumulator: *loop_accumulator,
+            },
+            (Some(_), Value::Object(left), Value::Object(right)) if left == right => {
+                Value::Object(left.clone())
+            }
+            (None, Value::Object(left), Value::Object(right)) if left == right => {
+                Value::Object(left.clone())
             }
             (None, Value::String(Some(left)), Value::String(Some(right))) if left == right => {
                 Value::String(Some(left.clone()))

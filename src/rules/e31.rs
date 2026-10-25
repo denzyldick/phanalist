@@ -228,6 +228,27 @@ mod verification_tests {
     }
 
     #[test]
+    fn propagates_object_method_contracts_to_callers() {
+        let messages = messages("e31/object_method_contract.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+
+    #[test]
+    fn propagates_object_parameter_method_contracts() {
+        let messages = messages("e31/object_parameter_contract.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+
+    #[test]
+    fn does_not_apply_a_base_method_contract_through_a_subclassed_parameter() {
+        assert!(messages("e31/object_parameter_inheritance.php").is_empty());
+    }
+
+    #[test]
     fn uses_propagated_contracts_in_arithmetic_findings() {
         let messages = messages("e31/contract_propagation_findings.php");
 
@@ -502,6 +523,19 @@ mod loop_tests {
         assert_eq!(messages.len(), 1);
         assert!(messages[0].contains("Could not verify"));
         assert!(messages[0].contains("unverified"));
+    }
+
+    #[test]
+    fn proves_a_positive_guard_over_an_unknown_loop_accumulator() {
+        assert!(messages("e31/benchmark/loop_zero_iteration_unknown_guarded.php").is_empty());
+    }
+
+    #[test]
+    fn keeps_an_unknown_loop_accumulator_unverified_under_a_strict_guard() {
+        let messages = messages("e31/benchmark/loop_zero_iteration_unknown_strict_guard.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Could not verify"));
     }
 
     #[test]
@@ -1087,6 +1121,31 @@ mod summary_tests {
     }
 
     #[test]
+    fn uses_cross_file_object_method_summaries() {
+        let definition_path = fixture("e31/object_method_summary_definition.php");
+        let use_path = fixture("e31/object_method_summary_use.php");
+        let definition = fs::read_to_string(&definition_path).unwrap();
+        let use_content = fs::read_to_string(&use_path).unwrap();
+
+        let arena = LocalArena::new();
+        let use_file = File::new(&arena, use_path, use_content);
+        let rule = Rule::default();
+
+        rule.begin_index();
+        {
+            let arena = LocalArena::new();
+            let file = File::new(&arena, definition_path, definition);
+            rule.index_file(&file);
+        }
+        rule.finalize_index();
+
+        let violations = rule.validate_file(&use_file).unwrap();
+
+        assert_eq!(violations.len(), 1);
+        assert!(violations[0].message.render().contains("Division by zero"));
+    }
+
+    #[test]
     fn uses_inherited_method_summaries() {
         let messages = messages("e31/method_inheritance.php");
 
@@ -1476,6 +1535,11 @@ mod benchmark {
             expected: &[ARRAY_KEY, ARRAY_KEY],
         },
         BenchmarkCase {
+            category: "contracts",
+            path: "e31/object_method_contract.php",
+            expected: &[DIVISION],
+        },
+        BenchmarkCase {
             category: "division",
             path: "e31/benchmark/division.php",
             expected: &[DIVISION, DIVISION, MODULO, INTDIV, INTDIV_OVERFLOW],
@@ -1503,6 +1567,16 @@ mod benchmark {
         BenchmarkCase {
             category: "loops",
             path: "e31/benchmark/loop_zero_iteration_unknown.php",
+            expected: &[UNVERIFIED],
+        },
+        BenchmarkCase {
+            category: "loops",
+            path: "e31/benchmark/loop_zero_iteration_unknown_guarded.php",
+            expected: &[],
+        },
+        BenchmarkCase {
+            category: "loops",
+            path: "e31/benchmark/loop_zero_iteration_unknown_strict_guard.php",
             expected: &[UNVERIFIED],
         },
         BenchmarkCase {

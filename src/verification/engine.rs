@@ -88,6 +88,7 @@ struct Analyzer<'a, 'arena> {
     doc_templates: Vec<String>,
     method_domains: HashMap<String, Vec<Option<ParameterDomain>>>,
     in_generator: bool,
+    next_unverified_numeric: u64,
 }
 
 pub fn analyze_file_with_summaries(
@@ -129,6 +130,7 @@ pub fn analyze_file_with_summaries(
         doc_templates: Vec::new(),
         method_domains: HashMap::new(),
         in_generator: false,
+        next_unverified_numeric: 0,
     };
 
     let mut state = State::new();
@@ -540,6 +542,12 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     None,
                 )
             });
+            let value = if matches!(value, Value::Unknown) {
+                self.parameter_object_value(parameter.hint.as_ref())
+                    .unwrap_or(value)
+            } else {
+                value
+            };
             if let Some(constraint) = constant_constraint {
                 state.path = path_and(&state.path, &constraint);
             }
@@ -1196,6 +1204,10 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             let final_value = final_state.env.get(name).cloned().unwrap_or(Value::Unknown);
             let value = match Value::merge(Some(ran), &final_value, &initial_value) {
                 Value::Unknown => Value::Unverified,
+                Value::UnverifiedNumeric { value, .. } => Value::UnverifiedNumeric {
+                    value,
+                    loop_accumulator: true,
+                },
                 value => value,
             };
             state.env.insert(name.clone(), value);
@@ -1377,6 +1389,20 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             }
             Expression::Literal(literal) => self.eval_literal(literal),
             Expression::Variable(variable) => self.eval_variable(variable, state),
+            Expression::Instantiation(instantiation) => {
+                let class = self.static_class_name(instantiation.class);
+                if class.is_none() {
+                    self.eval_expr(instantiation.class, state);
+                }
+                if let Some(arguments) = &instantiation.argument_list {
+                    self.eval_arguments(arguments, state);
+                    self.invalidate_mutated_array_arguments(arguments, state);
+                }
+                match class {
+                    Some(class) => Value::Object(class),
+                    None => Value::Unknown,
+                }
+            }
             Expression::Assignment(assignment) => self.eval_assignment(assignment, state),
             Expression::Binary(binary) => self.eval_binary(binary, state),
             Expression::UnaryPrefix(unary) => self.eval_unary_prefix(unary, state),
@@ -1398,13 +1424,6 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             }
             Expression::Conditional(conditional) => self.eval_conditional(conditional, state),
             Expression::Call(call) => self.eval_call(call, state),
-            Expression::Instantiation(instantiation) => {
-                if let Some(arguments) = &instantiation.argument_list {
-                    self.eval_arguments(arguments, state);
-                    self.invalidate_mutated_array_arguments(arguments, state);
-                }
-                Value::Unknown
-            }
             Expression::Clone(clone) => self.eval_expr(clone.object, state),
             Expression::Closure(closure) => {
                 let by_reference = closure
@@ -1624,7 +1643,11 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 self.divide_values(&left, &right)
             }
             AssignmentOperator::Modulo(_) => {
-                if self.settings.check_modulo && matches!(right, Value::Int(_) | Value::Unverified)
+                if self.settings.check_modulo
+                    && matches!(
+                        right,
+                        Value::Int(_) | Value::Unverified | Value::UnverifiedNumeric { .. }
+                    )
                 {
                     self.check_nonzero(
                         &right,
@@ -1868,7 +1891,11 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 self.divide_values(&left, &right)
             }
             BinaryOperator::Modulo(_) => {
-                if self.settings.check_modulo && matches!(right, Value::Int(_) | Value::Unverified)
+                if self.settings.check_modulo
+                    && matches!(
+                        right,
+                        Value::Int(_) | Value::Unverified | Value::UnverifiedNumeric { .. }
+                    )
                 {
                     self.check_nonzero(
                         &right,
@@ -2174,12 +2201,16 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 let arguments = self.eval_arguments(&method.argument_list, state);
                 self.invalidate_mutated_array_arguments(&method.argument_list, state);
                 let class = if direct_variable_name(method.object).as_deref() == Some("$this") {
-                    self.class.as_deref()
+                    self.class.clone()
                 } else {
-                    None
+                    match &object {
+                        Value::Object(class) => Some(class.clone()),
+                        _ => None,
+                    }
                 };
-                if let Some(summary) =
-                    class.and_then(|class| self.method_summary(class, &method.method))
+                if let Some(summary) = class
+                    .as_deref()
+                    .and_then(|class| self.method_summary(class, &method.method))
                 {
                     self.apply_call_assertions(summary, &arguments, &method.argument_list, state);
                     self.apply_never_returns(summary, state);
@@ -2198,16 +2229,20 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 Value::Unknown
             }
             Call::NullSafeMethod(method) => {
-                self.eval_expr(method.object, state);
+                let object = self.eval_expr(method.object, state);
                 let arguments = self.eval_arguments(&method.argument_list, state);
                 self.invalidate_mutated_array_arguments(&method.argument_list, state);
                 let class = if direct_variable_name(method.object).as_deref() == Some("$this") {
-                    self.class.as_deref()
+                    self.class.clone()
                 } else {
-                    None
+                    match &object {
+                        Value::Object(class) => Some(class.clone()),
+                        _ => None,
+                    }
                 };
-                if let Some(summary) =
-                    class.and_then(|class| self.method_summary(class, &method.method))
+                if let Some(summary) = class
+                    .as_deref()
+                    .and_then(|class| self.method_summary(class, &method.method))
                 {
                     self.apply_call_assertions(summary, &arguments, &method.argument_list, state);
                     self.apply_never_returns(summary, state);
@@ -2287,8 +2322,11 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             let name = positional
                 .get(assertion.index)
                 .and_then(|argument| direct_variable_name(argument.value));
-            let value = if !assertion.negated && matches!(value, Value::Unknown | Value::Unverified)
-            {
+            let value = if !assertion.negated
+                && matches!(
+                    value,
+                    Value::Unknown | Value::Unverified | Value::UnverifiedNumeric { .. }
+                ) {
                 let value = parameter_value(
                     None,
                     Some(&assertion.ty),
@@ -2397,7 +2435,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             }
             _ => match evaluated {
                 Value::Null => Some(Bool::from_bool(false)),
-                Value::Unknown | Value::Unverified => None,
+                Value::Unknown | Value::Unverified | Value::UnverifiedNumeric { .. } => None,
                 _ => Some(Bool::from_bool(true)),
             },
         }
@@ -2756,13 +2794,45 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         }
     }
 
-    fn add_values(&self, left: &Value, right: &Value) -> Value {
+    fn fresh_unverified_numeric(&mut self) -> Value {
+        self.next_unverified_numeric += 1;
+        Value::UnverifiedNumeric {
+            value: Int::new_const(format!(
+                "unverified::numeric::{}",
+                self.next_unverified_numeric
+            )),
+            loop_accumulator: false,
+        }
+    }
+
+    fn numeric_unknown_arithmetic(&mut self, left: &Value, right: &Value) -> Option<Value> {
+        let known_numeric = |value: &Value| matches!(value, Value::Int(_) | Value::Float(_));
+        if matches!(
+            left,
+            Value::UnverifiedNumeric { .. } | Value::Int(_) | Value::Float(_)
+        ) && matches!(right, Value::Unknown | Value::UnverifiedNumeric { .. })
+            || matches!(
+                right,
+                Value::UnverifiedNumeric { .. } | Value::Int(_) | Value::Float(_)
+            ) && matches!(left, Value::Unknown | Value::UnverifiedNumeric { .. })
+            || matches!(left, Value::UnverifiedNumeric { .. }) && known_numeric(right)
+            || matches!(right, Value::UnverifiedNumeric { .. }) && known_numeric(left)
+        {
+            return Some(self.fresh_unverified_numeric());
+        }
+        None
+    }
+
+    fn add_values(&mut self, left: &Value, right: &Value) -> Value {
         match (left, right) {
             (Value::Int(left), Value::Int(right)) => Value::Int(left.add(right)),
             (Value::Float(left), Value::Float(right)) => Value::Float(
                 left.add_with_rounding_mode(right, &RoundingMode::round_nearest_ties_to_even()),
             ),
             _ => {
+                if let Some(value) = self.numeric_unknown_arithmetic(left, right) {
+                    return value;
+                }
                 match (left.to_float(), right.to_float()) {
                     (Some(left), Some(right)) => Value::Float(left.add_with_rounding_mode(
                         &right,
@@ -2774,13 +2844,16 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         }
     }
 
-    fn sub_values(&self, left: &Value, right: &Value) -> Value {
+    fn sub_values(&mut self, left: &Value, right: &Value) -> Value {
         match (left, right) {
             (Value::Int(left), Value::Int(right)) => Value::Int(left.sub(right)),
             (Value::Float(left), Value::Float(right)) => Value::Float(
                 left.sub_with_rounding_mode(right, &RoundingMode::round_nearest_ties_to_even()),
             ),
             _ => {
+                if let Some(value) = self.numeric_unknown_arithmetic(left, right) {
+                    return value;
+                }
                 match (left.to_float(), right.to_float()) {
                     (Some(left), Some(right)) => Value::Float(left.sub_with_rounding_mode(
                         &right,
@@ -2792,13 +2865,16 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         }
     }
 
-    fn mul_values(&self, left: &Value, right: &Value) -> Value {
+    fn mul_values(&mut self, left: &Value, right: &Value) -> Value {
         match (left, right) {
             (Value::Int(left), Value::Int(right)) => Value::Int(left.mul(right)),
             (Value::Float(left), Value::Float(right)) => Value::Float(
                 left.mul_with_rounding_mode(right, &RoundingMode::round_nearest_ties_to_even()),
             ),
             _ => {
+                if let Some(value) = self.numeric_unknown_arithmetic(left, right) {
+                    return value;
+                }
                 match (left.to_float(), right.to_float()) {
                     (Some(left), Some(right)) => Value::Float(left.mul_with_rounding_mode(
                         &right,
@@ -2850,6 +2926,13 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             (Value::Float(left), Value::Float(right)) => Some(left.eq_fpa(right)),
             (Value::Int(left), Value::Float(right)) => Some(left.to_real().eq(right.to_real())),
             (Value::Float(left), Value::Int(right)) => Some(left.to_real().eq(right.to_real())),
+            (Value::UnverifiedNumeric { value: left, .. }, Value::Int(right)) => {
+                Some(left.eq(right))
+            }
+            (
+                Value::UnverifiedNumeric { value: left, .. },
+                Value::UnverifiedNumeric { value: right, .. },
+            ) => Some(left.eq(right)),
             (Value::Bool(left), Value::Bool(right)) => Some(left.eq(right)),
             (Value::Null, Value::Null) => Some(Bool::from_bool(true)),
             _ => None,
@@ -2860,9 +2943,13 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
     }
 
     fn compare_identical(&self, left: &Value, right: &Value, negate: bool) -> Value {
-        if matches!(left, Value::Unknown | Value::Unverified)
-            || matches!(right, Value::Unknown | Value::Unverified)
-        {
+        if matches!(
+            left,
+            Value::Unknown | Value::Unverified | Value::UnverifiedNumeric { .. }
+        ) || matches!(
+            right,
+            Value::Unknown | Value::Unverified | Value::UnverifiedNumeric { .. }
+        ) {
             return Value::Unknown;
         }
 
@@ -2915,6 +3002,28 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             } else {
                 left.to_real().lt(right.to_real())
             }),
+            (Value::UnverifiedNumeric { value: left, .. }, Value::Int(right)) => {
+                Some(if or_equal {
+                    left.le(right)
+                } else {
+                    left.lt(right)
+                })
+            }
+            (Value::Int(left), Value::UnverifiedNumeric { value: right, .. }) => {
+                Some(if or_equal {
+                    left.le(right)
+                } else {
+                    left.lt(right)
+                })
+            }
+            (
+                Value::UnverifiedNumeric { value: left, .. },
+                Value::UnverifiedNumeric { value: right, .. },
+            ) => Some(if or_equal {
+                left.le(right)
+            } else {
+                left.lt(right)
+            }),
             _ => None,
         };
         comparison.map(Value::Bool).unwrap_or(Value::Unknown)
@@ -2942,6 +3051,28 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             } else {
                 left.to_real().gt(right.to_real())
             }),
+            (Value::UnverifiedNumeric { value: left, .. }, Value::Int(right)) => {
+                Some(if or_equal {
+                    left.ge(right)
+                } else {
+                    left.gt(right)
+                })
+            }
+            (Value::Int(left), Value::UnverifiedNumeric { value: right, .. }) => {
+                Some(if or_equal {
+                    left.ge(right)
+                } else {
+                    left.gt(right)
+                })
+            }
+            (
+                Value::UnverifiedNumeric { value: left, .. },
+                Value::UnverifiedNumeric { value: right, .. },
+            ) => Some(if or_equal {
+                left.ge(right)
+            } else {
+                left.gt(right)
+            }),
             _ => None,
         };
         comparison.map(Value::Bool).unwrap_or(Value::Unknown)
@@ -2967,6 +3098,22 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                         Float::from_f64(1.0),
                         &RoundingMode::round_nearest_ties_to_even(),
                     ))
+                }
+            }
+            Value::UnverifiedNumeric {
+                value,
+                loop_accumulator,
+            } => {
+                if increment {
+                    Value::UnverifiedNumeric {
+                        value: value.add(Int::from_i64(1)),
+                        loop_accumulator: *loop_accumulator,
+                    }
+                } else {
+                    Value::UnverifiedNumeric {
+                        value: value.sub(Int::from_i64(1)),
+                        loop_accumulator: *loop_accumulator,
+                    }
                 }
             }
             _ => Value::Unknown,
@@ -3003,7 +3150,10 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             return;
         };
 
-        if matches!(value, Value::Unknown | Value::Unverified) {
+        if matches!(
+            value,
+            Value::Unknown | Value::Unverified | Value::UnverifiedNumeric { .. } | Value::Object(_)
+        ) {
             return;
         }
 
@@ -3040,7 +3190,10 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             return;
         };
 
-        if matches!(value, Value::Unknown | Value::Unverified) {
+        if matches!(
+            value,
+            Value::Unknown | Value::Unverified | Value::UnverifiedNumeric { .. } | Value::Object(_)
+        ) {
             return;
         }
 
@@ -3059,7 +3212,10 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
     }
 
     fn check_intdiv(&mut self, left: &Value, right: &Value, span: Span, path: &Bool) {
-        if !matches!(right, Value::Int(_) | Value::Unverified) {
+        if !matches!(
+            right,
+            Value::Int(_) | Value::Unverified | Value::UnverifiedNumeric { .. }
+        ) {
             return;
         }
         self.check_nonzero(
@@ -3094,15 +3250,44 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         id: &'static str,
         template: &'static str,
     ) {
-        if matches!(value, Value::Unverified) {
-            if self.settings.unknown_policy == "report" {
+        if self.settings.unknown_policy == "report" {
+            if let Value::UnverifiedNumeric {
+                value,
+                loop_accumulator,
+            } = value
+            {
+                if !loop_accumulator {
+                    return;
+                }
+                let solver = Solver::new();
+                let mut params = Params::new();
+                params.set_u32(
+                    "timeout",
+                    self.settings.timeout_ms.min(u32::MAX as u64) as u32,
+                );
+                solver.set_params(&params);
+                solver.assert(path);
+                solver.assert(value.eq(0));
+                if !matches!(solver.check(), SatResult::Unsat) {
+                    self.push_finding(
+                        "unverified",
+                        "Could not verify this property: the divisor may be zero but its numeric value cannot be modeled. Treat it as unverified, not safe; see unknown_policy.",
+                        span,
+                        "?",
+                    );
+                }
+                return;
+            }
+            if matches!(value, Value::Unverified) {
                 self.push_finding(
                     "unverified",
                     "Could not verify this property: the divisor cannot be modeled. Treat it as unverified, not safe; see unknown_policy.",
                     span,
                     "?",
                 );
+                return;
             }
+        } else if matches!(value, Value::Unverified | Value::UnverifiedNumeric { .. }) {
             return;
         }
         let Some(zero) = value.zero_condition() else {
@@ -3286,10 +3471,32 @@ fn builtin_call_value(name: Option<&str>, arguments: &[Value]) -> Option<Value> 
 }
 
 fn type_predicate(value: &Value, predicate: impl Fn(&Value) -> bool) -> Option<Value> {
-    if matches!(value, Value::Unknown | Value::Unverified) {
+    if matches!(
+        value,
+        Value::Unknown | Value::Unverified | Value::UnverifiedNumeric { .. }
+    ) {
         return None;
     }
     Some(Value::Bool(Bool::from_bool(predicate(value))))
+}
+
+impl<'a, 'arena> Analyzer<'a, 'arena> {
+    fn parameter_object_value(&self, hint: Option<&Hint<'_>>) -> Option<Value> {
+        let class = match hint? {
+            Hint::Identifier(identifier) => {
+                let namespace = self.namespace.clone().unwrap_or_default();
+                let imports = self.imports.get(&namespace).cloned().unwrap_or_default();
+                summary::resolve_name(identifier, self.namespace.as_deref(), &imports)
+            }
+            Hint::Self_(_) => self.class.clone()?,
+            Hint::Parent(_) => {
+                let class = self.class.as_ref()?;
+                self.parents.get(class)?.clone()
+            }
+            _ => return None,
+        };
+        (!self.parents.values().any(|parent| parent == &class)).then_some(Value::Object(class))
+    }
 }
 
 fn parameter_value(
@@ -3604,7 +3811,7 @@ fn path_or_many(values: &[Bool]) -> Bool {
 fn null_condition(value: &Value) -> Option<Bool> {
     match value {
         Value::Null => Some(Bool::from_bool(true)),
-        Value::Unknown | Value::Unverified => None,
+        Value::Unknown | Value::Unverified | Value::UnverifiedNumeric { .. } => None,
         _ => Some(Bool::from_bool(false)),
     }
 }
@@ -3647,7 +3854,8 @@ fn value_type_name(value: &Value) -> &'static str {
         Value::Array(_) | Value::ArrayLength(_) => "array",
         Value::Null => "null",
         Value::Unknown => "unknown",
-        Value::Unverified => "unverified",
+        Value::Unverified | Value::UnverifiedNumeric { .. } => "unverified-number",
+        Value::Object(_) => "object",
     }
 }
 
