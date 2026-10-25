@@ -662,6 +662,11 @@ fn collect_returns<'arena>(
                 }
             },
             Statement::Foreach(foreach) => collect_returns(foreach.body.statements(), returns),
+            Statement::Switch(switch) => {
+                for case in switch.body.cases() {
+                    collect_returns(case.statements(), returns);
+                }
+            }
             Statement::Try(try_statement) => {
                 collect_returns(try_statement.block.statements.as_slice(), returns);
                 for catch in try_statement.catch_clauses.iter() {
@@ -697,7 +702,7 @@ fn collect_if_returns<'arena>(
     }
 }
 
-fn constant_value(expression: &Expression<'_>) -> Option<ConstantValue> {
+pub(crate) fn constant_value(expression: &Expression<'_>) -> Option<ConstantValue> {
     match expression.unparenthesized() {
         Expression::Literal(literal) => match literal {
             Literal::Integer(integer) => integer
@@ -767,6 +772,22 @@ mod tests {
 
         let typed_return = summarize("<?php function pass($value): int { return $value; }");
         assert_eq!(typed_return["pass"].return_parameter, None);
+    }
+
+    #[test]
+    fn collects_returns_from_switch_cases() {
+        let summaries = summarize(
+            "<?php function pick($value) {
+                if ($value) { return null; }
+                switch ($value) {
+                    case 1: return 'one';
+                    default: return 'other';
+                }
+            }",
+        );
+
+        assert_eq!(summaries["pick"].return_value, None);
+        assert_eq!(summaries["pick"].return_parameter, None);
     }
 
     #[test]
