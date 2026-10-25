@@ -8,7 +8,8 @@
 - Vendored Z3 so the verifier builds without a system Z3 installation. Release binaries now target GNU Linux (musl builds are no longer produced).
 - `E0031` propagates bounded integer ranges through direct same-class helper calls, including expressions such as `$max - $min + 1` and `max()`, `min()`, `abs()`, and `intdiv()`.
 - `E0031` propagates PHPDoc return contracts to callers, including numeric ranges, non-empty strings/lists, and shaped arrays; documented non-empty values carry length information for `strlen()` and `count()`.
-- `E0031` merges loop exit values with the feasible zero-iteration path for integer counters initialized to zero, so a counter initialized before a possibly empty loop is still considered possibly zero; unknown accumulators are reported as `unverified` under `unknown_policy: report` instead of being treated as safe. The benchmark now includes the PPOE/pgacc-style loop regression and its guarded counterpart.
+- `E0031` merges loop exit values with the feasible zero-iteration path for integer counters initialized to zero, so a counter initialized before a possibly empty loop is still considered possibly zero; unknown accumulators are reported as `unverified` under `unknown_policy: report` instead of being treated as safe. Unknown numeric accumulators retain enough type information to prove guards such as `$count > 0`, while strict type-sensitive guards remain unverified. The benchmark now includes the PPOE/pgacc-style loop regression, guarded counterparts, and a strict-guard soundness case.
+- `E0031` propagates constant-return and PHPDoc method contracts through directly instantiated objects stored in variables and through parameters whose class has no known project-local subclass, including classes and contracts declared in other indexed files.
 - `E0031` now reports solver `unknown` results with clearer `unverified` guidance by default; `unknown_policy: ignore` still suppresses them.
 
 ### Fixed
