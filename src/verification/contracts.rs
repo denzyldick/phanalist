@@ -242,7 +242,10 @@ pub fn is_nullable(ty: &str) -> bool {
 }
 
 pub fn accepts_value(value: &Value, ty: &str, strict: bool) -> Option<bool> {
-    if matches!(value, Value::Unknown) {
+    if matches!(
+        value,
+        Value::Unknown | Value::Unverified | Value::UnverifiedNumeric { .. }
+    ) {
         return None;
     }
 
