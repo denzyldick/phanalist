@@ -6,6 +6,10 @@
 
 - `E0031` formal verification rule backed by Z3. It proves division, modulo and `intdiv()` safety; array and string bounds; null method and property access; declared and PHPDoc return contracts; PHPDoc parameter and `@var` refinements; `@phpstan-assert`/`@psalm-assert` contracts; assertions; unreachable statements; `switch`/`match` guards; numbered `break`/`continue`; per-element `foreach` analysis; closures and arrow functions; `try`/`catch`/`finally`; `never` return contracts; and `strlen()`/`count()` derived bounds. It unrolls `while`, `for`, `do`/`while`, and literal-array `foreach` loops, and uses project-wide constant-return and identity function and method summaries, including inherited and trait methods, `parent::` calls, and class and function `use` aliases, and reports unverified properties according to `unknown_policy`.
 - Vendored Z3 so the verifier builds without a system Z3 installation. Release binaries now target GNU Linux (musl builds are no longer produced).
+- `E0031` propagates bounded integer ranges through direct same-class helper calls, including expressions such as `$max - $min + 1` and `max()`, `min()`, `abs()`, and `intdiv()`.
+- `E0031` propagates PHPDoc return contracts to callers, including numeric ranges, non-empty strings/lists, and shaped arrays; documented non-empty values carry length information for `strlen()` and `count()`.
+- `E0031` merges loop exit values with the feasible zero-iteration path for integer counters initialized to zero, so a counter initialized before a possibly empty loop is still considered possibly zero; unknown accumulators are reported as `unverified` under `unknown_policy: report` instead of being treated as safe. The benchmark now includes the PPOE/pgacc-style loop regression and its guarded counterpart.
+- `E0031` now reports solver `unknown` results with clearer `unverified` guidance by default; `unknown_policy: ignore` still suppresses them.
 
 ### Fixed
 

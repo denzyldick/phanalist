@@ -1,5 +1,5 @@
 use std::error::Error;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use lsp_server::{Connection, Message, Notification, Response};
 use lsp_types::{
@@ -43,9 +43,7 @@ pub fn run_server(config: &Config) -> Result<(), Box<dyn Error>> {
     let analyse = Analyse::new(config);
 
     // Extract workspace root to index files on startup
-    let workspace_root = params.root_uri
-        .and_then(|uri| uri.to_file_path().ok())
-        .or_else(|| params.root_path.map(PathBuf::from));
+    let workspace_root = params.root_uri.and_then(|uri| uri.to_file_path().ok());
 
     if let Some(ref root) = workspace_root {
         eprintln!("Indexing workspace root: {}", root.display());
