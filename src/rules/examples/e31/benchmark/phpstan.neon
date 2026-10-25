@@ -1,0 +1,5 @@
+parameters:
+    level: max
+    paths:
+        - loop_zero_iteration.php
+        - loop_zero_iteration_guarded.php

@@ -22,6 +22,7 @@ pub enum ConstantValue {
 pub struct FunctionSummary {
     pub return_value: Option<ConstantValue>,
     pub return_parameter: Option<usize>,
+    pub return_contract: Option<String>,
     pub asserts: Vec<ParameterAssertion>,
     pub never_returns: bool,
 }
@@ -516,6 +517,7 @@ fn summarize_function(
             return FunctionSummary {
                 return_value: None,
                 return_parameter: Some(index),
+                return_contract: docblock.return_type.clone(),
                 asserts,
                 never_returns,
             };
@@ -533,6 +535,7 @@ fn summarize_function(
             (Some(previous), Some(constant)) if previous == &constant => {}
             _ => {
                 return FunctionSummary {
+                    return_contract: docblock.return_type.clone(),
                     asserts,
                     never_returns,
                     ..FunctionSummary::default()
@@ -544,6 +547,7 @@ fn summarize_function(
     FunctionSummary {
         return_value: value,
         return_parameter: None,
+        return_contract: docblock.return_type.clone(),
         asserts,
         never_returns,
     }

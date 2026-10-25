@@ -223,6 +223,39 @@ mod verification_tests {
     }
 
     #[test]
+    fn propagates_documented_numeric_and_non_empty_contracts_to_callers() {
+        assert!(messages("e31/contract_propagation.php").is_empty());
+    }
+
+    #[test]
+    fn uses_propagated_contracts_in_arithmetic_findings() {
+        let messages = messages("e31/contract_propagation_findings.php");
+
+        assert_eq!(messages.len(), 3);
+        assert!(messages
+            .iter()
+            .all(|message| message.contains("Modulo by zero")));
+    }
+
+    #[test]
+    fn propagates_documented_array_shapes_to_parameters_and_callers() {
+        let messages = messages("e31/shape_contract_propagation.php");
+
+        assert_eq!(messages.len(), 2);
+        assert!(messages
+            .iter()
+            .all(|message| message.contains("Array key 'missing'")));
+    }
+
+    #[test]
+    fn uses_static_range_domains_and_builtin_expression_ranges() {
+        let messages = messages("e31/static_method_ranges.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Modulo by zero"));
+    }
+
+    #[test]
     fn tracks_array_writes_and_native_false_union() {
         assert!(messages("e31/array_writes_and_false_union.php").is_empty());
     }
@@ -452,6 +485,28 @@ mod loop_tests {
 
         assert_eq!(messages.len(), 1);
         assert!(messages[0].contains("unreachable"));
+    }
+
+    #[test]
+    fn reports_division_after_a_possibly_empty_foreach_loop() {
+        let messages = messages("e31/benchmark/loop_zero_iteration.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+
+    #[test]
+    fn reports_unverified_when_a_loop_accumulator_is_unknown() {
+        let messages = messages("e31/benchmark/loop_zero_iteration_unknown.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Could not verify"));
+        assert!(messages[0].contains("unverified"));
+    }
+
+    #[test]
+    fn proves_guarded_division_after_a_possibly_empty_foreach_loop() {
+        assert!(messages("e31/benchmark/loop_zero_iteration_guarded.php").is_empty());
     }
 }
 
@@ -1185,6 +1240,7 @@ mod benchmark {
     const RETURN_CONTRACT: &str = "E0031:return-contract";
     const UNREACHABLE: &str = "E0031:unreachable";
     const ASSERTION: &str = "E0031:assertion";
+    const UNVERIFIED: &str = "E0031:unverified";
 
     struct BenchmarkCase {
         category: &'static str,
@@ -1400,6 +1456,26 @@ mod benchmark {
             expected: &[DIVISION],
         },
         BenchmarkCase {
+            category: "integer-division",
+            path: "e31/static_method_ranges.php",
+            expected: &[MODULO],
+        },
+        BenchmarkCase {
+            category: "contracts",
+            path: "e31/contract_propagation.php",
+            expected: &[],
+        },
+        BenchmarkCase {
+            category: "contracts",
+            path: "e31/contract_propagation_findings.php",
+            expected: &[MODULO, MODULO, MODULO],
+        },
+        BenchmarkCase {
+            category: "contracts",
+            path: "e31/shape_contract_propagation.php",
+            expected: &[ARRAY_KEY, ARRAY_KEY],
+        },
+        BenchmarkCase {
             category: "division",
             path: "e31/benchmark/division.php",
             expected: &[DIVISION, DIVISION, MODULO, INTDIV, INTDIV_OVERFLOW],
@@ -1418,6 +1494,21 @@ mod benchmark {
             category: "control-flow",
             path: "e31/benchmark/control_flow.php",
             expected: &[UNREACHABLE, DIVISION, ASSERTION],
+        },
+        BenchmarkCase {
+            category: "loops",
+            path: "e31/benchmark/loop_zero_iteration.php",
+            expected: &[DIVISION],
+        },
+        BenchmarkCase {
+            category: "loops",
+            path: "e31/benchmark/loop_zero_iteration_unknown.php",
+            expected: &[UNVERIFIED],
+        },
+        BenchmarkCase {
+            category: "loops",
+            path: "e31/benchmark/loop_zero_iteration_guarded.php",
+            expected: &[],
         },
     ];
 

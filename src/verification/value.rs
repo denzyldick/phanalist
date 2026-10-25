@@ -8,15 +8,18 @@ pub enum ArrayKey {
     String(String),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     Int(Int),
     Float(Float),
     Bool(Bool),
     String(Option<String>),
+    StringLength(Int),
     Array(Option<BTreeSet<ArrayKey>>),
+    ArrayLength(Int),
     Null,
     Unknown,
+    Unverified,
 }
 
 impl Value {
@@ -35,8 +38,10 @@ impl Value {
             Value::Float(value) => Some(value.is_zero().not()),
             Value::Null => Some(Bool::from_bool(false)),
             Value::String(Some(value)) => Some(Bool::from_bool(!value.is_empty() && value != "0")),
+            Value::StringLength(_) => None,
             Value::Array(Some(keys)) => Some(Bool::from_bool(!keys.is_empty())),
-            Value::String(None) | Value::Array(None) | Value::Unknown => None,
+            Value::ArrayLength(length) => Some(length.eq(0).not()),
+            Value::String(None) | Value::Array(None) | Value::Unknown | Value::Unverified => None,
         }
     }
 
@@ -55,6 +60,9 @@ impl Value {
     }
 
     pub fn merge(condition: Option<&Bool>, left: &Value, right: &Value) -> Value {
+        if condition.is_none() && left == right {
+            return left.clone();
+        }
         match (condition, left, right) {
             (Some(condition), Value::Int(left), Value::Int(right)) => {
                 Value::Int(condition.ite(left, right))
@@ -69,6 +77,12 @@ impl Value {
                 Value::String(Some(left.clone()))
             }
             (None, Value::Null, Value::Null) => Value::Null,
+            (Some(condition), Value::StringLength(left), Value::StringLength(right)) => {
+                Value::StringLength(condition.ite(left, right))
+            }
+            (Some(condition), Value::ArrayLength(left), Value::ArrayLength(right)) => {
+                Value::ArrayLength(condition.ite(left, right))
+            }
             (Some(condition), Value::Array(Some(left)), Value::Array(Some(right)))
                 if left == right =>
             {

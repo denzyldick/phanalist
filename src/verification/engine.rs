@@ -21,6 +21,12 @@ pub struct Finding {
     pub span: Span,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+enum ParameterDomain {
+    Finite(Vec<ConstantValue>),
+    IntRange { min: i64, max: i64 },
+}
+
 #[derive(Clone)]
 struct State {
     env: HashMap<String, Value>,
@@ -80,7 +86,7 @@ struct Analyzer<'a, 'arena> {
     docblocks: Vec<Trivia<'arena>>,
     doc_return: Option<String>,
     doc_templates: Vec<String>,
-    method_constants: HashMap<String, Vec<Option<Vec<ConstantValue>>>>,
+    method_domains: HashMap<String, Vec<Option<ParameterDomain>>>,
     in_generator: bool,
 }
 
@@ -121,7 +127,7 @@ pub fn analyze_file_with_summaries(
             .collect(),
         doc_return: None,
         doc_templates: Vec::new(),
-        method_constants: HashMap::new(),
+        method_domains: HashMap::new(),
         in_generator: false,
     };
 
@@ -135,18 +141,16 @@ pub fn analyze_file_with_summaries(
 
 impl<'a, 'arena> Analyzer<'a, 'arena> {
     fn analyze_statement(&mut self, statement: &'arena Statement<'arena>, state: &mut State) {
-        if !state.reachable {
-            if !is_declaration(statement) {
-                if self.settings.check_unreachable {
-                    self.push_finding(
-                        "unreachable",
-                        "This statement is unreachable.",
-                        statement.span(),
-                        "?",
-                    );
-                }
-                return;
+        if !state.reachable && !is_declaration(statement) {
+            if self.settings.check_unreachable {
+                self.push_finding(
+                    "unreachable",
+                    "This statement is unreachable.",
+                    statement.span(),
+                    "?",
+                );
             }
+            return;
         }
 
         match statement {
@@ -321,20 +325,20 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         members: &'arena Sequence<'arena, ClassLikeMember<'arena>>,
     ) {
         let previous = self.class.take();
-        let previous_constants = std::mem::take(&mut self.method_constants);
+        let previous_domains = std::mem::take(&mut self.method_domains);
         let class = self.qualified_name(&name.to_ascii_lowercase());
-        self.method_constants = self.static_method_constants(&class, members);
+        self.method_domains = self.static_method_domains(&class, members);
         self.class = Some(class);
         self.analyze_members(members);
         self.class = previous;
-        self.method_constants = previous_constants;
+        self.method_domains = previous_domains;
     }
 
-    fn static_method_constants(
+    fn static_method_domains(
         &self,
         class: &str,
         members: &'arena Sequence<'arena, ClassLikeMember<'arena>>,
-    ) -> HashMap<String, Vec<Option<Vec<ConstantValue>>>> {
+    ) -> HashMap<String, Vec<Option<ParameterDomain>>> {
         if members
             .iter()
             .any(|member| matches!(member, ClassLikeMember::TraitUse(_)))
@@ -351,7 +355,6 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             let callable = method.modifiers.iter().any(Modifier::is_private)
                 || (no_subclass && method.modifiers.iter().any(Modifier::is_protected));
             if !matches!(method.body, MethodBody::Concrete(_))
-                || !method.is_static()
                 || !callable
                 || method
                     .parameter_list
@@ -380,37 +383,95 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
 
         let namespace = self.namespace.clone().unwrap_or_default();
         let imports = self.imports.get(&namespace).cloned().unwrap_or_default();
-        let collector = PrivateStaticCallCollector {
-            class,
-            namespace: self.namespace.as_deref(),
-            imports: &imports,
-            parameters: &parameters,
-            allow_static_binding: no_subclass,
-            calls: Mutex::new(HashMap::new()),
-            invalid: Mutex::new(HashSet::new()),
-        };
-        for member in members.iter() {
-            if let ClassLikeMember::Method(method) = member {
-                if let MethodBody::Concrete(block) = &method.body {
-                    collector.walk_block(block, &mut ());
+        let mut domains: HashMap<String, Vec<Option<ParameterDomain>>> = parameters
+            .iter()
+            .map(|(name, parameters)| (name.clone(), vec![None; parameters.len()]))
+            .collect();
+
+        for _ in 0..16 {
+            let calls = Mutex::new(HashMap::new());
+            let invalid = Mutex::new(HashSet::new());
+            let inner_scope = Mutex::new(0usize);
+            for member in members.iter() {
+                let ClassLikeMember::Method(method) = member else {
+                    continue;
+                };
+                let MethodBody::Concrete(block) = &method.body else {
+                    continue;
+                };
+                let method_name = String::from_utf8_lossy(method.name.value).to_ascii_lowercase();
+                let caller_parameters = parameters
+                    .get(&method_name)
+                    .cloned()
+                    .or_else(|| {
+                        let names = method
+                            .parameter_list
+                            .parameters
+                            .iter()
+                            .map(|parameter| {
+                                String::from_utf8_lossy(parameter.variable.name)
+                                    .trim_start_matches('$')
+                                    .to_string()
+                            })
+                            .collect::<Vec<_>>();
+                        (!names.is_empty()).then_some(names)
+                    })
+                    .unwrap_or_default();
+                let caller_domains = domains
+                    .get(&method_name)
+                    .cloned()
+                    .unwrap_or_else(|| vec![None; caller_parameters.len()]);
+                let collector = PrivateStaticCallCollector {
+                    class,
+                    namespace: self.namespace.as_deref(),
+                    imports: &imports,
+                    parameters: &parameters,
+                    allow_static_binding: no_subclass,
+                    caller_parameters: &caller_parameters,
+                    caller_domains: &caller_domains,
+                    domains: &domains,
+                    calls: &calls,
+                    invalid: &invalid,
+                    inner_scope: &inner_scope,
+                };
+                collector.walk_block(block, &mut ());
+            }
+
+            let invalid = invalid.into_inner().unwrap_or_default();
+            let collected = calls.into_inner().unwrap_or_default();
+            let mut changed = false;
+            for (name, calls) in collected {
+                if invalid.contains(&name) {
+                    continue;
                 }
+                let Some(arity) = parameters.get(&name).map(Vec::len) else {
+                    continue;
+                };
+                let inferred = infer_parameter_domains(&calls, arity);
+                let Some(current) = domains.get_mut(&name) else {
+                    continue;
+                };
+                for (index, domain) in inferred.into_iter().enumerate() {
+                    let Some(domain) = domain else {
+                        continue;
+                    };
+                    let merged = match current[index].as_ref() {
+                        Some(current) => merge_domains(current, &domain),
+                        None => Some(domain),
+                    };
+                    if merged != current[index] {
+                        current[index] = merged;
+                        changed = true;
+                    }
+                }
+            }
+            if !changed {
+                break;
             }
         }
 
-        let invalid = collector.invalid.into_inner().unwrap_or_default();
-        let collected = collector.calls.into_inner().unwrap_or_default();
-        collected
-            .into_iter()
-            .filter(|(name, _)| !invalid.contains(name))
-            .filter_map(|(name, calls)| {
-                let arity = parameters.get(&name)?.len();
-                let constants = infer_parameter_constants(&calls, arity);
-                constants
-                    .iter()
-                    .any(Option::is_some)
-                    .then_some((name, constants))
-            })
-            .collect()
+        domains.retain(|_, domains| domains.iter().any(Option::is_some));
+        domains
     }
 
     fn analyze_members(&mut self, members: &'arena Sequence<'arena, ClassLikeMember<'arena>>) {
@@ -458,7 +519,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         self.doc_templates = docblock.templates.clone();
 
         let mut state = State::new();
-        let method_constants = self.method_constants.get(&name.to_ascii_lowercase());
+        let method_domains = self.method_domains.get(&name.to_ascii_lowercase());
         for (index, parameter) in parameters.parameters.iter().enumerate() {
             let parameter_name = String::from_utf8_lossy(parameter.variable.name).to_string();
             let doc_type = if self.settings.check_types {
@@ -469,10 +530,10 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             } else {
                 None
             };
-            let inferred = method_constants
-                .and_then(|constants| constants.get(index))
+            let inferred = method_domains
+                .and_then(|domains| domains.get(index))
                 .and_then(Option::as_ref)
-                .and_then(|values| finite_parameter_value(name, &parameter_name, values));
+                .and_then(|domain| domain_parameter_value(name, &parameter_name, domain));
             let (value, constant_constraint) = inferred.unwrap_or_else(|| {
                 (
                     parameter_value(parameter.hint.as_ref(), doc_type, name, &parameter_name),
@@ -841,6 +902,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         }
 
         self.eval_expr(foreach.expression, state);
+        let initial = state.clone();
         let mut body_state = state.clone();
         match &foreach.target {
             ForeachTarget::Value(target) => {
@@ -858,7 +920,9 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             }
         }
         self.analyze_statements(foreach.body.statements(), &mut body_state);
-        self.havoc_modified(state, &body_state);
+        let modified = body_state.modified.clone();
+        let ran = Bool::new_const(format!("foreach_ran::{}", foreach.span().start.offset));
+        self.merge_loop_modified(state, &initial, &body_state, &modified, &ran);
     }
 
     fn analyze_foreach_pairs(
@@ -1112,6 +1176,34 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         }
     }
 
+    fn merge_loop_modified(
+        &self,
+        state: &mut State,
+        initial: &State,
+        final_state: &State,
+        modified: &HashSet<String>,
+        ran: &Bool,
+    ) {
+        for name in modified {
+            let Some(initial_value) = initial.env.get(name).cloned() else {
+                state.havoc(name);
+                continue;
+            };
+            if !matches!(&initial_value, Value::Int(value) if value.as_i64() == Some(0)) {
+                state.havoc(name);
+                continue;
+            }
+            let final_value = final_state.env.get(name).cloned().unwrap_or(Value::Unknown);
+            let value = match Value::merge(Some(ran), &final_value, &initial_value) {
+                Value::Unknown => Value::Unverified,
+                value => value,
+            };
+            state.env.insert(name.clone(), value);
+            state.modified.insert(name.clone());
+            state.array_values.remove(name);
+        }
+    }
+
     fn analyze_loop(
         &mut self,
         condition: Option<&'arena Expression<'arena>>,
@@ -1120,15 +1212,27 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         state: &mut State,
     ) -> State {
         let depth = self.loop_unroll_depth();
+        let loop_id = condition
+            .map(|condition| condition.span().start.offset)
+            .unwrap_or(0);
+        let initial = state.clone();
         let mut current = state.clone();
         let mut exit_paths = Vec::new();
         let mut reachable = false;
         let mut modified = state.modified.clone();
+        let mut ran: Option<Bool> = None;
 
         for _ in 0..depth {
             let condition_value =
                 condition.map(|condition| self.eval_expr(condition, &mut current));
             let condition = condition_value.as_ref().and_then(Value::truthiness);
+            if ran.is_none() {
+                ran = Some(match (&condition_value, &condition) {
+                    (None, _) => Bool::from_bool(true),
+                    (Some(_), Some(condition)) => condition.clone(),
+                    (Some(_), None) => Bool::new_const(format!("loop_ran::{loop_id}")),
+                });
+            }
 
             let mut body_state = current.clone();
             let mut exit_state = current.clone();
@@ -1183,9 +1287,8 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         exit_paths.push(current.path.clone());
         reachable |= current.reachable && path_may_be_true(&current.path);
 
-        for name in modified {
-            state.havoc(&name);
-        }
+        let ran = ran.unwrap_or_else(|| Bool::from_bool(true));
+        self.merge_loop_modified(state, &initial, &current, &modified, &ran);
         state.path = path_or_many(&exit_paths);
         state.reachable = reachable;
 
@@ -1219,7 +1322,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
 
             let condition_value = self.eval_expr(do_while.condition, &mut body_state);
             let condition = condition_value.truthiness();
-            let known_condition = !matches!(condition_value, Value::Unknown);
+            let known_condition = !matches!(condition_value, Value::Unknown | Value::Unverified);
             modified.extend(body_state.modified.iter().cloned());
 
             let mut next_state = body_state.clone();
@@ -1265,12 +1368,6 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         }
 
         self.settings.unroll_depth.clamp(1, 64)
-    }
-
-    fn havoc_modified(&self, state: &mut State, body_state: &State) {
-        for name in &body_state.modified {
-            state.havoc(name);
-        }
     }
 
     fn eval_expr(&mut self, expression: &'arena Expression<'arena>, state: &mut State) -> Value {
@@ -1527,7 +1624,8 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 self.divide_values(&left, &right)
             }
             AssignmentOperator::Modulo(_) => {
-                if self.settings.check_modulo && matches!(right, Value::Int(_)) {
+                if self.settings.check_modulo && matches!(right, Value::Int(_) | Value::Unverified)
+                {
                     self.check_nonzero(
                         &right,
                         &state.path,
@@ -1590,7 +1688,10 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             Expression::ArrayAccess(access) => {
                 let Some(name) = direct_variable_name(access.array) else {
                     if let Some(root) = root_variable_name(access.array) {
-                        if matches!(state.env.get(&root), Some(Value::Array(_))) {
+                        if matches!(
+                            state.env.get(&root),
+                            Some(Value::Array(_) | Value::ArrayLength(_))
+                        ) {
                             state.env.insert(root.clone(), Value::Array(None));
                         }
                         state.array_values.remove(&root);
@@ -1631,7 +1732,10 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             Expression::ArrayAppend(append) => {
                 let Some(name) = direct_variable_name(append.array) else {
                     if let Some(root) = root_variable_name(append.array) {
-                        if matches!(state.env.get(&root), Some(Value::Array(_))) {
+                        if matches!(
+                            state.env.get(&root),
+                            Some(Value::Array(_) | Value::ArrayLength(_))
+                        ) {
                             state.env.insert(root.clone(), Value::Array(None));
                         }
                         state.array_values.remove(&root);
@@ -1764,7 +1868,8 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 self.divide_values(&left, &right)
             }
             BinaryOperator::Modulo(_) => {
-                if self.settings.check_modulo && matches!(right, Value::Int(_)) {
+                if self.settings.check_modulo && matches!(right, Value::Int(_) | Value::Unverified)
+                {
                     self.check_nonzero(
                         &right,
                         &state.path,
@@ -1885,11 +1990,8 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
 
         let Some(condition) = condition else {
             let mut then_state = state.clone();
-            match conditional.then {
-                Some(value) => {
-                    self.eval_expr(value, &mut then_state);
-                }
-                None => {}
+            if let Some(value) = conditional.then {
+                self.eval_expr(value, &mut then_state);
             }
             let mut else_state = state.clone();
             self.eval_expr(conditional.r#else, &mut else_state);
@@ -2040,11 +2142,15 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 }
                 if let Some(summary) = self.function_summary(function.function) {
                     self.apply_call_assertions(summary, &arguments, &function.argument_list, state);
-                    if let Some(value) = summary_call_value(
+                    if let Some((value, constraint)) = summary_call_value(
                         summary,
                         &arguments,
                         arguments_are_positional(&function.argument_list),
+                        function.span(),
                     ) {
+                        if let Some(constraint) = constraint {
+                            state.path = path_and(&state.path, &constraint);
+                        }
                         self.apply_never_returns(summary, state);
                         return value;
                     }
@@ -2077,11 +2183,15 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 {
                     self.apply_call_assertions(summary, &arguments, &method.argument_list, state);
                     self.apply_never_returns(summary, state);
-                    if let Some(value) = summary_call_value(
+                    if let Some((value, constraint)) = summary_call_value(
                         summary,
                         &arguments,
                         arguments_are_positional(&method.argument_list),
+                        call.span(),
                     ) {
+                        if let Some(constraint) = constraint {
+                            state.path = path_and(&state.path, &constraint);
+                        }
                         return value;
                     }
                 }
@@ -2101,11 +2211,15 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 {
                     self.apply_call_assertions(summary, &arguments, &method.argument_list, state);
                     self.apply_never_returns(summary, state);
-                    if let Some(value) = summary_call_value(
+                    if let Some((value, constraint)) = summary_call_value(
                         summary,
                         &arguments,
                         arguments_are_positional(&method.argument_list),
+                        call.span(),
                     ) {
+                        if let Some(constraint) = constraint {
+                            state.path = path_and(&state.path, &constraint);
+                        }
                         return value;
                     }
                 }
@@ -2122,11 +2236,15 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 {
                     self.apply_call_assertions(summary, &arguments, &method.argument_list, state);
                     self.apply_never_returns(summary, state);
-                    if let Some(value) = summary_call_value(
+                    if let Some((value, constraint)) = summary_call_value(
                         summary,
                         &arguments,
                         arguments_are_positional(&method.argument_list),
+                        call.span(),
                     ) {
+                        if let Some(constraint) = constraint {
+                            state.path = path_and(&state.path, &constraint);
+                        }
                         return value;
                     }
                 }
@@ -2169,7 +2287,8 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             let name = positional
                 .get(assertion.index)
                 .and_then(|argument| direct_variable_name(argument.value));
-            let value = if !assertion.negated && matches!(value, Value::Unknown) {
+            let value = if !assertion.negated && matches!(value, Value::Unknown | Value::Unverified)
+            {
                 let value = parameter_value(
                     None,
                     Some(&assertion.ty),
@@ -2227,7 +2346,10 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 Argument::Named(argument) => argument.value,
             };
             if let Some(name) = root_variable_name(expression) {
-                if matches!(state.env.get(&name), Some(Value::Array(_))) {
+                if matches!(
+                    state.env.get(&name),
+                    Some(Value::Array(_) | Value::ArrayLength(_))
+                ) {
                     state.assign(name, Value::Unknown);
                 }
             }
@@ -2265,7 +2387,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                         });
                         match value {
                             Some(Value::Null) => Some(Bool::from_bool(false)),
-                            Some(Value::Unknown) | None => None,
+                            Some(Value::Unknown | Value::Unverified) | None => None,
                             Some(_) => Some(Bool::from_bool(true)),
                         }
                     }
@@ -2275,7 +2397,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             }
             _ => match evaluated {
                 Value::Null => Some(Bool::from_bool(false)),
-                Value::Unknown => None,
+                Value::Unknown | Value::Unverified => None,
                 _ => Some(Bool::from_bool(true)),
             },
         }
@@ -2612,6 +2734,24 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     );
                 }
             }
+            Value::StringLength(length) => {
+                if !self.settings.check_string_offset {
+                    return;
+                }
+                if let Value::Int(index) = index {
+                    let out_of_bounds =
+                        Bool::or(&[&index.lt(-length.clone()), &index.ge(length.clone())]);
+                    let index_value = Value::Int(index.clone());
+                    self.check_condition(
+                        &out_of_bounds,
+                        path,
+                        span,
+                        "string-offset",
+                        "String offset {value} is out of bounds.",
+                        Some(&index_value),
+                    );
+                }
+            }
             _ => {}
         }
     }
@@ -2691,6 +2831,15 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             (Value::String(Some(left)), Value::String(Some(right))) => {
                 Value::String(Some(format!("{left}{right}")))
             }
+            (Value::StringLength(left), Value::StringLength(right)) => {
+                Value::StringLength(left.add(right))
+            }
+            (Value::StringLength(left), Value::String(Some(right))) => {
+                Value::StringLength(left.add(Int::from_i64(right.len() as i64)))
+            }
+            (Value::String(Some(left)), Value::StringLength(right)) => {
+                Value::StringLength(Int::from_i64(left.len() as i64).add(right))
+            }
             _ => Value::Unknown,
         }
     }
@@ -2699,8 +2848,8 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         let comparison = match (left, right) {
             (Value::Int(left), Value::Int(right)) => Some(left.eq(right)),
             (Value::Float(left), Value::Float(right)) => Some(left.eq_fpa(right)),
-            (Value::Int(left), Value::Float(right)) => Some(left.to_real().eq(&right.to_real())),
-            (Value::Float(left), Value::Int(right)) => Some(left.to_real().eq(&right.to_real())),
+            (Value::Int(left), Value::Float(right)) => Some(left.to_real().eq(right.to_real())),
+            (Value::Float(left), Value::Int(right)) => Some(left.to_real().eq(right.to_real())),
             (Value::Bool(left), Value::Bool(right)) => Some(left.eq(right)),
             (Value::Null, Value::Null) => Some(Bool::from_bool(true)),
             _ => None,
@@ -2711,7 +2860,9 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
     }
 
     fn compare_identical(&self, left: &Value, right: &Value, negate: bool) -> Value {
-        if matches!(left, Value::Unknown) || matches!(right, Value::Unknown) {
+        if matches!(left, Value::Unknown | Value::Unverified)
+            || matches!(right, Value::Unknown | Value::Unverified)
+        {
             return Value::Unknown;
         }
 
@@ -2729,6 +2880,10 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             | (Value::String(_), Value::Int(_))
             | (Value::Float(_), Value::String(_))
             | (Value::String(_), Value::Float(_))
+            | (Value::Int(_), Value::StringLength(_))
+            | (Value::StringLength(_), Value::Int(_))
+            | (Value::Float(_), Value::StringLength(_))
+            | (Value::StringLength(_), Value::Float(_))
             | (Value::Null, _)
             | (_, Value::Null) => Some(Bool::from_bool(false)),
             _ => None,
@@ -2751,14 +2906,14 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 left.lt(right)
             }),
             (Value::Int(left), Value::Float(right)) => Some(if or_equal {
-                left.to_real().le(&right.to_real())
+                left.to_real().le(right.to_real())
             } else {
-                left.to_real().lt(&right.to_real())
+                left.to_real().lt(right.to_real())
             }),
             (Value::Float(left), Value::Int(right)) => Some(if or_equal {
-                left.to_real().le(&right.to_real())
+                left.to_real().le(right.to_real())
             } else {
-                left.to_real().lt(&right.to_real())
+                left.to_real().lt(right.to_real())
             }),
             _ => None,
         };
@@ -2778,14 +2933,14 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 left.gt(right)
             }),
             (Value::Int(left), Value::Float(right)) => Some(if or_equal {
-                left.to_real().ge(&right.to_real())
+                left.to_real().ge(right.to_real())
             } else {
-                left.to_real().gt(&right.to_real())
+                left.to_real().gt(right.to_real())
             }),
             (Value::Float(left), Value::Int(right)) => Some(if or_equal {
-                left.to_real().ge(&right.to_real())
+                left.to_real().ge(right.to_real())
             } else {
-                left.to_real().gt(&right.to_real())
+                left.to_real().gt(right.to_real())
             }),
             _ => None,
         };
@@ -2848,7 +3003,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             return;
         };
 
-        if matches!(value, Value::Unknown) {
+        if matches!(value, Value::Unknown | Value::Unverified) {
             return;
         }
 
@@ -2885,7 +3040,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             return;
         };
 
-        if matches!(value, Value::Unknown) {
+        if matches!(value, Value::Unknown | Value::Unverified) {
             return;
         }
 
@@ -2904,7 +3059,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
     }
 
     fn check_intdiv(&mut self, left: &Value, right: &Value, span: Span, path: &Bool) {
-        if !matches!(right, Value::Int(_)) {
+        if !matches!(right, Value::Int(_) | Value::Unverified) {
             return;
         }
         self.check_nonzero(
@@ -2939,6 +3094,17 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         id: &'static str,
         template: &'static str,
     ) {
+        if matches!(value, Value::Unverified) {
+            if self.settings.unknown_policy == "report" {
+                self.push_finding(
+                    "unverified",
+                    "Could not verify this property: the divisor cannot be modeled. Treat it as unverified, not safe; see unknown_policy.",
+                    span,
+                    "?",
+                );
+            }
+            return;
+        }
         let Some(zero) = value.zero_condition() else {
             return;
         };
@@ -2999,7 +3165,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 if self.settings.unknown_policy == "report" {
                     self.push_finding(
                         "unverified",
-                        "Could not verify this property: the solver returned unknown.",
+                        "Could not verify this property: the solver returned unknown. Treat it as unverified, not safe; see unknown_policy.",
                         span,
                         "?",
                     );
@@ -3025,6 +3191,17 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         let key = (span.start.offset, span.end.offset, id);
         if !self.seen.insert(key) {
             return;
+        }
+
+        if id != "unverified" {
+            let unverified = (span.start.offset, span.end.offset, "unverified");
+            if self.seen.remove(&unverified) {
+                self.findings.retain(|finding| {
+                    !(finding.span.start.offset == span.start.offset
+                        && finding.span.end.offset == span.end.offset
+                        && finding.message.id == "E0031:unverified")
+                });
+            }
         }
 
         self.findings.push(Finding { message, span });
@@ -3074,10 +3251,12 @@ fn builtin_call_value(name: Option<&str>, arguments: &[Value]) -> Option<Value> 
     match name {
         "strlen" => match arguments.first()? {
             Value::String(Some(value)) => Some(Value::Int(Int::from_u64(value.len() as u64))),
+            Value::StringLength(length) => Some(Value::Int(length.clone())),
             _ => None,
         },
         "count" | "sizeof" => match arguments.first()? {
             Value::Array(Some(keys)) => Some(Value::Int(Int::from_u64(keys.len() as u64))),
+            Value::ArrayLength(length) => Some(Value::Int(length.clone())),
             _ => None,
         },
         "array_key_exists" => {
@@ -3095,17 +3274,19 @@ fn builtin_call_value(name: Option<&str>, arguments: &[Value]) -> Option<Value> 
             type_predicate(arguments.first()?, |value| matches!(value, Value::Float(_)))
         }
         "is_string" => type_predicate(arguments.first()?, |value| {
-            matches!(value, Value::String(_))
+            matches!(value, Value::String(_) | Value::StringLength(_))
         }),
         "is_bool" => type_predicate(arguments.first()?, |value| matches!(value, Value::Bool(_))),
-        "is_array" => type_predicate(arguments.first()?, |value| matches!(value, Value::Array(_))),
+        "is_array" => type_predicate(arguments.first()?, |value| {
+            matches!(value, Value::Array(_) | Value::ArrayLength(_))
+        }),
         "is_null" => type_predicate(arguments.first()?, |value| matches!(value, Value::Null)),
         _ => None,
     }
 }
 
 fn type_predicate(value: &Value, predicate: impl Fn(&Value) -> bool) -> Option<Value> {
-    if matches!(value, Value::Unknown) {
+    if matches!(value, Value::Unknown | Value::Unverified) {
         return None;
     }
     Some(Value::Bool(Bool::from_bool(predicate(value))))
@@ -3139,17 +3320,28 @@ fn parameter_value(
         if doc_type == "float" || doc_type == "double" {
             return Value::Float(Float::new_const(format!("{function}::{parameter}"), 11, 53));
         }
-        if doc_type == "string" || doc_type == "non-empty-string" || doc_type == "numeric-string" {
+        if doc_type == "non-empty-string" {
+            return Value::StringLength(Int::new_const(format!("{function}::{parameter}::length")));
+        }
+        if doc_type == "string" || doc_type == "numeric-string" {
             return Value::String(None);
         }
         if doc_type == "bool" || doc_type == "boolean" || doc_type == "true" || doc_type == "false"
         {
             return Value::Bool(Bool::new_const(format!("{function}::{parameter}")));
         }
+        if doc_type == "non-empty-array"
+            || doc_type == "non-empty-list"
+            || doc_type.starts_with("non-empty-array<")
+            || doc_type.starts_with("non-empty-list<")
+        {
+            return Value::ArrayLength(Int::new_const(format!("{function}::{parameter}::length")));
+        }
+        if doc_type.starts_with("array{") {
+            return Value::Array(contracts::array_shape_keys(doc_type));
+        }
         if doc_type == "array"
             || doc_type == "iterable"
-            || doc_type == "non-empty-array"
-            || doc_type == "non-empty-list"
             || doc_type.starts_with("array<")
             || doc_type.starts_with("list<")
         {
@@ -3202,17 +3394,74 @@ fn summary_call_value(
     summary: &FunctionSummary,
     arguments: &[Value],
     positional: bool,
-) -> Option<Value> {
-    if let Some(value) = summary.return_value.as_ref() {
-        return Some(constant_to_value(value));
-    }
-    if !positional {
+    span: Span,
+) -> Option<(Value, Option<Bool>)> {
+    let value = if let Some(value) = summary.return_value.as_ref() {
+        constant_to_value(value)
+    } else if positional {
+        summary
+            .return_parameter
+            .and_then(|index| arguments.get(index))
+            .cloned()
+            .or_else(|| {
+                summary
+                    .return_contract
+                    .as_deref()
+                    .and_then(|ty| contract_value(ty, span.start.offset))
+            })?
+    } else {
+        summary
+            .return_contract
+            .as_deref()
+            .and_then(|ty| contract_value(ty, span.start.offset))?
+    };
+    let constraint = summary
+        .return_contract
+        .as_deref()
+        .and_then(|ty| contracts::constraint(&value, ty));
+    Some((value, constraint))
+}
+
+fn contract_value(ty: &str, tag: u32) -> Option<Value> {
+    let ty = ty.trim();
+    if ty.is_empty()
+        || ty.starts_with('?')
+        || ty.contains('|')
+        || ty == "mixed"
+        || ty.starts_with('(')
+    {
         return None;
     }
-    summary
-        .return_parameter
-        .and_then(|index| arguments.get(index))
-        .cloned()
+    if ty.starts_with("int<")
+        || matches!(
+            ty,
+            "positive-int"
+                | "non-negative-int"
+                | "negative-int"
+                | "non-positive-int"
+                | "non-zero-int"
+        )
+    {
+        return Some(Value::Int(Int::new_const(format!("call::{tag}::return"))));
+    }
+    if ty == "non-empty-string" {
+        return Some(Value::StringLength(Int::new_const(format!(
+            "call::{tag}::return::length"
+        ))));
+    }
+    if ty == "non-empty-array"
+        || ty == "non-empty-list"
+        || ty.starts_with("non-empty-array<")
+        || ty.starts_with("non-empty-list<")
+    {
+        return Some(Value::ArrayLength(Int::new_const(format!(
+            "call::{tag}::return::length"
+        ))));
+    }
+    if ty.starts_with("array{") {
+        return Some(Value::Array(contracts::array_shape_keys(ty)));
+    }
+    None
 }
 
 fn constant_to_value(value: &ConstantValue) -> Value {
@@ -3355,7 +3604,7 @@ fn path_or_many(values: &[Bool]) -> Bool {
 fn null_condition(value: &Value) -> Option<Bool> {
     match value {
         Value::Null => Some(Bool::from_bool(true)),
-        Value::Unknown => None,
+        Value::Unknown | Value::Unverified => None,
         _ => Some(Bool::from_bool(false)),
     }
 }
@@ -3394,10 +3643,11 @@ fn value_type_name(value: &Value) -> &'static str {
         Value::Int(_) => "int",
         Value::Float(_) => "float",
         Value::Bool(_) => "bool",
-        Value::String(_) => "string",
-        Value::Array(_) => "array",
+        Value::String(_) | Value::StringLength(_) => "string",
+        Value::Array(_) | Value::ArrayLength(_) => "array",
         Value::Null => "null",
         Value::Unknown => "unknown",
+        Value::Unverified => "unverified",
     }
 }
 
@@ -3407,8 +3657,12 @@ struct PrivateStaticCallCollector<'a> {
     imports: &'a HashMap<String, String>,
     parameters: &'a HashMap<String, Vec<String>>,
     allow_static_binding: bool,
-    calls: Mutex<HashMap<String, Vec<Vec<Option<ConstantValue>>>>>,
-    invalid: Mutex<HashSet<String>>,
+    caller_parameters: &'a [String],
+    caller_domains: &'a [Option<ParameterDomain>],
+    domains: &'a HashMap<String, Vec<Option<ParameterDomain>>>,
+    calls: &'a Mutex<HashMap<String, Vec<Vec<Option<ParameterDomain>>>>>,
+    invalid: &'a Mutex<HashSet<String>>,
+    inner_scope: &'a Mutex<usize>,
 }
 
 impl PrivateStaticCallCollector<'_> {
@@ -3424,14 +3678,38 @@ impl PrivateStaticCallCollector<'_> {
         }
     }
 
+    fn enter_inner_scope(&self) {
+        if let Ok(mut depth) = self.inner_scope.lock() {
+            *depth += 1;
+        }
+    }
+
+    fn exit_inner_scope(&self) {
+        if let Ok(mut depth) = self.inner_scope.lock() {
+            *depth = depth.saturating_sub(1);
+        }
+    }
+
     fn record(&self, method: &str, arguments: &ArgumentList<'_>) {
+        if self
+            .inner_scope
+            .lock()
+            .map(|depth| *depth > 0)
+            .unwrap_or(true)
+        {
+            return;
+        }
         let Some(parameters) = self.parameters.get(method) else {
             return;
         };
-        let Some(values) = constant_arguments(arguments, parameters) else {
-            if let Ok(mut invalid) = self.invalid.lock() {
-                invalid.insert(method.to_string());
-            }
+        let Some(values) = domain_arguments(
+            arguments,
+            parameters,
+            self.caller_parameters,
+            self.caller_domains,
+            self.domains,
+        ) else {
+            self.invalidate(method);
             return;
         };
         if let Ok(mut calls) = self.calls.lock() {
@@ -3456,6 +3734,24 @@ impl PrivateStaticCallCollector<'_> {
 }
 
 impl<'ast, 'arena> Walker<'ast, 'arena, ()> for PrivateStaticCallCollector<'_> {
+    fn walk_closure(&self, closure: &'ast Closure<'arena>, context: &mut ()) {
+        self.enter_inner_scope();
+        mago_syntax::walker::walk_closure(self, closure, context);
+        self.exit_inner_scope();
+    }
+
+    fn walk_arrow_function(&self, arrow: &'ast ArrowFunction<'arena>, context: &mut ()) {
+        self.enter_inner_scope();
+        mago_syntax::walker::walk_arrow_function(self, arrow, context);
+        self.exit_inner_scope();
+    }
+
+    fn walk_anonymous_class(&self, class: &'ast AnonymousClass<'arena>, context: &mut ()) {
+        self.enter_inner_scope();
+        mago_syntax::walker::walk_anonymous_class(self, class, context);
+        self.exit_inner_scope();
+    }
+
     fn walk_static_method_call(&self, call: &'ast StaticMethodCall<'arena>, context: &mut ()) {
         if self.is_current_class(call.class) {
             match selector_identifier(&call.method) {
@@ -3530,24 +3826,340 @@ impl<'ast, 'arena> Walker<'ast, 'arena, ()> for PrivateStaticCallCollector<'_> {
     }
 }
 
-fn infer_parameter_constants(
-    calls: &[Vec<Option<ConstantValue>>],
+fn infer_parameter_domains(
+    calls: &[Vec<Option<ParameterDomain>>],
     arity: usize,
-) -> Vec<Option<Vec<ConstantValue>>> {
+) -> Vec<Option<ParameterDomain>> {
     (0..arity)
         .map(|index| {
-            let mut constants: Vec<ConstantValue> = Vec::new();
+            let mut merged: Option<ParameterDomain> = None;
             for call in calls {
-                let Some(Some(value)) = call.get(index) else {
+                let Some(Some(domain)) = call.get(index) else {
                     return None;
                 };
-                if !constants.contains(value) {
-                    constants.push(value.clone());
-                }
+                merged = match &merged {
+                    Some(previous) => Some(merge_domains(previous, domain)?),
+                    None => Some(domain.clone()),
+                };
             }
-            (!constants.is_empty()).then_some(constants)
+            merged
         })
         .collect()
+}
+
+fn merge_domains(left: &ParameterDomain, right: &ParameterDomain) -> Option<ParameterDomain> {
+    match (left, right) {
+        (ParameterDomain::Finite(left), ParameterDomain::Finite(right)) => {
+            if left == right {
+                return Some(ParameterDomain::Finite(left.clone()));
+            }
+            let left = domain_int_bounds(&ParameterDomain::Finite(left.clone()))?;
+            let right = domain_int_bounds(&ParameterDomain::Finite(right.clone()))?;
+            Some(ParameterDomain::IntRange {
+                min: left.0.min(right.0),
+                max: left.1.max(right.1),
+            })
+        }
+        (ParameterDomain::Finite(values), ParameterDomain::IntRange { min, max })
+        | (ParameterDomain::IntRange { min, max }, ParameterDomain::Finite(values)) => {
+            let (values_min, values_max) =
+                domain_int_bounds(&ParameterDomain::Finite(values.clone()))?;
+            Some(ParameterDomain::IntRange {
+                min: values_min.min(*min),
+                max: values_max.max(*max),
+            })
+        }
+        (
+            ParameterDomain::IntRange {
+                min: left_min,
+                max: left_max,
+            },
+            ParameterDomain::IntRange {
+                min: right_min,
+                max: right_max,
+            },
+        ) => Some(ParameterDomain::IntRange {
+            min: (*left_min).min(*right_min),
+            max: (*left_max).max(*right_max),
+        }),
+    }
+}
+
+fn domain_int_bounds(domain: &ParameterDomain) -> Option<(i64, i64)> {
+    match domain {
+        ParameterDomain::Finite(values) => {
+            let mut min = i64::MAX;
+            let mut max = i64::MIN;
+            for value in values {
+                let ConstantValue::Int(value) = value else {
+                    return None;
+                };
+                min = min.min(*value);
+                max = max.max(*value);
+            }
+            (max >= min).then_some((min, max))
+        }
+        ParameterDomain::IntRange { min, max } => (*max >= *min).then_some((*min, *max)),
+    }
+}
+
+fn domain_parameter_value(
+    function: &str,
+    parameter: &str,
+    domain: &ParameterDomain,
+) -> Option<(Value, Option<Bool>)> {
+    match domain {
+        ParameterDomain::Finite(values) => finite_parameter_value(function, parameter, values),
+        ParameterDomain::IntRange { min, max } if min == max => {
+            Some((Value::Int(Int::from_i64(*min)), None))
+        }
+        ParameterDomain::IntRange { min, max } => {
+            let variable = Int::new_const(format!("{function}::{parameter}::range"));
+            let constraint = path_and(
+                &variable.ge(Int::from_i64(*min)),
+                &variable.le(Int::from_i64(*max)),
+            );
+            Some((Value::Int(variable), Some(constraint)))
+        }
+    }
+}
+
+fn domain_arguments(
+    arguments: &ArgumentList<'_>,
+    parameters: &[String],
+    caller_parameters: &[String],
+    caller_domains: &[Option<ParameterDomain>],
+    domains: &HashMap<String, Vec<Option<ParameterDomain>>>,
+) -> Option<Vec<Option<ParameterDomain>>> {
+    let mut values = vec![None; parameters.len()];
+    let mut assigned = vec![false; parameters.len()];
+    let mut positional = 0;
+    for argument in arguments.arguments.iter() {
+        match argument {
+            Argument::Positional(argument) if argument.ellipsis.is_none() => {
+                if positional >= values.len() {
+                    return None;
+                }
+                if assigned[positional] {
+                    return None;
+                }
+                values[positional] = domain_from_expression(
+                    argument.value,
+                    caller_parameters,
+                    caller_domains,
+                    domains,
+                );
+                assigned[positional] = true;
+                positional += 1;
+            }
+            Argument::Named(argument) => {
+                let name = String::from_utf8_lossy(argument.name.value);
+                let index = parameters
+                    .iter()
+                    .position(|parameter| parameter == name.as_ref())?;
+                if assigned[index] {
+                    return None;
+                }
+                values[index] = domain_from_expression(
+                    argument.value,
+                    caller_parameters,
+                    caller_domains,
+                    domains,
+                );
+                assigned[index] = true;
+            }
+            _ => return None,
+        }
+    }
+    Some(values)
+}
+
+fn domain_from_expression(
+    expression: &Expression<'_>,
+    caller_parameters: &[String],
+    caller_domains: &[Option<ParameterDomain>],
+    domains: &HashMap<String, Vec<Option<ParameterDomain>>>,
+) -> Option<ParameterDomain> {
+    if let Some(value) = summary::constant_value(expression) {
+        return Some(ParameterDomain::Finite(vec![value]));
+    }
+
+    match expression.unparenthesized() {
+        Expression::Variable(Variable::Direct(variable)) => {
+            let name = String::from_utf8_lossy(variable.name)
+                .trim_start_matches('$')
+                .to_string();
+            let index = caller_parameters
+                .iter()
+                .position(|parameter| parameter == &name)?;
+            caller_domains.get(index).cloned().flatten()
+        }
+        Expression::UnaryPrefix(unary) => {
+            let operand =
+                domain_from_expression(unary.operand, caller_parameters, caller_domains, domains)?;
+            match unary.operator {
+                UnaryPrefixOperator::Plus(_) => Some(operand),
+                UnaryPrefixOperator::Negation(_) => negate_domain(&operand),
+                _ => None,
+            }
+        }
+        Expression::Binary(binary) => {
+            let left =
+                domain_from_expression(binary.lhs, caller_parameters, caller_domains, domains)?;
+            let right =
+                domain_from_expression(binary.rhs, caller_parameters, caller_domains, domains)?;
+            binary_domain(binary.operator, &left, &right)
+        }
+        Expression::Call(Call::Function(function)) => {
+            let name = function_name(function.function)?;
+            builtin_domain(
+                &name,
+                &function.argument_list,
+                caller_parameters,
+                caller_domains,
+                domains,
+            )
+        }
+        _ => None,
+    }
+}
+
+fn negate_domain(domain: &ParameterDomain) -> Option<ParameterDomain> {
+    match domain {
+        ParameterDomain::Finite(values) => {
+            let mut values = values.clone();
+            for value in &mut values {
+                match value {
+                    ConstantValue::Int(value) => *value = value.checked_neg()?,
+                    ConstantValue::Float(value) => *value = -*value,
+                    _ => return None,
+                }
+            }
+            Some(ParameterDomain::Finite(values))
+        }
+        ParameterDomain::IntRange { min, max } => Some(ParameterDomain::IntRange {
+            min: max.checked_neg()?,
+            max: min.checked_neg()?,
+        }),
+    }
+}
+
+fn binary_domain(
+    operator: BinaryOperator<'_>,
+    left: &ParameterDomain,
+    right: &ParameterDomain,
+) -> Option<ParameterDomain> {
+    let (left_min, left_max) = domain_int_bounds(left)?;
+    let (right_min, right_max) = domain_int_bounds(right)?;
+    let (min, max) = match operator {
+        BinaryOperator::Addition(_) => (
+            checked_range(left_min, 1, right_min, 1)?,
+            checked_range(left_max, 1, right_max, 1)?,
+        ),
+        BinaryOperator::Subtraction(_) => (
+            checked_range(left_min, 1, right_max, -1)?,
+            checked_range(left_max, 1, right_min, -1)?,
+        ),
+        BinaryOperator::Multiplication(_) => {
+            let products = [
+                checked_range(left_min, right_min, 1, 1)?,
+                checked_range(left_min, right_max, 1, 1)?,
+                checked_range(left_max, right_min, 1, 1)?,
+                checked_range(left_max, right_max, 1, 1)?,
+            ];
+            (*products.iter().min()?, *products.iter().max()?)
+        }
+        BinaryOperator::Modulo(_) if right_min == right_max && right_min > 0 => {
+            (-(right_min - 1), right_min - 1)
+        }
+        _ => return None,
+    };
+    (min <= max).then_some(ParameterDomain::IntRange { min, max })
+}
+
+fn checked_range(left: i64, left_factor: i64, right: i64, right_factor: i64) -> Option<i64> {
+    let value =
+        i128::from(left) * i128::from(left_factor) + i128::from(right) * i128::from(right_factor);
+    i64::try_from(value).ok()
+}
+
+fn builtin_domain(
+    name: &str,
+    arguments: &ArgumentList<'_>,
+    caller_parameters: &[String],
+    caller_domains: &[Option<ParameterDomain>],
+    domains: &HashMap<String, Vec<Option<ParameterDomain>>>,
+) -> Option<ParameterDomain> {
+    let values = arguments
+        .arguments
+        .iter()
+        .filter_map(|argument| match argument {
+            Argument::Positional(argument) if argument.ellipsis.is_none() => {
+                domain_from_expression(argument.value, caller_parameters, caller_domains, domains)
+            }
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    match name {
+        "max" | "min" => {
+            if values.is_empty() || values.len() != arguments.arguments.len() {
+                return None;
+            }
+            let bounds = values
+                .iter()
+                .map(domain_int_bounds)
+                .collect::<Option<Vec<_>>>()?;
+            let min = if name == "max" {
+                bounds.iter().map(|(min, _)| *min).max()?
+            } else {
+                bounds.iter().map(|(min, _)| *min).min()?
+            };
+            let max = if name == "max" {
+                bounds.iter().map(|(_, max)| *max).max()?
+            } else {
+                bounds.iter().map(|(_, max)| *max).min()?
+            };
+            Some(ParameterDomain::IntRange { min, max })
+        }
+        "abs" => {
+            let (min, max) = domain_int_bounds(values.first()?)?;
+            if min >= 0 {
+                Some(ParameterDomain::IntRange { min, max })
+            } else if max <= 0 {
+                Some(ParameterDomain::IntRange {
+                    min: max.checked_neg()?,
+                    max: min.checked_neg()?,
+                })
+            } else {
+                Some(ParameterDomain::IntRange {
+                    min: 0,
+                    max: min.checked_neg()?.max(max),
+                })
+            }
+        }
+        "intdiv" => {
+            let (left_min, left_max) = domain_int_bounds(values.first()?)?;
+            let (right_min, right_max) = domain_int_bounds(values.get(1)?)?;
+            if right_min <= 0 && right_max >= 0 {
+                return None;
+            }
+            let quotients = [
+                left_min / right_min,
+                left_min / right_max,
+                left_max / right_min,
+                left_max / right_max,
+            ];
+            Some(ParameterDomain::IntRange {
+                min: *quotients.iter().min()?,
+                max: *quotients.iter().max()?,
+            })
+        }
+        "count" | "sizeof" | "strlen" | "mb_strlen" => Some(ParameterDomain::IntRange {
+            min: 0,
+            max: i64::MAX,
+        }),
+        _ => None,
+    }
 }
 
 fn finite_parameter_value(
@@ -3591,42 +4203,6 @@ fn selector_identifier(selector: &ClassLikeMemberSelector<'_>) -> Option<String>
         }
         _ => None,
     }
-}
-
-fn constant_arguments(
-    arguments: &ArgumentList<'_>,
-    parameters: &[String],
-) -> Option<Vec<Option<ConstantValue>>> {
-    let mut values = vec![None; parameters.len()];
-    let mut assigned = vec![false; parameters.len()];
-    let mut positional = 0;
-    for argument in arguments.arguments.iter() {
-        match argument {
-            Argument::Positional(argument) if argument.ellipsis.is_none() => {
-                if positional < values.len() {
-                    if assigned[positional] {
-                        return None;
-                    }
-                    values[positional] = summary::constant_value(argument.value);
-                    assigned[positional] = true;
-                }
-                positional += 1;
-            }
-            Argument::Named(argument) => {
-                let name = String::from_utf8_lossy(argument.name.value);
-                let index = parameters
-                    .iter()
-                    .position(|parameter| parameter == name.as_ref())?;
-                if assigned[index] {
-                    return None;
-                }
-                values[index] = summary::constant_value(argument.value);
-                assigned[index] = true;
-            }
-            _ => return None,
-        }
-    }
-    Some(values)
 }
 
 struct YieldFinder;
@@ -3710,7 +4286,7 @@ fn hint_accepts_value(value: &Value, hint: &Hint<'_>, strict: bool) -> Option<bo
             },
             _ => Some(false),
         },
-        Hint::Array(_) => Some(matches!(value, Value::Array(_))),
+        Hint::Array(_) => Some(matches!(value, Value::Array(_) | Value::ArrayLength(_))),
         Hint::Callable(_) => Some(false),
         Hint::Integer(_) => match value {
             Value::Int(_) => Some(true),
@@ -3729,7 +4305,7 @@ fn hint_accepts_value(value: &Value, hint: &Hint<'_>, strict: bool) -> Option<bo
                     Some(value.parse::<i64>().is_ok())
                 }
             }
-            Value::String(None) => None,
+            Value::String(None) | Value::StringLength(_) => None,
             _ => Some(false),
         },
         Hint::Float(_) => match value {
@@ -3742,21 +4318,23 @@ fn hint_accepts_value(value: &Value, hint: &Hint<'_>, strict: bool) -> Option<bo
                     Some(value.parse::<f64>().is_ok())
                 }
             }
-            Value::String(None) => None,
+            Value::String(None) | Value::StringLength(_) => None,
             _ => Some(false),
         },
         Hint::String(_) => match value {
-            Value::String(_) => Some(true),
+            Value::String(_) | Value::StringLength(_) => Some(true),
             Value::Int(_) | Value::Float(_) | Value::Bool(_) => Some(!strict),
             _ => Some(false),
         },
         Hint::Bool(_) => match value {
             Value::Bool(_) => Some(true),
-            Value::Int(_) | Value::Float(_) | Value::String(_) => Some(!strict),
+            Value::Int(_) | Value::Float(_) | Value::String(_) | Value::StringLength(_) => {
+                Some(!strict)
+            }
             _ => Some(false),
         },
         Hint::Void(_) | Hint::Never(_) => Some(false),
-        Hint::Iterable(_) => Some(matches!(value, Value::Array(_))),
+        Hint::Iterable(_) => Some(matches!(value, Value::Array(_) | Value::ArrayLength(_))),
         Hint::Object(_)
         | Hint::Identifier(_)
         | Hint::Intersection(_)
@@ -3789,19 +4367,20 @@ fn statements_declare_strict_types(statements: &[Statement<'_>]) -> bool {
                     if String::from_utf8_lossy(item.name.value) != "strict_types" {
                         continue;
                     }
-                    if let Expression::Literal(Literal::Integer(integer)) =
-                        item.value.unparenthesized()
-                    {
-                        if integer.value == Some(1) {
+                    match item.value.unparenthesized() {
+                        Expression::Literal(Literal::Integer(integer))
+                            if integer.value == Some(1) =>
+                        {
                             return true;
                         }
+                        _ => {}
                     }
                 }
             }
-            Statement::Namespace(namespace) => {
-                if statements_declare_strict_types(namespace.statements().as_slice()) {
-                    return true;
-                }
+            Statement::Namespace(namespace)
+                if statements_declare_strict_types(namespace.statements().as_slice()) =>
+            {
+                return true;
             }
             _ => {}
         }
