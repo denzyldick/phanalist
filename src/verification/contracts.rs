@@ -1,8 +1,8 @@
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 
 use z3::ast::{Ast, Bool, Int};
 
-use super::value::Value;
+use super::value::{ArrayKey, Value};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Assertion {
@@ -290,31 +290,44 @@ pub fn accepts_value(value: &Value, ty: &str, strict: bool) -> Option<bool> {
         "numeric" => match value {
             Value::Int(_) | Value::Float(_) => Some(true),
             Value::String(Some(value)) => Some(value.parse::<f64>().is_ok()),
-            Value::String(None) => None,
+            Value::String(None) | Value::StringLength(_) => None,
             _ => Some(false),
         },
         "scalar" => Some(matches!(
             value,
-            Value::Int(_) | Value::Float(_) | Value::Bool(_) | Value::String(_)
+            Value::Int(_)
+                | Value::Float(_)
+                | Value::Bool(_)
+                | Value::String(_)
+                | Value::StringLength(_)
         )),
-        "string" => Some(matches!(value, Value::String(_))),
+        "string" => Some(matches!(value, Value::String(_) | Value::StringLength(_))),
         "non-empty-string" => match value {
             Value::String(Some(value)) => Some(!value.is_empty()),
-            Value::String(None) => None,
+            Value::String(None) | Value::StringLength(_) => None,
             _ => Some(false),
         },
         "numeric-string" => match value {
             Value::String(Some(value)) => Some(value.parse::<f64>().is_ok()),
-            Value::String(None) => None,
+            Value::String(None) | Value::StringLength(_) => None,
             _ => Some(false),
         },
         "array-key" => Some(matches!(value, Value::Int(_) | Value::String(_))),
-        "array" | "iterable" => Some(matches!(value, Value::Array(_))),
-        "non-empty-array" | "non-empty-list" => match value {
-            Value::Array(Some(keys)) => Some(!keys.is_empty()),
-            Value::Array(None) => None,
-            _ => Some(false),
-        },
+        "array" | "iterable" => Some(matches!(value, Value::Array(_) | Value::ArrayLength(_))),
+        ty if ty.starts_with("array{") || ty.starts_with("non-empty-array{") => {
+            shape_accepts_value(value, ty)
+        }
+        ty if ty == "non-empty-array"
+            || ty == "non-empty-list"
+            || ty.starts_with("non-empty-array<")
+            || ty.starts_with("non-empty-list<") =>
+        {
+            match value {
+                Value::Array(Some(keys)) => Some(!keys.is_empty()),
+                Value::Array(None) | Value::ArrayLength(_) => None,
+                _ => Some(false),
+            }
+        }
         "positive-int" | "non-negative-int" | "negative-int" | "non-positive-int"
         | "non-zero-int" => literal_int(value).map(|value| match ty.as_str() {
             "positive-int" => value > 0,
@@ -327,10 +340,82 @@ pub fn accepts_value(value: &Value, ty: &str, strict: bool) -> Option<bool> {
         _ if ty.starts_with("int<") => int_range(&ty)
             .and_then(|(min, max)| literal_int(value).map(|value| value >= min && value <= max)),
         _ if ty.starts_with("list<") || ty.starts_with("array<") => {
-            Some(matches!(value, Value::Array(_)))
+            Some(matches!(value, Value::Array(_) | Value::ArrayLength(_)))
         }
         _ => None,
     }
+}
+
+pub fn array_shape_keys(ty: &str) -> Option<BTreeSet<ArrayKey>> {
+    let inner = ty
+        .strip_prefix("non-empty-array{")
+        .or_else(|| ty.strip_prefix("array{"))?
+        .strip_suffix('}')?;
+    let mut keys = BTreeSet::new();
+    for field in split_contract_fields(inner) {
+        let field = field.trim();
+        if field.is_empty() || field == "..." || field.contains('?') {
+            return None;
+        }
+        let colon = shape_field_colon(field)?;
+        let key = field[..colon].trim();
+        if key.is_empty() || key == "..." || key.contains("::") {
+            return None;
+        }
+        let key = key.trim_matches(['\'', '"']);
+        if let Ok(index) = key.parse::<i64>() {
+            keys.insert(ArrayKey::Int(index));
+        } else {
+            keys.insert(ArrayKey::String(key.to_string()));
+        }
+    }
+    Some(keys)
+}
+
+fn shape_field_colon(field: &str) -> Option<usize> {
+    let bytes = field.as_bytes();
+    bytes.iter().enumerate().find_map(|(index, byte)| {
+        (*byte == b':'
+            && bytes.get(index + 1) != Some(&b':')
+            && (index == 0 || bytes[index - 1] != b':'))
+            .then_some(index)
+    })
+}
+
+fn shape_accepts_value(value: &Value, ty: &str) -> Option<bool> {
+    let required = array_shape_keys(ty)?;
+    match value {
+        Value::Array(Some(keys)) => Some(required.iter().all(|key| keys.contains(key))),
+        Value::Array(None) | Value::ArrayLength(_) => None,
+        _ => Some(false),
+    }
+}
+
+fn split_contract_fields(value: &str) -> Vec<&str> {
+    let mut fields = Vec::new();
+    let mut start = 0;
+    let mut depth = 0_i32;
+    let mut quote = None;
+    for (index, character) in value.char_indices() {
+        if let Some(active) = quote {
+            if character == active {
+                quote = None;
+            }
+            continue;
+        }
+        match character {
+            '\'' | '"' => quote = Some(character),
+            '<' | '(' | '{' | '[' => depth += 1,
+            '>' | ')' | '}' | ']' => depth -= 1,
+            ',' if depth == 0 => {
+                fields.push(&value[start..index]);
+                start = index + 1;
+            }
+            _ => {}
+        }
+    }
+    fields.push(&value[start..]);
+    fields
 }
 
 fn literal_int(value: &Value) -> Option<i64> {
@@ -380,12 +465,20 @@ pub fn constraint(value: &Value, ty: &str) -> Option<Bool> {
         return match ty.as_str() {
             "non-empty-string" => match value {
                 Value::String(Some(value)) => Some(Bool::from_bool(!value.is_empty())),
+                Value::StringLength(length) => Some(length.gt(Int::from_i64(0))),
                 _ => None,
             },
-            "non-empty-array" | "non-empty-list" => match value {
-                Value::Array(Some(keys)) => Some(Bool::from_bool(!keys.is_empty())),
-                _ => None,
-            },
+            ty if ty == "non-empty-array"
+                || ty == "non-empty-list"
+                || ty.starts_with("non-empty-array<")
+                || ty.starts_with("non-empty-list<") =>
+            {
+                match value {
+                    Value::Array(Some(keys)) => Some(Bool::from_bool(!keys.is_empty())),
+                    Value::ArrayLength(length) => Some(length.gt(Int::from_i64(0))),
+                    _ => None,
+                }
+            }
             _ => None,
         };
     };

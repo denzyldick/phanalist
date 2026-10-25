@@ -263,7 +263,7 @@ impl Analyse {
 
         if show_bar && format == &Format::text && !has_external_bar {
             println!();
-            println!("Scanning files in {} ...", &path.to_string().bold());
+            println!("Scanning files in {} ...", path.to_string().bold());
         }
 
         if verbose >= 1 {
@@ -369,14 +369,14 @@ impl Analyse {
                     if output_format == &Format::text {
                         println!(
                             "Unable to save {} configuration file, error: {}",
-                            &path.display().to_string().bold(),
+                            path.display().to_string().bold(),
                             e
                         );
                     }
                 } else if output_hints && output_format == &Format::text {
                     println!(
                         "The new {} configuration file as been created",
-                        &path.display().to_string().bold()
+                        path.display().to_string().bold()
                     );
                 }
 
@@ -391,7 +391,7 @@ impl Analyse {
                 if output_hints && output_format == &Format::text {
                     println!(
                         "Using configuration file {}",
-                        &path.display().to_string().bold()
+                        path.display().to_string().bold()
                     );
                 }
 
@@ -405,7 +405,7 @@ impl Analyse {
                     }
                     Err(e) => {
                         if output_format == &Format::text {
-                            println!("Unable to use the config: {}. Ignoring it.", &e);
+                            println!("Unable to use the config: {}. Ignoring it.", e);
                         }
                         default_config
                     }
