@@ -12,10 +12,11 @@ pub enum FindingClass {
     ReturnContract,
     Unreachable,
     Assertion,
+    StreamLifecycle,
 }
 
 impl FindingClass {
-    pub const ALL: [Self; 12] = [
+    pub const ALL: [Self; 13] = [
         Self::Division,
         Self::Modulo,
         Self::Intdiv,
@@ -28,6 +29,7 @@ impl FindingClass {
         Self::ReturnContract,
         Self::Unreachable,
         Self::Assertion,
+        Self::StreamLifecycle,
     ];
 
     pub const fn code(self) -> &'static str {
@@ -44,6 +46,7 @@ impl FindingClass {
             Self::ReturnContract => "E0040",
             Self::Unreachable => "E0041",
             Self::Assertion => "E0042",
+            Self::StreamLifecycle => "E0043",
         }
     }
 
@@ -62,6 +65,7 @@ impl FindingClass {
             Self::ReturnContract => "return-contract",
             Self::Unreachable => "unreachable",
             Self::Assertion => "assertion",
+            Self::StreamLifecycle => "stream-lifecycle",
         }
     }
 
@@ -79,6 +83,7 @@ impl FindingClass {
             Self::ReturnContract => "Return contract violation",
             Self::Unreachable => "Unreachable code",
             Self::Assertion => "Impossible assertion",
+            Self::StreamLifecycle => "Stream resource used after close",
         }
     }
 

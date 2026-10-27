@@ -14,7 +14,7 @@ use crate::results::Message;
 use super::class::FindingClass;
 use super::contracts::{self, Docblock};
 use super::summary::{self, ConstantValue, FunctionSummary};
-use super::value::{ArrayKey, Value};
+use super::value::{ArrayKey, ResourceState, Value};
 use super::Settings;
 
 pub struct Finding {
@@ -92,6 +92,8 @@ struct Analyzer<'a, 'arena> {
     method_domains: HashMap<String, Vec<Option<ParameterDomain>>>,
     in_generator: bool,
     next_unverified_numeric: u64,
+    next_fresh: u64,
+    next_resource: u64,
 }
 
 pub fn analyze_file_with_summaries(
@@ -136,6 +138,8 @@ pub fn analyze_file_with_summaries(
         method_domains: HashMap::new(),
         in_generator: false,
         next_unverified_numeric: 0,
+        next_fresh: 0,
+        next_resource: 0,
     };
 
     let mut state = State::new();
@@ -925,7 +929,11 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         if let Value::ListLength(length) = iterable {
             let initial = state.clone();
             let mut body_state = state.clone();
-            let key = Int::new_const(format!("foreach::key::{}", foreach.span().start.offset));
+            if let Some(root) = foreach_reference_root(foreach) {
+                body_state.havoc(&root);
+            }
+            let tag = self.fresh_tag();
+            let key = Int::new_const(format!("foreach::key::{tag}"));
             let in_bounds = Bool::and(&[&key.ge(Int::from_i64(0)), &key.lt(length.clone())]);
             body_state.path = path_and(&body_state.path, &in_bounds);
             match &foreach.target {
@@ -952,6 +960,9 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
 
         let initial = state.clone();
         let mut body_state = state.clone();
+        if let Some(root) = foreach_reference_root(foreach) {
+            body_state.havoc(&root);
+        }
         match &foreach.target {
             ForeachTarget::Value(target) => {
                 if let Some(name) = direct_variable_name(target.value) {
@@ -969,7 +980,8 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         }
         self.analyze_statements(foreach.body.statements(), &mut body_state);
         let modified = body_state.modified.clone();
-        let ran = Bool::new_const(format!("foreach_ran::{}", foreach.span().start.offset));
+        let tag = self.fresh_tag();
+        let ran = Bool::new_const(format!("foreach_ran::{tag}"));
         self.merge_loop_modified(state, &initial, &body_state, &modified, &ran);
     }
 
@@ -983,6 +995,9 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
 
         for (key, value) in pairs {
             let mut body_state = state.clone();
+            if let Some(root) = foreach_reference_root(foreach) {
+                body_state.havoc(&root);
+            }
             match &foreach.target {
                 ForeachTarget::Value(target) => {
                     if let Some(name) = direct_variable_name(target.value) {
@@ -1264,9 +1279,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         state: &mut State,
     ) -> State {
         let depth = self.loop_unroll_depth();
-        let loop_id = condition
-            .map(|condition| condition.span().start.offset)
-            .unwrap_or(0);
+        let loop_id = self.fresh_tag();
         let initial = state.clone();
         let mut current = state.clone();
         let mut exit_paths = Vec::new();
@@ -1716,6 +1729,12 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                             .array_values
                             .get(&String::from_utf8_lossy(variable.name).to_string())
                             .cloned(),
+                        Expression::Call(Call::Function(function))
+                            if function_name(function.function).as_deref()
+                                == Some("array_filter") =>
+                        {
+                            self.array_pairs_for_expression(assignment.rhs, state)
+                        }
                         _ => None,
                     },
                 }
@@ -1724,7 +1743,19 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             };
             state.assign(name.clone(), value.clone());
             if let Some(pairs) = array_value {
-                state.array_values.insert(name, pairs);
+                state.array_values.insert(name.clone(), pairs);
+            }
+            if matches!(assignment.operator, AssignmentOperator::Assign(_))
+                && is_fopen_expression(assignment.rhs)
+            {
+                let id = self.fresh_resource_id();
+                state.env.insert(
+                    name,
+                    Value::Resource {
+                        id,
+                        state: ResourceState::Open,
+                    },
+                );
             }
         }
 
@@ -2064,11 +2095,24 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 .unwrap_or(Value::Unknown),
             UnaryPrefixOperator::Plus(_) => self.eval_expr(unary.operand, state),
             UnaryPrefixOperator::Negation(_) => match self.eval_expr(unary.operand, state) {
-                Value::Int(value) => Value::Int(value.unary_minus()),
+                Value::Int(value) => match value.as_i64() {
+                    Some(literal) => Value::Int(Int::from_i64(literal.wrapping_neg())),
+                    None => Value::Int(value.unary_minus()),
+                },
                 Value::Float(value) => Value::Float(value.unary_neg()),
                 _ => Value::Unknown,
             },
             UnaryPrefixOperator::BitwiseNot(_) => Value::Unknown,
+            UnaryPrefixOperator::Reference(_) => {
+                let previous = self.suppress_access_checks;
+                self.suppress_access_checks = true;
+                self.eval_expr(unary.operand, state);
+                self.suppress_access_checks = previous;
+                if let Some(root) = root_variable_name(unary.operand) {
+                    state.havoc(&root);
+                }
+                Value::Unknown
+            }
             UnaryPrefixOperator::ErrorControl(_) => self.eval_expr(unary.operand, state),
             UnaryPrefixOperator::IntCast(..) | UnaryPrefixOperator::IntegerCast(..) => {
                 match self.eval_expr(unary.operand, state) {
@@ -2267,8 +2311,17 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             Call::Function(function) => {
                 let arguments = self.eval_arguments(&function.argument_list, state);
                 let name = function_name(function.function);
-                if !is_pure_builtin(name.as_deref()) {
+                if !is_pure_builtin(name.as_deref()) && !is_resource_builtin(name.as_deref()) {
                     self.invalidate_mutated_array_arguments(&function.argument_list, state);
+                    self.invalidate_resource_arguments(&function.argument_list, state);
+                }
+                if is_resource_builtin(name.as_deref()) {
+                    self.check_stream_lifecycle(
+                        name.as_deref(),
+                        &function.argument_list,
+                        call.span(),
+                        state,
+                    );
                 }
                 if self.settings.check_intdiv
                     && name.as_deref() == Some("intdiv")
@@ -2290,24 +2343,38 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     ) {
                         return value;
                     }
-                    if let Some(value) =
-                        builtin_call_value(name.as_deref(), &arguments, call.span())
-                    {
+                    if let Some(value) = self.array_keys_search_value(
+                        name.as_deref(),
+                        &function.argument_list,
+                        &arguments,
+                        state,
+                    ) {
+                        return value;
+                    }
+                    if name.as_deref() == Some("array_filter") {
+                        if let Some(value) = self.array_filter_value(&function.argument_list, state)
+                        {
+                            return value;
+                        }
+                    }
+                    let tag = self.fresh_tag();
+                    if let Some(value) = builtin_call_value(name.as_deref(), &arguments, tag) {
                         if let Some(constraint) =
-                            builtin_call_constraint(name.as_deref(), &arguments, call.span())
+                            builtin_call_constraint(name.as_deref(), &arguments, tag)
                         {
                             state.path = path_and(&state.path, &constraint);
                         }
                         return value;
                     }
                 }
+                let tag = self.fresh_tag();
                 if let Some(summary) = self.function_summary(function.function) {
                     self.apply_call_assertions(summary, &arguments, &function.argument_list, state);
                     if let Some((value, constraint)) = summary_call_value(
                         summary,
                         &arguments,
                         arguments_are_positional(&function.argument_list),
-                        function.span(),
+                        tag,
                     ) {
                         if let Some(constraint) = constraint {
                             state.path = path_and(&state.path, &constraint);
@@ -2335,6 +2402,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 }
                 let arguments = self.eval_arguments(&method.argument_list, state);
                 self.invalidate_mutated_array_arguments(&method.argument_list, state);
+                self.invalidate_resource_arguments(&method.argument_list, state);
                 let class = if direct_variable_name(method.object).as_deref() == Some("$this") {
                     self.class.clone()
                 } else {
@@ -2343,6 +2411,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                         _ => None,
                     }
                 };
+                let tag = self.fresh_tag();
                 if let Some(summary) = class
                     .as_deref()
                     .and_then(|class| self.method_summary(class, &method.method))
@@ -2353,7 +2422,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                         summary,
                         &arguments,
                         arguments_are_positional(&method.argument_list),
-                        call.span(),
+                        tag,
                     ) {
                         if let Some(constraint) = constraint {
                             state.path = path_and(&state.path, &constraint);
@@ -2367,6 +2436,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 let object = self.eval_expr(method.object, state);
                 let arguments = self.eval_arguments(&method.argument_list, state);
                 self.invalidate_mutated_array_arguments(&method.argument_list, state);
+                self.invalidate_resource_arguments(&method.argument_list, state);
                 let class = if direct_variable_name(method.object).as_deref() == Some("$this") {
                     self.class.clone()
                 } else {
@@ -2375,6 +2445,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                         _ => None,
                     }
                 };
+                let tag = self.fresh_tag();
                 if let Some(summary) = class
                     .as_deref()
                     .and_then(|class| self.method_summary(class, &method.method))
@@ -2385,7 +2456,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                         summary,
                         &arguments,
                         arguments_are_positional(&method.argument_list),
-                        call.span(),
+                        tag,
                     ) {
                         if let Some(constraint) = constraint {
                             state.path = path_and(&state.path, &constraint);
@@ -2400,6 +2471,8 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 self.eval_expr(method.class, state);
                 let arguments = self.eval_arguments(&method.argument_list, state);
                 self.invalidate_mutated_array_arguments(&method.argument_list, state);
+                self.invalidate_resource_arguments(&method.argument_list, state);
+                let tag = self.fresh_tag();
                 if let Some(summary) = class
                     .as_deref()
                     .and_then(|class| self.method_summary(class, &method.method))
@@ -2410,7 +2483,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                         summary,
                         &arguments,
                         arguments_are_positional(&method.argument_list),
-                        call.span(),
+                        tag,
                     ) {
                         if let Some(constraint) = constraint {
                             state.path = path_and(&state.path, &constraint);
@@ -2529,6 +2602,255 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         }
     }
 
+    fn invalidate_resource_arguments(&self, arguments: &ArgumentList<'_>, state: &mut State) {
+        let mut ids = Vec::new();
+        for argument in arguments.arguments.iter() {
+            let expression = match argument {
+                Argument::Positional(argument) => argument.value,
+                Argument::Named(argument) => argument.value,
+            };
+            if let Some(name) = root_variable_name(expression) {
+                if let Some(Value::Resource { id, .. }) = state.env.get(&name) {
+                    ids.push(*id);
+                }
+            }
+        }
+        for id in ids {
+            self.invalidate_resource_id(id, state);
+        }
+    }
+
+    fn invalidate_resource_id(&self, id: u64, state: &mut State) {
+        let names = state
+            .env
+            .iter()
+            .filter(|(_, value)| {
+                matches!(value, Value::Resource { id: candidate, .. } if *candidate == id)
+            })
+            .map(|(name, _)| name.clone())
+            .collect::<Vec<_>>();
+        for name in names {
+            state.assign(name, Value::Unknown);
+        }
+    }
+
+    fn check_stream_lifecycle(
+        &mut self,
+        name: Option<&str>,
+        arguments: &'arena ArgumentList<'arena>,
+        span: Span,
+        state: &mut State,
+    ) {
+        let Some(name) = name else {
+            return;
+        };
+        if !matches!(name, "fclose" | "fread" | "fwrite") {
+            return;
+        }
+        let expression = match arguments.arguments.first() {
+            Some(Argument::Positional(argument)) => argument.value,
+            _ => return,
+        };
+        let Some((_, id, resource_state)) = self.resource_for_expression(expression, state) else {
+            return;
+        };
+
+        match name {
+            "fclose" => {
+                let finding = match resource_state {
+                    ResourceState::Closed => {
+                        Some(("stream-double-close", "The stream has already been closed."))
+                    }
+                    ResourceState::MaybeClosed => Some((
+                        "stream-maybe-double-close",
+                        "The stream may already have been closed on another path.",
+                    )),
+                    ResourceState::Open => None,
+                };
+                if let Some((id, template)) = finding {
+                    let message =
+                        Message::new(FindingClass::StreamLifecycle.message_id(id), template);
+                    self.push_message(FindingClass::StreamLifecycle, id, message, span);
+                }
+                self.set_resource_state(id, ResourceState::Closed, state);
+            }
+            "fread" | "fwrite" => {
+                let finding = match resource_state {
+                    ResourceState::Closed => Some((
+                        "stream-use-after-close",
+                        "The stream has already been closed.",
+                    )),
+                    ResourceState::MaybeClosed => Some((
+                        "stream-maybe-use-after-close",
+                        "The stream may have been closed on another path.",
+                    )),
+                    ResourceState::Open => None,
+                };
+                if let Some((id, template)) = finding {
+                    let message =
+                        Message::new(FindingClass::StreamLifecycle.message_id(id), template);
+                    self.push_message(FindingClass::StreamLifecycle, id, message, span);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn resource_for_expression(
+        &self,
+        expression: &Expression<'_>,
+        state: &State,
+    ) -> Option<(String, u64, ResourceState)> {
+        let name = direct_variable_name(expression)?;
+        match state.env.get(&name)? {
+            Value::Resource { id, state } => Some((name, *id, *state)),
+            _ => None,
+        }
+    }
+
+    fn set_resource_state(&self, id: u64, resource_state: ResourceState, state: &mut State) {
+        let mut names = Vec::new();
+        for (name, value) in state.env.iter_mut() {
+            if let Value::Resource {
+                id: candidate,
+                state: current,
+            } = value
+            {
+                if *candidate == id {
+                    *current = resource_state;
+                    names.push(name.clone());
+                }
+            }
+        }
+        for name in names {
+            state.modified.insert(name);
+        }
+    }
+
+    fn array_filter_value(
+        &mut self,
+        arguments: &'arena ArgumentList<'arena>,
+        state: &State,
+    ) -> Option<Value> {
+        let pairs = self.array_filter_pairs(arguments, state)?;
+        Some(Value::ArrayLength(Int::from_i64(pairs.len() as i64)))
+    }
+
+    fn array_filter_pairs(
+        &mut self,
+        arguments: &'arena ArgumentList<'arena>,
+        state: &State,
+    ) -> Option<Vec<(Value, Value)>> {
+        if !arguments_are_positional(arguments) {
+            return None;
+        }
+        let first = match arguments.arguments.first()? {
+            Argument::Positional(argument) => argument.value,
+            Argument::Named(_) => return None,
+        };
+        let pairs = self.array_pairs_for_expression(first, state)?;
+        let callback = match arguments.arguments.get(1) {
+            None => None,
+            Some(Argument::Positional(argument)) => {
+                if matches!(
+                    argument.value.unparenthesized(),
+                    Expression::Literal(Literal::Null(_))
+                ) {
+                    None
+                } else {
+                    Some(argument.value)
+                }
+            }
+            Some(Argument::Named(_)) => return None,
+        };
+
+        let mut filtered = Vec::new();
+        for (key, value) in pairs {
+            let keep = match callback {
+                None => value.truthiness()?.as_bool()?,
+                Some(callback) => self
+                    .filter_predicate_value(callback, &value, state)?
+                    .as_bool()?,
+            };
+            if keep {
+                filtered.push((key, value));
+            }
+        }
+        Some(filtered)
+    }
+
+    fn filter_predicate_value(
+        &mut self,
+        callback: &'arena Expression<'arena>,
+        value: &Value,
+        state: &State,
+    ) -> Option<Bool> {
+        let (expression, body_state) = match callback.unparenthesized() {
+            Expression::ArrowFunction(arrow) => {
+                let mut body_state = state.clone();
+                if let Some(parameter) = arrow.parameter_list.parameters.first() {
+                    body_state.env.insert(
+                        String::from_utf8_lossy(parameter.variable.name).to_string(),
+                        value.clone(),
+                    );
+                }
+                (arrow.expression, body_state)
+            }
+            Expression::Closure(closure) => {
+                let expression = match closure.body.statements.as_slice() {
+                    [Statement::Return(return_statement)] => return_statement.value?,
+                    _ => return None,
+                };
+                let mut body_state = State::new();
+                if let Some(use_clause) = &closure.use_clause {
+                    for variable in use_clause.variables.iter() {
+                        let name = String::from_utf8_lossy(variable.variable.name).to_string();
+                        if let Some(value) = state.env.get(&name) {
+                            body_state.env.insert(name, value.clone());
+                        }
+                    }
+                }
+                if let Some(parameter) = closure.parameter_list.parameters.first() {
+                    body_state.env.insert(
+                        String::from_utf8_lossy(parameter.variable.name).to_string(),
+                        value.clone(),
+                    );
+                }
+                (expression, body_state)
+            }
+            _ => return None,
+        };
+        let mut body_state = body_state;
+        self.eval_expr(expression, &mut body_state).truthiness()
+    }
+
+    fn array_pairs_for_expression(
+        &mut self,
+        expression: &'arena Expression<'arena>,
+        state: &State,
+    ) -> Option<Vec<(Value, Value)>> {
+        match expression.unparenthesized() {
+            Expression::Array(array) => {
+                let mut temp = state.clone();
+                self.eval_array_pairs(array.elements.as_slice(), &mut temp)
+            }
+            Expression::LegacyArray(array) => {
+                let mut temp = state.clone();
+                self.eval_array_pairs(array.elements.as_slice(), &mut temp)
+            }
+            Expression::Variable(Variable::Direct(variable)) => {
+                let name = String::from_utf8_lossy(variable.name).to_string();
+                state.array_values.get(&name).cloned()
+            }
+            Expression::Call(Call::Function(function))
+                if function_name(function.function).as_deref() == Some("array_filter") =>
+            {
+                self.array_filter_pairs(&function.argument_list, state)
+            }
+            _ => None,
+        }
+    }
+
     fn array_key_boundary_value(
         &self,
         name: Option<&str>,
@@ -2540,6 +2862,9 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             "array_key_last" => false,
             _ => return None,
         };
+        if arguments.arguments.len() != 1 {
+            return None;
+        }
         let expression = match arguments.arguments.first()? {
             Argument::Positional(argument) => argument.value.unparenthesized(),
             Argument::Named(_) => return None,
@@ -2568,6 +2893,41 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             ArrayKey::Int(value) => Some(Value::Int(Int::from_i64(*value))),
             ArrayKey::String(value) => Some(Value::String(Some(value.clone()))),
         }
+    }
+
+    fn array_keys_search_value(
+        &mut self,
+        name: Option<&str>,
+        arguments: &'arena ArgumentList<'arena>,
+        values: &[Value],
+        state: &State,
+    ) -> Option<Value> {
+        if name != Some("array_keys") || values.len() < 2 || values.len() > 3 {
+            return None;
+        }
+        let expression = match arguments.arguments.first()? {
+            Argument::Positional(argument) => argument.value,
+            Argument::Named(_) => return None,
+        };
+        let pairs = self.array_pairs_for_expression(expression, state)?;
+        let search = values.get(1)?;
+        let strict = match values.get(2) {
+            None => false,
+            Some(Value::Bool(strict)) => strict.as_bool()?,
+            _ => return None,
+        };
+        let mut count = 0_i64;
+        for (_, value) in pairs {
+            let equal = if strict {
+                values_equal_strict(&value, search)?
+            } else {
+                values_equal_loose(&value, search)?
+            };
+            if equal {
+                count += 1;
+            }
+        }
+        Some(Value::ListLength(Int::from_i64(count)))
     }
 
     fn isset_value(
@@ -2793,7 +3153,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         state: &mut State,
     ) -> Value {
         let mut keys = BTreeSet::new();
-        let mut next_index = 0_i64;
+        let mut next_index: Option<i64> = None;
         let mut known = true;
 
         for element in elements {
@@ -2804,7 +3164,10 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     match array_key(&key_value) {
                         Some(key) => {
                             if let ArrayKey::Int(index) = &key {
-                                next_index = next_index.max(index.saturating_add(1));
+                                next_index = Some(match next_index {
+                                    Some(current) => current.max(index.saturating_add(1)),
+                                    None => index.saturating_add(1),
+                                });
                             }
                             keys.insert(key);
                         }
@@ -2813,15 +3176,16 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 }
                 ArrayElement::Value(element) => {
                     self.eval_expr(element.value, state);
-                    keys.insert(ArrayKey::Int(next_index));
-                    next_index = next_index.saturating_add(1);
+                    let index = next_index.unwrap_or(0);
+                    keys.insert(ArrayKey::Int(index));
+                    next_index = Some(index.saturating_add(1));
                 }
                 ArrayElement::Variadic(element) => {
                     self.eval_expr(element.value, state);
                     known = false;
                 }
                 ArrayElement::Missing(_) => {
-                    next_index = next_index.saturating_add(1);
+                    next_index = Some(next_index.unwrap_or(0).saturating_add(1));
                 }
             }
         }
@@ -2839,24 +3203,42 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         state: &mut State,
     ) -> Option<Vec<(Value, Value)>> {
         let mut pairs = Vec::new();
-        let mut next_index = 0_i64;
+        let mut next_index: Option<i64> = None;
 
         for element in elements {
             match element {
                 ArrayElement::KeyValue(element) => {
                     let key = self.eval_expr(element.key, state);
                     let value = self.eval_expr(element.value, state);
-                    if let ArrayKey::Int(index) = array_key(&key)? {
-                        next_index = next_index.max(index.saturating_add(1));
+                    let normalized = array_key(&key);
+                    if let Some(ArrayKey::Int(index)) = &normalized {
+                        next_index = Some(match next_index {
+                            Some(current) => current.max(index.saturating_add(1)),
+                            None => index.saturating_add(1),
+                        });
                     }
-                    pairs.push((key, value));
+                    match normalized {
+                        Some(normalized) => {
+                            if let Some(pair) = pairs.iter_mut().find(|(candidate, _)| {
+                                array_key(candidate).as_ref() == Some(&normalized)
+                            }) {
+                                pair.1 = value;
+                            } else {
+                                pairs.push((key, value));
+                            }
+                        }
+                        None => pairs.push((key, value)),
+                    }
                 }
                 ArrayElement::Value(element) => {
                     let value = self.eval_expr(element.value, state);
-                    pairs.push((Value::Int(Int::from_i64(next_index)), value));
-                    next_index = next_index.saturating_add(1);
+                    let index = next_index.unwrap_or(0);
+                    pairs.push((Value::Int(Int::from_i64(index)), value));
+                    next_index = Some(index.saturating_add(1));
                 }
-                ArrayElement::Missing(_) => next_index = next_index.saturating_add(1),
+                ArrayElement::Missing(_) => {
+                    next_index = Some(next_index.unwrap_or(0).saturating_add(1));
+                }
                 ArrayElement::Variadic(_) => return None,
             }
         }
@@ -3128,6 +3510,16 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         }
     }
 
+    fn fresh_tag(&mut self) -> u64 {
+        self.next_fresh += 1;
+        self.next_fresh
+    }
+
+    fn fresh_resource_id(&mut self) -> u64 {
+        self.next_resource += 1;
+        self.next_resource
+    }
+
     fn numeric_unknown_arithmetic(&mut self, left: &Value, right: &Value) -> Option<Value> {
         let known_numeric = |value: &Value| matches!(value, Value::Int(_) | Value::Float(_));
         if matches!(
@@ -3247,8 +3639,14 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         let comparison = match (left, right) {
             (Value::Int(left), Value::Int(right)) => Some(left.eq(right)),
             (Value::Float(left), Value::Float(right)) => Some(left.eq_fpa(right)),
-            (Value::Int(left), Value::Float(right)) => Some(left.to_real().eq(right.to_real())),
-            (Value::Float(left), Value::Int(right)) => Some(left.to_real().eq(right.to_real())),
+            (Value::Int(left), Value::Float(right)) => Some(match int_to_float(left) {
+                Some(left) => left.eq_fpa(right),
+                None => left.to_real().eq(right.to_real()),
+            }),
+            (Value::Float(left), Value::Int(right)) => Some(match int_to_float(right) {
+                Some(right) => left.eq_fpa(&right),
+                None => left.to_real().eq(right.to_real()),
+            }),
             (Value::UnverifiedNumeric { value: left, .. }, Value::Int(right)) => {
                 Some(left.eq(right))
             }
@@ -3327,15 +3725,37 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             } else {
                 left.lt(right)
             }),
-            (Value::Int(left), Value::Float(right)) => Some(if or_equal {
-                left.to_real().le(right.to_real())
-            } else {
-                left.to_real().lt(right.to_real())
+            (Value::Int(left), Value::Float(right)) => Some(match int_to_float(left) {
+                Some(left) => {
+                    if or_equal {
+                        left.le(right)
+                    } else {
+                        left.lt(right)
+                    }
+                }
+                None => {
+                    if or_equal {
+                        left.to_real().le(right.to_real())
+                    } else {
+                        left.to_real().lt(right.to_real())
+                    }
+                }
             }),
-            (Value::Float(left), Value::Int(right)) => Some(if or_equal {
-                left.to_real().le(right.to_real())
-            } else {
-                left.to_real().lt(right.to_real())
+            (Value::Float(left), Value::Int(right)) => Some(match int_to_float(right) {
+                Some(right) => {
+                    if or_equal {
+                        left.le(&right)
+                    } else {
+                        left.lt(&right)
+                    }
+                }
+                None => {
+                    if or_equal {
+                        left.to_real().le(right.to_real())
+                    } else {
+                        left.to_real().lt(right.to_real())
+                    }
+                }
             }),
             (Value::UnverifiedNumeric { value: left, .. }, Value::Int(right)) => {
                 Some(if or_equal {
@@ -3376,15 +3796,37 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             } else {
                 left.gt(right)
             }),
-            (Value::Int(left), Value::Float(right)) => Some(if or_equal {
-                left.to_real().ge(right.to_real())
-            } else {
-                left.to_real().gt(right.to_real())
+            (Value::Int(left), Value::Float(right)) => Some(match int_to_float(left) {
+                Some(left) => {
+                    if or_equal {
+                        left.ge(right)
+                    } else {
+                        left.gt(right)
+                    }
+                }
+                None => {
+                    if or_equal {
+                        left.to_real().ge(right.to_real())
+                    } else {
+                        left.to_real().gt(right.to_real())
+                    }
+                }
             }),
-            (Value::Float(left), Value::Int(right)) => Some(if or_equal {
-                left.to_real().ge(right.to_real())
-            } else {
-                left.to_real().gt(right.to_real())
+            (Value::Float(left), Value::Int(right)) => Some(match int_to_float(right) {
+                Some(right) => {
+                    if or_equal {
+                        left.ge(&right)
+                    } else {
+                        left.gt(&right)
+                    }
+                }
+                None => {
+                    if or_equal {
+                        left.to_real().ge(right.to_real())
+                    } else {
+                        left.to_real().gt(right.to_real())
+                    }
+                }
             }),
             (Value::UnverifiedNumeric { value: left, .. }, Value::Int(right)) => {
                 Some(if or_equal {
@@ -3830,6 +4272,10 @@ fn int_min(left: Int, right: Int) -> Int {
     left.le(right.clone()).ite(&left, &right)
 }
 
+fn int_to_float(value: &Int) -> Option<Float> {
+    value.as_i64().map(|value| Float::from_f64(value as f64))
+}
+
 fn slice_length(total: Int, offset: &Int, length: Option<&Int>) -> Int {
     let zero = Int::from_i64(0);
     let start = offset.ge(zero.clone()).ite(
@@ -3846,11 +4292,11 @@ fn slice_length(total: Int, offset: &Int, length: Option<&Int>) -> Int {
     }
 }
 
-fn builtin_length(span: Span, kind: &str) -> Int {
-    Int::new_const(format!("builtin::{kind}::{}::length", span.start.offset))
+fn builtin_length(tag: u64, kind: &str) -> Int {
+    Int::new_const(format!("builtin::{kind}::{tag}::length"))
 }
 
-fn builtin_call_value(name: Option<&str>, arguments: &[Value], span: Span) -> Option<Value> {
+fn builtin_call_value(name: Option<&str>, arguments: &[Value], tag: u64) -> Option<Value> {
     let name = name?;
     match name {
         "strlen" => match arguments.first()? {
@@ -3858,13 +4304,20 @@ fn builtin_call_value(name: Option<&str>, arguments: &[Value], span: Span) -> Op
             Value::StringLength(length) => Some(Value::Int(length.clone())),
             _ => None,
         },
-        "count" | "sizeof" => match arguments.first()? {
-            Value::Array(Some(keys)) => Some(Value::Int(Int::from_u64(keys.len() as u64))),
-            Value::ArrayLength(length) | Value::ListLength(length) => {
-                Some(Value::Int(length.clone()))
+        "count" | "sizeof" => {
+            if let Some(flag) = arguments.get(1) {
+                if !matches!(flag, Value::Int(flag) if flag.as_i64() == Some(0)) {
+                    return None;
+                }
             }
-            _ => None,
-        },
+            match arguments.first()? {
+                Value::Array(Some(keys)) => Some(Value::Int(Int::from_u64(keys.len() as u64))),
+                Value::ArrayLength(length) | Value::ListLength(length) => {
+                    Some(Value::Int(length.clone()))
+                }
+                _ => None,
+            }
+        }
         "array_map" => {
             if arguments.len() < 2 {
                 return None;
@@ -3925,14 +4378,14 @@ fn builtin_call_value(name: Option<&str>, arguments: &[Value], span: Span) -> Op
         }
         "array_diff" | "array_intersect" | "array_unique" | "array_filter" | "array_fill_keys" => {
             array_length(arguments.first()?)?;
-            Some(Value::ArrayLength(builtin_length(span, name)))
+            Some(Value::ArrayLength(builtin_length(tag, name)))
         }
         "array_keys" => {
             let length = array_length(arguments.first()?)?;
             if arguments.len() == 1 {
                 Some(Value::ListLength(length))
             } else {
-                Some(Value::ListLength(builtin_length(span, name)))
+                Some(Value::ListLength(builtin_length(tag, name)))
             }
         }
         "array_fill" => {
@@ -3977,7 +4430,11 @@ fn builtin_call_value(name: Option<&str>, arguments: &[Value], span: Span) -> Op
                 _ => return None,
             };
             let length = slice_length(total, offset, requested);
-            let preserve_keys = matches!(arguments.get(3), Some(Value::Bool(value)) if value.as_bool() == Some(true));
+            let preserve_keys = match arguments.get(3) {
+                None => false,
+                Some(Value::Bool(value)) => value.as_bool().unwrap_or(true),
+                _ => true,
+            };
             let list = !preserve_keys
                 && match arguments.first()? {
                     Value::Array(Some(keys)) => is_list_keys(keys),
@@ -4098,12 +4555,12 @@ fn builtin_call_value(name: Option<&str>, arguments: &[Value], span: Span) -> Op
     }
 }
 
-fn builtin_call_constraint(name: Option<&str>, arguments: &[Value], span: Span) -> Option<Bool> {
+fn builtin_call_constraint(name: Option<&str>, arguments: &[Value], tag: u64) -> Option<Bool> {
     let name = name?;
     match name {
         "array_diff" | "array_intersect" | "array_unique" | "array_filter" | "array_fill_keys" => {
             let input = array_length(arguments.first()?)?;
-            let length = builtin_length(span, name);
+            let length = builtin_length(tag, name);
             Some(Bool::and(&[
                 &length.ge(Int::from_i64(0)),
                 &length.le(input),
@@ -4111,7 +4568,7 @@ fn builtin_call_constraint(name: Option<&str>, arguments: &[Value], span: Span) 
         }
         "array_keys" if arguments.len() > 1 => {
             let input = array_length(arguments.first()?)?;
-            let length = builtin_length(span, name);
+            let length = builtin_length(tag, name);
             Some(Bool::and(&[
                 &length.ge(Int::from_i64(0)),
                 &length.le(input),
@@ -4342,7 +4799,7 @@ fn summary_call_value(
     summary: &FunctionSummary,
     arguments: &[Value],
     positional: bool,
-    span: Span,
+    tag: u64,
 ) -> Option<(Value, Option<Bool>)> {
     let value = if let Some(value) = summary.return_value.as_ref() {
         constant_to_value(value)
@@ -4355,13 +4812,13 @@ fn summary_call_value(
                 summary
                     .return_contract
                     .as_deref()
-                    .and_then(|ty| contract_value(ty, span.start.offset))
+                    .and_then(|ty| contract_value(ty, tag))
             })?
     } else {
         summary
             .return_contract
             .as_deref()
-            .and_then(|ty| contract_value(ty, span.start.offset))?
+            .and_then(|ty| contract_value(ty, tag))?
     };
     let constraint = summary
         .return_contract
@@ -4370,7 +4827,7 @@ fn summary_call_value(
     Some((value, constraint))
 }
 
-fn contract_value(ty: &str, tag: u32) -> Option<Value> {
+fn contract_value(ty: &str, tag: u64) -> Option<Value> {
     let ty = ty.trim();
     if ty.is_empty()
         || ty.starts_with('?')
@@ -4483,6 +4940,24 @@ fn is_pure_builtin(name: Option<&str>) -> bool {
     )
 }
 
+fn is_resource_builtin(name: Option<&str>) -> bool {
+    matches!(name, Some("fopen" | "fclose" | "fread" | "fwrite"))
+}
+
+fn is_fopen_expression(expression: &Expression<'_>) -> bool {
+    match expression.unparenthesized() {
+        Expression::Call(Call::Function(function)) => {
+            function_name(function.function).as_deref() == Some("fopen")
+        }
+        Expression::UnaryPrefix(unary)
+            if matches!(unary.operator, UnaryPrefixOperator::ErrorControl(_)) =>
+        {
+            is_fopen_expression(unary.operand)
+        }
+        _ => false,
+    }
+}
+
 fn function_name(expression: &Expression<'_>) -> Option<String> {
     match expression.unparenthesized() {
         Expression::Identifier(identifier) => {
@@ -4509,6 +4984,62 @@ fn root_variable_name(expression: &Expression<'_>) -> Option<String> {
         Expression::ArrayAccess(access) => root_variable_name(access.array),
         Expression::Access(Access::Property(access)) => root_variable_name(access.object),
         Expression::Access(Access::NullSafeProperty(access)) => root_variable_name(access.object),
+        _ => None,
+    }
+}
+
+fn is_reference_expression(expression: &Expression<'_>) -> bool {
+    matches!(
+        expression.unparenthesized(),
+        Expression::UnaryPrefix(unary)
+            if matches!(unary.operator, UnaryPrefixOperator::Reference(_))
+    )
+}
+
+fn foreach_reference_root(foreach: &Foreach<'_>) -> Option<String> {
+    let reference = match &foreach.target {
+        ForeachTarget::Value(target) => is_reference_expression(target.value),
+        ForeachTarget::KeyValue(target) => {
+            is_reference_expression(target.key) || is_reference_expression(target.value)
+        }
+    };
+    reference
+        .then(|| root_variable_name(foreach.expression))
+        .flatten()
+}
+
+fn values_equal_strict(left: &Value, right: &Value) -> Option<bool> {
+    match (left, right) {
+        (Value::Int(left), Value::Int(right)) => Some(left.as_i64()? == right.as_i64()?),
+        (Value::Float(left), Value::Float(right)) => Some(left.as_f64() == right.as_f64()),
+        (Value::Bool(left), Value::Bool(right)) => Some(left.as_bool()? == right.as_bool()?),
+        (Value::String(Some(left)), Value::String(Some(right))) => Some(left == right),
+        (Value::Null, Value::Null) => Some(true),
+        (Value::Null, _) | (_, Value::Null) => Some(false),
+        (Value::Int(_), Value::Float(_))
+        | (Value::Float(_), Value::Int(_))
+        | (Value::Bool(_), _)
+        | (_, Value::Bool(_))
+        | (Value::String(Some(_)), _)
+        | (_, Value::String(Some(_))) => Some(false),
+        _ => None,
+    }
+}
+
+fn values_equal_loose(left: &Value, right: &Value) -> Option<bool> {
+    match (left, right) {
+        (Value::Int(left), Value::Int(right)) => Some(left.as_i64()? == right.as_i64()?),
+        (Value::Float(left), Value::Float(right)) => Some(left.as_f64() == right.as_f64()),
+        (Value::Int(left), Value::Float(right)) => Some((left.as_i64()? as f64) == right.as_f64()),
+        (Value::Float(left), Value::Int(right)) => Some(left.as_f64() == (right.as_i64()? as f64)),
+        (Value::Bool(left), Value::Bool(right)) => Some(left.as_bool()? == right.as_bool()?),
+        (Value::String(Some(left)), Value::String(Some(right))) => {
+            match (left.parse::<f64>(), right.parse::<f64>()) {
+                (Ok(left), Ok(right)) => Some(left == right),
+                _ => Some(left == right),
+            }
+        }
+        (Value::Null, Value::Null) => Some(true),
         _ => None,
     }
 }
@@ -4597,6 +5128,17 @@ fn path_may_be_true(path: &Bool) -> bool {
 fn array_key(value: &Value) -> Option<ArrayKey> {
     match value {
         Value::Int(value) => value.as_i64().map(ArrayKey::Int),
+        Value::Bool(value) => value
+            .as_bool()
+            .map(|value| ArrayKey::Int(if value { 1 } else { 0 })),
+        Value::Float(value) => {
+            let value = value.as_f64();
+            if !value.is_finite() || value < i64::MIN as f64 || value > i64::MAX as f64 {
+                return None;
+            }
+            Some(ArrayKey::Int(value.trunc() as i64))
+        }
+        Value::Null => Some(ArrayKey::String(String::new())),
         Value::String(Some(value)) => Some(normalize_array_key(value)),
         _ => None,
     }
@@ -4630,6 +5172,7 @@ fn value_type_name(value: &Value) -> &'static str {
         Value::Unknown => "unknown",
         Value::Unverified | Value::UnverifiedNumeric { .. } => "unverified-number",
         Value::Object(_) => "object",
+        Value::Resource { .. } => "resource",
     }
 }
 
@@ -5375,4 +5918,68 @@ fn statements_declare_strict_types(statements: &[Statement<'_>]) -> bool {
     }
 
     false
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeSet;
+
+    use super::*;
+
+    fn keys(values: &[i64]) -> BTreeSet<ArrayKey> {
+        values.iter().copied().map(ArrayKey::Int).collect()
+    }
+
+    #[test]
+    fn array_slice_requires_a_known_false_preserve_keys_flag() {
+        let array = Value::Array(Some(keys(&[0, 1, 2])));
+        let arguments = [
+            array.clone(),
+            Value::Int(Int::from_i64(1)),
+            Value::Int(Int::from_i64(2)),
+        ];
+        assert!(matches!(
+            builtin_call_value(Some("array_slice"), &arguments, 1),
+            Some(Value::ListLength(_))
+        ));
+
+        let mut with_false = arguments.to_vec();
+        with_false.push(Value::Bool(Bool::from_bool(false)));
+        assert!(matches!(
+            builtin_call_value(Some("array_slice"), &with_false, 2),
+            Some(Value::ListLength(_))
+        ));
+
+        let mut with_true = arguments.to_vec();
+        with_true.push(Value::Bool(Bool::from_bool(true)));
+        assert!(matches!(
+            builtin_call_value(Some("array_slice"), &with_true, 3),
+            Some(Value::ArrayLength(_))
+        ));
+
+        let mut with_unknown = arguments.to_vec();
+        with_unknown.push(Value::Unknown);
+        assert!(matches!(
+            builtin_call_value(Some("array_slice"), &with_unknown, 4),
+            Some(Value::ArrayLength(_))
+        ));
+    }
+
+    #[test]
+    fn count_with_a_recursive_flag_is_not_modeled() {
+        let arguments = [
+            Value::Array(Some(keys(&[0, 1, 2]))),
+            Value::Int(Int::from_i64(1)),
+        ];
+        assert!(builtin_call_value(Some("count"), &arguments, 1).is_none());
+
+        let normal = [
+            Value::Array(Some(keys(&[0, 1, 2]))),
+            Value::Int(Int::from_i64(0)),
+        ];
+        assert!(matches!(
+            builtin_call_value(Some("count"), &normal, 2),
+            Some(Value::Int(_))
+        ));
+    }
 }
