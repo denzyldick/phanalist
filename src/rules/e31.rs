@@ -709,6 +709,35 @@ mod builtin_tests {
     }
 
     #[test]
+    fn proves_a_str_split_result_indexes_each_character() {
+        assert!(messages("e31/str_split_guarded.php").is_empty());
+    }
+
+    #[test]
+    fn reports_a_str_split_index_past_the_string_length() {
+        let messages = messages("e31/str_split_out_of_bounds.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("list index"));
+    }
+
+    #[test]
+    fn reports_an_array_chunk_index_past_the_chunk_count() {
+        let messages = messages("e31/array_chunk_out_of_bounds.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("list index"));
+    }
+
+    #[test]
+    fn reports_a_str_pad_index_past_the_requested_length() {
+        let messages = messages("e31/str_pad_out_of_bounds.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("String offset"));
+    }
+
+    #[test]
     fn reports_list_indexes_past_the_end() {
         let messages = messages("e31/list_bounds_vulnerable.php");
 
