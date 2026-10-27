@@ -459,11 +459,8 @@ pub fn constraint(value: &Value, ty: &str) -> Option<Bool> {
     if members.len() > 1 {
         let constraints = members
             .iter()
-            .filter_map(|member| constraint(value, member))
-            .collect::<Vec<_>>();
-        if constraints.is_empty() {
-            return None;
-        }
+            .map(|member| constraint(value, member))
+            .collect::<Option<Vec<_>>>()?;
         return Some(Bool::or(&constraints.iter().collect::<Vec<_>>()));
     }
 

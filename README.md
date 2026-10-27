@@ -239,7 +239,7 @@ rules:
     max_findings_per_function: 50
 ```
 
-E0032-E0042 accept the same settings block. Enabling or disabling only `E0031`
+E0032-E0043 accept the same settings block. Enabling or disabling only `E0031`
 applies to every verification code for backward compatibility, and a class with
 no explicit block inherits the legacy `E0031` settings; naming any other
 verification code keeps the configuration scoped to the codes you named.
@@ -311,6 +311,7 @@ exclude_paths:
 | [E0040](/src/rules/examples/e40/e40.md) | Return Contract Violation | same as E0031 |
 | [E0041](/src/rules/examples/e41/e41.md) | Unreachable Code | same as E0031 |
 | [E0042](/src/rules/examples/e42/e42.md) | Impossible Assertion | same as E0031 |
+| [E0043](/src/rules/examples/e43/e43.md) | Stream Resource Used After Close | same as E0031 |
 
 Adding a new rule is straightforward — [this tutorial](./docs/adding_new_rule.md) explains how.
 

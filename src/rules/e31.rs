@@ -427,6 +427,66 @@ mod verification_tests {
         assert_eq!(messages.len(), 1);
         assert!(messages[0].contains("unreachable"));
     }
+
+    #[test]
+    fn reports_stream_read_after_close() {
+        let messages = messages("e31/stream_use_after_close.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("already been closed"));
+    }
+
+    #[test]
+    fn allows_stream_use_before_close() {
+        assert!(messages("e31/stream_safe.php").is_empty());
+    }
+
+    #[test]
+    fn reports_stream_write_after_close() {
+        let messages = messages("e31/stream_write_after_close.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("already been closed"));
+    }
+
+    #[test]
+    fn reports_double_close() {
+        let messages = messages("e31/stream_double_close.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("already been closed"));
+    }
+
+    #[test]
+    fn tracks_stream_aliases() {
+        let messages = messages("e31/stream_alias_use_after_close.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("already been closed"));
+    }
+
+    #[test]
+    fn reports_stream_use_after_conditional_close() {
+        let messages = messages("e31/stream_branch_close.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("may have been closed"));
+    }
+
+    #[test]
+    fn unknown_calls_invalidate_stream_state() {
+        assert!(messages("e31/stream_unknown_call_invalidates.php").is_empty());
+    }
+
+    #[test]
+    fn reopening_resets_stream_state() {
+        assert!(messages("e31/stream_reopened.php").is_empty());
+    }
+
+    #[test]
+    fn failed_open_guard_does_not_report() {
+        assert!(messages("e31/stream_failed_open.php").is_empty());
+    }
 }
 
 #[cfg(test)]
@@ -782,6 +842,128 @@ mod builtin_tests {
 
         assert_eq!(messages.len(), 1);
         assert!(messages[0].contains("Could not verify this list access"));
+    }
+
+    #[test]
+    fn uses_the_last_value_of_duplicate_literal_keys() {
+        let messages = messages("e31/literal_duplicate_keys.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+
+    #[test]
+    fn assigns_negative_implicit_keys_after_the_largest_integer_key() {
+        assert!(messages("e31/literal_negative_implicit_key_in_bounds.php").is_empty());
+    }
+
+    #[test]
+    fn does_not_create_an_implicit_zero_key_after_a_negative_key() {
+        let messages = messages("e31/literal_negative_implicit_key_missing.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Array key"));
+    }
+
+    #[test]
+    fn invalidates_arrays_shared_through_references() {
+        assert!(messages("e31/reference_alias_invalidation.php").is_empty());
+    }
+
+    #[test]
+    fn does_not_use_the_normal_count_for_count_recursive() {
+        assert!(messages("e31/count_recursive_false_positive.php").is_empty());
+    }
+
+    #[test]
+    fn compares_large_ints_with_floats_like_php() {
+        let messages = messages("e31/int_float_precision.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+
+    #[test]
+    fn does_not_treat_unconstrained_union_members_as_impossible() {
+        let messages = messages("e31/union_docblock_unconstrained_member.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Division by zero"));
+    }
+
+    #[test]
+    fn reports_an_empty_array_keys_search_result() {
+        let messages = messages("e31/array_keys_search_empty.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("list index"));
+    }
+
+    #[test]
+    fn proves_a_non_empty_array_keys_search_result() {
+        assert!(messages("e31/array_keys_search_present.php").is_empty());
+    }
+
+    #[test]
+    fn models_array_filter_callbacks_that_remove_every_element() {
+        let messages = messages("e31/array_filter_callback_empty.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("list index"));
+    }
+
+    #[test]
+    fn proves_array_filter_callbacks_that_keep_every_element() {
+        assert!(messages("e31/array_filter_callback_present.php").is_empty());
+    }
+
+    #[test]
+    fn models_array_filter_closures_that_remove_every_element() {
+        let messages = messages("e31/array_filter_closure_empty.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("list index"));
+    }
+
+    #[test]
+    fn models_array_filter_without_a_callback() {
+        assert!(messages("e31/array_filter_no_callback.php").is_empty());
+    }
+
+    #[test]
+    fn reports_an_empty_inline_array_keys_search_result() {
+        let messages = messages("e31/array_keys_search_inline_empty.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("list index"));
+    }
+
+    #[test]
+    fn proves_a_non_empty_inline_array_keys_search_result() {
+        assert!(messages("e31/array_keys_search_inline_present.php").is_empty());
+    }
+
+    #[test]
+    fn reports_an_empty_filtered_array_keys_search_result() {
+        let messages = messages("e31/array_keys_search_filtered_empty.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("list index"));
+    }
+
+    #[test]
+    fn proves_a_non_empty_filtered_array_keys_search_result() {
+        assert!(messages("e31/array_keys_search_filtered_present.php").is_empty());
+    }
+
+    #[test]
+    fn models_php_coercion_of_literal_bool_keys() {
+        assert!(messages("e31/literal_bool_key.php").is_empty());
+    }
+
+    #[test]
+    fn models_php_coercion_of_literal_null_keys() {
+        assert!(messages("e31/literal_null_key.php").is_empty());
     }
 }
 
