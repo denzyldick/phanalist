@@ -1,27 +1,34 @@
+#[cfg(test)]
 use serde_json::Value;
 
+#[cfg(test)]
 use crate::file::File;
+#[cfg(test)]
 use crate::results::Violation;
-use crate::verification::{self, SummaryIndex};
+#[cfg(test)]
+use crate::verification::FindingClass;
 
+#[cfg(test)]
 pub(crate) static CODE: &str = "E0031";
-static DESCRIPTION: &str = "Formal Verification";
 
+#[allow(unused_imports)]
 pub use crate::verification::Settings;
 
+#[cfg(test)]
 #[derive(Default)]
 pub struct Rule {
     pub settings: Settings,
-    pub summaries: std::sync::Mutex<SummaryIndex>,
+    pub summaries: std::sync::Mutex<crate::verification::SummaryIndex>,
 }
 
+#[cfg(test)]
 impl crate::rules::Rule for Rule {
     fn get_code(&self) -> String {
         String::from(CODE)
     }
 
     fn description(&self) -> String {
-        String::from(DESCRIPTION)
+        String::from("Formal Verification")
     }
 
     fn do_validate(&self, _file: &File<'_>) -> bool {
@@ -67,8 +74,13 @@ impl crate::rules::Rule for Rule {
             .lock()
             .map(|summaries| (summaries.snapshot(), summaries.parent_map()))
             .unwrap_or_default();
-        let findings =
-            verification::analyze_file_with_summaries(file, &self.settings, &summaries, &parents);
+        let findings = crate::verification::analyze_file_with_summaries(
+            file,
+            &self.settings,
+            &summaries,
+            &parents,
+            &FindingClass::ALL,
+        );
         Some(
             findings
                 .into_iter()
@@ -310,6 +322,14 @@ mod verification_tests {
 
         assert_eq!(messages.len(), 1);
         assert!(messages[0].contains("String offset"));
+    }
+
+    #[test]
+    fn reports_unverified_string_offset_for_an_unknown_index() {
+        let messages = messages("e31/string_offset_unknown.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("unverified"));
     }
 
     #[test]
@@ -1314,17 +1334,18 @@ mod benchmark {
     use super::CODE;
 
     const DIVISION: &str = "E0031:division-by-zero";
-    const MODULO: &str = "E0031:modulo-by-zero";
-    const INTDIV: &str = "E0031:intdiv-by-zero";
-    const INTDIV_OVERFLOW: &str = "E0031:intdiv-overflow";
-    const ARRAY_KEY: &str = "E0031:array-key";
-    const ARRAY_INDEX: &str = "E0031:array-index";
-    const STRING_OFFSET: &str = "E0031:string-offset";
-    const NULL_METHOD: &str = "E0031:null-method-call";
-    const RETURN_CONTRACT: &str = "E0031:return-contract";
-    const UNREACHABLE: &str = "E0031:unreachable";
-    const ASSERTION: &str = "E0031:assertion";
-    const UNVERIFIED: &str = "E0031:unverified";
+    const MODULO: &str = "E0032:modulo-by-zero";
+    const INTDIV: &str = "E0033:intdiv-by-zero";
+    const INTDIV_OVERFLOW: &str = "E0034:intdiv-overflow";
+    const ARRAY_KEY: &str = "E0035:array-key";
+    const ARRAY_INDEX: &str = "E0036:array-index";
+    const STRING_OFFSET: &str = "E0037:string-offset";
+    const NULL_METHOD: &str = "E0038:null-method-call";
+    const RETURN_CONTRACT: &str = "E0040:return-contract";
+    const UNREACHABLE: &str = "E0041:unreachable";
+    const ASSERTION: &str = "E0042:assertion";
+    const UNVERIFIED_DIVISION: &str = "E0031:unverified";
+    const UNVERIFIED_ARRAY_INDEX: &str = "E0036:unverified";
 
     struct BenchmarkCase {
         category: &'static str,
@@ -1482,7 +1503,7 @@ mod benchmark {
         BenchmarkCase {
             category: "lists",
             path: "e31/list_bounds_unknown.php",
-            expected: &[UNVERIFIED],
+            expected: &[UNVERIFIED_ARRAY_INDEX],
         },
         BenchmarkCase {
             category: "strings",
@@ -1607,7 +1628,7 @@ mod benchmark {
         BenchmarkCase {
             category: "loops",
             path: "e31/benchmark/loop_zero_iteration_unknown.php",
-            expected: &[UNVERIFIED],
+            expected: &[UNVERIFIED_DIVISION],
         },
         BenchmarkCase {
             category: "loops",
@@ -1617,7 +1638,7 @@ mod benchmark {
         BenchmarkCase {
             category: "loops",
             path: "e31/benchmark/loop_zero_iteration_unknown_strict_guard.php",
-            expected: &[UNVERIFIED],
+            expected: &[UNVERIFIED_DIVISION],
         },
         BenchmarkCase {
             category: "loops",

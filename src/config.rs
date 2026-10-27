@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
 use crate::rules;
+use crate::verification::{FindingClass, Settings};
 
 #[derive(Serialize, Debug, Deserialize, Clone)]
 pub struct Config {
@@ -100,10 +101,12 @@ impl Default for Config {
             String::from(rules::e30::CODE),
             serde_json::to_value(rules::e30::Settings::default()).unwrap(),
         );
-        rules.insert(
-            String::from(rules::e31::CODE),
-            serde_json::to_value(rules::e31::Settings::default()).unwrap(),
-        );
+        for class in FindingClass::ALL {
+            rules.insert(
+                String::from(class.code()),
+                serde_json::to_value(Settings::default()).unwrap(),
+            );
+        }
 
         Config {
             enabled_rules,
