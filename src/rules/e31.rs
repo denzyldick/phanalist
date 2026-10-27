@@ -678,8 +678,18 @@ mod builtin_tests {
     }
 
     #[test]
-    fn proves_array_key_first_and_last_on_literal_lists() {
+    fn proves_array_key_first_and_last_on_tracked_arrays() {
         assert!(messages("e31/array_key_first_last_in_bounds.php").is_empty());
+    }
+
+    #[test]
+    fn proves_array_key_first_and_last_use_insertion_order() {
+        assert!(messages("e31/array_key_first_last_insertion_order.php").is_empty());
+    }
+
+    #[test]
+    fn proves_array_key_first_and_last_on_empty_arrays_are_null() {
+        assert!(messages("e31/array_key_first_last_empty.php").is_empty());
     }
 
     #[test]

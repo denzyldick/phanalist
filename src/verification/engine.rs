@@ -2283,6 +2283,13 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     }
                 }
                 if arguments_are_positional(&function.argument_list) {
+                    if let Some(value) = self.array_key_boundary_value(
+                        name.as_deref(),
+                        &function.argument_list,
+                        state,
+                    ) {
+                        return value;
+                    }
                     if let Some(value) =
                         builtin_call_value(name.as_deref(), &arguments, call.span())
                     {
@@ -2519,6 +2526,47 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     state.assign(name, Value::Unknown);
                 }
             }
+        }
+    }
+
+    fn array_key_boundary_value(
+        &self,
+        name: Option<&str>,
+        arguments: &ArgumentList<'_>,
+        state: &State,
+    ) -> Option<Value> {
+        let first = match name? {
+            "array_key_first" => true,
+            "array_key_last" => false,
+            _ => return None,
+        };
+        let expression = match arguments.arguments.first()? {
+            Argument::Positional(argument) => argument.value.unparenthesized(),
+            Argument::Named(_) => return None,
+        };
+        let variable = direct_variable_name(expression)?;
+        match state.env.get(&variable)? {
+            Value::Array(Some(keys)) if keys.is_empty() => return Some(Value::Null),
+            Value::Array(Some(_)) => {}
+            _ => return None,
+        }
+        let pairs = state.array_values.get(&variable)?;
+        let mut seen = BTreeSet::new();
+        let mut ordered = Vec::new();
+        for (key, _) in pairs {
+            let key = array_key(key)?;
+            if seen.insert(key.clone()) {
+                ordered.push(key);
+            }
+        }
+        let key = if first {
+            ordered.first()?
+        } else {
+            ordered.last()?
+        };
+        match key {
+            ArrayKey::Int(value) => Some(Value::Int(Int::from_i64(*value))),
+            ArrayKey::String(value) => Some(Value::String(Some(value.clone()))),
         }
     }
 
@@ -3887,18 +3935,6 @@ fn builtin_call_value(name: Option<&str>, arguments: &[Value], span: Span) -> Op
                 Some(Value::ListLength(builtin_length(span, name)))
             }
         }
-        "array_key_first" | "array_key_last" => match arguments.first()? {
-            Value::Array(Some(keys)) if is_list_keys(keys) => {
-                if keys.is_empty() {
-                    Some(Value::Null)
-                } else if name == "array_key_first" {
-                    Some(Value::Int(Int::from_i64(0)))
-                } else {
-                    Some(Value::Int(Int::from_u64(keys.len() as u64 - 1)))
-                }
-            }
-            _ => None,
-        },
         "array_fill" => {
             let count = match arguments.get(1)? {
                 Value::Int(count) => count.clone(),
