@@ -604,6 +604,43 @@ mod builtin_tests {
     }
 
     #[test]
+    fn proves_an_array_merge_derived_index() {
+        assert!(messages("e31/array_merge_in_bounds.php").is_empty());
+    }
+
+    #[test]
+    fn reports_an_array_merge_derived_index_out_of_bounds() {
+        let messages = messages("e31/array_merge_out_of_bounds.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("list index"));
+    }
+
+    #[test]
+    fn proves_array_map_preserves_a_list_length() {
+        assert!(messages("e31/array_map_in_bounds.php").is_empty());
+    }
+
+    #[test]
+    fn proves_array_values_and_reverse_preserve_lengths() {
+        assert!(messages("e31/array_values_in_bounds.php").is_empty());
+        assert!(messages("e31/array_reverse_in_bounds.php").is_empty());
+    }
+
+    #[test]
+    fn proves_a_str_repeat_derived_string_offset() {
+        assert!(messages("e31/str_repeat_in_bounds.php").is_empty());
+    }
+
+    #[test]
+    fn reports_a_str_repeat_derived_string_offset_out_of_bounds() {
+        let messages = messages("e31/str_repeat_out_of_bounds.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("String offset"));
+    }
+
+    #[test]
     fn reports_list_indexes_past_the_end() {
         let messages = messages("e31/list_bounds_vulnerable.php");
 
