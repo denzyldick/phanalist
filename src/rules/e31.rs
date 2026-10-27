@@ -683,6 +683,32 @@ mod builtin_tests {
     }
 
     #[test]
+    fn proves_an_array_slice_result_is_not_longer_than_its_input() {
+        assert!(messages("e31/array_slice_guarded.php").is_empty());
+    }
+
+    #[test]
+    fn reports_an_array_slice_index_past_the_requested_length() {
+        let messages = messages("e31/array_slice_out_of_bounds.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("list index"));
+    }
+
+    #[test]
+    fn proves_a_substr_result_is_not_longer_than_its_requested_length() {
+        assert!(messages("e31/substr_guarded.php").is_empty());
+    }
+
+    #[test]
+    fn reports_a_substr_index_past_the_requested_length() {
+        let messages = messages("e31/substr_out_of_bounds.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("String offset"));
+    }
+
+    #[test]
     fn reports_list_indexes_past_the_end() {
         let messages = messages("e31/list_bounds_vulnerable.php");
 

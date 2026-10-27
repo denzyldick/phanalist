@@ -3778,6 +3778,26 @@ fn int_max(left: Int, right: Int) -> Int {
     left.ge(right.clone()).ite(&left, &right)
 }
 
+fn int_min(left: Int, right: Int) -> Int {
+    left.le(right.clone()).ite(&left, &right)
+}
+
+fn slice_length(total: Int, offset: &Int, length: Option<&Int>) -> Int {
+    let zero = Int::from_i64(0);
+    let start = offset.ge(zero.clone()).ite(
+        &int_min(offset.clone(), total.clone()),
+        &int_max(total.clone().add(offset.clone()), zero.clone()),
+    );
+    let remaining = total.sub(start);
+    match length {
+        Some(length) => length.ge(zero.clone()).ite(
+            &int_min(length.clone(), remaining.clone()),
+            &int_max(remaining.add(length.clone()), zero),
+        ),
+        None => remaining,
+    }
+}
+
 fn builtin_length(span: Span, kind: &str) -> Int {
     Int::new_const(format!("builtin::{kind}::{}::length", span.start.offset))
 }
@@ -3897,6 +3917,48 @@ fn builtin_call_value(name: Option<&str>, arguments: &[Value], span: Span) -> Op
                 Some(Value::ArrayLength(length))
             }
         }
+        "array_slice" => {
+            let total = array_length(arguments.first()?)?;
+            let offset = match arguments.get(1)? {
+                Value::Int(offset) => offset,
+                _ => return None,
+            };
+            let requested = match arguments.get(2) {
+                Some(Value::Int(length)) => Some(length),
+                Some(Value::Null) | None => None,
+                _ => return None,
+            };
+            let length = slice_length(total, offset, requested);
+            let preserve_keys = matches!(arguments.get(3), Some(Value::Bool(value)) if value.as_bool() == Some(true));
+            let list = !preserve_keys
+                && match arguments.first()? {
+                    Value::Array(Some(keys)) => is_list_keys(keys),
+                    Value::ListLength(_) => true,
+                    _ => false,
+                };
+            if list {
+                Some(Value::ListLength(length))
+            } else {
+                Some(Value::ArrayLength(length))
+            }
+        }
+        "substr" => {
+            let total = match arguments.first()? {
+                Value::String(Some(value)) => Int::from_u64(value.len() as u64),
+                Value::StringLength(length) => length.clone(),
+                _ => return None,
+            };
+            let offset = match arguments.get(1)? {
+                Value::Int(offset) => offset,
+                _ => return None,
+            };
+            let requested = match arguments.get(2) {
+                Some(Value::Int(length)) => Some(length),
+                Some(Value::Null) | None => None,
+                _ => return None,
+            };
+            Some(Value::StringLength(slice_length(total, offset, requested)))
+        }
         "str_repeat" => {
             let times = match arguments.get(1)? {
                 Value::Int(times) => times.as_i64()?,
@@ -3964,6 +4026,44 @@ fn builtin_call_constraint(name: Option<&str>, arguments: &[Value], span: Span) 
             Value::Int(count) => Some(count.ge(Int::from_i64(0))),
             _ => None,
         },
+        "array_slice" => {
+            let total = array_length(arguments.first()?)?;
+            let offset = match arguments.get(1)? {
+                Value::Int(offset) => offset,
+                _ => return None,
+            };
+            let length = match arguments.get(2) {
+                Some(Value::Int(length)) => Some(length),
+                Some(Value::Null) | None => None,
+                _ => return None,
+            };
+            let length = slice_length(total.clone(), offset, length);
+            Some(Bool::and(&[
+                &length.ge(Int::from_i64(0)),
+                &length.le(total),
+            ]))
+        }
+        "substr" => {
+            let total = match arguments.first()? {
+                Value::String(Some(value)) => Int::from_u64(value.len() as u64),
+                Value::StringLength(length) => length.clone(),
+                _ => return None,
+            };
+            let offset = match arguments.get(1)? {
+                Value::Int(offset) => offset,
+                _ => return None,
+            };
+            let length = match arguments.get(2) {
+                Some(Value::Int(length)) => Some(length),
+                Some(Value::Null) | None => None,
+                _ => return None,
+            };
+            let length = slice_length(total.clone(), offset, length);
+            Some(Bool::and(&[
+                &length.ge(Int::from_i64(0)),
+                &length.le(total),
+            ]))
+        }
         _ => None,
     }
 }
