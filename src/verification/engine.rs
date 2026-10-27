@@ -3959,6 +3959,53 @@ fn builtin_call_value(name: Option<&str>, arguments: &[Value], span: Span) -> Op
             };
             Some(Value::StringLength(slice_length(total, offset, requested)))
         }
+        "str_split" => {
+            let total = match arguments.first()? {
+                Value::String(Some(value)) => Int::from_u64(value.len() as u64),
+                Value::StringLength(length) => length.clone(),
+                _ => return None,
+            };
+            let size = match arguments.get(1) {
+                Some(Value::Int(size)) => size.as_i64()?,
+                None => 1,
+                _ => return None,
+            };
+            if size <= 0 {
+                return None;
+            }
+            Some(Value::ListLength(
+                total.add(Int::from_i64(size - 1)).div(Int::from_i64(size)),
+            ))
+        }
+        "str_pad" => {
+            let total = match arguments.first()? {
+                Value::String(Some(value)) => Int::from_u64(value.len() as u64),
+                Value::StringLength(length) => length.clone(),
+                _ => return None,
+            };
+            let target = match arguments.get(1)? {
+                Value::Int(target) => target.clone(),
+                _ => return None,
+            };
+            match arguments.get(2)? {
+                Value::String(Some(padding)) if !padding.is_empty() => {}
+                _ => return None,
+            }
+            Some(Value::StringLength(int_max(total, target)))
+        }
+        "array_chunk" => {
+            let total = array_length(arguments.first()?)?;
+            let size = match arguments.get(1)? {
+                Value::Int(size) => size.as_i64()?,
+                _ => return None,
+            };
+            if size <= 0 {
+                return None;
+            }
+            Some(Value::ListLength(
+                total.add(Int::from_i64(size - 1)).div(Int::from_i64(size)),
+            ))
+        }
         "str_repeat" => {
             let times = match arguments.get(1)? {
                 Value::Int(times) => times.as_i64()?,
@@ -4063,6 +4110,52 @@ fn builtin_call_constraint(name: Option<&str>, arguments: &[Value], span: Span) 
                 &length.ge(Int::from_i64(0)),
                 &length.le(total),
             ]))
+        }
+        "str_split" => {
+            let total = match arguments.first()? {
+                Value::String(Some(value)) => Int::from_u64(value.len() as u64),
+                Value::StringLength(length) => length.clone(),
+                _ => return None,
+            };
+            let size = match arguments.get(1) {
+                Some(Value::Int(size)) => size.as_i64()?,
+                None => 1,
+                _ => return None,
+            };
+            if size <= 0 {
+                return None;
+            }
+            let length = total
+                .clone()
+                .add(Int::from_i64(size - 1))
+                .div(Int::from_i64(size));
+            Some(Bool::and(&[
+                &total.ge(Int::from_i64(0)),
+                &length.ge(Int::from_i64(0)),
+            ]))
+        }
+        "str_pad" => {
+            let total = match arguments.first()? {
+                Value::String(Some(value)) => Int::from_u64(value.len() as u64),
+                Value::StringLength(length) => length.clone(),
+                _ => return None,
+            };
+            match arguments.get(2)? {
+                Value::String(Some(padding)) if !padding.is_empty() => {}
+                _ => return None,
+            }
+            Some(total.ge(Int::from_i64(0)))
+        }
+        "array_chunk" => {
+            let total = array_length(arguments.first()?)?;
+            let size = match arguments.get(1)? {
+                Value::Int(size) => size.as_i64()?,
+                _ => return None,
+            };
+            if size <= 0 {
+                return None;
+            }
+            Some(total.ge(Int::from_i64(0)))
         }
         _ => None,
     }
@@ -4333,6 +4426,9 @@ fn is_pure_builtin(name: Option<&str>) -> bool {
                 | "implode"
                 | "join"
                 | "explode"
+                | "substr"
+                | "str_split"
+                | "str_pad"
         )
     )
 }
