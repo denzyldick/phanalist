@@ -11,6 +11,7 @@ use serde_json::Value;
 use crate::config::Config;
 use crate::file::File;
 use crate::results::{Message, Violation};
+use crate::verification::{FindingClass, Settings};
 pub mod e0;
 pub mod e1;
 pub mod e10;
@@ -24,13 +25,6 @@ pub mod e17;
 pub mod e18;
 pub mod e19;
 pub mod e2;
-pub mod e3;
-pub mod e4;
-pub mod e5;
-pub mod e6;
-pub mod e7;
-pub mod e8;
-pub mod e9;
 pub mod e20;
 pub mod e21;
 pub mod e22;
@@ -41,8 +35,16 @@ pub mod e26;
 pub mod e27;
 pub mod e28;
 pub mod e29;
+pub mod e3;
 pub mod e30;
 pub mod e31;
+pub mod e4;
+pub mod e5;
+pub mod e6;
+pub mod e7;
+pub mod e8;
+pub mod e9;
+pub mod verification;
 
 pub trait Rule: Sync {
     /// Optional hook for cross-file type resolution or indexing.
@@ -59,6 +61,17 @@ pub trait Rule: Sync {
 
     /// Optional hook for dropping state when a file is removed or closed.
     fn remove_file(&self, _path: &Path) {}
+
+    /// The verification finding class implemented by this rule, if any.
+    fn verification_class(&self) -> Option<FindingClass> {
+        None
+    }
+
+    /// Verification settings for this rule. Verification rules share one
+    /// analysis pass when their settings are identical.
+    fn verification_settings(&self) -> Option<Settings> {
+        None
+    }
 
     /// Optional hook for whole-file validation. Most rules validate each
     /// top-level statement through `validate`; verification rules need the
@@ -369,7 +382,9 @@ pub fn all_rules() -> HashMap<String, Box<dyn Rule>> {
     add_rule(&mut rules, Box::default() as Box<e28::Rule>);
     add_rule(&mut rules, Box::default() as Box<e29::Rule>);
     add_rule(&mut rules, Box::default() as Box<e30::Rule>);
-    add_rule(&mut rules, Box::default() as Box<e31::Rule>);
+    for class in FindingClass::ALL {
+        add_rule(&mut rules, Box::new(verification::Rule::new(class)));
+    }
 
     rules
 }
@@ -399,15 +414,9 @@ mod tests {
         };
         let analyse = Analyse::new(&config);
 
-        for rule in analyse.rules.values() {
-            rule.begin_index();
-        }
-        for rule in analyse.rules.values() {
-            rule.index_file(&file);
-        }
-        for rule in analyse.rules.values() {
-            rule.finalize_index();
-        }
+        analyse.begin_index();
+        analyse.index_file(&file);
+        analyse.finalize_index();
 
         analyse.analyse_file(&mut file, false).0
     }
@@ -461,6 +470,77 @@ mod tests {
     fn do_validate_namespace_include_contains_exclude_contains() {
         let namespaces = &vec!["\\Service\\".to_string()];
         assert!(!do_validate_namespace(get_ns(), namespaces, namespaces));
+    }
+
+    #[test]
+    fn default_config_registers_each_verification_class() {
+        let analyse = Analyse::new(&Config::default());
+        for class in FindingClass::ALL {
+            assert!(analyse.rules.contains_key(class.code()), "{}", class.code());
+        }
+    }
+
+    #[test]
+    fn legacy_e0031_enable_expands_to_all_verification_classes() {
+        let config = Config {
+            enabled_rules: vec![String::from("E0031")],
+            ..Default::default()
+        };
+        let analyse = Analyse::new(&config);
+        for class in FindingClass::ALL {
+            assert!(analyse.rules.contains_key(class.code()), "{}", class.code());
+        }
+    }
+
+    #[test]
+    fn legacy_e0031_disable_expands_to_all_verification_classes() {
+        let config = Config {
+            disable_rules: vec![String::from("E0031")],
+            ..Default::default()
+        };
+        let analyse = Analyse::new(&config);
+        for class in FindingClass::ALL {
+            assert!(
+                !analyse.rules.contains_key(class.code()),
+                "{}",
+                class.code()
+            );
+        }
+    }
+
+    #[test]
+    fn explicit_verification_class_does_not_expand_legacy_code() {
+        let config = Config {
+            enabled_rules: vec![String::from("E0036")],
+            ..Default::default()
+        };
+        let analyse = Analyse::new(&config);
+        assert!(analyse.rules.contains_key("E0036"));
+        assert!(!analyse.rules.contains_key("E0031"));
+        assert!(!analyse.rules.contains_key("E0037"));
+    }
+
+    #[test]
+    fn class_specific_rule_only_reports_its_class() {
+        let violations = analyze_file_for_rule("e31/list_bounds_vulnerable.php", "E0036");
+        assert!(!violations.is_empty());
+        assert!(violations.iter().all(|violation| violation.rule == "E0036"));
+
+        let violations = analyze_file_for_rule("e31/division_by_zero_literal.php", "E0031");
+        assert!(!violations.is_empty());
+        assert!(violations.iter().all(|violation| violation.rule == "E0031"));
+    }
+
+    #[test]
+    fn every_verification_rule_has_a_detailed_explanation() {
+        for class in FindingClass::ALL {
+            let rule = verification::Rule::new(class);
+            assert!(
+                rule.get_detailed_explanation().is_some(),
+                "missing documentation for {}",
+                class.code()
+            );
+        }
     }
 
     #[test]
