@@ -22,6 +22,7 @@ use crate::outputs::OutputFormatter;
 use crate::results::{Results, Violation};
 use crate::rules::Rule;
 use crate::rules::{self};
+use crate::verification::{Finding, FindingClass, Settings, VerificationService};
 
 /// Print a verbose line. When a progress bar is active, route it through
 /// `ProgressBar::println` so the bar stays pinned to the bottom and the line
@@ -122,12 +123,14 @@ pub(crate) fn read_source(path: &Path) -> Option<String> {
 
 pub struct Analyse {
     pub(crate) rules: HashMap<String, Box<dyn Rule>>,
+    verification: VerificationService,
 }
 
 impl Analyse {
     pub fn new(config: &Config) -> Self {
         Self {
             rules: Self::get_active_rules(config),
+            verification: VerificationService::new(),
         }
     }
 
@@ -174,12 +177,8 @@ impl Analyse {
         let mut seen = HashSet::new();
         let mut files = Vec::new();
         for root in paths {
-            for file in collect_php_files(
-                PathBuf::from(root),
-                verbose,
-                bar,
-                &config.exclude_paths,
-            ) {
+            for file in collect_php_files(PathBuf::from(root), verbose, bar, &config.exclude_paths)
+            {
                 let key = crate::paths::normalize_relative(&file);
                 if seen.insert(key) {
                     files.push(file);
@@ -187,9 +186,7 @@ impl Analyse {
             }
         }
 
-        for rule in self.rules.values() {
-            rule.begin_index();
-        }
+        self.begin_index();
 
         let mut arena = LocalArena::new();
         for file_path in &files {
@@ -202,24 +199,64 @@ impl Analyse {
 
             {
                 let file = File::new(&arena, file_path.clone(), content);
-                for rule in self.rules.values() {
-                    rule.index_file(&file);
-                }
+                self.index_file(&file);
             }
 
             arena.reset();
         }
 
+        self.finalize_index();
+    }
+
+    pub(crate) fn begin_index(&self) {
         for rule in self.rules.values() {
-            rule.finalize_index();
+            if rule.verification_class().is_none() {
+                rule.begin_index();
+            }
+        }
+        if self.has_verification_rules() {
+            self.verification.begin_index();
+        }
+    }
+
+    pub(crate) fn index_file(&self, file: &File<'_>) {
+        for rule in self.rules.values() {
+            if rule.verification_class().is_none() {
+                rule.index_file(file);
+            }
+        }
+        if self.has_verification_rules() {
+            self.verification.index_file(file);
+        }
+    }
+
+    pub(crate) fn finalize_index(&self) {
+        for rule in self.rules.values() {
+            if rule.verification_class().is_none() {
+                rule.finalize_index();
+            }
+        }
+        if self.has_verification_rules() {
+            self.verification.finalize_index();
         }
     }
 
     /// Drop cross-file rule state for a file removed by the editor.
     pub(crate) fn remove_indexed_file(&self, path: &Path) {
         for rule in self.rules.values() {
-            rule.remove_file(path);
+            if rule.verification_class().is_none() {
+                rule.remove_file(path);
+            }
         }
+        if self.has_verification_rules() {
+            self.verification.remove_file(path);
+        }
+    }
+
+    fn has_verification_rules(&self) -> bool {
+        self.rules
+            .values()
+            .any(|rule| rule.verification_class().is_some())
     }
 
     /// Rebuild cross-file rule state for a single file from its on-disk content.
@@ -234,12 +271,8 @@ impl Analyse {
 
         let arena = LocalArena::new();
         let file = File::new(&arena, path.to_path_buf(), content);
-        for rule in self.rules.values() {
-            rule.index_file(&file);
-        }
-        for rule in self.rules.values() {
-            rule.finalize_index();
-        }
+        self.index_file(&file);
+        self.finalize_index();
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -449,7 +482,22 @@ impl Analyse {
         if let Some(program) = file.ast {
             file.reference_counter.build_reference_counter(program);
 
+            let mut verification_groups: Vec<(Settings, Vec<FindingClass>)> = Vec::new();
             for rule in self.rules.values() {
+                if let (Some(class), Some(settings)) =
+                    (rule.verification_class(), rule.verification_settings())
+                {
+                    if let Some((_, classes)) = verification_groups
+                        .iter_mut()
+                        .find(|(existing, _)| existing == &settings)
+                    {
+                        classes.push(class);
+                    } else {
+                        verification_groups.push((settings, vec![class]));
+                    }
+                    continue;
+                }
+
                 let rule_start = timings.as_ref().map(|_| Instant::now());
                 let Some(mut file_violations) = rule.validate_file(file) else {
                     continue;
@@ -465,6 +513,26 @@ impl Analyse {
                 }
             }
 
+            for (settings, classes) in verification_groups {
+                let rule_start = timings.as_ref().map(|_| Instant::now());
+                let findings = self.verification.analyze(file, &settings, &classes);
+                violations.extend(
+                    findings
+                        .into_iter()
+                        .map(|finding| Self::violation_from_finding(file, finding)),
+                );
+
+                if let Some(t) = timings.as_mut() {
+                    let elapsed = rule_start.unwrap().elapsed();
+                    for class in classes {
+                        let entry = t.entry(String::from(class.code())).or_default();
+                        entry.duration += elapsed;
+                        entry.validated = true;
+                        entry.statements += program.statements.len();
+                    }
+                }
+            }
+
             for statement in program.statements.iter() {
                 violations.append(&mut self.analyse_file_statement(
                     file,
@@ -476,11 +544,36 @@ impl Analyse {
         (violations, timings)
     }
 
+    fn violation_from_finding(file: &File<'_>, finding: Finding) -> Violation {
+        let span = finding.span;
+        let start_line = file.line_number(span.start.offset);
+        let start_column = file.column_number(span.start.offset);
+        let end_line = file.line_number(span.end.offset);
+        let end_column = file.column_number(span.end.offset);
+        let line = file
+            .lines
+            .get(start_line.saturating_sub(1))
+            .cloned()
+            .unwrap_or_default();
+
+        Violation {
+            rule: String::from(finding.class.code()),
+            line,
+            message: finding.message,
+            start_line,
+            start_column,
+            end_line,
+            end_column,
+        }
+    }
+
     fn get_active_rules(config: &Config) -> HashMap<String, Box<dyn Rule>> {
+        let enabled = Self::expand_legacy_verification_codes(&config.enabled_rules);
+        let disabled = Self::expand_legacy_verification_codes(&config.disable_rules);
         let active_codes = Self::filter_active_codes(
             rules::all_rules().into_keys().collect(),
-            &config.enabled_rules,
-            &config.disable_rules,
+            &enabled,
+            &disabled,
         );
 
         let mut active_rules = rules::all_rules();
@@ -491,6 +584,29 @@ impl Analyse {
         });
 
         active_rules
+    }
+
+    fn expand_legacy_verification_codes(codes: &[String]) -> Vec<String> {
+        let has_legacy = codes.iter().any(|code| code == "E0031");
+        let has_other_verification = codes
+            .iter()
+            .any(|code| code != "E0031" && FindingClass::from_code(code).is_some());
+
+        if !has_legacy || has_other_verification {
+            return codes.to_vec();
+        }
+
+        let mut expanded = codes
+            .iter()
+            .filter(|code| *code != "E0031")
+            .cloned()
+            .collect::<Vec<_>>();
+        expanded.extend(
+            FindingClass::ALL
+                .iter()
+                .map(|class| String::from(class.code())),
+        );
+        expanded
     }
 
     fn filter_active_codes(
@@ -594,7 +710,11 @@ mod tests {
         // `EILSEQ` ("Illegal byte sequence") instead of creating the file.
         // Writing it is therefore best-effort, and the assertions below are
         // stated in terms of what actually ended up on disk.
-        let odd_name_created = fs::write(base.join(OsStr::from_bytes(b"Weird\xffName.php")), "<?php\n").is_ok();
+        let odd_name_created = fs::write(
+            base.join(OsStr::from_bytes(b"Weird\xffName.php")),
+            "<?php\n",
+        )
+        .is_ok();
 
         let found = collect_php_files(base.clone(), 0, None, &[]);
         let names: Vec<String> = found

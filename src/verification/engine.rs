@@ -11,12 +11,14 @@ use z3::{Params, SatResult, Solver};
 use crate::file::File;
 use crate::results::Message;
 
+use super::class::FindingClass;
 use super::contracts::{self, Docblock};
 use super::summary::{self, ConstantValue, FunctionSummary};
 use super::value::{ArrayKey, Value};
 use super::Settings;
 
 pub struct Finding {
+    pub class: FindingClass,
     pub message: Message,
     pub span: Span,
 }
@@ -70,8 +72,9 @@ struct Analyzer<'a, 'arena> {
     #[allow(dead_code)]
     file: &'a File<'arena>,
     settings: &'a Settings,
+    classes: &'a [FindingClass],
     findings: Vec<Finding>,
-    seen: HashSet<(u32, u32, &'static str)>,
+    seen: HashSet<(u32, u32, FindingClass, &'static str)>,
     return_hint: Option<&'arena Hint<'arena>>,
     strict_types: bool,
     finding_limit_start: usize,
@@ -96,6 +99,7 @@ pub fn analyze_file_with_summaries(
     settings: &Settings,
     summaries: &HashMap<String, FunctionSummary>,
     parents: &HashMap<String, String>,
+    classes: &[FindingClass],
 ) -> Vec<Finding> {
     let Some(program) = file.ast else {
         return Vec::new();
@@ -104,6 +108,7 @@ pub fn analyze_file_with_summaries(
     let mut analyzer = Analyzer {
         file,
         settings,
+        classes,
         findings: Vec::new(),
         seen: HashSet::new(),
         return_hint: None,
@@ -138,6 +143,12 @@ pub fn analyze_file_with_summaries(
         analyzer.analyze_statement(statement, &mut state);
     }
 
+    if !classes.is_empty() {
+        analyzer
+            .findings
+            .retain(|finding| classes.contains(&finding.class));
+    }
+
     analyzer.findings
 }
 
@@ -146,6 +157,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         if !state.reachable && !is_declaration(statement) {
             if self.settings.check_unreachable {
                 self.push_finding(
+                    FindingClass::Unreachable,
                     "unreachable",
                     "This statement is unreachable.",
                     statement.span(),
@@ -1503,6 +1515,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                         && matches!(object, Value::Null)
                     {
                         self.push_finding(
+                            FindingClass::NullProperty,
                             "null-property-access",
                             "Property access on null.",
                             access.span(),
@@ -1660,6 +1673,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             AssignmentOperator::Division(_) => {
                 if self.settings.check_division {
                     self.check_nonzero(
+                        FindingClass::Division,
                         &right,
                         &state.path,
                         assignment.span(),
@@ -1678,6 +1692,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     )
                 {
                     self.check_nonzero(
+                        FindingClass::Modulo,
                         &right,
                         &state.path,
                         assignment.span(),
@@ -1975,6 +1990,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             BinaryOperator::Division(_) => {
                 if self.settings.check_division {
                     self.check_nonzero(
+                        FindingClass::Division,
                         &right,
                         &state.path,
                         binary.span(),
@@ -1992,6 +2008,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     )
                 {
                     self.check_nonzero(
+                        FindingClass::Modulo,
                         &right,
                         &state.path,
                         binary.span(),
@@ -2293,6 +2310,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     && matches!(object, Value::Null)
                 {
                     self.push_finding(
+                        FindingClass::NullMethod,
                         "null-method-call",
                         "Method call on null.",
                         method.object.span(),
@@ -2835,6 +2853,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     Some(key) => {
                         if !keys.contains(&key) && path_may_be_true(path) {
                             self.push_finding(
+                                FindingClass::ArrayKey,
                                 "array-key",
                                 "Array key {value} is not present in the array.",
                                 span,
@@ -2857,6 +2876,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                             };
                             let index_value = Value::Int(index.clone());
                             self.check_condition(
+                                FindingClass::ArrayKey,
                                 &present.not(),
                                 path,
                                 span,
@@ -2872,39 +2892,56 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 if !self.settings.check_string_offset {
                     return;
                 }
-                if let Value::Int(index) = index {
-                    let length = Int::from_i64(string.len() as i64);
-                    let out_of_bounds = Bool::or(&[&index.lt(-length.clone()), &index.ge(length)]);
-                    let index_value = Value::Int(index.clone());
-                    self.check_condition(
-                        &out_of_bounds,
-                        path,
-                        span,
-                        "string-offset",
-                        "String offset {value} is out of bounds.",
-                        Some(&index_value),
-                    );
-                }
+                let length = Int::from_i64(string.len() as i64);
+                self.check_string_offset(&length, index, span, path);
             }
             Value::StringLength(length) => {
                 if !self.settings.check_string_offset {
                     return;
                 }
-                if let Value::Int(index) = index {
-                    let out_of_bounds =
-                        Bool::or(&[&index.lt(-length.clone()), &index.ge(length.clone())]);
-                    let index_value = Value::Int(index.clone());
-                    self.check_condition(
-                        &out_of_bounds,
-                        path,
+                self.check_string_offset(length, index, span, path);
+            }
+            Value::ListLength(length) => self.check_list_access(length, index, span, path),
+            _ => {}
+        }
+    }
+
+    fn check_string_offset(&mut self, length: &Int, index: &Value, span: Span, path: &Bool) {
+        match index {
+            Value::Int(index) => {
+                let out_of_bounds =
+                    Bool::or(&[&index.lt(-length.clone()), &index.ge(length.clone())]);
+                let index_value = Value::Int(index.clone());
+                self.check_condition(
+                    FindingClass::StringOffset,
+                    &out_of_bounds,
+                    path,
+                    span,
+                    "string-offset",
+                    "String offset {value} is out of bounds.",
+                    Some(&index_value),
+                );
+            }
+            Value::Unknown | Value::Unverified | Value::UnverifiedNumeric { .. } => {
+                if self.settings.unknown_policy != "report" {
+                    return;
+                }
+                let solver = Solver::new();
+                let mut params = Params::new();
+                params.set_u32(
+                    "timeout",
+                    self.settings.timeout_ms.min(u32::MAX as u64) as u32,
+                );
+                solver.set_params(&params);
+                solver.assert(path);
+                if !matches!(solver.check(), SatResult::Unsat) {
+                    self.push_unverified(
+                        FindingClass::StringOffset,
+                        "Could not verify this string offset: the index cannot be modeled. Treat it as unverified, not safe; see unknown_policy.",
                         span,
-                        "string-offset",
-                        "String offset {value} is out of bounds.",
-                        Some(&index_value),
                     );
                 }
             }
-            Value::ListLength(length) => self.check_list_access(length, index, span, path),
             _ => {}
         }
     }
@@ -2944,12 +2981,17 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                                     model_value(&solver, &Value::Int(length.clone()))
                                         .unwrap_or_else(|| "?".to_string());
                                 let message = Message::new(
-                                    "E0031:array-index",
+                                    FindingClass::ArrayIndex.message_id("array-index"),
                                     "A reachable path uses list index {value}, but the list has length {length}.",
                                 )
                                 .arg("value", index_value)
                                 .arg("length", length_value);
-                                self.push_message("array-index", message, span);
+                                self.push_message(
+                                    FindingClass::ArrayIndex,
+                                    "array-index",
+                                    message,
+                                    span,
+                                );
                             }
                             SatResult::Sat if symbolic_index => {
                                 let index_value = model_value(&solver, &Value::Int(index.clone()))
@@ -2958,20 +3000,24 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                                     model_value(&solver, &Value::Int(length.clone()))
                                         .unwrap_or_else(|| "?".to_string());
                                 let message = Message::new(
-                                    "E0031:array-index",
+                                    FindingClass::ArrayIndex.message_id("array-index"),
                                     "A reachable path uses list index {value}, but the list has length {length}.",
                                 )
                                 .arg("value", index_value)
                                 .arg("length", length_value);
-                                self.push_message("array-index", message, span);
+                                self.push_message(
+                                    FindingClass::ArrayIndex,
+                                    "array-index",
+                                    message,
+                                    span,
+                                );
                             }
                             SatResult::Unknown => {
                                 if self.settings.unknown_policy == "report" {
-                                    self.push_finding(
-                                        "unverified",
+                                    self.push_unverified(
+                                        FindingClass::ArrayIndex,
                                         "Could not verify this list access: the solver returned unknown. Treat it as unverified, not safe; see unknown_policy.",
                                         span,
-                                        "?",
                                     );
                                 }
                             }
@@ -2980,11 +3026,10 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     }
                     SatResult::Unknown => {
                         if self.settings.unknown_policy == "report" {
-                            self.push_finding(
-                                "unverified",
+                            self.push_unverified(
+                                FindingClass::ArrayIndex,
                                 "Could not verify this list access: the solver returned unknown. Treat it as unverified, not safe; see unknown_policy.",
                                 span,
-                                "?",
                             );
                         }
                     }
@@ -3004,11 +3049,10 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 solver.set_params(&params);
                 solver.assert(path);
                 if !matches!(solver.check(), SatResult::Unsat) {
-                    self.push_finding(
-                        "unverified",
+                    self.push_unverified(
+                        FindingClass::ArrayIndex,
                         "Could not verify this list access: the index cannot be modeled. Treat it as unverified, not safe; see unknown_policy.",
                         span,
-                        "?",
                     );
                 }
             }
@@ -3360,9 +3404,10 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 && !hint.contains_null()
             {
                 self.push_message(
+                    FindingClass::ReturnContract,
                     "return-contract",
                     Message::new(
-                        "E0031:return-contract",
+                        FindingClass::ReturnContract.message_id("return-contract"),
                         "The function can return without a value but declares return type {type}.",
                     )
                     .arg("type", hint_name(hint)),
@@ -3381,9 +3426,10 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
 
         if hint_accepts_value(value, hint, self.strict_types) == Some(false) {
             self.push_message(
+                FindingClass::ReturnContract,
                 "return-contract",
                 Message::new(
-                    "E0031:return-contract",
+                    FindingClass::ReturnContract.message_id("return-contract"),
                     "Returned {value} does not satisfy the declared return type {type}.",
                 )
                 .arg("value", value_type_name(value))
@@ -3400,9 +3446,10 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 && !contracts::accepts_null(doc_type, &self.doc_templates)
             {
                 self.push_message(
+                    FindingClass::ReturnContract,
                     "return-contract",
                     Message::new(
-                        "E0031:return-contract",
+                        FindingClass::ReturnContract.message_id("return-contract"),
                         "The function can return without a value but documents return type {type}.",
                     )
                     .arg("type", doc_type),
@@ -3421,9 +3468,10 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
 
         if contracts::accepts_value(value, doc_type, true) == Some(false) {
             self.push_message(
+                FindingClass::ReturnContract,
                 "return-contract",
                 Message::new(
-                    "E0031:return-contract",
+                    FindingClass::ReturnContract.message_id("return-contract"),
                     "Returned {value} does not satisfy the documented return type {type}.",
                 )
                 .arg("value", value_type_name(value))
@@ -3441,6 +3489,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             return;
         }
         self.check_nonzero(
+            FindingClass::Intdiv,
             right,
             path,
             span,
@@ -3454,6 +3503,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 &right.eq(Int::from_i64(-1)),
             ]);
             self.check_condition(
+                FindingClass::IntdivOverflow,
                 &overflow,
                 path,
                 span,
@@ -3466,6 +3516,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
 
     fn check_nonzero(
         &mut self,
+        class: FindingClass,
         value: &Value,
         path: &Bool,
         span: Span,
@@ -3491,21 +3542,19 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 solver.assert(path);
                 solver.assert(value.eq(0));
                 if !matches!(solver.check(), SatResult::Unsat) {
-                    self.push_finding(
-                        "unverified",
+                    self.push_unverified(
+                        class,
                         "Could not verify this property: the divisor may be zero but its numeric value cannot be modeled. Treat it as unverified, not safe; see unknown_policy.",
                         span,
-                        "?",
                     );
                 }
                 return;
             }
             if matches!(value, Value::Unverified) {
-                self.push_finding(
-                    "unverified",
+                self.push_unverified(
+                    class,
                     "Could not verify this property: the divisor cannot be modeled. Treat it as unverified, not safe; see unknown_policy.",
                     span,
-                    "?",
                 );
                 return;
             }
@@ -3516,7 +3565,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             return;
         };
 
-        self.check_condition(&zero, path, span, id, template, Some(value));
+        self.check_condition(class, &zero, path, span, id, template, Some(value));
     }
 
     fn check_assertion(&mut self, condition: &Bool, path: &Bool, span: Span) {
@@ -3538,12 +3587,20 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         solver.assert(condition);
 
         if matches!(solver.check(), SatResult::Unsat) {
-            self.push_finding("assertion", "This assertion can never hold.", span, "false");
+            self.push_finding(
+                FindingClass::Assertion,
+                "assertion",
+                "This assertion can never hold.",
+                span,
+                "false",
+            );
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn check_condition(
         &mut self,
+        class: FindingClass,
         condition: &Bool,
         path: &Bool,
         span: Span,
@@ -3566,15 +3623,14 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 let rendered = value
                     .and_then(|value| model_value(&solver, value))
                     .unwrap_or_else(|| "?".to_string());
-                self.push_finding(id, template, span, &rendered);
+                self.push_finding(class, id, template, span, &rendered);
             }
             SatResult::Unknown => {
                 if self.settings.unknown_policy == "report" {
-                    self.push_finding(
-                        "unverified",
+                    self.push_unverified(
+                        class,
                         "Could not verify this property: the solver returned unknown. Treat it as unverified, not safe; see unknown_policy.",
                         span,
-                        "?",
                     );
                 }
             }
@@ -3582,36 +3638,66 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         }
     }
 
-    fn push_finding(&mut self, id: &'static str, template: &'static str, span: Span, value: &str) {
-        let message = Message::new(format!("E0031:{id}"), template).arg("value", value);
-        self.push_message(id, message, span);
+    fn push_finding(
+        &mut self,
+        class: FindingClass,
+        id: &'static str,
+        template: &'static str,
+        span: Span,
+        value: &str,
+    ) {
+        let message = Message::new(class.message_id(id), template).arg("value", value);
+        self.push_message(class, id, message, span);
     }
 
-    fn push_message(&mut self, id: &'static str, message: Message, span: Span) {
-        if self.settings.max_findings_per_function > 0
-            && self.findings.len().saturating_sub(self.finding_limit_start)
-                >= self.settings.max_findings_per_function
-        {
+    fn push_unverified(&mut self, class: FindingClass, template: &'static str, span: Span) {
+        self.push_finding(class, "unverified", template, span, "?");
+    }
+
+    fn push_message(
+        &mut self,
+        class: FindingClass,
+        id: &'static str,
+        message: Message,
+        span: Span,
+    ) {
+        if !self.classes.is_empty() && !self.classes.contains(&class) {
             return;
         }
 
-        let key = (span.start.offset, span.end.offset, id);
+        if self.settings.max_findings_per_function > 0 {
+            let class_findings = self.findings[self.finding_limit_start..]
+                .iter()
+                .filter(|finding| finding.class == class)
+                .count();
+            if class_findings >= self.settings.max_findings_per_function {
+                return;
+            }
+        }
+
+        let key = (span.start.offset, span.end.offset, class, id);
         if !self.seen.insert(key) {
             return;
         }
 
         if id != "unverified" {
-            let unverified = (span.start.offset, span.end.offset, "unverified");
+            let unverified = (span.start.offset, span.end.offset, class, "unverified");
             if self.seen.remove(&unverified) {
+                let unverified_id = class.message_id("unverified");
                 self.findings.retain(|finding| {
-                    !(finding.span.start.offset == span.start.offset
+                    !(finding.class == class
+                        && finding.span.start.offset == span.start.offset
                         && finding.span.end.offset == span.end.offset
-                        && finding.message.id == "E0031:unverified")
+                        && finding.message.id == unverified_id)
                 });
             }
         }
 
-        self.findings.push(Finding { message, span });
+        self.findings.push(Finding {
+            class,
+            message,
+            span,
+        });
     }
 }
 

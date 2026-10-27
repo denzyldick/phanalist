@@ -239,6 +239,11 @@ rules:
     max_findings_per_function: 50
 ```
 
+E0032-E0042 accept the same settings block. Enabling or disabling only `E0031`
+applies to every verification code for backward compatibility, and a class with
+no explicit block inherits the legacy `E0031` settings; naming any other
+verification code keeps the configuration scoped to the codes you named.
+
 - **`enabled_rules`** — whitelist of rules to run (empty = all)
 - **`disable_rules`** — rules to skip
 - **`rules`** — per-rule configuration options
@@ -294,7 +299,18 @@ exclude_paths:
 | [E0028](/src/rules/examples/e28/e28.md) | Data Class | `max_getter_setter_ratio: 0.7`, `min_methods: 3` |
 | [E0029](/src/rules/examples/e29/e29.md) | Fan-in / Fan-out | `max_fan_out: 10`, `max_fan_in: 20` |
 | [E0030](/src/rules/examples/e30/e30.md) | Cyclomatic Complexity Density | `max_density: 0.3` |
-| [E0031](/src/rules/examples/e31/e31.md) | Bounded Formal Verification | `php_version`, `check_division`, `check_modulo`, `check_intdiv`, `check_array_index`, `check_string_offset`, `check_nullability`, `check_types`, `check_assertions`, `check_unreachable`, `check_return_contracts`, `loop_strategy`, `unroll_depth`, `timeout_ms`, `unknown_policy`, `max_findings_per_function` |
+| [E0031](/src/rules/examples/e31/e31.md) | Division by Zero | `php_version`, `check_division`, `check_modulo`, `check_intdiv`, `check_array_index`, `check_string_offset`, `check_nullability`, `check_types`, `check_assertions`, `check_unreachable`, `check_return_contracts`, `loop_strategy`, `unroll_depth`, `timeout_ms`, `unknown_policy`, `max_findings_per_function` |
+| [E0032](/src/rules/examples/e32/e32.md) | Modulo by Zero | same as E0031 |
+| [E0033](/src/rules/examples/e33/e33.md) | `intdiv()` by Zero | same as E0031 |
+| [E0034](/src/rules/examples/e34/e34.md) | `intdiv()` Overflow | same as E0031 |
+| [E0035](/src/rules/examples/e35/e35.md) | Missing Array Key | same as E0031 |
+| [E0036](/src/rules/examples/e36/e36.md) | Array Index Out of Bounds | same as E0031 |
+| [E0037](/src/rules/examples/e37/e37.md) | String Offset Out of Bounds | same as E0031 |
+| [E0038](/src/rules/examples/e38/e38.md) | Method Call on Null | same as E0031 |
+| [E0039](/src/rules/examples/e39/e39.md) | Property Access on Null | same as E0031 |
+| [E0040](/src/rules/examples/e40/e40.md) | Return Contract Violation | same as E0031 |
+| [E0041](/src/rules/examples/e41/e41.md) | Unreachable Code | same as E0031 |
+| [E0042](/src/rules/examples/e42/e42.md) | Impossible Assertion | same as E0031 |
 
 Adding a new rule is straightforward — [this tutorial](./docs/adding_new_rule.md) explains how.
 
