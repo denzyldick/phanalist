@@ -2282,8 +2282,17 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                         state.path = path_and(&state.path, &condition);
                     }
                 }
-                if let Some(value) = builtin_call_value(name.as_deref(), &arguments) {
-                    return value;
+                if arguments_are_positional(&function.argument_list) {
+                    if let Some(value) =
+                        builtin_call_value(name.as_deref(), &arguments, call.span())
+                    {
+                        if let Some(constraint) =
+                            builtin_call_constraint(name.as_deref(), &arguments, call.span())
+                        {
+                            state.path = path_and(&state.path, &constraint);
+                        }
+                        return value;
+                    }
                 }
                 if let Some(summary) = self.function_summary(function.function) {
                     self.apply_call_assertions(summary, &arguments, &function.argument_list, state);
@@ -3200,6 +3209,12 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 Value::UnverifiedNumeric { value: right, .. },
             ) => Some(left.eq(right)),
             (Value::Bool(left), Value::Bool(right)) => Some(left.eq(right)),
+            (Value::ArrayLength(length) | Value::ListLength(length), Value::Array(Some(keys)))
+            | (Value::Array(Some(keys)), Value::ArrayLength(length) | Value::ListLength(length))
+                if keys.is_empty() =>
+            {
+                Some(length.eq(Int::from_i64(0)))
+            }
             (Value::Null, Value::Null) => Some(Bool::from_bool(true)),
             _ => None,
         };
@@ -3225,6 +3240,12 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             (Value::Bool(left), Value::Bool(right)) => Some(left.eq(right)),
             (Value::String(Some(left)), Value::String(Some(right))) => {
                 Some(Bool::from_bool(left == right))
+            }
+            (Value::ArrayLength(length) | Value::ListLength(length), Value::Array(Some(keys)))
+            | (Value::Array(Some(keys)), Value::ArrayLength(length) | Value::ListLength(length))
+                if keys.is_empty() =>
+            {
+                Some(length.eq(Int::from_i64(0)))
             }
             (Value::Null, Value::Null) => Some(Bool::from_bool(true)),
             (Value::Int(_), Value::Float(_))
@@ -3745,7 +3766,23 @@ fn is_list_keys(keys: &BTreeSet<ArrayKey>) -> bool {
         .all(|(index, key)| matches!(key, ArrayKey::Int(value) if *value == index as i64))
 }
 
-fn builtin_call_value(name: Option<&str>, arguments: &[Value]) -> Option<Value> {
+fn array_length(value: &Value) -> Option<Int> {
+    match value {
+        Value::Array(Some(keys)) => Some(Int::from_u64(keys.len() as u64)),
+        Value::ArrayLength(length) | Value::ListLength(length) => Some(length.clone()),
+        _ => None,
+    }
+}
+
+fn int_max(left: Int, right: Int) -> Int {
+    left.ge(right.clone()).ite(&left, &right)
+}
+
+fn builtin_length(span: Span, kind: &str) -> Int {
+    Int::new_const(format!("builtin::{kind}::{}::length", span.start.offset))
+}
+
+fn builtin_call_value(name: Option<&str>, arguments: &[Value], span: Span) -> Option<Value> {
     let name = name?;
     match name {
         "strlen" => match arguments.first()? {
@@ -3761,21 +3798,24 @@ fn builtin_call_value(name: Option<&str>, arguments: &[Value]) -> Option<Value> 
             _ => None,
         },
         "array_map" => {
-            if arguments.len() != 2 {
+            if arguments.len() < 2 {
                 return None;
             }
-            match arguments.get(1)? {
-                Value::Array(Some(keys)) => {
-                    let length = Int::from_u64(keys.len() as u64);
-                    if is_list_keys(keys) {
-                        Some(Value::ListLength(length))
-                    } else {
+            let arrays = &arguments[1..];
+            let mut length = array_length(arrays.first()?)?;
+            for array in &arrays[1..] {
+                length = int_max(length, array_length(array)?);
+            }
+            if arrays.len() == 1 {
+                match arrays.first()? {
+                    Value::Array(Some(keys)) if !is_list_keys(keys) => {
                         Some(Value::ArrayLength(length))
                     }
+                    Value::ArrayLength(_) => Some(Value::ArrayLength(length)),
+                    _ => Some(Value::ListLength(length)),
                 }
-                Value::ArrayLength(length) => Some(Value::ArrayLength(length.clone())),
-                Value::ListLength(length) => Some(Value::ListLength(length.clone())),
-                _ => None,
+            } else {
+                Some(Value::ListLength(length))
             }
         }
         "array_values" => match arguments.first()? {
@@ -3814,6 +3854,48 @@ fn builtin_call_value(name: Option<&str>, arguments: &[Value]) -> Option<Value> 
                 total = total.add(length);
             }
             Some(Value::ListLength(total))
+        }
+        "array_diff" | "array_intersect" | "array_unique" | "array_filter" | "array_fill_keys" => {
+            array_length(arguments.first()?)?;
+            Some(Value::ArrayLength(builtin_length(span, name)))
+        }
+        "array_keys" => {
+            let length = array_length(arguments.first()?)?;
+            if arguments.len() == 1 {
+                Some(Value::ListLength(length))
+            } else {
+                Some(Value::ListLength(builtin_length(span, name)))
+            }
+        }
+        "array_fill" => {
+            let count = match arguments.get(1)? {
+                Value::Int(count) => count.clone(),
+                _ => return None,
+            };
+            if matches!(arguments.first(), Some(Value::Int(start)) if start.as_i64() == Some(0)) {
+                Some(Value::ListLength(count))
+            } else {
+                Some(Value::ArrayLength(count))
+            }
+        }
+        "array_pad" => {
+            let length = array_length(arguments.first()?)?;
+            let size = match arguments.get(1)? {
+                Value::Int(size) => size.clone(),
+                _ => return None,
+            };
+            let magnitude = size.ge(Int::from_i64(0)).ite(&size, &size.unary_minus());
+            let length = int_max(length, magnitude);
+            let list = match arguments.first()? {
+                Value::Array(Some(keys)) => is_list_keys(keys),
+                Value::ListLength(_) => true,
+                _ => false,
+            };
+            if list {
+                Some(Value::ListLength(length))
+            } else {
+                Some(Value::ArrayLength(length))
+            }
         }
         "str_repeat" => {
             let times = match arguments.get(1)? {
@@ -3855,6 +3937,33 @@ fn builtin_call_value(name: Option<&str>, arguments: &[Value]) -> Option<Value> 
             )
         }),
         "is_null" => type_predicate(arguments.first()?, |value| matches!(value, Value::Null)),
+        _ => None,
+    }
+}
+
+fn builtin_call_constraint(name: Option<&str>, arguments: &[Value], span: Span) -> Option<Bool> {
+    let name = name?;
+    match name {
+        "array_diff" | "array_intersect" | "array_unique" | "array_filter" | "array_fill_keys" => {
+            let input = array_length(arguments.first()?)?;
+            let length = builtin_length(span, name);
+            Some(Bool::and(&[
+                &length.ge(Int::from_i64(0)),
+                &length.le(input),
+            ]))
+        }
+        "array_keys" if arguments.len() > 1 => {
+            let input = array_length(arguments.first()?)?;
+            let length = builtin_length(span, name);
+            Some(Bool::and(&[
+                &length.ge(Int::from_i64(0)),
+                &length.le(input),
+            ]))
+        }
+        "array_fill" => match arguments.get(1)? {
+            Value::Int(count) => Some(count.ge(Int::from_i64(0))),
+            _ => None,
+        },
         _ => None,
     }
 }
@@ -3939,7 +4048,10 @@ fn parameter_value(
         if doc_type.starts_with("array{") {
             return Value::Array(contracts::array_shape_keys(doc_type));
         }
-        if doc_type == "array" || doc_type == "iterable" || doc_type.starts_with("array<") {
+        if doc_type == "array" || doc_type.starts_with("array<") {
+            return Value::ArrayLength(Int::new_const(format!("{function}::{parameter}::length")));
+        }
+        if doc_type == "iterable" {
             return Value::Array(None);
         }
         if doc_type == "null" {
@@ -4055,6 +4167,11 @@ fn contract_value(ty: &str, tag: u32) -> Option<Value> {
         || ty.starts_with("list<")
     {
         return Some(Value::ListLength(Int::new_const(format!(
+            "call::{tag}::return::length"
+        ))));
+    }
+    if ty == "array" || ty.starts_with("array<") {
+        return Some(Value::ArrayLength(Int::new_const(format!(
             "call::{tag}::return::length"
         ))));
     }
