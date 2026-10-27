@@ -8,6 +8,23 @@ pub enum ArrayKey {
     String(String),
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ResourceState {
+    Open,
+    Closed,
+    MaybeClosed,
+}
+
+impl ResourceState {
+    fn merge(left: Self, right: Self) -> Self {
+        if left == right {
+            left
+        } else {
+            Self::MaybeClosed
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Value {
     Int(Int),
@@ -23,6 +40,7 @@ pub enum Value {
     Unverified,
     UnverifiedNumeric { value: Int, loop_accumulator: bool },
     Object(String),
+    Resource { id: u64, state: ResourceState },
 }
 
 impl Value {
@@ -46,7 +64,7 @@ impl Value {
             Value::Array(Some(keys)) => Some(Bool::from_bool(!keys.is_empty())),
             Value::ArrayLength(length) | Value::ListLength(length) => Some(length.eq(0).not()),
             Value::UnverifiedNumeric { value, .. } => Some(value.eq(0).not()),
-            Value::Object(_) => Some(Bool::from_bool(true)),
+            Value::Object(_) | Value::Resource { .. } => Some(Bool::from_bool(true)),
             Value::String(None) | Value::Array(None) | Value::Unknown | Value::Unverified => None,
         }
     }
@@ -56,9 +74,6 @@ impl Value {
             Value::Float(value) => Some(value.clone()),
             Value::Int(value) => {
                 let literal = value.as_i64()?;
-                if literal.unsigned_abs() > (1_u64 << 53) {
-                    return None;
-                }
                 Some(Float::from_f64(literal as f64))
             }
             _ => None,
@@ -121,6 +136,20 @@ impl Value {
             (None, Value::Object(left), Value::Object(right)) if left == right => {
                 Value::Object(left.clone())
             }
+            (
+                _,
+                Value::Resource {
+                    id: left_id,
+                    state: left_state,
+                },
+                Value::Resource {
+                    id: right_id,
+                    state: right_state,
+                },
+            ) if left_id == right_id => Value::Resource {
+                id: *left_id,
+                state: ResourceState::merge(*left_state, *right_state),
+            },
             (None, Value::String(Some(left)), Value::String(Some(right))) if left == right => {
                 Value::String(Some(left.clone()))
             }
