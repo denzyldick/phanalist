@@ -490,6 +490,12 @@ pub fn constraint(value: &Value, ty: &str) -> Option<Bool> {
                 Value::ListLength(length) => Some(length.ge(Int::from_i64(0))),
                 _ => None,
             },
+            ty if ty == "array" || ty.starts_with("array<") => match value {
+                Value::ArrayLength(length) | Value::ListLength(length) => {
+                    Some(length.ge(Int::from_i64(0)))
+                }
+                _ => None,
+            },
             _ => None,
         };
     };

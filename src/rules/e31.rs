@@ -641,6 +641,48 @@ mod builtin_tests {
     }
 
     #[test]
+    fn proves_an_array_diff_result_is_not_longer_than_its_input() {
+        assert!(messages("e31/array_diff_guarded.php").is_empty());
+    }
+
+    #[test]
+    fn reports_an_array_diff_result_indexed_by_the_input_length() {
+        let messages = messages("e31/array_diff_out_of_bounds.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("list index"));
+    }
+
+    #[test]
+    fn reports_a_multi_array_map_result_indexed_past_every_input() {
+        let messages = messages("e31/array_map_multi_out_of_bounds.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("list index"));
+    }
+
+    #[test]
+    fn reports_an_array_fill_result_indexed_by_its_count() {
+        let messages = messages("e31/array_fill_out_of_bounds.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("list index"));
+    }
+
+    #[test]
+    fn reports_an_array_keys_result_indexed_by_the_input_length() {
+        let messages = messages("e31/array_keys_out_of_bounds.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("list index"));
+    }
+
+    #[test]
+    fn does_not_model_builtins_with_named_arguments_out_of_order() {
+        assert!(messages("e31/array_fill_named_arguments.php").is_empty());
+    }
+
+    #[test]
     fn reports_list_indexes_past_the_end() {
         let messages = messages("e31/list_bounds_vulnerable.php");
 
