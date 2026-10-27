@@ -13,6 +13,7 @@
 - The verification family merges loop exit values with the feasible zero-iteration path for integer counters initialized to zero, so a counter initialized before a possibly empty loop is still considered possibly zero; unknown accumulators are reported as `unverified` under `unknown_policy: report` instead of being treated as safe. Unknown numeric accumulators retain enough type information to prove guards such as `$count > 0`, while strict type-sensitive guards remain unverified. The benchmark now includes the PPOE/pgacc-style loop regression, guarded counterparts, and a strict-guard soundness case.
 - The verification family propagates constant-return and PHPDoc method contracts through directly instantiated objects stored in variables and through parameters whose class has no known project-local subclass, including classes and contracts declared in other indexed files.
 - The verification family now reports solver `unknown` results with clearer `unverified` guidance by default; `unknown_policy: ignore` still suppresses them.
+- The verification family derives exact list lengths through `array_merge()` for list inputs, preserves lengths through `array_map()`, `array_values()`, and `array_reverse()`, and derives string lengths through `str_repeat()` with a literal repetition count. These lengths feed `E0036` and `E0037` bounds checks.
 
 ### Fixed
 
@@ -43,6 +44,7 @@
 
 ### Changed
 
+- Baselines created before the E0031 split store aggregate `E0031` findings. Regenerate them so per-class `E0032`-`E0042` findings are tracked under their own codes.
 - The progress bar counts the PHP files that will be analysed instead of every directory entry passed along the way, and sizing it no longer walks the tree an extra time.
 - Files with no violations no longer reserve an entry (and a path string) in the report.
 - Rules that resolve references across files (`E0014`, `E0020`–`E0023`, `E0029`) are unaffected: the indexing pre-pass still completes over the whole project before any file is validated.
