@@ -316,21 +316,23 @@ pub fn accepts_value(value: &Value, ty: &str, strict: bool) -> Option<bool> {
             _ => Some(false),
         },
         "array-key" => Some(matches!(value, Value::Int(_) | Value::String(_))),
-        "array" | "iterable" => Some(matches!(value, Value::Array(_) | Value::ArrayLength(_))),
+        "array" | "iterable" => Some(matches!(
+            value,
+            Value::Array(_) | Value::ArrayLength(_) | Value::ListLength(_)
+        )),
         ty if ty.starts_with("array{") || ty.starts_with("non-empty-array{") => {
             shape_accepts_value(value, ty)
         }
-        ty if ty == "non-empty-array"
-            || ty == "non-empty-list"
-            || ty.starts_with("non-empty-array<")
-            || ty.starts_with("non-empty-list<") =>
-        {
-            match value {
-                Value::Array(Some(keys)) => Some(!keys.is_empty()),
-                Value::Array(None) | Value::ArrayLength(_) => None,
-                _ => Some(false),
-            }
-        }
+        ty if ty == "non-empty-array" || ty.starts_with("non-empty-array<") => match value {
+            Value::Array(Some(keys)) => Some(!keys.is_empty()),
+            Value::Array(None) | Value::ArrayLength(_) | Value::ListLength(_) => None,
+            _ => Some(false),
+        },
+        ty if ty == "non-empty-list" || ty.starts_with("non-empty-list<") => match value {
+            Value::Array(Some(keys)) => Some(!keys.is_empty()),
+            Value::Array(None) | Value::ArrayLength(_) | Value::ListLength(_) => None,
+            _ => Some(false),
+        },
         "positive-int" | "non-negative-int" | "negative-int" | "non-positive-int"
         | "non-zero-int" => literal_int(value).map(|value| match ty.as_str() {
             "positive-int" => value > 0,
@@ -342,9 +344,10 @@ pub fn accepts_value(value: &Value, ty: &str, strict: bool) -> Option<bool> {
         }),
         _ if ty.starts_with("int<") => int_range(&ty)
             .and_then(|(min, max)| literal_int(value).map(|value| value >= min && value <= max)),
-        _ if ty.starts_with("list<") || ty.starts_with("array<") => {
-            Some(matches!(value, Value::Array(_) | Value::ArrayLength(_)))
-        }
+        _ if ty == "list" || ty.starts_with("list<") || ty.starts_with("array<") => Some(matches!(
+            value,
+            Value::Array(_) | Value::ArrayLength(_) | Value::ListLength(_)
+        )),
         _ => None,
     }
 }
@@ -471,17 +474,22 @@ pub fn constraint(value: &Value, ty: &str) -> Option<Bool> {
                 Value::StringLength(length) => Some(length.gt(Int::from_i64(0))),
                 _ => None,
             },
-            ty if ty == "non-empty-array"
-                || ty == "non-empty-list"
-                || ty.starts_with("non-empty-array<")
-                || ty.starts_with("non-empty-list<") =>
-            {
-                match value {
-                    Value::Array(Some(keys)) => Some(Bool::from_bool(!keys.is_empty())),
-                    Value::ArrayLength(length) => Some(length.gt(Int::from_i64(0))),
-                    _ => None,
+            ty if ty == "non-empty-array" || ty.starts_with("non-empty-array<") => match value {
+                Value::Array(Some(keys)) => Some(Bool::from_bool(!keys.is_empty())),
+                Value::ArrayLength(length) | Value::ListLength(length) => {
+                    Some(length.gt(Int::from_i64(0)))
                 }
-            }
+                _ => None,
+            },
+            ty if ty == "non-empty-list" || ty.starts_with("non-empty-list<") => match value {
+                Value::Array(Some(keys)) => Some(Bool::from_bool(!keys.is_empty())),
+                Value::ListLength(length) => Some(length.gt(Int::from_i64(0))),
+                _ => None,
+            },
+            ty if ty == "list" || ty.starts_with("list<") => match value {
+                Value::ListLength(length) => Some(length.ge(Int::from_i64(0))),
+                _ => None,
+            },
             _ => None,
         };
     };

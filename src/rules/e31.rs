@@ -582,6 +582,30 @@ mod builtin_tests {
         assert_eq!(messages.len(), 1);
         assert!(messages[0].contains("Array key"));
     }
+
+    #[test]
+    fn reports_list_indexes_past_the_end() {
+        let messages = messages("e31/list_bounds_vulnerable.php");
+
+        assert_eq!(messages.len(), 3);
+        assert!(messages
+            .iter()
+            .all(|message| message.contains("list index")));
+        assert!(messages.iter().any(|message| message.contains("length 0")));
+    }
+
+    #[test]
+    fn proves_list_access_in_bounds() {
+        assert!(messages("e31/list_bounds_safe.php").is_empty());
+    }
+
+    #[test]
+    fn reports_unverified_list_access_for_an_unmodeled_index() {
+        let messages = messages("e31/list_bounds_unknown.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("Could not verify this list access"));
+    }
 }
 
 #[cfg(test)]
@@ -1294,6 +1318,7 @@ mod benchmark {
     const INTDIV: &str = "E0031:intdiv-by-zero";
     const INTDIV_OVERFLOW: &str = "E0031:intdiv-overflow";
     const ARRAY_KEY: &str = "E0031:array-key";
+    const ARRAY_INDEX: &str = "E0031:array-index";
     const STRING_OFFSET: &str = "E0031:string-offset";
     const NULL_METHOD: &str = "E0031:null-method-call";
     const RETURN_CONTRACT: &str = "E0031:return-contract";
@@ -1443,6 +1468,21 @@ mod benchmark {
             category: "arrays",
             path: "e31/isset_missing_array_key.php",
             expected: &[],
+        },
+        BenchmarkCase {
+            category: "lists",
+            path: "e31/list_bounds_vulnerable.php",
+            expected: &[ARRAY_INDEX, ARRAY_INDEX, ARRAY_INDEX],
+        },
+        BenchmarkCase {
+            category: "lists",
+            path: "e31/list_bounds_safe.php",
+            expected: &[],
+        },
+        BenchmarkCase {
+            category: "lists",
+            path: "e31/list_bounds_unknown.php",
+            expected: &[UNVERIFIED],
         },
         BenchmarkCase {
             category: "strings",
