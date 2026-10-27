@@ -3739,6 +3739,12 @@ fn function_identifier_name(expression: &Expression<'_>) -> Option<String> {
     }
 }
 
+fn is_list_keys(keys: &BTreeSet<ArrayKey>) -> bool {
+    keys.iter()
+        .enumerate()
+        .all(|(index, key)| matches!(key, ArrayKey::Int(value) if *value == index as i64))
+}
+
 fn builtin_call_value(name: Option<&str>, arguments: &[Value]) -> Option<Value> {
     let name = name?;
     match name {
@@ -3754,6 +3760,76 @@ fn builtin_call_value(name: Option<&str>, arguments: &[Value]) -> Option<Value> 
             }
             _ => None,
         },
+        "array_map" => {
+            if arguments.len() != 2 {
+                return None;
+            }
+            match arguments.get(1)? {
+                Value::Array(Some(keys)) => {
+                    let length = Int::from_u64(keys.len() as u64);
+                    if is_list_keys(keys) {
+                        Some(Value::ListLength(length))
+                    } else {
+                        Some(Value::ArrayLength(length))
+                    }
+                }
+                Value::ArrayLength(length) => Some(Value::ArrayLength(length.clone())),
+                Value::ListLength(length) => Some(Value::ListLength(length.clone())),
+                _ => None,
+            }
+        }
+        "array_values" => match arguments.first()? {
+            Value::Array(Some(keys)) => Some(Value::ListLength(Int::from_u64(keys.len() as u64))),
+            Value::ArrayLength(length) | Value::ListLength(length) => {
+                Some(Value::ListLength(length.clone()))
+            }
+            _ => None,
+        },
+        "array_reverse" => match arguments.first()? {
+            Value::Array(Some(keys)) => {
+                let length = Int::from_u64(keys.len() as u64);
+                if is_list_keys(keys) {
+                    Some(Value::ListLength(length))
+                } else {
+                    Some(Value::ArrayLength(length))
+                }
+            }
+            Value::ArrayLength(length) => Some(Value::ArrayLength(length.clone())),
+            Value::ListLength(length) => Some(Value::ListLength(length.clone())),
+            _ => None,
+        },
+        "array_merge" => {
+            if arguments.is_empty() {
+                return Some(Value::ListLength(Int::from_i64(0)));
+            }
+            let mut total = Int::from_i64(0);
+            for argument in arguments {
+                let length = match argument {
+                    Value::Array(Some(keys)) if is_list_keys(keys) => {
+                        Int::from_u64(keys.len() as u64)
+                    }
+                    Value::ListLength(length) => length.clone(),
+                    _ => return None,
+                };
+                total = total.add(length);
+            }
+            Some(Value::ListLength(total))
+        }
+        "str_repeat" => {
+            let times = match arguments.get(1)? {
+                Value::Int(times) => times.as_i64()?,
+                _ => return None,
+            };
+            if times < 0 {
+                return None;
+            }
+            let length = match arguments.first()? {
+                Value::String(Some(value)) => Int::from_u64(value.len() as u64),
+                Value::StringLength(length) => length.clone(),
+                _ => return None,
+            };
+            Some(Value::StringLength(length.mul(Int::from_i64(times))))
+        }
         "array_key_exists" => {
             let key = array_key(arguments.first()?)?;
             match arguments.get(1)? {
