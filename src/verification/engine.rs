@@ -909,7 +909,35 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             }
         }
 
-        self.eval_expr(foreach.expression, state);
+        let iterable = self.eval_expr(foreach.expression, state);
+        if let Value::ListLength(length) = iterable {
+            let initial = state.clone();
+            let mut body_state = state.clone();
+            let key = Int::new_const(format!("foreach::key::{}", foreach.span().start.offset));
+            let in_bounds = Bool::and(&[&key.ge(Int::from_i64(0)), &key.lt(length.clone())]);
+            body_state.path = path_and(&body_state.path, &in_bounds);
+            match &foreach.target {
+                ForeachTarget::Value(target) => {
+                    if let Some(name) = direct_variable_name(target.value) {
+                        body_state.assign(name, Value::Unknown);
+                    }
+                }
+                ForeachTarget::KeyValue(target) => {
+                    if let Some(name) = direct_variable_name(target.key) {
+                        body_state.assign(name, Value::Int(key.clone()));
+                    }
+                    if let Some(name) = direct_variable_name(target.value) {
+                        body_state.assign(name, Value::Unknown);
+                    }
+                }
+            }
+            self.analyze_statements(foreach.body.statements(), &mut body_state);
+            let modified = body_state.modified.clone();
+            let ran = length.gt(Int::from_i64(0));
+            self.merge_loop_modified(state, &initial, &body_state, &modified, &ran);
+            return;
+        }
+
         let initial = state.clone();
         let mut body_state = state.clone();
         match &foreach.target {
@@ -1713,7 +1741,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     if let Some(root) = root_variable_name(access.array) {
                         if matches!(
                             state.env.get(&root),
-                            Some(Value::Array(_) | Value::ArrayLength(_))
+                            Some(Value::Array(_) | Value::ArrayLength(_) | Value::ListLength(_))
                         ) {
                             state.env.insert(root.clone(), Value::Array(None));
                         }
@@ -1746,6 +1774,10 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     (Some(Value::Array(None)), _) => {
                         state.array_values.remove(&name);
                     }
+                    (Some(Value::ArrayLength(_) | Value::ListLength(_)), _) => {
+                        state.env.insert(name.clone(), Value::Array(None));
+                        state.array_values.remove(&name);
+                    }
                     _ => {
                         state.array_values.remove(&name);
                     }
@@ -1757,7 +1789,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     if let Some(root) = root_variable_name(append.array) {
                         if matches!(
                             state.env.get(&root),
-                            Some(Value::Array(_) | Value::ArrayLength(_))
+                            Some(Value::Array(_) | Value::ArrayLength(_) | Value::ListLength(_))
                         ) {
                             state.env.insert(root.clone(), Value::Array(None));
                         }
@@ -1786,6 +1818,20 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     Some(Value::Array(None)) => {
                         state.array_values.remove(&name);
                     }
+                    Some(Value::ArrayLength(length)) => {
+                        state.env.insert(
+                            name.clone(),
+                            Value::ArrayLength(length.add(Int::from_i64(1))),
+                        );
+                        state.array_values.remove(&name);
+                    }
+                    Some(Value::ListLength(length)) => {
+                        state.env.insert(
+                            name.clone(),
+                            Value::ListLength(length.add(Int::from_i64(1))),
+                        );
+                        state.array_values.remove(&name);
+                    }
                     _ => {
                         state.array_values.remove(&name);
                     }
@@ -1796,29 +1842,77 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         }
     }
 
+    fn eval_and_chain(&mut self, binary: &'arena Binary<'arena>, state: &mut State) -> Value {
+        let mut operands = Vec::new();
+        collect_and_operands(binary.lhs, &mut operands);
+        collect_and_operands(binary.rhs, &mut operands);
+
+        let mut committed = state.clone();
+        let mut conditions = Vec::new();
+        let mut definite = true;
+        let mut unknown = false;
+        let mut false_result = false;
+        let mut may_state: Option<State> = None;
+
+        for operand in operands {
+            let value = if definite {
+                self.eval_expr(operand, &mut committed)
+            } else {
+                let branch = may_state.as_mut().expect("may state exists");
+                self.eval_expr(operand, branch)
+            };
+            match value.truthiness() {
+                Some(condition) if condition.as_bool() == Some(false) => {
+                    false_result = true;
+                    break;
+                }
+                Some(condition) => {
+                    if definite {
+                        if condition.as_bool() == Some(true) {
+                            committed.path = path_and(&committed.path, &condition);
+                        } else {
+                            definite = false;
+                            may_state = Some(committed.clone());
+                        }
+                    }
+                    if let Some(branch) = may_state.as_mut() {
+                        branch.path = path_and(&branch.path, &condition);
+                    }
+                    conditions.push(condition);
+                }
+                None => {
+                    if definite {
+                        definite = false;
+                        may_state = Some(committed.clone());
+                    }
+                    unknown = true;
+                }
+            }
+        }
+
+        if let Some(branch) = may_state {
+            self.merge_expression_state(&mut committed, &branch, false);
+        }
+        *state = committed;
+
+        if false_result {
+            Value::Bool(Bool::from_bool(false))
+        } else if unknown {
+            Value::Unknown
+        } else if conditions.is_empty() {
+            Value::Bool(Bool::from_bool(true))
+        } else {
+            let conditions = conditions.iter().collect::<Vec<_>>();
+            Value::Bool(Bool::and(&conditions))
+        }
+    }
+
     fn eval_binary(&mut self, binary: &'arena Binary<'arena>, state: &mut State) -> Value {
         if matches!(
             binary.operator,
             BinaryOperator::And(_) | BinaryOperator::LowAnd(_)
         ) {
-            let left = self.eval_expr(binary.lhs, state);
-            let Some(condition) = left.truthiness() else {
-                let mut right_state = state.clone();
-                self.eval_expr(binary.rhs, &mut right_state);
-                self.merge_expression_state(state, &right_state, false);
-                return Value::Unknown;
-            };
-            if condition.as_bool() == Some(false) {
-                return Value::Bool(Bool::from_bool(false));
-            }
-            let mut right_state = state.clone();
-            right_state.path = path_and(&state.path, &condition);
-            let right = self.eval_expr(binary.rhs, &mut right_state);
-            self.merge_expression_state(state, &right_state, condition.as_bool() == Some(true));
-            return match right.truthiness() {
-                Some(right) => Value::Bool(Bool::and(&[&condition, &right])),
-                None => Value::Unknown,
-            };
+            return self.eval_and_chain(binary, state);
         }
 
         if matches!(
@@ -2065,7 +2159,14 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
 
     fn merge_expression_state(&self, state: &mut State, branch: &State, definite: bool) {
         for name in &branch.modified {
-            state.havoc(name);
+            let env_changed = state.env.get(name) != branch.env.get(name);
+            let array_values_changed =
+                state.array_values.get(name) != branch.array_values.get(name);
+            let tracks_array =
+                state.array_values.contains_key(name) || branch.array_values.contains_key(name);
+            if env_changed || array_values_changed || tracks_array {
+                state.havoc(name);
+            }
         }
         if definite {
             state.reachable = branch.reachable;
@@ -2386,7 +2487,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             if let Some(name) = root_variable_name(expression) {
                 if matches!(
                     state.env.get(&name),
-                    Some(Value::Array(_) | Value::ArrayLength(_))
+                    Some(Value::Array(_) | Value::ArrayLength(_) | Value::ListLength(_))
                 ) {
                     state.assign(name, Value::Unknown);
                 }
@@ -2402,6 +2503,19 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
     ) -> Option<Bool> {
         match expression.unparenthesized() {
             Expression::ArrayAccess(access) => {
+                let name = direct_variable_name(access.array);
+                if let Some(Value::ListLength(length)) =
+                    name.as_deref().and_then(|name| state.env.get(name))
+                {
+                    let Value::Int(index) = self.static_index(access.index, state)? else {
+                        return None;
+                    };
+                    return Some(Bool::and(&[
+                        &index.ge(Int::from_i64(0)),
+                        &index.lt(length.clone()),
+                    ]));
+                }
+
                 let index = array_key(&self.static_index(access.index, state)?)?;
                 if let Expression::ArrayAccess(inner) = access.array.unparenthesized() {
                     let Some(Value::Array(Some(keys))) =
@@ -2412,7 +2526,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     return (!keys.contains(&index)).then(|| Bool::from_bool(false));
                 }
 
-                let name = direct_variable_name(access.array)?;
+                let name = name?;
                 match state.env.get(&name) {
                     Some(Value::Array(Some(keys))) => {
                         if !keys.contains(&index) {
@@ -2787,6 +2901,114 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                         "string-offset",
                         "String offset {value} is out of bounds.",
                         Some(&index_value),
+                    );
+                }
+            }
+            Value::ListLength(length) => self.check_list_access(length, index, span, path),
+            _ => {}
+        }
+    }
+
+    fn check_list_access(&mut self, length: &Int, index: &Value, span: Span, path: &Bool) {
+        if !self.settings.check_array_index {
+            return;
+        }
+
+        match index {
+            Value::Int(index) => {
+                let out_of_bounds =
+                    Bool::or(&[&index.lt(Int::from_i64(0)), &index.ge(length.clone())]);
+                let solver = Solver::new();
+                let mut params = Params::new();
+                params.set_u32(
+                    "timeout",
+                    self.settings.timeout_ms.min(u32::MAX as u64) as u32,
+                );
+                solver.set_params(&params);
+                solver.assert(path);
+                solver.assert(&out_of_bounds);
+
+                match solver.check() {
+                    SatResult::Sat => {
+                        let safety_solver = Solver::new();
+                        safety_solver.set_params(&params);
+                        safety_solver.assert(path);
+                        safety_solver.assert(out_of_bounds.not());
+                        let safety = safety_solver.check();
+                        let symbolic_index = index.as_i64().is_none();
+                        match safety {
+                            SatResult::Unsat => {
+                                let index_value = model_value(&solver, &Value::Int(index.clone()))
+                                    .unwrap_or_else(|| "?".to_string());
+                                let length_value =
+                                    model_value(&solver, &Value::Int(length.clone()))
+                                        .unwrap_or_else(|| "?".to_string());
+                                let message = Message::new(
+                                    "E0031:array-index",
+                                    "A reachable path uses list index {value}, but the list has length {length}.",
+                                )
+                                .arg("value", index_value)
+                                .arg("length", length_value);
+                                self.push_message("array-index", message, span);
+                            }
+                            SatResult::Sat if symbolic_index => {
+                                let index_value = model_value(&solver, &Value::Int(index.clone()))
+                                    .unwrap_or_else(|| "?".to_string());
+                                let length_value =
+                                    model_value(&solver, &Value::Int(length.clone()))
+                                        .unwrap_or_else(|| "?".to_string());
+                                let message = Message::new(
+                                    "E0031:array-index",
+                                    "A reachable path uses list index {value}, but the list has length {length}.",
+                                )
+                                .arg("value", index_value)
+                                .arg("length", length_value);
+                                self.push_message("array-index", message, span);
+                            }
+                            SatResult::Unknown => {
+                                if self.settings.unknown_policy == "report" {
+                                    self.push_finding(
+                                        "unverified",
+                                        "Could not verify this list access: the solver returned unknown. Treat it as unverified, not safe; see unknown_policy.",
+                                        span,
+                                        "?",
+                                    );
+                                }
+                            }
+                            SatResult::Sat => {}
+                        }
+                    }
+                    SatResult::Unknown => {
+                        if self.settings.unknown_policy == "report" {
+                            self.push_finding(
+                                "unverified",
+                                "Could not verify this list access: the solver returned unknown. Treat it as unverified, not safe; see unknown_policy.",
+                                span,
+                                "?",
+                            );
+                        }
+                    }
+                    SatResult::Unsat => {}
+                }
+            }
+            Value::Unknown | Value::Unverified | Value::UnverifiedNumeric { .. } => {
+                if self.settings.unknown_policy != "report" {
+                    return;
+                }
+                let solver = Solver::new();
+                let mut params = Params::new();
+                params.set_u32(
+                    "timeout",
+                    self.settings.timeout_ms.min(u32::MAX as u64) as u32,
+                );
+                solver.set_params(&params);
+                solver.assert(path);
+                if !matches!(solver.check(), SatResult::Unsat) {
+                    self.push_finding(
+                        "unverified",
+                        "Could not verify this list access: the index cannot be modeled. Treat it as unverified, not safe; see unknown_policy.",
+                        span,
+                        "?",
                     );
                 }
             }
@@ -3441,7 +3663,9 @@ fn builtin_call_value(name: Option<&str>, arguments: &[Value]) -> Option<Value> 
         },
         "count" | "sizeof" => match arguments.first()? {
             Value::Array(Some(keys)) => Some(Value::Int(Int::from_u64(keys.len() as u64))),
-            Value::ArrayLength(length) => Some(Value::Int(length.clone())),
+            Value::ArrayLength(length) | Value::ListLength(length) => {
+                Some(Value::Int(length.clone()))
+            }
             _ => None,
         },
         "array_key_exists" => {
@@ -3463,7 +3687,10 @@ fn builtin_call_value(name: Option<&str>, arguments: &[Value]) -> Option<Value> 
         }),
         "is_bool" => type_predicate(arguments.first()?, |value| matches!(value, Value::Bool(_))),
         "is_array" => type_predicate(arguments.first()?, |value| {
-            matches!(value, Value::Array(_) | Value::ArrayLength(_))
+            matches!(
+                value,
+                Value::Array(_) | Value::ArrayLength(_) | Value::ListLength(_)
+            )
         }),
         "is_null" => type_predicate(arguments.first()?, |value| matches!(value, Value::Null)),
         _ => None,
@@ -3537,21 +3764,20 @@ fn parameter_value(
         {
             return Value::Bool(Bool::new_const(format!("{function}::{parameter}")));
         }
-        if doc_type == "non-empty-array"
-            || doc_type == "non-empty-list"
-            || doc_type.starts_with("non-empty-array<")
-            || doc_type.starts_with("non-empty-list<")
-        {
+        if doc_type == "non-empty-array" || doc_type.starts_with("non-empty-array<") {
             return Value::ArrayLength(Int::new_const(format!("{function}::{parameter}::length")));
+        }
+        if doc_type == "non-empty-list"
+            || doc_type.starts_with("non-empty-list<")
+            || doc_type == "list"
+            || doc_type.starts_with("list<")
+        {
+            return Value::ListLength(Int::new_const(format!("{function}::{parameter}::length")));
         }
         if doc_type.starts_with("array{") {
             return Value::Array(contracts::array_shape_keys(doc_type));
         }
-        if doc_type == "array"
-            || doc_type == "iterable"
-            || doc_type.starts_with("array<")
-            || doc_type.starts_with("list<")
-        {
+        if doc_type == "array" || doc_type == "iterable" || doc_type.starts_with("array<") {
             return Value::Array(None);
         }
         if doc_type == "null" {
@@ -3656,12 +3882,17 @@ fn contract_value(ty: &str, tag: u32) -> Option<Value> {
             "call::{tag}::return::length"
         ))));
     }
-    if ty == "non-empty-array"
-        || ty == "non-empty-list"
-        || ty.starts_with("non-empty-array<")
-        || ty.starts_with("non-empty-list<")
-    {
+    if ty == "non-empty-array" || ty.starts_with("non-empty-array<") {
         return Some(Value::ArrayLength(Int::new_const(format!(
+            "call::{tag}::return::length"
+        ))));
+    }
+    if ty == "non-empty-list"
+        || ty.starts_with("non-empty-list<")
+        || ty == "list"
+        || ty.starts_with("list<")
+    {
+        return Some(Value::ListLength(Int::new_const(format!(
             "call::{tag}::return::length"
         ))));
     }
@@ -3770,6 +4001,24 @@ fn value_from_pairs(pairs: &[(Value, Value)]) -> Value {
     Value::Array(Some(keys))
 }
 
+fn collect_and_operands<'a, 'arena>(
+    expression: &'a Expression<'arena>,
+    operands: &mut Vec<&'a Expression<'arena>>,
+) {
+    match expression.unparenthesized() {
+        Expression::Binary(binary)
+            if matches!(
+                binary.operator,
+                BinaryOperator::And(_) | BinaryOperator::LowAnd(_)
+            ) =>
+        {
+            collect_and_operands(binary.lhs, operands);
+            collect_and_operands(binary.rhs, operands);
+        }
+        _ => operands.push(expression),
+    }
+}
+
 fn path_not(value: &Bool) -> Bool {
     match value.as_bool() {
         Some(value) => Bool::from_bool(!value),
@@ -3851,7 +4100,7 @@ fn value_type_name(value: &Value) -> &'static str {
         Value::Float(_) => "float",
         Value::Bool(_) => "bool",
         Value::String(_) | Value::StringLength(_) => "string",
-        Value::Array(_) | Value::ArrayLength(_) => "array",
+        Value::Array(_) | Value::ArrayLength(_) | Value::ListLength(_) => "array",
         Value::Null => "null",
         Value::Unknown => "unknown",
         Value::Unverified | Value::UnverifiedNumeric { .. } => "unverified-number",
@@ -4494,7 +4743,10 @@ fn hint_accepts_value(value: &Value, hint: &Hint<'_>, strict: bool) -> Option<bo
             },
             _ => Some(false),
         },
-        Hint::Array(_) => Some(matches!(value, Value::Array(_) | Value::ArrayLength(_))),
+        Hint::Array(_) => Some(matches!(
+            value,
+            Value::Array(_) | Value::ArrayLength(_) | Value::ListLength(_)
+        )),
         Hint::Callable(_) => Some(false),
         Hint::Integer(_) => match value {
             Value::Int(_) => Some(true),
@@ -4542,7 +4794,10 @@ fn hint_accepts_value(value: &Value, hint: &Hint<'_>, strict: bool) -> Option<bo
             _ => Some(false),
         },
         Hint::Void(_) | Hint::Never(_) => Some(false),
-        Hint::Iterable(_) => Some(matches!(value, Value::Array(_) | Value::ArrayLength(_))),
+        Hint::Iterable(_) => Some(matches!(
+            value,
+            Value::Array(_) | Value::ArrayLength(_) | Value::ListLength(_)
+        )),
         Hint::Object(_)
         | Hint::Identifier(_)
         | Hint::Intersection(_)

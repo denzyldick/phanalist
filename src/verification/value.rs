@@ -17,6 +17,7 @@ pub enum Value {
     StringLength(Int),
     Array(Option<BTreeSet<ArrayKey>>),
     ArrayLength(Int),
+    ListLength(Int),
     Null,
     Unknown,
     Unverified,
@@ -43,7 +44,7 @@ impl Value {
             Value::String(Some(value)) => Some(Bool::from_bool(!value.is_empty() && value != "0")),
             Value::StringLength(_) => None,
             Value::Array(Some(keys)) => Some(Bool::from_bool(!keys.is_empty())),
-            Value::ArrayLength(length) => Some(length.eq(0).not()),
+            Value::ArrayLength(length) | Value::ListLength(length) => Some(length.eq(0).not()),
             Value::UnverifiedNumeric { value, .. } => Some(value.eq(0).not()),
             Value::Object(_) => Some(Bool::from_bool(true)),
             Value::String(None) | Value::Array(None) | Value::Unknown | Value::Unverified => None,
@@ -129,6 +130,9 @@ impl Value {
             }
             (Some(condition), Value::ArrayLength(left), Value::ArrayLength(right)) => {
                 Value::ArrayLength(condition.ite(left, right))
+            }
+            (Some(condition), Value::ListLength(left), Value::ListLength(right)) => {
+                Value::ListLength(condition.ite(left, right))
             }
             (Some(condition), Value::Array(Some(left)), Value::Array(Some(right)))
                 if left == right =>
