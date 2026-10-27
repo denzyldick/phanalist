@@ -3887,6 +3887,18 @@ fn builtin_call_value(name: Option<&str>, arguments: &[Value], span: Span) -> Op
                 Some(Value::ListLength(builtin_length(span, name)))
             }
         }
+        "array_key_first" | "array_key_last" => match arguments.first()? {
+            Value::Array(Some(keys)) if is_list_keys(keys) => {
+                if keys.is_empty() {
+                    Some(Value::Null)
+                } else if name == "array_key_first" {
+                    Some(Value::Int(Int::from_i64(0)))
+                } else {
+                    Some(Value::Int(Int::from_u64(keys.len() as u64 - 1)))
+                }
+            }
+            _ => None,
+        },
         "array_fill" => {
             let count = match arguments.get(1)? {
                 Value::Int(count) => count.clone(),
@@ -4403,6 +4415,8 @@ fn is_pure_builtin(name: Option<&str>) -> bool {
                 | "is_null"
                 | "in_array"
                 | "array_keys"
+                | "array_key_first"
+                | "array_key_last"
                 | "array_values"
                 | "array_search"
                 | "array_sum"

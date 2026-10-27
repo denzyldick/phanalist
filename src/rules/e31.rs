@@ -678,6 +678,19 @@ mod builtin_tests {
     }
 
     #[test]
+    fn proves_array_key_first_and_last_on_literal_lists() {
+        assert!(messages("e31/array_key_first_last_in_bounds.php").is_empty());
+    }
+
+    #[test]
+    fn reports_an_array_key_last_result_used_past_the_end() {
+        let messages = messages("e31/array_key_first_last_out_of_bounds.php");
+
+        assert_eq!(messages.len(), 1);
+        assert!(messages[0].contains("list index"));
+    }
+
+    #[test]
     fn does_not_model_builtins_with_named_arguments_out_of_order() {
         assert!(messages("e31/array_fill_named_arguments.php").is_empty());
     }
