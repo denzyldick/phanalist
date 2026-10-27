@@ -9,5 +9,7 @@ function array_key_first_last_in_bounds(): int
 
 function array_key_first_empty(): ?int
 {
-    return array_key_first([]);
+    $values = [];
+
+    return array_key_first($values);
 }
