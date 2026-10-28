@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
+use crate::resource::{ResourceClass, ResourceSettings};
 use crate::rules;
 use crate::verification::{FindingClass, Settings};
 
@@ -105,6 +106,12 @@ impl Default for Config {
             rules.insert(
                 String::from(class.code()),
                 serde_json::to_value(Settings::default()).unwrap(),
+            );
+        }
+        for class in ResourceClass::all() {
+            rules.insert(
+                String::from(class.code()),
+                serde_json::to_value(ResourceSettings::default()).unwrap(),
             );
         }
 

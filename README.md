@@ -20,7 +20,7 @@ Think of it as a health checkup for your PHP code. It doesn't just tell you *tha
 ### ✨ Features
 
 - 🚀 **Fast** — built in Rust, analyzes large codebases in seconds
-- 🔍 **32 built-in rules** — covering complexity, style, design patterns, and more
+- 🔍 **46 built-in rules** — covering complexity, style, design patterns, and more
 - ⚙️ **Zero config to start** — works out of the box, configure only what you need
 - 📄 **Multiple output formats** — `text`, `json`, `sarif` (for CI pipelines with inline PR annotations via [GitHub Action](https://github.com/marketplace/actions/phanalist)), and `codeclimate` (for Code Quality platforms)
 - 🔌 **Extensible** — adding a custom rule takes minutes
@@ -237,12 +237,26 @@ rules:
     timeout_ms: 1000
     unknown_policy: report
     max_findings_per_function: 50
+  E0044:
+    runtime_threshold: quadratic
+    heap_alloc_threshold: quadratic
+    retained_element_bytes: 32
+    report_input_cardinality: true
+    include_cli_input: true
+    max_findings_per_function: 20
 ```
 
 E0032-E0043 accept the same settings block. Enabling or disabling only `E0031`
 applies to every verification code for backward compatibility, and a class with
 no explicit block inherits the legacy `E0031` settings; naming any other
 verification code keeps the configuration scoped to the codes you named.
+
+E0044-E0046 share the resource settings block. `runtime_threshold` and
+`heap_alloc_threshold` accept `linear`, `quadratic`, `cubic`, or `exponential`;
+`retained_element_bytes` is the minimum known element size treated as large
+retention. E0046 can be disabled with
+`report_input_cardinality: false`, and `include_cli_input` controls whether
+`$argv` is treated as a request source.
 
 - **`enabled_rules`** — whitelist of rules to run (empty = all)
 - **`disable_rules`** — rules to skip
@@ -312,6 +326,9 @@ exclude_paths:
 | [E0041](/src/rules/examples/e41/e41.md) | Unreachable Code | same as E0031 |
 | [E0042](/src/rules/examples/e42/e42.md) | Impossible Assertion | same as E0031 |
 | [E0043](/src/rules/examples/e43/e43.md) | Stream Resource Used After Close | same as E0031 |
+| [E0044](/src/rules/examples/e44/e44.md) | Input-dependent runtime growth | `runtime_threshold`, `heap_alloc_threshold`, `retained_element_bytes`, `report_input_cardinality`, `include_cli_input`, `max_findings_per_function` |
+| [E0045](/src/rules/examples/e45/e45.md) | Input-dependent live-heap growth | same as E0044 |
+| [E0046](/src/rules/examples/e46/e46.md) | Input-controlled cardinality | same as E0044 |
 
 Adding a new rule is straightforward — [this tutorial](./docs/adding_new_rule.md) explains how.
 
