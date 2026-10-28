@@ -90,18 +90,22 @@ mod tests {
 
     fn make_report() -> EngineerReport {
         let mut report: EngineerReport = std::collections::HashMap::new();
-        let mut alice = EngineerEntry::default();
-        alice.total_fixed = 10;
-        alice.total_introduced = 3;
-        alice.net = 7;
+        let mut alice = EngineerEntry {
+            total_fixed: 10,
+            total_introduced: 3,
+            net: 7,
+            ..Default::default()
+        };
         alice.rules.insert("E001".to_string(), RuleChange { fixed: 8, introduced: 1 });
         alice.rules.insert("E002".to_string(), RuleChange { fixed: 2, introduced: 2 });
         report.insert("Alice".to_string(), alice);
 
-        let mut bob = EngineerEntry::default();
-        bob.total_fixed = 1;
-        bob.total_introduced = 20;
-        bob.net = -19;
+        let mut bob = EngineerEntry {
+            total_fixed: 1,
+            total_introduced: 20,
+            net: -19,
+            ..Default::default()
+        };
         bob.rules.insert("E001".to_string(), RuleChange { fixed: 1, introduced: 15 });
         report.insert("Bob".to_string(), bob);
 

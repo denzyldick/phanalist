@@ -242,7 +242,7 @@ rules:
     heap_alloc_threshold: quadratic
     retained_element_bytes: 32
     report_input_cardinality: true
-    include_cli_input: true
+    include_cli_input: false
     max_findings_per_function: 20
 ```
 
@@ -256,7 +256,9 @@ E0044-E0046 share the resource settings block. `runtime_threshold` and
 `retained_element_bytes` is the minimum known element size treated as large
 retention. E0046 can be disabled with
 `report_input_cardinality: false`, and `include_cli_input` controls whether
-`$argv` is treated as a request source.
+`$argv` and `readline()` are treated as request sources. It defaults to `false`;
+`$_SERVER` is only request-controlled for explicit request keys such as
+`HTTP_*`, not when iterated as a whole array.
 
 - **`enabled_rules`** — whitelist of rules to run (empty = all)
 - **`disable_rules`** — rules to skip

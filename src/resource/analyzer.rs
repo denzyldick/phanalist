@@ -60,7 +60,7 @@ impl Default for ResourceSettings {
             heap_alloc_threshold: String::from("quadratic"),
             retained_element_bytes: 32,
             report_input_cardinality: true,
-            include_cli_input: true,
+            include_cli_input: false,
             max_findings_per_function: 20,
         }
     }
@@ -387,6 +387,7 @@ struct Analyzer<'a> {
     total_peak: SizeExpr,
     return_value: Option<ValueState>,
     sensitive_params: BTreeSet<String>,
+    escaping_vars: BTreeSet<String>,
     recursive: bool,
     loop_depth: usize,
     expr_depth: usize,
@@ -414,6 +415,7 @@ impl<'a> Analyzer<'a> {
             total_peak: SizeExpr::Const(0),
             return_value: None,
             sensitive_params: BTreeSet::new(),
+            escaping_vars: BTreeSet::new(),
             recursive: false,
             loop_depth: 0,
             expr_depth: 0,
@@ -423,6 +425,7 @@ impl<'a> Analyzer<'a> {
     }
 
     fn analyze_body(&mut self, statements: &[Statement<'_>]) {
+        self.escaping_vars = escaping_variables(statements);
         let mut state = State::default();
         for param in &self.params {
             state.env.insert(param.clone(), ValueState::param(param));
@@ -631,8 +634,8 @@ impl<'a> Analyzer<'a> {
         let bound = for_statement
             .conditions
             .iter()
-            .next()
             .map(|condition| self.loop_bound_from_condition(condition, state))
+            .reduce(SizeExpr::min)
             .unwrap_or(SizeExpr::Unknown);
         let origins = for_statement
             .conditions
@@ -816,11 +819,15 @@ impl<'a> Analyzer<'a> {
 
         let retained_growth = body_effect.retained_delta.clone().mul(iterations.clone());
         let large_retained = self.large_retained_elements(&body_effect);
+        let escaping_growth = body_effect
+            .growth
+            .keys()
+            .any(|name| self.escaping_vars.contains(name));
         let allocation_growth = loop_alloc.degree() >= self.settings.heap_degree()
             && loop_alloc.degree() > 0
             && !loop_alloc.is_bounded();
         let retains = !body_effect.growth.is_empty() || body_effect.retains;
-        let significant_retention = large_retained || body_effect.retains;
+        let significant_retention = large_retained || escaping_growth || body_effect.retains;
         if retains
             && (allocation_growth || (significant_retention && !retained_growth.is_bounded()))
             && !bound.is_unknown()
@@ -843,12 +850,13 @@ impl<'a> Analyzer<'a> {
         let mut effect = Effect {
             cost: loop_cost,
             alloc: loop_alloc,
-            retained_delta: retained_growth,
+            retained_delta: retained_growth.clone(),
             peak: loop_peak,
             tainted,
             origins,
             growth: HashMap::new(),
-            retains: body_effect.retains || !body_effect.growth.is_empty(),
+            retains: body_effect.retains
+                || (significant_retention && !retained_growth.is_bounded()),
         };
 
         if copy_growth {
@@ -864,7 +872,7 @@ impl<'a> Analyzer<'a> {
             .values()
             .any(|growth| match growth.bytes_per_iteration.as_const() {
                 Some(bytes) => bytes >= self.settings.retained_element_bytes,
-                None => true,
+                None => false,
             })
     }
 }
@@ -895,6 +903,127 @@ fn expression_always_exits(expression: &Expression<'_>) -> bool {
             function_name(call.function).is_some_and(|name| matches!(name.as_str(), "exit" | "die"))
         }
         _ => false,
+    }
+}
+
+fn escaping_variables(statements: &[Statement<'_>]) -> BTreeSet<String> {
+    let mut variables = BTreeSet::new();
+    collect_escaping_statements(statements, &mut variables);
+    variables
+}
+
+fn collect_escaping_statements(statements: &[Statement<'_>], variables: &mut BTreeSet<String>) {
+    for statement in statements {
+        match statement {
+            Statement::Return(return_statement) => {
+                if let Some(value) = return_statement.value {
+                    collect_expression_variables(value, variables);
+                }
+            }
+            Statement::Expression(expression) => {
+                if let Expression::Assignment(assignment) = expression.expression.unparenthesized()
+                {
+                    if direct_variable_name(assignment.lhs).is_none() {
+                        collect_expression_variables(assignment.rhs, variables);
+                    }
+                }
+            }
+            Statement::If(if_statement) => {
+                collect_escaping_statements(if_statement.body.statements(), variables);
+                if let Some(else_statements) = if_statement.body.else_statements() {
+                    collect_escaping_statements(else_statements, variables);
+                }
+                for (_, statements) in if_statement.body.else_if_clauses() {
+                    collect_escaping_statements(statements, variables);
+                }
+            }
+            Statement::Foreach(foreach) => {
+                collect_escaping_statements(foreach.body.statements(), variables)
+            }
+            Statement::For(for_statement) => {
+                collect_escaping_statements(for_statement.body.statements(), variables)
+            }
+            Statement::While(while_statement) => {
+                collect_escaping_statements(while_statement.body.statements(), variables)
+            }
+            Statement::DoWhile(do_while) => {
+                collect_escaping_statements(std::slice::from_ref(do_while.statement), variables)
+            }
+            Statement::Try(try_statement) => {
+                collect_escaping_statements(try_statement.block.statements.as_slice(), variables);
+                for catch in try_statement.catch_clauses.iter() {
+                    collect_escaping_statements(catch.block.statements.as_slice(), variables);
+                }
+                if let Some(finally) = &try_statement.finally_clause {
+                    collect_escaping_statements(finally.block.statements.as_slice(), variables);
+                }
+            }
+            Statement::Switch(switch_statement) => {
+                for case in switch_statement.body.cases().iter() {
+                    collect_escaping_statements(case.statements(), variables);
+                }
+            }
+            Statement::Block(block) => {
+                collect_escaping_statements(block.statements.as_slice(), variables)
+            }
+            Statement::Namespace(namespace) => {
+                collect_escaping_statements(namespace.statements().as_slice(), variables)
+            }
+            _ => {}
+        }
+    }
+}
+
+fn collect_expression_variables(expression: &Expression<'_>, variables: &mut BTreeSet<String>) {
+    match expression.unparenthesized() {
+        Expression::Variable(Variable::Direct(variable)) => {
+            variables.insert(String::from_utf8_lossy(variable.name).to_string());
+        }
+        Expression::ArrayAccess(access) => {
+            collect_expression_variables(access.array, variables);
+            collect_expression_variables(access.index, variables);
+        }
+        Expression::ArrayAppend(append) => collect_expression_variables(append.array, variables),
+        Expression::Array(array) => {
+            for element in array.elements.iter().filter_map(ArrayElement::get_value) {
+                collect_expression_variables(element, variables);
+            }
+        }
+        Expression::LegacyArray(array) => {
+            for element in array.elements.iter().filter_map(ArrayElement::get_value) {
+                collect_expression_variables(element, variables);
+            }
+        }
+        Expression::Binary(binary) => {
+            collect_expression_variables(binary.lhs, variables);
+            collect_expression_variables(binary.rhs, variables);
+        }
+        Expression::Assignment(assignment) => {
+            collect_expression_variables(assignment.rhs, variables)
+        }
+        Expression::UnaryPrefix(unary) => collect_expression_variables(unary.operand, variables),
+        Expression::UnaryPostfix(unary) => collect_expression_variables(unary.operand, variables),
+        Expression::Conditional(conditional) => {
+            collect_expression_variables(conditional.condition, variables);
+            if let Some(then) = conditional.then {
+                collect_expression_variables(then, variables);
+            }
+            collect_expression_variables(conditional.r#else, variables);
+        }
+        Expression::CompositeString(string) => {
+            for part in string.parts().iter() {
+                match part {
+                    StringPart::Literal(_) => {}
+                    StringPart::Expression(expression) => {
+                        collect_expression_variables(expression, variables)
+                    }
+                    StringPart::BracedExpression(braced) => {
+                        collect_expression_variables(braced.expression, variables)
+                    }
+                }
+            }
+        }
+        _ => {}
     }
 }
 
@@ -997,10 +1126,7 @@ impl<'a> Analyzer<'a> {
 
     fn source_value(&self, name: &str) -> Option<ValueState> {
         let name = name.strip_prefix('$').unwrap_or(name);
-        let is_http = matches!(
-            name,
-            "_GET" | "_POST" | "_REQUEST" | "_COOKIE" | "_FILES" | "_SERVER"
-        );
+        let is_http = matches!(name, "_GET" | "_POST" | "_REQUEST" | "_COOKIE" | "_FILES");
         let is_cli = self.settings.include_cli_input && name == "argv";
         if !is_http && !is_cli {
             return None;
@@ -1274,7 +1400,15 @@ impl<'a> Analyzer<'a> {
                     BTreeSet::new()
                 }
             }
-            Expression::ArrayAccess(access) => self.taint_of_expr(access.array, state),
+            Expression::ArrayAccess(access) => {
+                if let Some(origin) = server_request_key_origin(access) {
+                    let mut origins = BTreeSet::new();
+                    origins.insert(origin);
+                    origins
+                } else {
+                    self.taint_of_expr(access.array, state)
+                }
+            }
             Expression::ArrayAppend(append) => self.taint_of_expr(append.array, state),
             Expression::Array(array) => array_origins(&array.elements, self, state),
             Expression::LegacyArray(array) => array_origins(&array.elements, self, state),
@@ -1328,7 +1462,9 @@ impl<'a> Analyzer<'a> {
                     .arguments
                     .iter()
                     .collect::<Vec<_>>();
-                if is_source_function(&name) {
+                if is_source_function(&name)
+                    || (name == "readline" && self.settings.include_cli_input)
+                {
                     let mut origins = BTreeSet::new();
                     origins.insert(format!("{name}()"));
                     return origins;
@@ -1449,16 +1585,30 @@ impl<'a> Analyzer<'a> {
         let Expression::Binary(binary) = condition.unparenthesized() else {
             return SizeExpr::Unknown;
         };
-        let left_is_counter = direct_variable_name(binary.lhs).is_some();
-        if !left_is_counter {
-            return SizeExpr::Unknown;
-        }
         match &binary.operator {
-            BinaryOperator::LessThan(_) => self.size_of_expr(binary.rhs, state),
-            BinaryOperator::LessThanOrEqual(_) => {
-                self.size_of_expr(binary.rhs, state).add(SizeExpr::Const(1))
+            BinaryOperator::And(_) | BinaryOperator::LowAnd(_) => {
+                let left = self.loop_bound_from_condition(binary.lhs, state);
+                let right = self.loop_bound_from_condition(binary.rhs, state);
+                left.min(right)
             }
-            _ => SizeExpr::Unknown,
+            BinaryOperator::Or(_) | BinaryOperator::LowOr(_) => {
+                let left = self.loop_bound_from_condition(binary.lhs, state);
+                let right = self.loop_bound_from_condition(binary.rhs, state);
+                left.max(right)
+            }
+            _ => {
+                let left_is_counter = direct_variable_name(binary.lhs).is_some();
+                if !left_is_counter {
+                    return SizeExpr::Unknown;
+                }
+                match &binary.operator {
+                    BinaryOperator::LessThan(_) => self.size_of_expr(binary.rhs, state),
+                    BinaryOperator::LessThanOrEqual(_) => {
+                        self.size_of_expr(binary.rhs, state).add(SizeExpr::Const(1))
+                    }
+                    _ => SizeExpr::Unknown,
+                }
+            }
         }
     }
 
@@ -1754,10 +1904,44 @@ fn invert_comparison<'arena>(operator: &BinaryOperator<'arena>) -> Option<Binary
     }
 }
 
+fn server_request_key_origin(access: &ArrayAccess<'_>) -> Option<String> {
+    let array = direct_variable_name(access.array)?;
+    if array.strip_prefix('$').unwrap_or(array) != "_SERVER" {
+        return None;
+    }
+    let key = literal_string(access.index)?;
+    if is_request_server_key(&key) {
+        Some(format!("$_SERVER[{key}]"))
+    } else {
+        None
+    }
+}
+
+fn is_request_server_key(key: &str) -> bool {
+    key.starts_with("HTTP_")
+        || key.starts_with("REQUEST_")
+        || key.starts_with("PHP_AUTH_")
+        || matches!(
+            key,
+            "QUERY_STRING"
+                | "PATH_INFO"
+                | "CONTENT_TYPE"
+                | "CONTENT_LENGTH"
+                | "REMOTE_ADDR"
+                | "REMOTE_HOST"
+                | "REMOTE_PORT"
+                | "REQUEST_METHOD"
+                | "SCRIPT_NAME"
+                | "SERVER_NAME"
+                | "SERVER_PORT"
+                | "HTTPS"
+        )
+}
+
 fn is_source_function(name: &str) -> bool {
     matches!(
         name,
-        "filter_input" | "getenv" | "readline" | "apache_request_headers" | "getallheaders"
+        "filter_input" | "apache_request_headers" | "getallheaders"
     )
 }
 
@@ -1895,13 +2079,17 @@ impl<'a> Analyzer<'a> {
                         StringPart::Expression(expression) => {
                             let evaluated = self.eval_expr(expression, state);
                             bytes = bytes.add(evaluated.value.bytes.clone());
-                            origins.extend(evaluated.value.taint_origins);
+                            if evaluated.value.tainted {
+                                origins.extend(evaluated.value.taint_origins);
+                            }
                             effect = effect.add(evaluated.effect);
                         }
                         StringPart::BracedExpression(braced) => {
                             let evaluated = self.eval_expr(braced.expression, state);
                             bytes = bytes.add(evaluated.value.bytes.clone());
-                            origins.extend(evaluated.value.taint_origins);
+                            if evaluated.value.tainted {
+                                origins.extend(evaluated.value.taint_origins);
+                            }
                             effect = effect.add(evaluated.effect);
                         }
                     }
@@ -2204,7 +2392,7 @@ impl<'a> Analyzer<'a> {
                             .alloc
                             .clone()
                             .add(rhs.value.alloc.clone())
-                            .add(CostExpr::linear(bytes.clone()));
+                            .add(CostExpr::linear(rhs.value.bytes.clone()));
                         value.peak = bytes.clone();
                         value.tainted = left.tainted || rhs.value.tainted;
                         value.taint_origins = left
@@ -2212,10 +2400,13 @@ impl<'a> Analyzer<'a> {
                             .union(&rhs.value.taint_origins)
                             .cloned()
                             .collect();
-                        let growth = Growth::copy(rhs.value.count.clone(), rhs.value.bytes.clone());
+                        let growth = Growth::append(rhs.value.bytes.clone());
                         rhs.effect.retained_delta = rhs.value.bytes.clone();
                         rhs.effect.growth.insert(name.clone(), growth);
-                        rhs.effect.alloc = rhs.effect.alloc.add(CostExpr::linear(bytes));
+                        rhs.effect.alloc = rhs
+                            .effect
+                            .alloc
+                            .add(CostExpr::linear(rhs.value.bytes.clone()));
                         state.env.insert(name, value.clone());
                         Eval {
                             value,
@@ -2310,8 +2501,13 @@ impl<'a> Analyzer<'a> {
                 let base = self.lookup(&name, state);
                 let index = self.eval_expr(access.index, state);
                 let value = self.eval_expr(assignment.rhs, state);
+                let may_grow = matches!(base.count, SizeExpr::Const(_) | SizeExpr::Unknown);
                 let mut result = base.clone();
-                result.bytes = result.bytes.add(value.value.bytes.clone());
+                if may_grow {
+                    result.bytes = result.bytes.add(value.value.bytes.clone());
+                } else {
+                    result.bytes = result.bytes.max(value.value.bytes.clone());
+                }
                 result.element_bytes = result.element_bytes.max(value.value.bytes.clone());
                 result.peak = result.bytes.clone().max(base.peak.clone());
                 result.tainted = base.tainted || value.value.tainted;
@@ -2322,10 +2518,12 @@ impl<'a> Analyzer<'a> {
                     .collect();
                 state.env.insert(name.clone(), result.clone());
                 let mut effect = index.effect.add(value.effect);
-                effect.retained_delta = value.value.bytes.clone();
-                effect
-                    .growth
-                    .insert(name, Growth::retain(value.value.bytes.clone()));
+                if may_grow {
+                    effect.retained_delta = value.value.bytes.clone();
+                    effect
+                        .growth
+                        .insert(name, Growth::retain(value.value.bytes.clone()));
+                }
                 Eval {
                     value: result,
                     effect,
@@ -2425,7 +2623,9 @@ impl<'a> Analyzer<'a> {
                         effect,
                     };
                 };
-                if is_source_function(&name) {
+                if is_source_function(&name)
+                    || (name == "readline" && self.settings.include_cli_input)
+                {
                     let mut origins = BTreeSet::new();
                     origins.insert(format!("{name}()"));
                     let mut value = ValueState::default();
