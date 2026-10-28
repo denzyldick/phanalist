@@ -20,7 +20,7 @@ Think of it as a health checkup for your PHP code. It doesn't just tell you *tha
 ### ✨ Features
 
 - 🚀 **Fast** — built in Rust, analyzes large codebases in seconds
-- 🔍 **46 built-in rules** — covering complexity, style, design patterns, and more
+- 🔍 **49 built-in rules** — covering complexity, style, design patterns, and more
 - ⚙️ **Zero config to start** — works out of the box, configure only what you need
 - 📄 **Multiple output formats** — `text`, `json`, `sarif` (for CI pipelines with inline PR annotations via [GitHub Action](https://github.com/marketplace/actions/phanalist)), and `codeclimate` (for Code Quality platforms)
 - 🔌 **Extensible** — adding a custom rule takes minutes
@@ -331,6 +331,9 @@ exclude_paths:
 | [E0044](/src/rules/examples/e44/e44.md) | Input-dependent runtime growth | `runtime_threshold`, `heap_alloc_threshold`, `retained_element_bytes`, `report_input_cardinality`, `include_cli_input`, `max_findings_per_function` |
 | [E0045](/src/rules/examples/e45/e45.md) | Input-dependent live-heap growth | same as E0044 |
 | [E0046](/src/rules/examples/e46/e46.md) | Input-controlled cardinality | same as E0044 |
+| [E0047](/src/rules/examples/e47/e47.md) | Resource lifecycle leak | |
+| [E0048](/src/rules/examples/e48/e48.md) | Unbounded direct recursion | |
+| [E0049](/src/rules/examples/e49/e49.md) | Invalid builtin argument | |
 
 Adding a new rule is straightforward — [this tutorial](./docs/adding_new_rule.md) explains how.
 

@@ -160,6 +160,9 @@ mod tests {
         assert!(codes("e44/copy_safe.php", "E0044").is_empty());
         assert!(codes("e44/concat_append_safe.php", "E0044").is_empty());
         assert!(codes("e44/concat_assign_bad.php", "E0044").contains(&String::from("E0044")));
+        assert!(codes("e44/costly_builtin_bad.php", "E0044").contains(&String::from("E0044")));
+        assert!(codes("e44/costly_builtin_safe.php", "E0044").is_empty());
+        assert!(codes("e44/costly_builtin_static_safe.php", "E0044").is_empty());
     }
 
     #[test]

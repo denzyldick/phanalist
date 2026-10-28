@@ -13,6 +13,7 @@ use crate::file::File;
 use crate::resource::{ResourceClass, ResourceSettings};
 use crate::results::{Message, Violation};
 use crate::verification::{FindingClass, Settings};
+pub mod ast_support;
 pub mod e0;
 pub mod e1;
 pub mod e10;
@@ -40,6 +41,9 @@ pub mod e3;
 pub mod e30;
 pub mod e31;
 pub mod e4;
+pub mod e47;
+pub mod e48;
+pub mod e49;
 pub mod e5;
 pub mod e6;
 pub mod e7;
@@ -401,6 +405,9 @@ pub fn all_rules() -> HashMap<String, Box<dyn Rule>> {
     for class in ResourceClass::all() {
         add_rule(&mut rules, Box::new(resource::Rule::new(class)));
     }
+    add_rule(&mut rules, Box::new(e47::Rule::default()));
+    add_rule(&mut rules, Box::new(e48::Rule::default()));
+    add_rule(&mut rules, Box::new(e49::Rule::default()));
 
     rules
 }
