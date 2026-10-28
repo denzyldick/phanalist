@@ -87,10 +87,6 @@ impl FindingClass {
         }
     }
 
-    pub fn from_code(code: &str) -> Option<Self> {
-        Self::ALL.into_iter().find(|class| class.code() == code)
-    }
-
     pub fn message_id(self, id: &str) -> String {
         format!("{}:{id}", self.code())
     }

@@ -16,6 +16,7 @@ src/rules/examples/*/phanalist.yml
 *.txt
 /examples/
 e12_debug.txt
+.z3-trace
 
 # Old local release artifacts (releases are now handled by CI)
 /release/

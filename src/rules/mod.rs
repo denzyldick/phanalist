@@ -45,6 +45,16 @@ pub mod e47;
 pub mod e48;
 pub mod e49;
 pub mod e5;
+pub mod e50;
+pub mod e51;
+pub mod e52;
+pub mod e53;
+pub mod e54;
+pub mod e55;
+pub mod e56;
+pub mod e57;
+pub mod e58;
+pub mod e59;
 pub mod e6;
 pub mod e7;
 pub mod e8;
@@ -408,6 +418,16 @@ pub fn all_rules() -> HashMap<String, Box<dyn Rule>> {
     add_rule(&mut rules, Box::new(e47::Rule::default()));
     add_rule(&mut rules, Box::new(e48::Rule::default()));
     add_rule(&mut rules, Box::new(e49::Rule::default()));
+    add_rule(&mut rules, Box::new(e50::Rule::default()));
+    add_rule(&mut rules, Box::new(e51::Rule::default()));
+    add_rule(&mut rules, Box::new(e52::Rule::default()));
+    add_rule(&mut rules, Box::new(e53::Rule::default()));
+    add_rule(&mut rules, Box::new(e54::Rule::default()));
+    add_rule(&mut rules, Box::new(e55::Rule::default()));
+    add_rule(&mut rules, Box::new(e56::Rule::default()));
+    add_rule(&mut rules, Box::new(e57::Rule::default()));
+    add_rule(&mut rules, Box::new(e58::Rule::default()));
+    add_rule(&mut rules, Box::new(e59::Rule::default()));
 
     rules
 }
@@ -431,8 +451,16 @@ mod tests {
         let arena = LocalArena::new();
         let mut file = File::new(&arena, path, content);
 
+        let enabled_rules = if rule_code == "E0031" {
+            FindingClass::ALL
+                .iter()
+                .map(|class| String::from(class.code()))
+                .collect()
+        } else {
+            vec![rule_code.to_string()]
+        };
         let config = Config {
-            enabled_rules: vec![rule_code.to_string()],
+            enabled_rules,
             ..Default::default()
         };
         let analyse = Analyse::new(&config);
@@ -512,35 +540,41 @@ mod tests {
     }
 
     #[test]
-    fn legacy_e0031_enable_expands_to_all_verification_classes() {
+    fn enabling_one_verification_class_enables_only_that_class() {
         let config = Config {
             enabled_rules: vec![String::from("E0031")],
             ..Default::default()
         };
         let analyse = Analyse::new(&config);
+        assert!(analyse.rules.contains_key("E0031"));
         for class in FindingClass::ALL {
-            assert!(analyse.rules.contains_key(class.code()), "{}", class.code());
+            if class != FindingClass::Division {
+                assert!(
+                    !analyse.rules.contains_key(class.code()),
+                    "{}",
+                    class.code()
+                );
+            }
         }
     }
 
     #[test]
-    fn legacy_e0031_disable_expands_to_all_verification_classes() {
+    fn disabling_one_verification_class_disables_only_that_class() {
         let config = Config {
             disable_rules: vec![String::from("E0031")],
             ..Default::default()
         };
         let analyse = Analyse::new(&config);
+        assert!(!analyse.rules.contains_key("E0031"));
         for class in FindingClass::ALL {
-            assert!(
-                !analyse.rules.contains_key(class.code()),
-                "{}",
-                class.code()
-            );
+            if class != FindingClass::Division {
+                assert!(analyse.rules.contains_key(class.code()), "{}", class.code());
+            }
         }
     }
 
     #[test]
-    fn explicit_verification_class_does_not_expand_legacy_code() {
+    fn explicit_verification_class_enables_only_itself() {
         let config = Config {
             enabled_rules: vec![String::from("E0036")],
             ..Default::default()
@@ -560,6 +594,44 @@ mod tests {
         let violations = analyze_file_for_rule("e31/division_by_zero_literal.php", "E0031");
         assert!(!violations.is_empty());
         assert!(violations.iter().all(|violation| violation.rule == "E0031"));
+    }
+
+    #[test]
+    fn every_rule_has_a_detailed_explanation() {
+        for (code, rule) in all_rules() {
+            assert!(
+                rule.get_detailed_explanation().is_some(),
+                "missing documentation for {code}"
+            );
+        }
+    }
+
+    #[test]
+    fn new_rule_docs_have_required_sections() {
+        let mut rules = all_rules();
+        for code in [
+            "E0050", "E0051", "E0052", "E0053", "E0054", "E0055", "E0056", "E0057", "E0058",
+            "E0059",
+        ] {
+            let rule = rules
+                .remove(code)
+                .unwrap_or_else(|| panic!("missing {code}"));
+            let doc = rule.get_detailed_explanation().unwrap();
+            for section in [
+                "**In plain English:**",
+                "## Bad",
+                "## Good",
+                "## What the rule checks",
+                "## When it does not report",
+                "## How to fix",
+                "## Configuration",
+            ] {
+                assert!(
+                    doc.contains(section),
+                    "{code} documentation is missing {section}"
+                );
+            }
+        }
     }
 
     #[test]
