@@ -3159,6 +3159,40 @@ impl<'a> Analyzer<'a> {
                         })?;
                 value
             }
+            "in_array" | "array_search" => {
+                let mut value = ValueState::scalar();
+                value.count = args
+                    .first()
+                    .map(|argument| argument.value.count.clone())
+                    .unwrap_or(SizeExpr::Const(1));
+                value.tainted = tainted;
+                value.taint_origins = origins.clone();
+                let haystack = arguments
+                    .get(1)
+                    .filter(|argument| !is_static_constant_expression(argument.value()))
+                    .and_then(|_| args.get(1))
+                    .map(|argument| argument.value.count.clone())
+                    .unwrap_or(SizeExpr::Const(1));
+                effect.cost = CostExpr::linear(haystack);
+                value
+            }
+            "preg_match" | "preg_match_all" => {
+                let mut value = ValueState::scalar();
+                value.count = args
+                    .first()
+                    .map(|argument| argument.value.count.clone())
+                    .unwrap_or(SizeExpr::Const(1));
+                value.tainted = tainted;
+                value.taint_origins = origins.clone();
+                let subject = arguments
+                    .get(1)
+                    .filter(|argument| !is_static_constant_expression(argument.value()))
+                    .and_then(|_| args.get(1))
+                    .map(|argument| argument.value.bytes.clone())
+                    .unwrap_or(SizeExpr::Const(1));
+                effect.cost = CostExpr::linear(subject);
+                value
+            }
             "intval"
             | "floatval"
             | "abs"
@@ -3168,9 +3202,6 @@ impl<'a> Analyzer<'a> {
             | "array_sum"
             | "array_product"
             | "array_key_exists"
-            | "in_array"
-            | "preg_match"
-            | "preg_match_all"
             | "memory_get_peak_usage"
             | "memory_get_usage"
             | "hrtime"
@@ -3377,6 +3408,13 @@ impl<'a> Analyzer<'a> {
 
         Eval { value, effect }
     }
+}
+
+fn is_static_constant_expression(expression: &Expression<'_>) -> bool {
+    matches!(
+        expression.unparenthesized(),
+        Expression::Access(Access::ClassConstant(_))
+    )
 }
 
 fn range_count(args: &[Eval], arguments: &[&Argument<'_>]) -> SizeExpr {
