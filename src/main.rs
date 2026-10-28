@@ -21,6 +21,7 @@ mod engineer;
 mod file;
 mod outputs;
 mod paths;
+mod resource;
 mod results;
 mod lsp;
 mod rules;

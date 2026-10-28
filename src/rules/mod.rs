@@ -10,6 +10,7 @@ use serde_json::Value;
 
 use crate::config::Config;
 use crate::file::File;
+use crate::resource::{ResourceClass, ResourceSettings};
 use crate::results::{Message, Violation};
 use crate::verification::{FindingClass, Settings};
 pub mod e0;
@@ -44,6 +45,7 @@ pub mod e6;
 pub mod e7;
 pub mod e8;
 pub mod e9;
+pub mod resource;
 pub mod verification;
 
 pub trait Rule: Sync {
@@ -70,6 +72,17 @@ pub trait Rule: Sync {
     /// Verification settings for this rule. Verification rules share one
     /// analysis pass when their settings are identical.
     fn verification_settings(&self) -> Option<Settings> {
+        None
+    }
+
+    /// The resource finding class implemented by this rule, if any.
+    fn resource_class(&self) -> Option<ResourceClass> {
+        None
+    }
+
+    /// Resource settings for this rule. Resource rules share one analysis pass
+    /// when their settings are identical.
+    fn resource_settings(&self) -> Option<ResourceSettings> {
         None
     }
 
@@ -385,6 +398,9 @@ pub fn all_rules() -> HashMap<String, Box<dyn Rule>> {
     for class in FindingClass::ALL {
         add_rule(&mut rules, Box::new(verification::Rule::new(class)));
     }
+    for class in ResourceClass::all() {
+        add_rule(&mut rules, Box::new(resource::Rule::new(class)));
+    }
 
     rules
 }
@@ -481,6 +497,14 @@ mod tests {
     }
 
     #[test]
+    fn default_config_registers_each_resource_class() {
+        let analyse = Analyse::new(&Config::default());
+        for class in ResourceClass::all() {
+            assert!(analyse.rules.contains_key(class.code()), "{}", class.code());
+        }
+    }
+
+    #[test]
     fn legacy_e0031_enable_expands_to_all_verification_classes() {
         let config = Config {
             enabled_rules: vec![String::from("E0031")],
@@ -535,6 +559,18 @@ mod tests {
     fn every_verification_rule_has_a_detailed_explanation() {
         for class in FindingClass::ALL {
             let rule = verification::Rule::new(class);
+            assert!(
+                rule.get_detailed_explanation().is_some(),
+                "missing documentation for {}",
+                class.code()
+            );
+        }
+    }
+
+    #[test]
+    fn every_resource_rule_has_a_detailed_explanation() {
+        for class in ResourceClass::all() {
+            let rule = super::resource::Rule::new(class);
             assert!(
                 rule.get_detailed_explanation().is_some(),
                 "missing documentation for {}",
