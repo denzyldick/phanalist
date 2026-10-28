@@ -7,27 +7,68 @@ use crate::{results::Results, rules};
 
 use super::OutputFormatter;
 pub struct Sarif {}
+
+fn markdown_to_text(markdown: &str) -> String {
+    let mut text = Vec::new();
+    let mut in_code_block = false;
+
+    for line in markdown.lines() {
+        let trimmed = line.trim();
+
+        if trimmed.starts_with("```") {
+            in_code_block = !in_code_block;
+            continue;
+        }
+
+        if in_code_block {
+            text.push(line.trim_end().to_string());
+            continue;
+        }
+
+        let line = line.trim_start().trim_start_matches('#').trim_start();
+        text.push(
+            line.replace("**", "")
+                .replace('`', "")
+                .trim_end()
+                .to_string(),
+        );
+    }
+
+    text.join("\n").trim().to_string()
+}
+
 impl OutputFormatter for Sarif {
     fn output(results: &mut Results) {
         let version: &str = env!("CARGO_PKG_VERSION");
         let description = MultiformatMessageString {
             markdown: None,
             properties: None,
-            text: String::from("Performant static analyzer for PHP, which is extremely easy to use. It helps you catch common mistakes in your PHP code."),
+            text: String::from(
+                "Performant static analyzer for PHP, which is extremely easy to use. It helps you catch common mistakes in your PHP code.",
+            ),
         };
 
         let mut sarif_rules = vec![];
-        let mut rule_to_index: std::collections::HashMap<String, i64> = std::collections::HashMap::new();
+        let mut rule_to_index: std::collections::HashMap<String, i64> =
+            std::collections::HashMap::new();
         let rules = rules::all_rules();
         for (current_index, rule) in rules.into_iter().enumerate() {
             let rule_number = rule.0.trim_start_matches('E').trim_start_matches('0');
-            let rule_number = if rule_number.is_empty() { "0" } else { rule_number };
+            let rule_number = if rule_number.is_empty() {
+                "0"
+            } else {
+                rule_number
+            };
 
             let detailed = rule.1.get_detailed_explanation();
+            let text = detailed
+                .as_deref()
+                .map(markdown_to_text)
+                .unwrap_or_else(|| rule.1.description());
             let multiformat_message = MultiformatMessageString {
-                markdown: detailed.clone(),
+                markdown: detailed,
                 properties: None,
-                text: detailed.unwrap_or_else(|| rule.1.description()),
+                text,
             };
             sarif_rules.push(sarif::ReportingDescriptor {
                 default_configuration: None,
@@ -233,5 +274,19 @@ impl OutputFormatter for Sarif {
         };
         let message = serde_json::json!(s);
         println!("{}", message);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::markdown_to_text;
+
+    #[test]
+    fn converts_rule_markdown_to_readable_plain_text() {
+        let markdown = "# Title\n\nUse `md5()` and **avoid** it.\n\n```php\nmd5($password);\n```\n";
+        assert_eq!(
+            markdown_to_text(markdown),
+            "Title\n\nUse md5() and avoid it.\n\nmd5($password);"
+        );
     }
 }

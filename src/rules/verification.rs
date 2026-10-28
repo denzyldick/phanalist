@@ -50,13 +50,6 @@ impl crate::rules::Rule for Rule {
         let code = self.get_code();
         if let Some(rule_config) = config.rules.get(&code) {
             self.set_config(rule_config);
-            return;
-        }
-
-        if code != "E0031" {
-            if let Some(legacy_config) = config.rules.get("E0031") {
-                self.set_config(legacy_config);
-            }
         }
     }
 
@@ -101,7 +94,7 @@ mod tests {
     }
 
     #[test]
-    fn legacy_e0031_settings_apply_when_a_class_has_no_block() {
+    fn settings_are_scoped_to_their_own_rule() {
         let rule = configured_rule(
             FindingClass::ArrayIndex,
             json!({
@@ -109,12 +102,12 @@ mod tests {
             }),
         );
 
-        assert_eq!(rule.settings.timeout_ms, 4321);
-        assert_eq!(rule.settings.unroll_depth, 3);
+        assert_eq!(rule.settings.timeout_ms, Settings::default().timeout_ms);
+        assert_eq!(rule.settings.unroll_depth, Settings::default().unroll_depth);
     }
 
     #[test]
-    fn class_specific_settings_take_precedence_over_legacy_e0031() {
+    fn class_specific_settings_are_applied() {
         let rule = configured_rule(
             FindingClass::ArrayIndex,
             json!({
