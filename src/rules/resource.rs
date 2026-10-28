@@ -150,6 +150,7 @@ mod tests {
         assert_eq!(codes("e44/nested_bad.php", "E0044"), vec!["E0044"]);
         assert!(codes("e44/nested_safe.php", "E0044").is_empty());
         assert!(codes("e44/guarded_nested.php", "E0044").is_empty());
+        assert!(codes("e44/loop_cap_safe.php", "E0044").is_empty());
         assert!(codes("e44/for_bad.php", "E0044").contains(&String::from("E0044")));
     }
 
@@ -157,6 +158,8 @@ mod tests {
     fn reports_copying_work_inside_a_loop() {
         assert!(codes("e44/unshift_bad.php", "E0044").contains(&String::from("E0044")));
         assert!(codes("e44/copy_safe.php", "E0044").is_empty());
+        assert!(codes("e44/concat_append_safe.php", "E0044").is_empty());
+        assert!(codes("e44/concat_assign_bad.php", "E0044").contains(&String::from("E0044")));
     }
 
     #[test]
@@ -167,6 +170,9 @@ mod tests {
         assert!(codes("e45/stream_real_safe.php", "E0045").is_empty());
         assert!(codes("e45/stream_real_bad.php", "E0045").contains(&String::from("E0045")));
         assert!(codes("e45/append_safe.php", "E0045").is_empty());
+        assert!(codes("e45/local_safe.php", "E0045").is_empty());
+        assert!(codes("e45/overwrite_safe.php", "E0045").is_empty());
+        assert!(codes("e45/indexed_bad.php", "E0045").contains(&String::from("E0045")));
     }
 
     #[test]
@@ -201,6 +207,15 @@ mod tests {
         assert!(codes("e46/request_method_bad.php", "E0046").contains(&String::from("E0046")));
         assert!(codes("e46/non_request_method_safe.php", "E0046").is_empty());
         assert!(codes("e46/request_loop_guarded.php", "E0046").is_empty());
+        assert!(codes("e46/server_metadata_safe.php", "E0046").is_empty());
+        assert!(codes("e46/cli_safe.php", "E0046").is_empty());
+        assert!(codes("e46/server_header_bad.php", "E0046").contains(&String::from("E0046")));
+        assert!(codes_with_settings(
+            "e46/cli_safe.php",
+            "E0046",
+            serde_json::json!({ "include_cli_input": true }),
+        )
+        .contains(&String::from("E0046")));
     }
 
     #[test]
