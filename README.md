@@ -20,7 +20,7 @@ Think of it as a health checkup for your PHP code. It doesn't just tell you *tha
 ### ✨ Features
 
 - 🚀 **Fast** — built in Rust, analyzes large codebases in seconds
-- 🔍 **49 built-in rules** — covering complexity, style, design patterns, and more
+- 🔍 **59 built-in rules** — covering complexity, style, design patterns, and more
 - ⚙️ **Zero config to start** — works out of the box, configure only what you need
 - 📄 **Multiple output formats** — `text`, `json`, `sarif` (for CI pipelines with inline PR annotations via [GitHub Action](https://github.com/marketplace/actions/phanalist)), and `codeclimate` (for Code Quality platforms)
 - 🔌 **Extensible** — adding a custom rule takes minutes
@@ -60,6 +60,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: denzyldick/phanalist-action@v1
 ```
+
+By default, the action appends each rule's full documentation to inline pull
+request annotations.
 
 ---
 
@@ -246,10 +249,9 @@ rules:
     max_findings_per_function: 20
 ```
 
-E0032-E0043 accept the same settings block. Enabling or disabling only `E0031`
-applies to every verification code for backward compatibility, and a class with
-no explicit block inherits the legacy `E0031` settings; naming any other
-verification code keeps the configuration scoped to the codes you named.
+E0032-E0043 accept the same settings schema. Every verification code is enabled,
+disabled, and configured independently; settings under `E0031` apply only to
+division-by-zero checks.
 
 E0044-E0046 share the resource settings block. `runtime_threshold` and
 `heap_alloc_threshold` accept `linear`, `quadratic`, `cubic`, or `exponential`;
@@ -281,6 +283,8 @@ exclude_paths:
 ---
 
 ### Rules
+
+New to the terminology? See the [rule glossary](./docs/rule_glossary.md).
 
 | Code | Name | Options |
 | :--: | :--- | :------ |
@@ -316,24 +320,34 @@ exclude_paths:
 | [E0029](/src/rules/examples/e29/e29.md) | Fan-in / Fan-out | `max_fan_out: 10`, `max_fan_in: 20` |
 | [E0030](/src/rules/examples/e30/e30.md) | Cyclomatic Complexity Density | `max_density: 0.3` |
 | [E0031](/src/rules/examples/e31/e31.md) | Division by Zero | `php_version`, `check_division`, `check_modulo`, `check_intdiv`, `check_array_index`, `check_string_offset`, `check_nullability`, `check_types`, `check_assertions`, `check_unreachable`, `check_return_contracts`, `loop_strategy`, `unroll_depth`, `timeout_ms`, `unknown_policy`, `max_findings_per_function` |
-| [E0032](/src/rules/examples/e32/e32.md) | Modulo by Zero | same as E0031 |
-| [E0033](/src/rules/examples/e33/e33.md) | `intdiv()` by Zero | same as E0031 |
-| [E0034](/src/rules/examples/e34/e34.md) | `intdiv()` Overflow | same as E0031 |
-| [E0035](/src/rules/examples/e35/e35.md) | Missing Array Key | same as E0031 |
-| [E0036](/src/rules/examples/e36/e36.md) | Array Index Out of Bounds | same as E0031 |
-| [E0037](/src/rules/examples/e37/e37.md) | String Offset Out of Bounds | same as E0031 |
-| [E0038](/src/rules/examples/e38/e38.md) | Method Call on Null | same as E0031 |
-| [E0039](/src/rules/examples/e39/e39.md) | Property Access on Null | same as E0031 |
-| [E0040](/src/rules/examples/e40/e40.md) | Return Contract Violation | same as E0031 |
-| [E0041](/src/rules/examples/e41/e41.md) | Unreachable Code | same as E0031 |
-| [E0042](/src/rules/examples/e42/e42.md) | Impossible Assertion | same as E0031 |
-| [E0043](/src/rules/examples/e43/e43.md) | Stream Resource Used After Close | same as E0031 |
+| [E0032](/src/rules/examples/e32/e32.md) | Modulo by Zero | same schema as E0031 |
+| [E0033](/src/rules/examples/e33/e33.md) | `intdiv()` by Zero | same schema as E0031 |
+| [E0034](/src/rules/examples/e34/e34.md) | `intdiv()` Overflow | same schema as E0031 |
+| [E0035](/src/rules/examples/e35/e35.md) | Missing Array Key | same schema as E0031 |
+| [E0036](/src/rules/examples/e36/e36.md) | Array Index Out of Bounds | same schema as E0031 |
+| [E0037](/src/rules/examples/e37/e37.md) | String Offset Out of Bounds | same schema as E0031 |
+| [E0038](/src/rules/examples/e38/e38.md) | Method Call on Null | same schema as E0031 |
+| [E0039](/src/rules/examples/e39/e39.md) | Property Access on Null | same schema as E0031 |
+| [E0040](/src/rules/examples/e40/e40.md) | Return Contract Violation | same schema as E0031 |
+| [E0041](/src/rules/examples/e41/e41.md) | Unreachable Code | same schema as E0031 |
+| [E0042](/src/rules/examples/e42/e42.md) | Impossible Assertion | same schema as E0031 |
+| [E0043](/src/rules/examples/e43/e43.md) | Stream Resource Used After Close | same schema as E0031 |
 | [E0044](/src/rules/examples/e44/e44.md) | Input-dependent runtime growth | `runtime_threshold`, `heap_alloc_threshold`, `retained_element_bytes`, `report_input_cardinality`, `include_cli_input`, `max_findings_per_function` |
 | [E0045](/src/rules/examples/e45/e45.md) | Input-dependent live-heap growth | same as E0044 |
 | [E0046](/src/rules/examples/e46/e46.md) | Input-controlled cardinality | same as E0044 |
 | [E0047](/src/rules/examples/e47/e47.md) | Resource lifecycle leak | |
 | [E0048](/src/rules/examples/e48/e48.md) | Unbounded direct recursion | |
 | [E0049](/src/rules/examples/e49/e49.md) | Invalid builtin argument | |
+| [E0050](/src/rules/examples/e50/e50.md) | Position check used as boolean | |
+| [E0051](/src/rules/examples/e51/e51.md) | Count of a non-countable value | |
+| [E0052](/src/rules/examples/e52/e52.md) | Unchecked json_decode result | |
+| [E0053](/src/rules/examples/e53/e53.md) | Unserialize without allowed_classes | |
+| [E0054](/src/rules/examples/e54/e54.md) | Dynamic variable creation | |
+| [E0055](/src/rules/examples/e55/e55.md) | Dynamic include or require | |
+| [E0056](/src/rules/examples/e56/e56.md) | Weak randomness for security-sensitive value | |
+| [E0057](/src/rules/examples/e57/e57.md) | MD5 or SHA1 used for a password | |
+| [E0058](/src/rules/examples/e58/e58.md) | Cookie missing Secure or HttpOnly | |
+| [E0059](/src/rules/examples/e59/e59.md) | Dynamic eval or assert | |
 
 Adding a new rule is straightforward — [this tutorial](./docs/adding_new_rule.md) explains how.
 

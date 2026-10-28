@@ -635,12 +635,10 @@ impl Analyse {
     }
 
     fn get_active_rules(config: &Config) -> HashMap<String, Box<dyn Rule>> {
-        let enabled = Self::expand_legacy_verification_codes(&config.enabled_rules);
-        let disabled = Self::expand_legacy_verification_codes(&config.disable_rules);
         let active_codes = Self::filter_active_codes(
             rules::all_rules().into_keys().collect(),
-            &enabled,
-            &disabled,
+            &config.enabled_rules,
+            &config.disable_rules,
         );
 
         let mut active_rules = rules::all_rules();
@@ -651,29 +649,6 @@ impl Analyse {
         });
 
         active_rules
-    }
-
-    fn expand_legacy_verification_codes(codes: &[String]) -> Vec<String> {
-        let has_legacy = codes.iter().any(|code| code == "E0031");
-        let has_other_verification = codes
-            .iter()
-            .any(|code| code != "E0031" && FindingClass::from_code(code).is_some());
-
-        if !has_legacy || has_other_verification {
-            return codes.to_vec();
-        }
-
-        let mut expanded = codes
-            .iter()
-            .filter(|code| *code != "E0031")
-            .cloned()
-            .collect::<Vec<_>>();
-        expanded.extend(
-            FindingClass::ALL
-                .iter()
-                .map(|class| String::from(class.code())),
-        );
-        expanded
     }
 
     fn filter_active_codes(

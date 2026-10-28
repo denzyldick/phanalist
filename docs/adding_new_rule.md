@@ -41,5 +41,14 @@
         ...
     }
     ```
-7. Update `README.md` with new rule details.
-8. Done! Submit a new PR with new rule.
+7. Write `src/rules/examples/e1234/e1234.md` for the rule. Every rule doc must include:
+    - a plain-English summary and why the problem matters
+    - a bad example and a good example
+    - what the rule checks
+    - when it does not report
+    - how to fix the problem
+    - configuration and whether the rule is enabled by default
+
+    Define unusual terms or link to [`rule_glossary.md`](./rule_glossary.md).
+8. Update `README.md` with new rule details.
+9. Done! Submit a new PR with new rule.
