@@ -165,6 +165,7 @@ mod tests {
         assert!(codes("e45/copy_bad.php", "E0045").contains(&String::from("E0045")));
         assert!(codes("e45/stream_safe.php", "E0045").is_empty());
         assert!(codes("e45/stream_real_safe.php", "E0045").is_empty());
+        assert!(codes("e45/stream_real_bad.php", "E0045").contains(&String::from("E0045")));
         assert!(codes("e45/append_safe.php", "E0045").is_empty());
     }
 
