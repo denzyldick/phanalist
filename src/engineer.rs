@@ -788,9 +788,11 @@ mod tests {
     #[test]
     fn test_engineer_report_serialization() {
         let mut report: EngineerReport = HashMap::new();
-        let mut entry = EngineerEntry::default();
-        entry.total_introduced = 5;
-        entry.net = -5;
+        let mut entry = EngineerEntry {
+            total_introduced: 5,
+            net: -5,
+            ..Default::default()
+        };
         entry.rules.insert("E001".to_string(), RuleChange { fixed: 0, introduced: 3 });
         entry.rules.insert("E002".to_string(), RuleChange { fixed: 1, introduced: 1 });
         report.insert("Alice".to_string(), entry);
