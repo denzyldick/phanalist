@@ -11,6 +11,7 @@ pub enum SizeExpr {
     CountOf(String),
     BytesOf(String),
     FileSize(String),
+    Stream(String),
     Sum(Vec<SizeExpr>),
     Product(Box<SizeExpr>, u64),
     Mul(Box<SizeExpr>, Box<SizeExpr>),
@@ -31,6 +32,10 @@ impl SizeExpr {
         Self::FileSize(name.into())
     }
 
+    pub fn stream(name: impl Into<String>) -> Self {
+        Self::Stream(name.into())
+    }
+
     pub fn is_unknown(&self) -> bool {
         matches!(self, Self::Unknown)
     }
@@ -49,6 +54,7 @@ impl SizeExpr {
             | Self::CountOf(_)
             | Self::BytesOf(_)
             | Self::FileSize(_)
+            | Self::Stream(_)
             | Self::Unknown => false,
             Self::Sum(values) => values.iter().all(Self::is_bounded),
             Self::Product(value, _) => value.is_bounded(),
@@ -65,7 +71,8 @@ impl SizeExpr {
             | Self::Param(_)
             | Self::CountOf(_)
             | Self::BytesOf(_)
-            | Self::FileSize(_) => false,
+            | Self::FileSize(_)
+            | Self::Stream(_) => false,
             Self::Sum(values) => values.iter().any(Self::has_unknown),
             Self::Product(value, _) => value.has_unknown(),
             Self::Mul(left, right) => left.has_unknown() || right.has_unknown(),
@@ -87,7 +94,7 @@ impl SizeExpr {
             Self::Min(left, right) | Self::Max(left, right) => {
                 left.contains_param(name) || right.contains_param(name)
             }
-            Self::Unknown | Self::Const(_) => false,
+            Self::Unknown | Self::Const(_) | Self::Stream(_) => false,
         }
     }
 
@@ -166,6 +173,7 @@ impl SizeExpr {
                 .unwrap_or_else(|| self.clone()),
             Self::Unknown => Self::Unknown,
             Self::Const(value) => Self::Const(*value),
+            Self::Stream(name) => Self::Stream(name.clone()),
             Self::Sum(values) => values.iter().fold(Self::Const(0), |acc, value| {
                 acc.add(value.substitute(replacements))
             }),
@@ -193,6 +201,7 @@ impl fmt::Display for SizeExpr {
             Self::Param(name) | Self::CountOf(name) => write!(f, "n({name})"),
             Self::BytesOf(name) => write!(f, "bytes({name})"),
             Self::FileSize(name) => write!(f, "filesize({name})"),
+            Self::Stream(name) => write!(f, "stream({name})"),
             Self::Sum(values) => {
                 for (index, value) in values.iter().enumerate() {
                     if index > 0 {

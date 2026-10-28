@@ -898,6 +898,13 @@ fn expression_always_exits(expression: &Expression<'_>) -> bool {
     }
 }
 
+fn is_stream_read_function(name: &str) -> bool {
+    matches!(
+        name,
+        "fgets" | "fgetcsv" | "fgetss" | "fgetc" | "fread" | "fscanf" | "stream_get_line"
+    )
+}
+
 fn direct_variable_name<'a>(expression: &'a Expression<'a>) -> Option<&'a str> {
     match expression.unparenthesized() {
         Expression::Variable(Variable::Direct(variable)) => std::str::from_utf8(variable.name).ok(),
@@ -1436,6 +1443,9 @@ impl<'a> Analyzer<'a> {
     }
 
     fn loop_bound_from_condition(&self, condition: &Expression<'_>, state: &State) -> SizeExpr {
+        if let Some(stream) = self.stream_read_in_condition(condition) {
+            return SizeExpr::stream(stream);
+        }
         let Expression::Binary(binary) = condition.unparenthesized() else {
             return SizeExpr::Unknown;
         };
@@ -1449,6 +1459,39 @@ impl<'a> Analyzer<'a> {
                 self.size_of_expr(binary.rhs, state).add(SizeExpr::Const(1))
             }
             _ => SizeExpr::Unknown,
+        }
+    }
+
+    fn stream_read_in_condition(&self, expression: &Expression<'_>) -> Option<String> {
+        match expression.unparenthesized() {
+            Expression::Call(Call::Function(function_call)) => {
+                let name = function_name(function_call.function)?;
+                if !is_stream_read_function(&name) {
+                    return None;
+                }
+                let stream = function_call
+                    .argument_list
+                    .arguments
+                    .first()
+                    .and_then(|argument| direct_variable_name(argument.value()))
+                    .map(ToOwned::to_owned)
+                    .unwrap_or_else(|| String::from("stream"));
+                Some(stream)
+            }
+            Expression::Assignment(assignment) => self.stream_read_in_condition(assignment.rhs),
+            Expression::Binary(binary) => self
+                .stream_read_in_condition(binary.lhs)
+                .or_else(|| self.stream_read_in_condition(binary.rhs)),
+            Expression::UnaryPrefix(unary) => self.stream_read_in_condition(unary.operand),
+            Expression::Conditional(conditional) => self
+                .stream_read_in_condition(conditional.condition)
+                .or_else(|| {
+                    conditional
+                        .then
+                        .and_then(|then| self.stream_read_in_condition(then))
+                })
+                .or_else(|| self.stream_read_in_condition(conditional.r#else)),
+            _ => None,
         }
     }
 
