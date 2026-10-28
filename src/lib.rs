@@ -9,6 +9,7 @@ pub mod file;
 pub mod lsp;
 pub mod outputs;
 pub mod paths;
+pub mod resource;
 pub mod results;
 pub mod rules;
 pub mod verification;

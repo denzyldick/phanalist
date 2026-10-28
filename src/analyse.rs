@@ -19,6 +19,7 @@ use crate::outputs::sarif::Sarif;
 use crate::outputs::text::Text;
 use crate::outputs::Format;
 use crate::outputs::OutputFormatter;
+use crate::resource::{ResourceClass, ResourceFinding, ResourceService, ResourceSettings};
 use crate::results::{Results, Violation};
 use crate::rules::Rule;
 use crate::rules::{self};
@@ -124,6 +125,7 @@ pub(crate) fn read_source(path: &Path) -> Option<String> {
 pub struct Analyse {
     pub(crate) rules: HashMap<String, Box<dyn Rule>>,
     verification: VerificationService,
+    resource: ResourceService,
 }
 
 impl Analyse {
@@ -131,6 +133,7 @@ impl Analyse {
         Self {
             rules: Self::get_active_rules(config),
             verification: VerificationService::new(),
+            resource: ResourceService::new(),
         }
     }
 
@@ -217,6 +220,9 @@ impl Analyse {
         if self.has_verification_rules() {
             self.verification.begin_index();
         }
+        if self.has_resource_rules() {
+            self.resource.begin_index();
+        }
     }
 
     pub(crate) fn index_file(&self, file: &File<'_>) {
@@ -228,6 +234,9 @@ impl Analyse {
         if self.has_verification_rules() {
             self.verification.index_file(file);
         }
+        if self.has_resource_rules() {
+            self.resource.index_file(file);
+        }
     }
 
     pub(crate) fn finalize_index(&self) {
@@ -238,6 +247,9 @@ impl Analyse {
         }
         if self.has_verification_rules() {
             self.verification.finalize_index();
+        }
+        if self.has_resource_rules() {
+            self.resource.finalize_index();
         }
     }
 
@@ -251,12 +263,21 @@ impl Analyse {
         if self.has_verification_rules() {
             self.verification.remove_file(path);
         }
+        if self.has_resource_rules() {
+            self.resource.remove_file(path);
+        }
     }
 
     fn has_verification_rules(&self) -> bool {
         self.rules
             .values()
             .any(|rule| rule.verification_class().is_some())
+    }
+
+    fn has_resource_rules(&self) -> bool {
+        self.rules
+            .values()
+            .any(|rule| rule.resource_class().is_some())
     }
 
     /// Rebuild cross-file rule state for a single file from its on-disk content.
@@ -483,6 +504,7 @@ impl Analyse {
             file.reference_counter.build_reference_counter(program);
 
             let mut verification_groups: Vec<(Settings, Vec<FindingClass>)> = Vec::new();
+            let mut resource_groups: Vec<(ResourceSettings, Vec<ResourceClass>)> = Vec::new();
             for rule in self.rules.values() {
                 if let (Some(class), Some(settings)) =
                     (rule.verification_class(), rule.verification_settings())
@@ -494,6 +516,19 @@ impl Analyse {
                         classes.push(class);
                     } else {
                         verification_groups.push((settings, vec![class]));
+                    }
+                    continue;
+                }
+                if let (Some(class), Some(settings)) =
+                    (rule.resource_class(), rule.resource_settings())
+                {
+                    if let Some((_, classes)) = resource_groups
+                        .iter_mut()
+                        .find(|(existing, _)| existing == &settings)
+                    {
+                        classes.push(class);
+                    } else {
+                        resource_groups.push((settings, vec![class]));
                     }
                     continue;
                 }
@@ -533,6 +568,26 @@ impl Analyse {
                 }
             }
 
+            for (settings, classes) in resource_groups {
+                let rule_start = timings.as_ref().map(|_| Instant::now());
+                let findings = self.resource.analyze(file, &settings, &classes);
+                violations.extend(
+                    findings
+                        .into_iter()
+                        .map(|finding| Self::violation_from_resource_finding(file, finding)),
+                );
+
+                if let Some(t) = timings.as_mut() {
+                    let elapsed = rule_start.unwrap().elapsed();
+                    for class in classes {
+                        let entry = t.entry(String::from(class.code())).or_default();
+                        entry.duration += elapsed;
+                        entry.validated = true;
+                        entry.statements += program.statements.len();
+                    }
+                }
+            }
+
             for statement in program.statements.iter() {
                 violations.append(&mut self.analyse_file_statement(
                     file,
@@ -545,7 +600,19 @@ impl Analyse {
     }
 
     fn violation_from_finding(file: &File<'_>, finding: Finding) -> Violation {
-        let span = finding.span;
+        Self::violation_from_parts(file, finding.class.code(), finding.span, finding.message)
+    }
+
+    fn violation_from_resource_finding(file: &File<'_>, finding: ResourceFinding) -> Violation {
+        Self::violation_from_parts(file, finding.class.code(), finding.span, finding.message)
+    }
+
+    fn violation_from_parts(
+        file: &File<'_>,
+        rule: &str,
+        span: mago_span::Span,
+        message: crate::results::Message,
+    ) -> Violation {
         let start_line = file.line_number(span.start.offset);
         let start_column = file.column_number(span.start.offset);
         let end_line = file.line_number(span.end.offset);
@@ -557,9 +624,9 @@ impl Analyse {
             .unwrap_or_default();
 
         Violation {
-            rule: String::from(finding.class.code()),
+            rule: String::from(rule),
             line,
-            message: finding.message,
+            message,
             start_line,
             start_column,
             end_line,
