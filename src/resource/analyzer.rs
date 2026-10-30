@@ -173,6 +173,12 @@ impl Effect {
             retains: self.retains || other.retains,
         }
     }
+
+    fn discard_returned_value(&mut self) {
+        self.retains = false;
+        self.retained_delta = SizeExpr::Const(0);
+        self.peak = SizeExpr::Const(0);
+    }
 }
 
 #[derive(Clone, Debug, Default)]
@@ -494,19 +500,23 @@ impl<'a> Analyzer<'a> {
     fn analyze_statement(&mut self, statement: &Statement<'_>, state: &mut State) -> Effect {
         match statement {
             Statement::Expression(expression) => {
-                self.eval_expr(expression.expression, state).effect
+                let mut evaluated = self.eval_expr(expression.expression, state);
+                if is_call_expression(expression.expression) && evaluated.effect.growth.is_empty() {
+                    evaluated.effect.discard_returned_value();
+                }
+                evaluated.effect
             }
             Statement::Echo(echo) => {
                 let mut effect = Effect::default();
                 for value in echo.values.iter() {
-                    effect = effect.add(self.eval_expr(value, state).effect);
+                    effect = effect.add(self.eval_consumed(value, state).effect);
                 }
                 effect
             }
             Statement::EchoTag(echo) => {
                 let mut effect = Effect::default();
                 for value in echo.values.iter() {
-                    effect = effect.add(self.eval_expr(value, state).effect);
+                    effect = effect.add(self.eval_consumed(value, state).effect);
                 }
                 effect
             }
@@ -721,7 +731,7 @@ impl<'a> Analyzer<'a> {
         let iterations = bound.clone();
         let mut loop_cost = body_effect.cost.clone().multiply_by(iterations.clone());
         let mut loop_alloc = body_effect.alloc.clone().multiply_by(iterations.clone());
-        let mut loop_retained = base_retained.clone();
+        let mut loop_retained = SizeExpr::Const(0);
         let mut loop_peak = body_effect.peak.clone().max(base_retained.clone());
         let mut copy_growth = false;
 
@@ -732,7 +742,9 @@ impl<'a> Analyzer<'a> {
             let added_count = growth.count_per_iteration.clone().mul(iterations.clone());
             let added_bytes = growth.bytes_per_iteration.clone().mul(iterations.clone());
             loop_retained = loop_retained.clone().add(added_bytes.clone());
-            loop_peak = loop_peak.clone().max(loop_retained.clone());
+            loop_peak = loop_peak
+                .clone()
+                .max(base_retained.clone().add(loop_retained.clone()));
             if growth.is_copying() {
                 copy_growth = true;
                 loop_cost = loop_cost.add(CostExpr::quadratic(iterations.clone()));
@@ -760,7 +772,9 @@ impl<'a> Analyzer<'a> {
         if body_effect.growth.is_empty() && body_effect.retained_delta != SizeExpr::Const(0) {
             let added = body_effect.retained_delta.clone().mul(iterations.clone());
             loop_retained = loop_retained.clone().add(added.clone());
-            loop_peak = loop_peak.clone().max(loop_retained.clone());
+            loop_peak = loop_peak
+                .clone()
+                .max(base_retained.clone().add(loop_retained.clone()));
         }
 
         for name in body_state.env.keys() {
@@ -826,10 +840,15 @@ impl<'a> Analyzer<'a> {
         let allocation_growth = loop_alloc.degree() >= self.settings.heap_degree()
             && loop_alloc.degree() > 0
             && !loop_alloc.is_bounded();
-        let retains = !body_effect.growth.is_empty() || body_effect.retains;
+        let local_growth = !body_effect.growth.is_empty();
+        let retained_known = !retained_growth.has_unknown();
+        let retains = local_growth || body_effect.retains;
         let significant_retention = large_retained || escaping_growth || body_effect.retains;
+        let report_retention = significant_retention
+            && !retained_growth.is_bounded()
+            && (local_growth || retained_known);
         if retains
-            && (allocation_growth || (significant_retention && !retained_growth.is_bounded()))
+            && (allocation_growth || report_retention)
             && !bound.is_unknown()
             && !bound.is_bounded()
         {
@@ -894,6 +913,10 @@ fn statements_always_exit(statements: &[Statement<'_>]) -> bool {
         Some(Statement::Block(block)) => statements_always_exit(block.statements.as_slice()),
         _ => false,
     }
+}
+
+fn is_call_expression(expression: &Expression<'_>) -> bool {
+    matches!(expression.unparenthesized(), Expression::Call(_))
 }
 
 fn expression_always_exits(expression: &Expression<'_>) -> bool {
@@ -1962,6 +1985,14 @@ fn is_request_method(name: &str) -> bool {
 }
 
 impl<'a> Analyzer<'a> {
+    fn eval_consumed(&mut self, expression: &Expression<'_>, state: &mut State) -> Eval {
+        let mut evaluated = self.eval_expr(expression, state);
+        if is_call_expression(expression) && evaluated.effect.growth.is_empty() {
+            evaluated.effect.discard_returned_value();
+        }
+        evaluated
+    }
+
     fn eval_expr(&mut self, expression: &Expression<'_>, state: &mut State) -> Eval {
         if self.expr_depth >= 32 {
             return Eval::pure(ValueState::default());
@@ -2339,7 +2370,7 @@ impl<'a> Analyzer<'a> {
             },
             Construct::Print(print) => Eval {
                 value: ValueState::scalar(),
-                effect: self.eval_expr(print.value, state).effect,
+                effect: self.eval_consumed(print.value, state).effect,
             },
             Construct::Exit(exit) => {
                 let mut effect = Effect::default();
@@ -3402,7 +3433,12 @@ impl<'a> Analyzer<'a> {
         effect.alloc = effect.alloc.add(alloc);
         effect.retained_delta = effect.retained_delta.add(retained);
         effect.peak = effect.peak.max(peak);
-        effect.retains |= !summary.heap.retained.is_bounded();
+        let retained_is_param_derived = summary.params.iter().any(|param| {
+            summary.heap.retained.contains_param(param)
+                || summary.return_count.contains_param(param)
+                || summary.return_bytes.contains_param(param)
+        });
+        effect.retains |= !summary.heap.retained.is_bounded() && retained_is_param_derived;
         effect.tainted |= value.tainted;
         effect.origins.extend(value.taint_origins.clone());
 

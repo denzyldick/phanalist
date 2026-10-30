@@ -176,6 +176,24 @@ mod tests {
         assert!(codes("e45/local_safe.php", "E0045").is_empty());
         assert!(codes("e45/overwrite_safe.php", "E0045").is_empty());
         assert!(codes("e45/indexed_bad.php", "E0045").contains(&String::from("E0045")));
+        assert!(codes("e45/validation_loop_safe.php", "E0045").is_empty());
+        assert!(codes("e45/predicate_loop_safe.php", "E0045").is_empty());
+        assert!(codes("e45/mutation_loop_safe.php", "E0045").is_empty());
+        assert!(codes("e45/push_bad.php", "E0045").contains(&String::from("E0045")));
+    }
+
+    #[test]
+    fn reports_retained_growth_without_the_input_baseline() {
+        let violations = analyze_file_for_rule("e45/growth_only.php", "E0045");
+        assert!(!violations.is_empty());
+        let retained = violations[0]
+            .message
+            .args
+            .iter()
+            .find(|(name, _)| name == "retained")
+            .map(|(_, value)| value)
+            .unwrap();
+        assert!(!retained.contains("bytes($items)"), "{retained}");
     }
 
     #[test]
@@ -246,6 +264,20 @@ mod tests {
         let codes = codes_with_indexed_files(
             &["e45/summary_definition.php"],
             "e45/summary_use.php",
+            "E0045",
+        );
+        assert!(codes.contains(&String::from("E0045")), "{codes:?}");
+
+        let codes = codes_with_indexed_files(
+            &["e45/summary_definition.php"],
+            "e45/summary_unused_safe.php",
+            "E0045",
+        );
+        assert!(codes.is_empty(), "{codes:?}");
+
+        let codes = codes_with_indexed_files(
+            &["e45/summary_known_definition.php"],
+            "e45/summary_known_use.php",
             "E0045",
         );
         assert!(codes.contains(&String::from("E0045")), "{codes:?}");

@@ -33,6 +33,9 @@
 
 ### Fixed
 
+- `E0045` now reports retained growth instead of total retained heap. A builder that appends to a fresh array no longer includes the pre-existing input array in its retained-size message, while peak heap still accounts for it.
+- `E0045` no longer reports callee-only retention when the callee summary is not parameter-derived, and it requires known retained growth or direct local accumulation when the retained size is unknown. This removes false positives on validation and predicate loops whose helpers only throw fresh exceptions, and on mutation loops that do not retain a growing collection.
+- `E0045` now treats discarded helper return values as non-retaining, so a loop that calls an array-building helper without using the result is no longer reported as live-heap growth. In-place mutators such as `array_push()` keep their local-growth findings.
 - `E0014` no longer clones the entire project-wide type registry for every file. The registry is published once as a read-only snapshot, local types are built once per file, and the resolve cache is thread-local, so large projects no longer spend minutes in Law-of-Demeter analysis.
 - `E0022`, `E0023`, and `E0029` now precompute their namespace and class metrics once after indexing instead of rescanning every class dependency for each file.
 - `E0047` now treats resources passed to constructors as ownership transfers, and `E0048` now accepts recursion after a parameter object property write or a non-recursive method call on `$this`.

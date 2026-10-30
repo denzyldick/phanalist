@@ -1,8 +1,11 @@
 <?php
 
-function retain_summary_use(array $items): void
+function retain_summary_use(array $items): array
 {
+    $rows = [];
     foreach ($items as $item) {
-        retain_helper($items);
+        $rows[] = retain_helper($items);
     }
+
+    return $rows;
 }
