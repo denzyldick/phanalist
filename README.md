@@ -269,7 +269,7 @@ retention. E0046 can be disabled with
 
 #### Scanning a whole project
 
-Pointing `--src .` at a project root works and stays memory-safe: each file's parse tree is released before the next one is read, so peak memory tracks the largest single file rather than the size of the tree.
+Pointing `--src .` at a project root works and stays memory-safe: files are analysed in parallel, but each worker releases a file's parse tree before reading its next file. Peak memory therefore tracks the largest file per worker rather than the size of the whole tree. Set `PHANALIST_JOBS=1` to restore strictly one-file-at-a-time memory use, or use a small value to cap worker memory on constrained machines.
 
 Two things do still scale with the run: the violations you asked to report, and the time spent parsing. Excluding dependencies and generated code with `exclude_paths` is the cheapest way to cut both:
 

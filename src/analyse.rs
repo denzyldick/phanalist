@@ -2,6 +2,8 @@ use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::mpsc;
 use std::time::Instant;
 
 use colored::Colorize;
@@ -25,6 +27,12 @@ use crate::rules::Rule;
 use crate::rules::{self};
 use crate::verification::{Finding, FindingClass, Settings, VerificationService};
 
+struct FileOutcome {
+    path: PathBuf,
+    violations: Vec<Violation>,
+    timings: Option<FileTimings>,
+}
+
 /// Print a verbose line. When a progress bar is active, route it through
 /// `ProgressBar::println` so the bar stays pinned to the bottom and the line
 /// scrolls above it; otherwise fall back to plain stderr.
@@ -36,6 +44,26 @@ fn log_line(bar: Option<&ProgressBar>, msg: String) {
         Some(pb) if !pb.is_hidden() => pb.println(msg),
         _ => eprintln!("{msg}"),
     }
+}
+
+fn scan_worker_count(file_count: usize) -> usize {
+    if file_count <= 1 {
+        return file_count;
+    }
+
+    let configured = std::env::var("PHANALIST_JOBS")
+        .ok()
+        .and_then(|value| value.parse::<usize>().ok())
+        .filter(|workers| *workers > 0);
+
+    configured
+        .unwrap_or_else(|| {
+            std::thread::available_parallelism()
+                .map(|count| count.get())
+                .unwrap_or(4)
+        })
+        .min(file_count)
+        .max(1)
 }
 
 /// Walk `current_dir` and return the path of every non-excluded PHP file.
@@ -191,21 +219,73 @@ impl Analyse {
 
         self.begin_index();
 
-        let mut arena = LocalArena::new();
-        for file_path in &files {
-            if verbose >= 3 {
-                log_line(bar, format!("[vvv] indexing {}", file_path.display()));
-            }
-            let Some(content) = read_source(file_path) else {
-                continue;
-            };
+        let worker_count = scan_worker_count(files.len());
+        if worker_count <= 1 {
+            let mut arena = LocalArena::new();
+            for file_path in &files {
+                if verbose >= 3 {
+                    log_line(bar, format!("[vvv] indexing {}", file_path.display()));
+                }
+                let Some(content) = read_source(file_path) else {
+                    continue;
+                };
 
-            {
-                let file = File::new(&arena, file_path.clone(), content);
-                self.index_file(&file);
+                {
+                    let file = File::new(&arena, file_path.clone(), content);
+                    self.index_file(&file);
+                }
+
+                arena.reset();
+            }
+        } else {
+            if self.has_verification_rules() || self.has_resource_rules() {
+                let next = AtomicUsize::new(0);
+                std::thread::scope(|scope| {
+                    for _ in 0..worker_count {
+                        let next = &next;
+                        let files = &files;
+                        scope.spawn(move || {
+                            let mut arena = LocalArena::new();
+                            loop {
+                                let index = next.fetch_add(1, Ordering::Relaxed);
+                                let Some(file_path) = files.get(index) else {
+                                    break;
+                                };
+                                if verbose >= 3 {
+                                    log_line(
+                                        bar,
+                                        format!("[vvv] indexing {}", file_path.display()),
+                                    );
+                                }
+                                let Some(content) = read_source(file_path) else {
+                                    continue;
+                                };
+
+                                {
+                                    let file = File::new(&arena, file_path.clone(), content);
+                                    self.index_service_file(&file);
+                                }
+
+                                arena.reset();
+                            }
+                        });
+                    }
+                });
             }
 
-            arena.reset();
+            let mut arena = LocalArena::new();
+            for file_path in &files {
+                let Some(content) = read_source(file_path) else {
+                    continue;
+                };
+
+                {
+                    let file = File::new(&arena, file_path.clone(), content);
+                    self.index_rule_file(&file);
+                }
+
+                arena.reset();
+            }
         }
 
         self.finalize_index();
@@ -225,18 +305,26 @@ impl Analyse {
         }
     }
 
-    pub(crate) fn index_file(&self, file: &File<'_>) {
+    fn index_rule_file(&self, file: &File<'_>) {
         for rule in self.rules.values() {
             if rule.verification_class().is_none() {
                 rule.index_file(file);
             }
         }
+    }
+
+    fn index_service_file(&self, file: &File<'_>) {
         if self.has_verification_rules() {
             self.verification.index_file(file);
         }
         if self.has_resource_rules() {
             self.resource.index_file(file);
         }
+    }
+
+    pub(crate) fn index_file(&self, file: &File<'_>) {
+        self.index_rule_file(file);
+        self.index_service_file(file);
     }
 
     pub(crate) fn finalize_index(&self) {
@@ -353,53 +441,136 @@ impl Analyse {
 
         let bar_active = progress_bar.is_some();
 
-        // One arena is reused for the whole scan, but reclaimed after every
-        // file. `reset` frees each file's AST while keeping the chunks for
-        // reuse, so the arena settles at the size of the largest single file
-        // instead of growing to the size of the entire project.
-        let mut arena = LocalArena::new();
-
-        // 2. Main pass. Each file is re-read and re-parsed, then dropped with
-        //    the arena reset, so only one file's AST is live at a time. The
-        //    re-read is served from the OS page cache and parsing is a fraction
-        //    of the cost of validating, which buys the bounded memory profile.
+        let worker_count = scan_worker_count(paths.len());
         let mut files = 0;
-        for file_path in &paths {
-            if verbose >= 2 {
-                log_line(
-                    progress_bar.as_ref(),
-                    format!("[vv] parsing {}", file_path.display()),
-                );
+
+        if worker_count <= 1 {
+            // One arena is reused for the whole scan, but reclaimed after every
+            // file. `reset` frees each file's AST while keeping the chunks for
+            // reuse, so the arena settles at the size of the largest single file
+            // instead of growing to the size of the entire project.
+            let mut arena = LocalArena::new();
+
+            for file_path in &paths {
+                if verbose >= 2 {
+                    log_line(
+                        progress_bar.as_ref(),
+                        format!("[vv] parsing {}", file_path.display()),
+                    );
+                }
+                let Some(content) = read_source(file_path) else {
+                    continue;
+                };
+
+                if verbose >= 1 {
+                    log_line(
+                        progress_bar.as_ref(),
+                        format!("[v] analysing {}", file_path.display()),
+                    );
+                }
+                if let Some(ref pb) = progress_bar {
+                    pb.inc(1);
+                }
+
+                let (analysed_path, file_timings) = {
+                    let mut file = File::new(&arena, file_path.clone(), content);
+                    let (violations, file_timings) =
+                        self.analyse_file(&mut file, collect_rule_metrics);
+                    let analysed_path = file.path.display().to_string();
+                    results.add_file_violations(&file, violations);
+                    (analysed_path, file_timings)
+                };
+
+                arena.reset();
+
+                if let (Some(rt), Some(ft)) = (results.rule_timings.as_mut(), file_timings) {
+                    rt.merge_file(analysed_path, ft);
+                }
+
+                files += 1;
             }
-            let Some(content) = read_source(file_path) else {
-                continue;
-            };
+        } else {
+            // 2. Main pass in parallel. Each worker keeps one file's AST live at
+            //    a time; the arena is reset between files. The work queue is
+            //    atomic so large files do not strand a fixed chunk.
+            let next = AtomicUsize::new(0);
+            let (tx, rx) = mpsc::channel::<FileOutcome>();
 
-            if verbose >= 1 {
-                log_line(
-                    progress_bar.as_ref(),
-                    format!("[v] analysing {}", file_path.display()),
-                );
-            }
-            if let Some(ref pb) = progress_bar {
-                pb.inc(1);
-            }
+            std::thread::scope(|scope| {
+                for _ in 0..worker_count {
+                    let tx = tx.clone();
+                    let bar = progress_bar.clone();
+                    let next = &next;
+                    let paths = &paths;
 
-            let (analysed_path, file_timings) = {
-                let mut file = File::new(&arena, file_path.clone(), content);
-                let (violations, file_timings) = self.analyse_file(&mut file, collect_rule_metrics);
-                let analysed_path = file.path.display().to_string();
-                results.add_file_violations(&file, violations);
-                (analysed_path, file_timings)
-            };
+                    scope.spawn(move || {
+                        let mut arena = LocalArena::new();
+                        loop {
+                            let index = next.fetch_add(1, Ordering::Relaxed);
+                            let Some(file_path) = paths.get(index) else {
+                                break;
+                            };
 
-            arena.reset();
+                            if verbose >= 2 {
+                                log_line(
+                                    bar.as_ref(),
+                                    format!("[vv] parsing {}", file_path.display()),
+                                );
+                            }
+                            let Some(content) = read_source(file_path) else {
+                                continue;
+                            };
 
-            if let (Some(rt), Some(ft)) = (results.rule_timings.as_mut(), file_timings) {
-                rt.merge_file(analysed_path, ft);
-            }
+                            if verbose >= 1 {
+                                log_line(
+                                    bar.as_ref(),
+                                    format!("[v] analysing {}", file_path.display()),
+                                );
+                            }
+                            if let Some(ref pb) = bar {
+                                pb.inc(1);
+                            }
 
-            files += 1;
+                            let outcome = {
+                                let mut file = File::new(&arena, file_path.clone(), content);
+                                let (violations, timings) =
+                                    self.analyse_file(&mut file, collect_rule_metrics);
+                                FileOutcome {
+                                    path: file.path.clone(),
+                                    violations,
+                                    timings,
+                                }
+                            };
+
+                            arena.reset();
+
+                            if tx.send(outcome).is_err() {
+                                break;
+                            }
+                        }
+                    });
+                }
+
+                drop(tx);
+
+                for outcome in rx {
+                    let FileOutcome {
+                        path,
+                        violations,
+                        timings,
+                    } = outcome;
+                    let path_string = timings.as_ref().map(|_| path.display().to_string());
+                    results.add_file_violations_for_path(path, violations);
+
+                    if let (Some(rt), Some(ft), Some(path_string)) =
+                        (results.rule_timings.as_mut(), timings, path_string)
+                    {
+                        rt.merge_file(path_string, ft);
+                    }
+
+                    files += 1;
+                }
+            });
         }
 
         if bar_active && !has_external_bar {
@@ -840,6 +1011,45 @@ mod tests {
         // counted. `files` only holds files with something to report, so it is
         // not a reliable file count.
         assert_eq!(results.total_files_count, 8);
+    }
+
+    #[test]
+    fn parallel_scan_matches_serial_counts() {
+        let base = std::env::temp_dir().join(format!("phanalist_parallel_{}", std::process::id()));
+        fs::create_dir_all(base.join("src")).unwrap();
+        for i in 0..32 {
+            fs::write(
+                base.join("src").join(format!("Class{i}.php")),
+                format!(
+                    "<?php\nclass Foreign{i} {{ public function next(): Foreign{i} {{ return $this; }} }}\nclass Class{i} {{ public function run(Foreign{i} $f) {{ $f->next()->next(); }} }}\n"
+                ),
+            )
+            .unwrap();
+        }
+
+        let config = Config::default();
+        let run = |jobs: &str| {
+            std::env::set_var("PHANALIST_JOBS", jobs);
+            let analyse = Analyse::new(&config);
+            let results = analyse.scan(
+                base.join("src").display().to_string(),
+                &config,
+                false,
+                &Format::json,
+                0,
+                false,
+                None,
+            );
+            (results.total_files_count, results.codes_count)
+        };
+
+        let serial = run("1");
+        let parallel = run("4");
+        std::env::remove_var("PHANALIST_JOBS");
+        fs::remove_dir_all(&base).ok();
+
+        assert_eq!(serial.0, 32);
+        assert_eq!(serial, parallel);
     }
 
     fn get_all_codes() -> Vec<String> {

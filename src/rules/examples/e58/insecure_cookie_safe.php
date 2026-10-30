@@ -5,6 +5,8 @@ setcookie('session', $value, [
     'httponly' => true,
     'samesite' => 'Lax',
 ]);
+setcookie('session', $value, ['secure' => true, 'httpOnly' => true]);
+session_set_cookie_params(['secure' => true, 'HttpOnly' => true]);
 setcookie('session', $value, 0, '/', '', true, true);
 session_set_cookie_params(['secure' => true, 'httponly' => true]);
 session_set_cookie_params(0, '/', '', true, true);

@@ -3,9 +3,7 @@ use mago_syntax::cst::*;
 
 use crate::file::File;
 use crate::results::{Message, Violation};
-use crate::rules::ast_support::{
-    call_arguments, function_name, literal_string, walk_statement_expressions,
-};
+use crate::rules::ast_support::{function_name, literal_string, walk_statement_expressions};
 
 pub(crate) static CODE: &str = "E0053";
 static DESCRIPTION: &str = "Unserialize without allowed_classes";
@@ -46,16 +44,14 @@ impl crate::rules::Rule for Rule {
                     return;
                 }
 
-                let call = Call::Function(call.clone());
-                let arguments = call_arguments(&call);
-                if arguments
-                    .first()
-                    .is_some_and(|argument| is_safe_input(argument))
-                {
+                let Some(data) = argument(call, "data", 0) else {
+                    return;
+                };
+                if is_safe_input(data) {
                     return;
                 }
 
-                let reason = match arguments.get(1) {
+                let reason = match argument(call, "options", 1) {
                     None => "missing",
                     Some(options) => match allowed_classes_option(options) {
                         Some(OptionValue::Missing) => "missing",
@@ -87,6 +83,35 @@ enum OptionValue {
     Missing,
     Enabled,
     Restricted,
+}
+
+fn argument<'a>(
+    call: &'a FunctionCall<'a>,
+    name: &str,
+    positional_index: usize,
+) -> Option<&'a Expression<'a>> {
+    let mut positional = 0;
+    let mut named = None;
+    let mut positional_value = None;
+
+    for argument in call.argument_list.arguments.iter() {
+        match argument {
+            Argument::Positional(argument) => {
+                if positional == positional_index {
+                    positional_value = Some(argument.value);
+                }
+                positional += 1;
+            }
+            Argument::Named(argument) => {
+                let argument_name = String::from_utf8_lossy(argument.name.value);
+                if argument_name.eq_ignore_ascii_case(name) {
+                    named = Some(argument.value);
+                }
+            }
+        }
+    }
+
+    named.or(positional_value)
 }
 
 fn allowed_classes_option(expression: &Expression<'_>) -> Option<OptionValue> {

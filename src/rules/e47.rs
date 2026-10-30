@@ -192,6 +192,22 @@ impl Rule {
                 }
             }
             Expression::Call(call) => self.scan_call(call, scan),
+            Expression::Instantiation(instantiation) => {
+                let Some(arguments) = &instantiation.argument_list else {
+                    return;
+                };
+                for argument in arguments.arguments.iter() {
+                    let value = match argument {
+                        Argument::Positional(argument) => argument.value,
+                        Argument::Named(argument) => argument.value,
+                    };
+                    if let Some(variable) = direct_variable_name(value) {
+                        if scan.is_open(variable) {
+                            scan.escaped.insert(variable.to_string());
+                        }
+                    }
+                }
+            }
             _ => {}
         }
     }
@@ -373,6 +389,7 @@ mod tests {
         assert!(analyze_file_for_rule("e47/unused_safe.php", CODE).is_empty());
         assert!(analyze_file_for_rule("e47/switch_return_safe.php", CODE).is_empty());
         assert!(analyze_file_for_rule("e47/property_safe.php", CODE).is_empty());
+        assert!(analyze_file_for_rule("e47/constructor_transfer_safe.php", CODE).is_empty());
         assert!(analyze_file_for_rule("e47/unknown_call_safe.php", CODE).is_empty());
         assert!(analyze_file_for_rule("e47/reassigned_bad.php", CODE)
             .iter()

@@ -1,6 +1,6 @@
 #![allow(clippy::should_implement_trait)]
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -155,10 +155,17 @@ impl SizeExpr {
 
     pub fn max(self, other: Self) -> Self {
         match (self, other) {
-            (left, right) if left == right => left,
             (Self::Const(left), Self::Const(right)) => Self::Const(left.max(right)),
             (Self::Const(0), value) | (value, Self::Const(0)) => value,
-            (left, right) => Self::Max(Box::new(left), Box::new(right)),
+            (left, right) => {
+                let mut values = Vec::new();
+                flatten_max(left, &mut values);
+                flatten_max(right, &mut values);
+
+                let mut seen = HashSet::new();
+                values.retain(|value| seen.insert(value.clone()));
+                build_max(values)
+            }
         }
     }
 
@@ -191,6 +198,36 @@ impl SizeExpr {
                 .max(right.substitute(replacements)),
         }
     }
+}
+
+fn flatten_max(value: SizeExpr, values: &mut Vec<SizeExpr>) {
+    match value {
+        SizeExpr::Max(left, right) => {
+            flatten_max(*left, values);
+            flatten_max(*right, values);
+        }
+        value => values.push(value),
+    }
+}
+
+fn build_max(mut values: Vec<SizeExpr>) -> SizeExpr {
+    if values.is_empty() {
+        return SizeExpr::Const(0);
+    }
+
+    while values.len() > 1 {
+        let mut next = Vec::with_capacity(values.len().div_ceil(2));
+        let mut iter = values.into_iter();
+        while let Some(left) = iter.next() {
+            match iter.next() {
+                Some(right) => next.push(SizeExpr::Max(Box::new(left), Box::new(right))),
+                None => next.push(left),
+            }
+        }
+        values = next;
+    }
+
+    values.pop().unwrap_or(SizeExpr::Const(0))
 }
 
 impl fmt::Display for SizeExpr {

@@ -31,6 +31,22 @@ impl Default for Settings {
 #[derive(Default)]
 struct ClassIndex {
     class_dependencies: HashMap<String, HashSet<String>>,
+    /// class name → number of other classes that depend on it
+    fan_in: HashMap<String, usize>,
+}
+
+impl ClassIndex {
+    fn compute_fan_in(&mut self) {
+        let mut fan_in = HashMap::new();
+        for (source, deps) in &self.class_dependencies {
+            for dep in deps {
+                if dep != source {
+                    *fan_in.entry(dep.clone()).or_insert(0) += 1;
+                }
+            }
+        }
+        self.fan_in = fan_in;
+    }
 }
 
 pub struct Rule {
@@ -48,6 +64,18 @@ impl Default for Rule {
 }
 
 impl RuleTrait for Rule {
+    fn begin_index(&self) {
+        if let Ok(mut index) = self.index.lock() {
+            *index = ClassIndex::default();
+        }
+    }
+
+    fn finalize_index(&self) {
+        if let Ok(mut index) = self.index.lock() {
+            index.compute_fan_in();
+        }
+    }
+
     fn get_code(&self) -> String {
         String::from(CODE)
     }
@@ -85,7 +113,12 @@ impl RuleTrait for Rule {
                 Err(_) => return violations,
             };
 
-            let (fan_out, fan_in) = self.compute_fan_in_out(&class_name, &index);
+            let fan_out = index
+                .class_dependencies
+                .get(&class_name)
+                .map(|deps| deps.len())
+                .unwrap_or(0);
+            let fan_in = index.fan_in.get(&class_name).copied().unwrap_or(0);
 
             if fan_out > self.settings.max_fan_out {
                 let message = Message::new(
@@ -128,13 +161,17 @@ impl Rule {
 
                 if let Some(extends) = &class.extends {
                     for parent in extends.types.iter() {
-                        deps.insert(self.normalize_name(std::str::from_utf8(parent.value()).unwrap_or_default()));
+                        deps.insert(self.normalize_name(
+                            std::str::from_utf8(parent.value()).unwrap_or_default(),
+                        ));
                     }
                 }
 
                 if let Some(implements) = &class.implements {
                     for iface in implements.types.iter() {
-                        deps.insert(self.normalize_name(std::str::from_utf8(iface.value()).unwrap_or_default()));
+                        deps.insert(self.normalize_name(
+                            std::str::from_utf8(iface.value()).unwrap_or_default(),
+                        ));
                     }
                 }
 
@@ -174,7 +211,9 @@ impl Rule {
             }
             ClassLikeMember::TraitUse(trait_use) => {
                 for trait_name in trait_use.trait_names.iter() {
-                    deps.insert(self.normalize_name(std::str::from_utf8(trait_name.value()).unwrap_or_default()));
+                    deps.insert(self.normalize_name(
+                        std::str::from_utf8(trait_name.value()).unwrap_or_default(),
+                    ));
                 }
             }
             _ => {}
@@ -259,7 +298,9 @@ impl Rule {
                 match &while_stmt.body {
                     WhileBody::Statement(body) => self.scan_statement(body, deps),
                     WhileBody::ColonDelimited(body) => {
-                        for s in body.statements.iter() { self.scan_statement(s, deps); }
+                        for s in body.statements.iter() {
+                            self.scan_statement(s, deps);
+                        }
                     }
                 }
             }
@@ -268,13 +309,21 @@ impl Rule {
                 self.scan_expression(do_while.condition, deps);
             }
             Statement::For(for_stmt) => {
-                for init in for_stmt.initializations.iter() { self.scan_expression(init, deps); }
-                for cond in for_stmt.conditions.iter() { self.scan_expression(cond, deps); }
-                for inc in for_stmt.increments.iter() { self.scan_expression(inc, deps); }
+                for init in for_stmt.initializations.iter() {
+                    self.scan_expression(init, deps);
+                }
+                for cond in for_stmt.conditions.iter() {
+                    self.scan_expression(cond, deps);
+                }
+                for inc in for_stmt.increments.iter() {
+                    self.scan_expression(inc, deps);
+                }
                 match &for_stmt.body {
                     ForBody::Statement(body) => self.scan_statement(body, deps),
                     ForBody::ColonDelimited(body) => {
-                        for s in body.statements.iter() { self.scan_statement(s, deps); }
+                        for s in body.statements.iter() {
+                            self.scan_statement(s, deps);
+                        }
                     }
                 }
             }
@@ -290,7 +339,9 @@ impl Rule {
                 match &foreach.body {
                     ForeachBody::Statement(body) => self.scan_statement(body, deps),
                     ForeachBody::ColonDelimited(body) => {
-                        for s in body.statements.iter() { self.scan_statement(s, deps); }
+                        for s in body.statements.iter() {
+                            self.scan_statement(s, deps);
+                        }
                     }
                 }
             }
@@ -304,22 +355,32 @@ impl Rule {
                     match case {
                         SwitchCase::Expression(c) => {
                             self.scan_expression(c.expression, deps);
-                            for s in c.statements.iter() { self.scan_statement(s, deps); }
+                            for s in c.statements.iter() {
+                                self.scan_statement(s, deps);
+                            }
                         }
                         SwitchCase::Default(c) => {
-                            for s in c.statements.iter() { self.scan_statement(s, deps); }
+                            for s in c.statements.iter() {
+                                self.scan_statement(s, deps);
+                            }
                         }
                     }
                 }
             }
             Statement::Try(try_stmt) => {
-                for s in try_stmt.block.statements.iter() { self.scan_statement(s, deps); }
+                for s in try_stmt.block.statements.iter() {
+                    self.scan_statement(s, deps);
+                }
                 for catch in try_stmt.catch_clauses.iter() {
                     self.collect_hint_deps(&catch.hint, deps);
-                    for s in catch.block.statements.iter() { self.scan_statement(s, deps); }
+                    for s in catch.block.statements.iter() {
+                        self.scan_statement(s, deps);
+                    }
                 }
                 if let Some(finally) = &try_stmt.finally_clause {
-                    for s in finally.block.statements.iter() { self.scan_statement(s, deps); }
+                    for s in finally.block.statements.iter() {
+                        self.scan_statement(s, deps);
+                    }
                 }
             }
             _ => {}
@@ -495,12 +556,16 @@ impl Rule {
             Expression::AnonymousClass(anonymous_class) => {
                 if let Some(extends) = &anonymous_class.extends {
                     for parent in extends.types.iter() {
-                        deps.insert(self.normalize_name(std::str::from_utf8(parent.value()).unwrap_or_default()));
+                        deps.insert(self.normalize_name(
+                            std::str::from_utf8(parent.value()).unwrap_or_default(),
+                        ));
                     }
                 }
                 if let Some(implements) = &anonymous_class.implements {
                     for iface in implements.types.iter() {
-                        deps.insert(self.normalize_name(std::str::from_utf8(iface.value()).unwrap_or_default()));
+                        deps.insert(self.normalize_name(
+                            std::str::from_utf8(iface.value()).unwrap_or_default(),
+                        ));
                     }
                 }
                 if let Some(argument_list) = &anonymous_class.argument_list {
@@ -521,7 +586,8 @@ impl Rule {
     fn scan_class_expression(&self, expression: &Expression<'_>, deps: &mut HashSet<String>) {
         match expression {
             Expression::Identifier(identifier) => {
-                let name = self.normalize_name(std::str::from_utf8(identifier.value()).unwrap_or_default());
+                let name = self
+                    .normalize_name(std::str::from_utf8(identifier.value()).unwrap_or_default());
                 if !self.is_builtin(&name) {
                     deps.insert(name);
                 }
@@ -554,7 +620,9 @@ impl Rule {
     fn scan_construct(&self, construct: &Construct<'_>, deps: &mut HashSet<String>) {
         match construct {
             Construct::Isset(construct) => {
-                for value in construct.values.iter() { self.scan_expression(value, deps); }
+                for value in construct.values.iter() {
+                    self.scan_expression(value, deps);
+                }
             }
             Construct::Empty(construct) => self.scan_expression(construct.value, deps),
             Construct::Eval(construct) => self.scan_expression(construct.value, deps),
@@ -580,7 +648,11 @@ impl Rule {
         }
     }
 
-    fn scan_partial_application(&self, partial: &PartialApplication<'_>, deps: &mut HashSet<String>) {
+    fn scan_partial_application(
+        &self,
+        partial: &PartialApplication<'_>,
+        deps: &mut HashSet<String>,
+    ) {
         match partial {
             PartialApplication::Function(partial) => {
                 self.scan_partial_arguments(&partial.argument_list, deps);
@@ -596,7 +668,11 @@ impl Rule {
         }
     }
 
-    fn scan_partial_arguments(&self, argument_list: &PartialArgumentList<'_>, deps: &mut HashSet<String>) {
+    fn scan_partial_arguments(
+        &self,
+        argument_list: &PartialArgumentList<'_>,
+        deps: &mut HashSet<String>,
+    ) {
         for argument in argument_list.arguments.iter() {
             match argument {
                 PartialArgument::Positional(arg) => self.scan_expression(arg.value, deps),
@@ -604,28 +680,6 @@ impl Rule {
                 _ => {}
             }
         }
-    }
-
-    fn compute_fan_in_out(
-        &self,
-        class_name: &str,
-        index: &ClassIndex,
-    ) -> (usize, usize) {
-        let fan_out = index
-            .class_dependencies
-            .get(class_name)
-            .map(|deps| deps.len())
-            .unwrap_or(0);
-
-        let fan_in = index
-            .class_dependencies
-            .iter()
-            .filter(|(name, deps)| {
-                *name != class_name && deps.contains(class_name)
-            })
-            .count();
-
-        (fan_out, fan_in)
     }
 
     fn normalize_name(&self, name: &str) -> String {
@@ -640,10 +694,26 @@ impl Rule {
     fn is_builtin(&self, name: &str) -> bool {
         matches!(
             name.to_ascii_lowercase().as_str(),
-            "array" | "bool" | "boolean" | "callable" | "false" | "float"
-            | "int" | "integer" | "iterable" | "mixed" | "never" | "null"
-            | "object" | "resource" | "string" | "true" | "void"
-            | "self" | "static" | "parent"
+            "array"
+                | "bool"
+                | "boolean"
+                | "callable"
+                | "false"
+                | "float"
+                | "int"
+                | "integer"
+                | "iterable"
+                | "mixed"
+                | "never"
+                | "null"
+                | "object"
+                | "resource"
+                | "string"
+                | "true"
+                | "void"
+                | "self"
+                | "static"
+                | "parent"
         )
     }
 }

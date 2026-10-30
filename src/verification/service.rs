@@ -25,12 +25,21 @@ impl VerificationService {
     }
 
     pub fn index_file(&self, file: &File<'_>) {
+        let mut local = SummaryIndex::default();
+        local.replace_file(file);
         if let Ok(mut summaries) = self.summaries.lock() {
-            summaries.replace_file(file);
+            summaries.merge(local);
         }
     }
 
-    pub fn finalize_index(&self) {}
+    pub fn finalize_index(&self) {
+        if let Ok(summaries) = self.summaries.lock() {
+            // Warm the project-wide caches once, before parallel validation
+            // starts contending on the summaries lock.
+            let _ = summaries.snapshot();
+            let _ = summaries.parent_map();
+        }
+    }
 
     pub fn remove_file(&self, path: &Path) {
         if let Ok(mut summaries) = self.summaries.lock() {
