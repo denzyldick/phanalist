@@ -29,9 +29,7 @@ pub fn run_server(config: &Config) -> Result<(), Box<dyn Error>> {
     // We request FULL text document synchronization so that we always get the full content
     // of files on updates, making incremental parsing simple and extremely robust.
     let capabilities = ServerCapabilities {
-        text_document_sync: Some(TextDocumentSyncCapability::Kind(
-            TextDocumentSyncKind::FULL,
-        )),
+        text_document_sync: Some(TextDocumentSyncCapability::Kind(TextDocumentSyncKind::FULL)),
         ..Default::default()
     };
 
@@ -63,57 +61,65 @@ pub fn run_server(config: &Config) -> Result<(), Box<dyn Error>> {
                 connection.sender.send(Message::Response(response))?;
             }
             Message::Response(_) => {}
-            Message::Notification(not) => {
-                match not.method.as_str() {
-                    DidOpenTextDocument::METHOD => {
-                        if let Ok(params) = serde_json::from_value::<lsp_types::DidOpenTextDocumentParams>(not.params) {
-                            let uri = params.text_document.uri;
-                            let text = params.text_document.text;
-                            handle_document_update(&connection, &analyse, uri, text);
-                        }
+            Message::Notification(not) => match not.method.as_str() {
+                DidOpenTextDocument::METHOD => {
+                    if let Ok(params) =
+                        serde_json::from_value::<lsp_types::DidOpenTextDocumentParams>(not.params)
+                    {
+                        let uri = params.text_document.uri;
+                        let text = params.text_document.text;
+                        handle_document_update(&connection, &analyse, uri, text);
                     }
-                    DidChangeTextDocument::METHOD => {
-                        if let Ok(params) = serde_json::from_value::<lsp_types::DidChangeTextDocumentParams>(not.params) {
-                            let uri = params.text_document.uri;
-                            if let Some(change) = params.content_changes.into_iter().next() {
-                                handle_document_update(&connection, &analyse, uri, change.text);
-                            }
-                        }
-                    }
-                    DidCloseTextDocument::METHOD => {
-                        if let Ok(params) = serde_json::from_value::<lsp_types::DidCloseTextDocumentParams>(not.params) {
-                            close_document(&connection, &analyse, params.text_document.uri);
-                        }
-                    }
-                    DidDeleteFiles::METHOD => {
-                        if let Ok(params) = serde_json::from_value::<lsp_types::DeleteFilesParams>(not.params) {
-                            for file in params.files {
-                                if let Ok(uri) = Url::parse(&file.uri) {
-                                    remove_document(&connection, &analyse, uri);
-                                }
-                            }
-                        }
-                    }
-                    DidChangeWatchedFiles::METHOD => {
-                        if let Ok(params) = serde_json::from_value::<lsp_types::DidChangeWatchedFilesParams>(not.params) {
-                            for event in params.changes {
-                                match event.typ {
-                                    FileChangeType::DELETED => {
-                                        remove_document(&connection, &analyse, event.uri);
-                                    }
-                                    FileChangeType::CREATED | FileChangeType::CHANGED => {
-                                        if let Ok(path) = event.uri.to_file_path() {
-                                            analyse.index_file_from_disk(&path);
-                                        }
-                                    }
-                                    _ => {}
-                                }
-                            }
-                        }
-                    }
-                    _ => {}
                 }
-            }
+                DidChangeTextDocument::METHOD => {
+                    if let Ok(params) =
+                        serde_json::from_value::<lsp_types::DidChangeTextDocumentParams>(not.params)
+                    {
+                        let uri = params.text_document.uri;
+                        if let Some(change) = params.content_changes.into_iter().next() {
+                            handle_document_update(&connection, &analyse, uri, change.text);
+                        }
+                    }
+                }
+                DidCloseTextDocument::METHOD => {
+                    if let Ok(params) =
+                        serde_json::from_value::<lsp_types::DidCloseTextDocumentParams>(not.params)
+                    {
+                        close_document(&connection, &analyse, params.text_document.uri);
+                    }
+                }
+                DidDeleteFiles::METHOD => {
+                    if let Ok(params) =
+                        serde_json::from_value::<lsp_types::DeleteFilesParams>(not.params)
+                    {
+                        for file in params.files {
+                            if let Ok(uri) = Url::parse(&file.uri) {
+                                remove_document(&connection, &analyse, uri);
+                            }
+                        }
+                    }
+                }
+                DidChangeWatchedFiles::METHOD => {
+                    if let Ok(params) =
+                        serde_json::from_value::<lsp_types::DidChangeWatchedFilesParams>(not.params)
+                    {
+                        for event in params.changes {
+                            match event.typ {
+                                FileChangeType::DELETED => {
+                                    remove_document(&connection, &analyse, event.uri);
+                                }
+                                FileChangeType::CREATED | FileChangeType::CHANGED => {
+                                    if let Ok(path) = event.uri.to_file_path() {
+                                        analyse.index_file_from_disk(&path);
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+                _ => {}
+            },
         }
     }
 
@@ -133,12 +139,7 @@ fn index_workspace(analyse: &Analyse, root: &Path, config: &Config) {
 }
 
 /// Run analysis on the document's new text content and report diagnostics back to the IDE.
-fn handle_document_update(
-    connection: &Connection,
-    analyse: &Analyse,
-    uri: Url,
-    text: String,
-) {
+fn handle_document_update(connection: &Connection, analyse: &Analyse, uri: Url, text: String) {
     let diagnostics = match analyze_single_file(analyse, &uri, text) {
         Ok(diags) => diags,
         Err(err) => {
@@ -171,10 +172,7 @@ fn publish_diagnostics(connection: &Connection, uri: Url, diagnostics: Vec<Diagn
         version: None,
     };
 
-    let notification = Notification::new(
-        PublishDiagnostics::METHOD.to_string(),
-        params,
-    );
+    let notification = Notification::new(PublishDiagnostics::METHOD.to_string(), params);
 
     if let Err(err) = connection.sender.send(Message::Notification(notification)) {
         eprintln!("Failed to send diagnostics: {:?}", err);
@@ -251,7 +249,10 @@ mod tests {
         let content = "<?php\n".to_string();
 
         let diagnostics = analyze_single_file(&analyse, &make_uri("/test.php"), content).unwrap();
-        assert!(diagnostics.is_empty(), "expected no diagnostics for a minimal PHP file, got {diagnostics:?}");
+        assert!(
+            diagnostics.is_empty(),
+            "expected no diagnostics for a minimal PHP file, got {diagnostics:?}"
+        );
     }
 
     #[test]
@@ -261,11 +262,14 @@ mod tests {
         let content = "<?php\n\nnamespace App;\n\nclass Demo {\n    public function foo($a, $b, $c, $d, $e, $f, $g, $h, $i) {}\n}\n".to_string();
 
         let diagnostics = analyze_single_file(&analyse, &make_uri("/test.php"), content).unwrap();
-        assert!(!diagnostics.is_empty(), "expected at least one diagnostic for method with 9 parameters");
+        assert!(
+            !diagnostics.is_empty(),
+            "expected at least one diagnostic for method with 9 parameters"
+        );
 
-        let has_e0007 = diagnostics.iter().any(|d| {
-            matches!(&d.code, Some(NumberOrString::String(code)) if code == "E0007")
-        });
+        let has_e0007 = diagnostics
+            .iter()
+            .any(|d| matches!(&d.code, Some(NumberOrString::String(code)) if code == "E0007"));
         assert!(has_e0007, "expected E0007 diagnostic among {diagnostics:?}");
     }
 
@@ -276,14 +280,23 @@ mod tests {
         let content = "<?php\n\nnamespace App;\n\nclass Demo {\n    public function foo($a, $b, $c, $d, $e, $f, $g, $h, $i) {}\n}\n".to_string();
 
         let diagnostics = analyze_single_file(&analyse, &make_uri("/test.php"), content).unwrap();
-        let d = diagnostics.iter().find(|d| {
-            matches!(&d.code, Some(NumberOrString::String(code)) if code == "E0007")
-        }).expect("expected E0007 diagnostic");
+        let d = diagnostics
+            .iter()
+            .find(|d| matches!(&d.code, Some(NumberOrString::String(code)) if code == "E0007"))
+            .expect("expected E0007 diagnostic");
 
         assert_eq!(d.severity, Some(DiagnosticSeverity::WARNING));
         assert_eq!(d.source.as_deref(), Some("phanalist"));
-        assert!(d.message.contains("foo"), "message should mention the method name: {}", d.message);
-        assert!(d.message.contains("8"), "message should mention the max parameter count: {}", d.message);
+        assert!(
+            d.message.contains("foo"),
+            "message should mention the method name: {}",
+            d.message
+        );
+        assert!(
+            d.message.contains("8"),
+            "message should mention the max parameter count: {}",
+            d.message
+        );
     }
 
     #[test]
@@ -294,13 +307,20 @@ mod tests {
         let content = "<?php\n\nnamespace App;\n\nclass Demo {\n    public function foo($a, $b, $c, $d, $e, $f, $g, $h, $i) {}\n}\n".to_string();
 
         let diagnostics = analyze_single_file(&analyse, &make_uri("/test.php"), content).unwrap();
-        let d = diagnostics.iter().find(|d| {
-            matches!(&d.code, Some(NumberOrString::String(code)) if code == "E0007")
-        }).expect("expected E0007 diagnostic");
+        let d = diagnostics
+            .iter()
+            .find(|d| matches!(&d.code, Some(NumberOrString::String(code)) if code == "E0007"))
+            .expect("expected E0007 diagnostic");
 
         // The violation is on line 6 (1-based) → 5 (0-based)
-        assert_eq!(d.range.start.line, 5, "expected 0-indexed line 5 for the method");
-        assert_eq!(d.range.end.line, 5, "expected end line to match start line for a single-line method signature");
+        assert_eq!(
+            d.range.start.line, 5,
+            "expected 0-indexed line 5 for the method"
+        );
+        assert_eq!(
+            d.range.end.line, 5,
+            "expected end line to match start line for a single-line method signature"
+        );
     }
 
     #[test]
@@ -381,6 +401,9 @@ mod tests {
 
         // Should not panic
         let result = analyze_single_file(&analyse, &make_uri("/test.php"), content);
-        assert!(result.is_ok(), "should handle parse errors without crashing");
+        assert!(
+            result.is_ok(),
+            "should handle parse errors without crashing"
+        );
     }
 }

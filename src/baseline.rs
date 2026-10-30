@@ -44,8 +44,7 @@ impl Baseline {
     /// the serialized file is deterministic.
     pub fn from_results(results: &Results) -> Baseline {
         // key -> (template, count)
-        let mut groups: HashMap<(String, String, String, String), (String, usize)> =
-            HashMap::new();
+        let mut groups: HashMap<(String, String, String, String), (String, usize)> = HashMap::new();
 
         for (path, violations) in &results.files {
             let (dir, file) = split_dir_file(&normalize_relative(Path::new(path)));
@@ -95,8 +94,7 @@ impl Baseline {
 
     pub fn load(path: &Path) -> std::io::Result<Baseline> {
         let text = std::fs::read_to_string(path)?;
-        Self::from_json(&text)
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
+        Self::from_json(&text).map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))
     }
 
     pub fn save(&self, path: &PathBuf) -> std::io::Result<()> {
@@ -229,7 +227,11 @@ mod tests {
             ("./a/Y.php", vec![vio("E0001", "E0001:x", "m")]),
         ]);
         let baseline = Baseline::from_results(&results);
-        let keys: Vec<&str> = baseline.violations.iter().map(|e| e.path.as_str()).collect();
+        let keys: Vec<&str> = baseline
+            .violations
+            .iter()
+            .map(|e| e.path.as_str())
+            .collect();
         assert_eq!(keys, vec!["a", "b"]);
     }
 
@@ -242,7 +244,11 @@ mod tests {
         let baseline = Baseline::from_results(&results);
 
         let json = baseline.to_pretty_json();
-        assert_eq!(baseline.to_pretty_json(), json, "serialization must be stable");
+        assert_eq!(
+            baseline.to_pretty_json(),
+            json,
+            "serialization must be stable"
+        );
         assert_eq!(Baseline::from_json(&json).unwrap(), baseline);
     }
 
@@ -254,8 +260,7 @@ mod tests {
         )]);
         let baseline = Baseline::from_results(&results);
 
-        let path =
-            std::env::temp_dir().join(format!("phanalist_bl_{}.json", std::process::id()));
+        let path = std::env::temp_dir().join(format!("phanalist_bl_{}.json", std::process::id()));
         baseline.save(&path).unwrap();
         let loaded = Baseline::load(&path).unwrap();
         std::fs::remove_file(&path).ok();
@@ -265,10 +270,7 @@ mod tests {
 
     #[test]
     fn filter_suppresses_when_count_equal() {
-        let mut results = results_with(vec![(
-            "./src/Foo.php",
-            vec![vio("E0009", "E0009:c", "m")],
-        )]);
+        let mut results = results_with(vec![("./src/Foo.php", vec![vio("E0009", "E0009:c", "m")])]);
         let baseline = Baseline::from_results(&results);
 
         baseline.filter(&mut results);
@@ -301,8 +303,7 @@ mod tests {
             version: VERSION,
             violations: vec![],
         };
-        let mut results =
-            results_with(vec![("./src/Foo.php", vec![vio("E0009", "E0009:c", "m")])]);
+        let mut results = results_with(vec![("./src/Foo.php", vec![vio("E0009", "E0009:c", "m")])]);
 
         baseline.filter(&mut results);
 

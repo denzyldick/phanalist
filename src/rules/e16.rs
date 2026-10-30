@@ -92,10 +92,8 @@ fn calculate_statement_cognitive_complexity(statement: &Statement<'_>, nesting: 
                     for clause in body.else_if_clauses.iter() {
                         // 'else if' increments by 1 but NOT nesting (it's part of the same level)
                         complexity += 1;
-                        complexity += calculate_statement_cognitive_complexity(
-                            clause.statement,
-                            nesting + 1,
-                        );
+                        complexity +=
+                            calculate_statement_cognitive_complexity(clause.statement, nesting + 1);
                     }
                     if let Some(else_clause) = &body.else_clause {
                         // 'else' increments by 1

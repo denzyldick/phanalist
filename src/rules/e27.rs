@@ -90,13 +90,31 @@ impl crate::rules::Rule for Rule {
 
         match statement {
             Statement::Class(class) => {
-                self.check_members(file, std::str::from_utf8(class.name.value).unwrap_or_default(), &class.members, class.span(), &mut violations);
+                self.check_members(
+                    file,
+                    std::str::from_utf8(class.name.value).unwrap_or_default(),
+                    &class.members,
+                    class.span(),
+                    &mut violations,
+                );
             }
             Statement::Trait(t) => {
-                self.check_members(file, std::str::from_utf8(t.name.value).unwrap_or_default(), &t.members, t.span(), &mut violations);
+                self.check_members(
+                    file,
+                    std::str::from_utf8(t.name.value).unwrap_or_default(),
+                    &t.members,
+                    t.span(),
+                    &mut violations,
+                );
             }
             Statement::Enum(e) => {
-                self.check_members(file, std::str::from_utf8(e.name.value).unwrap_or_default(), &e.members, e.span(), &mut violations);
+                self.check_members(
+                    file,
+                    std::str::from_utf8(e.name.value).unwrap_or_default(),
+                    &e.members,
+                    e.span(),
+                    &mut violations,
+                );
             }
             _ => {}
         }

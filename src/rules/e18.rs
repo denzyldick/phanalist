@@ -89,7 +89,10 @@ mod tests {
     fn high_wmc() {
         let violations = analyze_file_for_rule("e18/high_wmc.php", CODE);
         assert_eq!(violations.len(), 1);
-        assert!(violations[0].message.render().contains("Weighted Methods per Class (WMC)"));
+        assert!(violations[0]
+            .message
+            .render()
+            .contains("Weighted Methods per Class (WMC)"));
     }
 
     #[test]
