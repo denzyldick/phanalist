@@ -5,8 +5,8 @@ use mago_syntax::cst::*;
 
 use crate::file::File;
 use crate::results::{Message, Violation};
-use crate::rules::Rule as _;
 use crate::rules::ast_support::function_name;
+use crate::rules::Rule as _;
 
 pub(crate) static CODE: &str = "E0050";
 static DESCRIPTION: &str = "Position check used as boolean";

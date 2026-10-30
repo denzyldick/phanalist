@@ -28,8 +28,7 @@ pub fn is_excluded(relative_path: &str, patterns: &[String]) -> bool {
         if pattern.contains('*') || pattern.contains('?') {
             glob_match(&pattern, relative_path)
         } else {
-            relative_path == pattern
-                || relative_path.starts_with(&format!("{pattern}/"))
+            relative_path == pattern || relative_path.starts_with(&format!("{pattern}/"))
         }
     })
 }
@@ -146,12 +145,8 @@ fn matches_from(tokens: &[Token], text: &[char]) -> bool {
             }
             false
         }
-        Token::Question => {
-            !text.is_empty() && text[0] != '/' && matches_from(rest, &text[1..])
-        }
-        Token::Char(c) => {
-            !text.is_empty() && text[0] == *c && matches_from(rest, &text[1..])
-        }
+        Token::Question => !text.is_empty() && text[0] != '/' && matches_from(rest, &text[1..]),
+        Token::Char(c) => !text.is_empty() && text[0] == *c && matches_from(rest, &text[1..]),
     }
 }
 
@@ -162,7 +157,10 @@ mod tests {
 
     #[test]
     fn normalize_strips_leading_dot_slash() {
-        assert_eq!(normalize_relative(Path::new("./src/Foo.php")), "src/Foo.php");
+        assert_eq!(
+            normalize_relative(Path::new("./src/Foo.php")),
+            "src/Foo.php"
+        );
     }
 
     #[test]
@@ -178,7 +176,10 @@ mod tests {
 
     #[test]
     fn normalize_plain_relative_is_unchanged() {
-        assert_eq!(normalize_relative(&PathBuf::from("src/Foo.php")), "src/Foo.php");
+        assert_eq!(
+            normalize_relative(&PathBuf::from("src/Foo.php")),
+            "src/Foo.php"
+        );
     }
 
     #[test]
@@ -241,10 +242,7 @@ mod tests {
     #[test]
     fn missing_literal_excludes_flags_nonexistent_dirs() {
         // The crate root (cwd during tests) has `src/` but not this name.
-        let patterns = vec![
-            "src".to_string(),
-            "no_such_dir_phanalist_xyz".to_string(),
-        ];
+        let patterns = vec!["src".to_string(), "no_such_dir_phanalist_xyz".to_string()];
         assert_eq!(
             missing_literal_excludes(&patterns),
             vec!["no_such_dir_phanalist_xyz".to_string()]

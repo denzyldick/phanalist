@@ -76,7 +76,9 @@ impl<'a> MethodNode<'a> {
     fn name(&self) -> String {
         match self {
             MethodNode::Method(m) => String::from_utf8_lossy(m.name.value).into_owned(),
-            MethodNode::Hook(h, prop) => format!("{}::{}", prop, String::from_utf8_lossy(h.name.value)),
+            MethodNode::Hook(h, prop) => {
+                format!("{}::{}", prop, String::from_utf8_lossy(h.name.value))
+            }
         }
     }
 
@@ -140,7 +142,8 @@ impl RuleTrait for Rule {
                             }
 
                             if let Property::Hooked(h) = prop {
-                                let prop_name = String::from_utf8_lossy(h.item.variable().name).into_owned();
+                                let prop_name =
+                                    String::from_utf8_lossy(h.item.variable().name).into_owned();
                                 for hook in h.hook_list.hooks.iter() {
                                     nodes.push(MethodNode::Hook(hook, prop_name.clone()));
                                 }
@@ -469,5 +472,5 @@ mod tests {
     fn test_anonymous_class_isolation() {
         let violations = analyze_file_for_rule("e15/anonymous_class.php", CODE);
         assert!(!violations.is_empty());
-}
+    }
 }

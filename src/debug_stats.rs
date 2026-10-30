@@ -130,7 +130,9 @@ impl RuleTimings {
                     vec![
                         s.code.as_str().cell(),
                         format!("{:.2?}", s.total).cell().justify(Justify::Right),
-                        format!("{:.1}%", s.pct_of_total).cell().justify(Justify::Right),
+                        format!("{:.1}%", s.pct_of_total)
+                            .cell()
+                            .justify(Justify::Right),
                         s.violations.cell().justify(Justify::Right),
                         format!("{}/{}", s.files_validated, s.files_skipped)
                             .cell()
@@ -235,8 +237,10 @@ mod tests {
 
     fn timings_with(samples: Vec<(&str, FileRuleMetric)>) -> RuleTimings {
         let mut t = RuleTimings::default();
-        let per: Vec<(String, FileRuleMetric)> =
-            samples.into_iter().map(|(p, m)| (p.to_string(), m)).collect();
+        let per: Vec<(String, FileRuleMetric)> = samples
+            .into_iter()
+            .map(|(p, m)| (p.to_string(), m))
+            .collect();
         t.per_file.insert("E0001".to_string(), per);
         t
     }
@@ -342,7 +346,11 @@ mod tests {
         ]);
         let stat = only_stat(t.compute(&HashMap::new()));
         assert_eq!(stat.slowest.len(), 5);
-        let durations: Vec<u64> = stat.slowest.iter().map(|(_, d)| d.as_millis() as u64).collect();
+        let durations: Vec<u64> = stat
+            .slowest
+            .iter()
+            .map(|(_, d)| d.as_millis() as u64)
+            .collect();
         assert_eq!(durations, vec![6, 5, 4, 3, 2]);
         assert_eq!(stat.slowest[0].0, "b.php");
     }

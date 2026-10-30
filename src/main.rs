@@ -19,11 +19,11 @@ mod config;
 mod debug_stats;
 mod engineer;
 mod file;
+mod lsp;
 mod outputs;
 mod paths;
 mod resource;
 mod results;
-mod lsp;
 mod rules;
 mod verification;
 
@@ -221,7 +221,11 @@ fn main() {
         let blame_total = if args.since.is_some() {
             total * 2
         } else {
-            let vio_count = aggregate.files.iter().filter(|(_, v)| !v.is_empty()).count();
+            let vio_count = aggregate
+                .files
+                .iter()
+                .filter(|(_, v)| !v.is_empty())
+                .count();
             total + vio_count as i64
         };
         b.set_length(blame_total as u64);
@@ -259,7 +263,10 @@ fn main() {
                 if has_git {
                     eprintln!("The .git directory found in parent directories of {} appears corrupt or invalid.", src_path.display());
                 } else {
-                    eprintln!("No .git directory found in {}. --blame requires a git repository.", src_path.display());
+                    eprintln!(
+                        "No .git directory found in {}. --blame requires a git repository.",
+                        src_path.display()
+                    );
                 }
                 process::exit(exitcode::USAGE);
             }
@@ -327,7 +334,6 @@ fn main() {
                 println!("{}", serde_json::to_string_pretty(&aggregate).unwrap());
             }
         }
-
     }
 
     if has_violations {

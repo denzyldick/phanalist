@@ -14,7 +14,10 @@ class User {
 "#;
 
     let arena = LocalArena::new();
-    let file = File::ephemeral("test.php".as_bytes().into(), code.to_string().into_bytes().into());
+    let file = File::ephemeral(
+        "test.php".as_bytes().into(),
+        code.to_string().into_bytes().into(),
+    );
 
     let program = parse_file_content(&arena, file.id, file.contents.as_ref());
 

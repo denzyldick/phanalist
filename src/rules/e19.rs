@@ -210,38 +210,39 @@ impl Rule {
     fn scan_expression(&self, expression: &Expression<'_>, called_methods: &mut HashSet<String>) {
         match expression {
             Expression::Call(call) => match call {
-            Call::Method(method) => {
-                if let ClassLikeMemberSelector::Identifier(id) = &method.method {
-                    called_methods.insert(String::from_utf8_lossy(id.value).into_owned());
+                Call::Method(method) => {
+                    if let ClassLikeMemberSelector::Identifier(id) = &method.method {
+                        called_methods.insert(String::from_utf8_lossy(id.value).into_owned());
+                    }
+                    self.scan_expression(method.object, called_methods);
+                    for arg in method.argument_list.arguments.iter() {
+                        self.scan_expression(arg.value(), called_methods);
+                    }
                 }
-                self.scan_expression(method.object, called_methods);
-                for arg in method.argument_list.arguments.iter() {
-                    self.scan_expression(arg.value(), called_methods);
+                Call::NullSafeMethod(method) => {
+                    if let ClassLikeMemberSelector::Identifier(id) = &method.method {
+                        called_methods.insert(String::from_utf8_lossy(id.value).into_owned());
+                    }
+                    self.scan_expression(method.object, called_methods);
+                    for arg in method.argument_list.arguments.iter() {
+                        self.scan_expression(arg.value(), called_methods);
+                    }
                 }
-            }
-            Call::NullSafeMethod(method) => {
-                if let ClassLikeMemberSelector::Identifier(id) = &method.method {
-                    called_methods.insert(String::from_utf8_lossy(id.value).into_owned());
-                }
-                self.scan_expression(method.object, called_methods);
-                for arg in method.argument_list.arguments.iter() {
-                    self.scan_expression(arg.value(), called_methods);
-                }
-            }
                 Call::StaticMethod(method) => {
                     if let ClassLikeMemberSelector::Identifier(id) = &method.method {
                         let class_name = self.identifier_name(method.class);
-                        let call_name = format!("{}::{}", class_name, String::from_utf8_lossy(id.value));
+                        let call_name =
+                            format!("{}::{}", class_name, String::from_utf8_lossy(id.value));
                         called_methods.insert(call_name);
                     }
                     for arg in method.argument_list.arguments.iter() {
                         self.scan_expression(arg.value(), called_methods);
                     }
                 }
-            Call::Function(func) => {
-                if let Expression::Identifier(id) = func.function {
-                    called_methods.insert(String::from_utf8_lossy(id.value()).into_owned());
-                }
+                Call::Function(func) => {
+                    if let Expression::Identifier(id) = func.function {
+                        called_methods.insert(String::from_utf8_lossy(id.value()).into_owned());
+                    }
                     for arg in func.argument_list.arguments.iter() {
                         self.scan_expression(arg.value(), called_methods);
                     }
@@ -340,7 +341,10 @@ mod tests {
     fn high_rfc() {
         let violations = analyze_file_for_rule("e19/high_rfc.php", CODE);
         assert_eq!(violations.len(), 1);
-        assert!(violations[0].message.render().contains("Response For Class (RFC)"));
+        assert!(violations[0]
+            .message
+            .render()
+            .contains("Response For Class (RFC)"));
     }
 
     #[test]
