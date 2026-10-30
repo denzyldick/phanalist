@@ -23,12 +23,22 @@
 
 ### Changed
 
+- File validation now runs in parallel using the available CPU cores. `PHANALIST_JOBS` overrides the worker count; debug rule timings remain per-file work totals and may exceed wall-clock scan time when several workers run at once.
+- Verification and resource summary extraction now runs in parallel during indexing, and each worker builds its summaries outside the shared lock before merging. Rule-only indexing stays serial, so cross-file rule state remains deterministic.
+- `E0045` size expressions flatten and balance nested `max()` nodes instead of building a deeply nested tree. Large functions with hundreds of conditional array writes no longer spend tens of seconds in heap-expression construction.
+- Verification inheritance summaries now index methods by class once per propagation round instead of rescanning every summary for every child/parent pair. Projects with deep Laravel/Symfony inheritance no longer spend most of their scan time finalizing the verification snapshot.
+- Verification loop unrolling now uses a bounded per-function work budget. Deeply nested loops no longer multiply the default unroll depth into hundreds of thousands of solver paths; shallow and constant-bounded loops keep their existing precision.
 - Rule docs for `E0050`-`E0059` now include plain-English explanations, bad and good examples, fix guidance, and a shared glossary. The GitHub Action now appends each rule's full documentation to inline SARIF annotations.
 - Verification rules `E0031`-`E0043` are now fully independent. Enabling or disabling `E0031` no longer affects the other verification classes, and settings under `E0031` no longer apply to other codes.
 
 ### Fixed
 
-- Full-project scans (`--src .`) no longer grow memory with the size of the tree. Every scanned file was parsed into a single shared arena that was only freed when the scan ended, so peak memory tracked the combined size of all parsed PHP files and could exhaust the host's RAM and swap. Both the indexing pre-pass and the main pass now reclaim each file's AST before reading the next one, so peak memory is proportional to the largest single file rather than the whole project.
+- `E0014` no longer clones the entire project-wide type registry for every file. The registry is published once as a read-only snapshot, local types are built once per file, and the resolve cache is thread-local, so large projects no longer spend minutes in Law-of-Demeter analysis.
+- `E0022`, `E0023`, and `E0029` now precompute their namespace and class metrics once after indexing instead of rescanning every class dependency for each file.
+- `E0047` now treats resources passed to constructors as ownership transfers, and `E0048` now accepts recursion after a parameter object property write or a non-recursive method call on `$this`.
+- `E0056` no longer reports weak randomness passed to non-cryptographic hashes such as `xxh128`, `crc32`, or `murmur3`.
+- `E0053` recognizes named `data` and `options` arguments; `E0055` treats `dirname()` and `realpath()` over fixed paths as static; `E0057` skips signature and HMAC helper contexts; `E0058` matches cookie option keys case-insensitively.
+- Full-project scans (`--src .`) no longer grow memory with the size of the tree. Every scanned file was parsed into a single shared arena that was only freed when the scan ended, so peak memory tracked the combined size of all parsed PHP files and could exhaust the host's RAM and swap. Both the indexing pre-pass and the main pass reclaim each file's AST before reading the next one, and the main pass now analyses files in parallel with one bounded arena per worker. Peak memory is proportional to the largest single file per worker rather than the whole project; set `PHANALIST_JOBS=1` for strictly one file at a time.
 - A single file whose name is not valid UTF-8 no longer aborts the walk. The scanner used to call `unwrap()` on the file name, so one such file panicked the directory-walking thread and the run continued with a silently truncated file set while still reporting success. A scan of `.` walks `vendor`, `node_modules` and build output, where such names are easy to find.
 - Directory walk errors are now skipped with a `-v` diagnostic instead of panicking the walk.
 - Each violation is stored once instead of being cloned while building the report, and output pruning no longer duplicates the entire results map. Together these roughly halve peak memory on projects that report many violations.

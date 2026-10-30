@@ -165,7 +165,10 @@ fn array_option<'a>(
         let ArrayElement::KeyValue(element) = element else {
             continue;
         };
-        if literal_string(element.key).as_deref() == Some(key) {
+        if literal_string(element.key)
+            .as_deref()
+            .is_some_and(|name| name.eq_ignore_ascii_case(key))
+        {
             return Some(Some(element.value));
         }
     }

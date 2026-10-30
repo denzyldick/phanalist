@@ -37,6 +37,56 @@ struct NamespaceIndex {
     namespace_classes: HashMap<String, HashSet<String>>,
     /// class name → set of external type names it references
     class_dependencies: HashMap<String, HashSet<String>>,
+    /// namespace → (Ca, Ce), computed once after indexing
+    metrics: HashMap<String, (usize, usize)>,
+}
+
+impl NamespaceIndex {
+    fn compute_metrics(&self, namespace: &str) -> (usize, usize) {
+        let our_classes = match self.namespace_classes.get(namespace) {
+            Some(classes) => classes,
+            None => return (0, 0),
+        };
+
+        // Ce: count distinct external classes that OUR classes depend on
+        let mut ce_types: HashSet<String> = HashSet::new();
+        for class_name in our_classes {
+            if let Some(deps) = self.class_dependencies.get(class_name) {
+                for dep in deps {
+                    // Only count if the dependency is NOT in our namespace
+                    let dep_ns = self.class_to_namespace.get(dep);
+                    if dep_ns.is_none_or(|ns| ns != namespace) {
+                        ce_types.insert(dep.clone());
+                    }
+                }
+            }
+        }
+
+        // Ca: count distinct external classes that depend on OUR classes
+        let mut ca_types: HashSet<String> = HashSet::new();
+        for (class_name, deps) in &self.class_dependencies {
+            // Skip classes in our own namespace
+            let class_ns = self.class_to_namespace.get(class_name);
+            if class_ns.is_some_and(|ns| ns == namespace) {
+                continue;
+            }
+            for dep in deps {
+                if our_classes.contains(dep) {
+                    ca_types.insert(class_name.clone());
+                }
+            }
+        }
+
+        (ca_types.len(), ce_types.len())
+    }
+
+    fn compute_all_metrics(&mut self) {
+        self.metrics = self
+            .namespace_classes
+            .keys()
+            .map(|namespace| (namespace.clone(), self.compute_metrics(namespace)))
+            .collect();
+    }
 }
 
 pub struct Rule {
@@ -54,6 +104,18 @@ impl Default for Rule {
 }
 
 impl RuleTrait for Rule {
+    fn begin_index(&self) {
+        if let Ok(mut index) = self.index.lock() {
+            *index = NamespaceIndex::default();
+        }
+    }
+
+    fn finalize_index(&self) {
+        if let Ok(mut index) = self.index.lock() {
+            index.compute_all_metrics();
+        }
+    }
+
     fn get_code(&self) -> String {
         String::from(CODE)
     }
@@ -96,7 +158,10 @@ impl RuleTrait for Rule {
                 return violations;
             }
 
-            let (ca, ce) = self.compute_coupling(&namespace);
+            let (ca, ce) = match self.index.lock() {
+                Ok(index) => index.metrics.get(&namespace).copied().unwrap_or((0, 0)),
+                Err(_) => (0, 0),
+            };
 
             if ca > self.settings.max_ca {
                 let message = Message::new(
@@ -145,14 +210,18 @@ impl Rule {
                 // extends
                 if let Some(extends) = &class.extends {
                     for parent in extends.types.iter() {
-                        deps.insert(self.normalize_type(std::str::from_utf8(parent.value()).unwrap_or_default()));
+                        deps.insert(self.normalize_type(
+                            std::str::from_utf8(parent.value()).unwrap_or_default(),
+                        ));
                     }
                 }
 
                 // implements
                 if let Some(implements) = &class.implements {
                     for iface in implements.types.iter() {
-                        deps.insert(self.normalize_type(std::str::from_utf8(iface.value()).unwrap_or_default()));
+                        deps.insert(self.normalize_type(
+                            std::str::from_utf8(iface.value()).unwrap_or_default(),
+                        ));
                     }
                 }
 
@@ -224,7 +293,9 @@ impl Rule {
             }
             ClassLikeMember::TraitUse(trait_use) => {
                 for trait_name in trait_use.trait_names.iter() {
-                    deps.insert(self.normalize_type(std::str::from_utf8(trait_name.value()).unwrap_or_default()));
+                    deps.insert(self.normalize_type(
+                        std::str::from_utf8(trait_name.value()).unwrap_or_default(),
+                    ));
                 }
             }
             _ => {}
@@ -251,49 +322,6 @@ impl Rule {
             Hint::Parenthesized(p) => self.collect_hint_deps(p.hint, deps),
             _ => {}
         }
-    }
-
-    fn compute_coupling(&self, namespace: &str) -> (usize, usize) {
-        let index = match self.index.lock() {
-            Ok(idx) => idx,
-            Err(_) => return (0, 0),
-        };
-
-        let our_classes = match index.namespace_classes.get(namespace) {
-            Some(classes) => classes,
-            None => return (0, 0),
-        };
-
-        // Ce: count distinct external classes that OUR classes depend on
-        let mut ce_types: HashSet<String> = HashSet::new();
-        for class_name in our_classes {
-            if let Some(deps) = index.class_dependencies.get(class_name) {
-                for dep in deps {
-                    // Only count if the dependency is NOT in our namespace
-                    let dep_ns = index.class_to_namespace.get(dep);
-                    if dep_ns.is_none_or(|ns| ns != namespace) {
-                        ce_types.insert(dep.clone());
-                    }
-                }
-            }
-        }
-
-        // Ca: count distinct external classes that depend on OUR classes
-        let mut ca_types: HashSet<String> = HashSet::new();
-        for (class_name, deps) in &index.class_dependencies {
-            // Skip classes in our own namespace
-            let class_ns = index.class_to_namespace.get(class_name);
-            if class_ns.is_some_and(|ns| ns == namespace) {
-                continue;
-            }
-            for dep in deps {
-                if our_classes.contains(dep) {
-                    ca_types.insert(class_name.clone());
-                }
-            }
-        }
-
-        (ca_types.len(), ce_types.len())
     }
 
     fn normalize_type(&self, name: &str) -> String {
