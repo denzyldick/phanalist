@@ -45,12 +45,15 @@ pub fn print_engineer_report(report: &EngineerReport, since: &Option<String>, so
         ]);
     }
 
-    let table = table_rows.table().title(vec![
-        "Engineer".cell().bold(true),
-        "Fixed (✓)".cell().bold(true),
-        "Introduced (✗)".cell().bold(true),
-        "Net".cell().bold(true),
-    ]).bold(true);
+    let table = table_rows
+        .table()
+        .title(vec![
+            "Engineer".cell().bold(true),
+            "Fixed (✓)".cell().bold(true),
+            "Introduced (✗)".cell().bold(true),
+            "Net".cell().bold(true),
+        ])
+        .bold(true);
 
     println!("{}", table.display().unwrap());
     println!();
@@ -96,8 +99,20 @@ mod tests {
             net: 7,
             ..Default::default()
         };
-        alice.rules.insert("E001".to_string(), RuleChange { fixed: 8, introduced: 1 });
-        alice.rules.insert("E002".to_string(), RuleChange { fixed: 2, introduced: 2 });
+        alice.rules.insert(
+            "E001".to_string(),
+            RuleChange {
+                fixed: 8,
+                introduced: 1,
+            },
+        );
+        alice.rules.insert(
+            "E002".to_string(),
+            RuleChange {
+                fixed: 2,
+                introduced: 2,
+            },
+        );
         report.insert("Alice".to_string(), alice);
 
         let mut bob = EngineerEntry {
@@ -106,7 +121,13 @@ mod tests {
             net: -19,
             ..Default::default()
         };
-        bob.rules.insert("E001".to_string(), RuleChange { fixed: 1, introduced: 15 });
+        bob.rules.insert(
+            "E001".to_string(),
+            RuleChange {
+                fixed: 1,
+                introduced: 15,
+            },
+        );
         report.insert("Bob".to_string(), bob);
 
         report
@@ -132,5 +153,4 @@ mod tests {
         let report = make_report();
         print_engineer_report(&report, &Some("2025-01-01".to_string()), "total");
     }
-
 }

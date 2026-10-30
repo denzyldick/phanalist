@@ -115,11 +115,7 @@ impl Rule {
                             .unwrap_or(parent_str)
                             .to_string();
                         if let Ok(mut index) = self.index.lock() {
-                            index
-                                .children
-                                .entry(parent_name)
-                                .or_default()
-                                .insert(child);
+                            index.children.entry(parent_name).or_default().insert(child);
                         }
                     }
                 }

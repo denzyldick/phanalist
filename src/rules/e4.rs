@@ -32,9 +32,11 @@ impl crate::rules::Rule for Rule {
                     let name = item.name.value;
                     let name_str = std::str::from_utf8(name).unwrap_or_default();
                     if name_str != name_str.to_uppercase() {
-                        let message =
-                            Message::new("E0004:constant-not-uppercase", "The constant {name} should be uppercase.")
-                                .arg("name", name_str.to_string());
+                        let message = Message::new(
+                            "E0004:constant-not-uppercase",
+                            "The constant {name} should be uppercase.",
+                        )
+                        .arg("name", name_str.to_string());
                         violations.push(self.new_violation(file, message, item.name.span()));
                     }
                 }
@@ -68,9 +70,11 @@ fn collect_member_constants(
                 let name = item.name.value;
                 let name_str = std::str::from_utf8(name).unwrap_or_default();
                 if name_str != name_str.to_uppercase() {
-                    let message =
-                        Message::new("E0004:constant-not-uppercase", "The constant {name} should be uppercase.")
-                            .arg("name", name_str.to_string());
+                    let message = Message::new(
+                        "E0004:constant-not-uppercase",
+                        "The constant {name} should be uppercase.",
+                    )
+                    .arg("name", name_str.to_string());
                     violations.push(RuleTrait::new_violation(
                         rule,
                         file,

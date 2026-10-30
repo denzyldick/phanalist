@@ -3,10 +3,10 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use chrono::{DateTime, FixedOffset, NaiveDate, NaiveDateTime, NaiveTime, TimeDelta, Utc};
-use mago_allocator::prelude::LocalArena;
 use gix::revision::walk::Sorting;
 use gix::traverse::commit::simple::CommitTimeOrder;
 use indicatif::ProgressBar;
+use mago_allocator::prelude::LocalArena;
 use serde::{Deserialize, Serialize};
 
 use crate::analyse::Analyse;
@@ -39,10 +39,17 @@ pub fn parse_relative_date(s: &str) -> Option<DateTime<FixedOffset>> {
         return Some(dt);
     }
     if let Ok(dt) = NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S") {
-        return Some(dt.and_local_timezone(FixedOffset::east_opt(0).unwrap()).unwrap());
+        return Some(
+            dt.and_local_timezone(FixedOffset::east_opt(0).unwrap())
+                .unwrap(),
+        );
     }
     if let Ok(d) = NaiveDate::parse_from_str(s, "%Y-%m-%d") {
-        return Some(d.and_time(NaiveTime::MIN).and_local_timezone(FixedOffset::east_opt(0).unwrap()).unwrap());
+        return Some(
+            d.and_time(NaiveTime::MIN)
+                .and_local_timezone(FixedOffset::east_opt(0).unwrap())
+                .unwrap(),
+        );
     }
 
     // Handle compact formats: "7d", "1y", "3mo"
@@ -108,19 +115,18 @@ struct BlameLine {
 }
 
 impl EngineerBlame {
-    pub fn new(
-        repo_path: &Path,
-        config: &BlameConfig,
-    ) -> Result<Self, String> {
+    pub fn new(repo_path: &Path, config: &BlameConfig) -> Result<Self, String> {
         let repo = gix::open(repo_path).map_err(|e| format!("Cannot open git repo: {e}"))?;
 
-        let since_ts = config.since.as_ref().and_then(|s| {
-            parse_relative_date(s).map(|dt| dt.timestamp())
-        });
+        let since_ts = config
+            .since
+            .as_ref()
+            .and_then(|s| parse_relative_date(s).map(|dt| dt.timestamp()));
 
-        let until_ts = config.until.as_ref().and_then(|s| {
-            parse_relative_date(s).map(|dt| dt.timestamp())
-        });
+        let until_ts = config
+            .until
+            .as_ref()
+            .and_then(|s| parse_relative_date(s).map(|dt| dt.timestamp()));
 
         Ok(Self {
             repo: Mutex::new(repo),
@@ -136,7 +142,11 @@ impl EngineerBlame {
         })
     }
 
-    fn get_content_at_boundary(&self, rel_path: &str, boundary_oid: gix::hash::ObjectId) -> Option<String> {
+    fn get_content_at_boundary(
+        &self,
+        rel_path: &str,
+        boundary_oid: gix::hash::ObjectId,
+    ) -> Option<String> {
         let normalized = rel_path.strip_prefix("./").unwrap_or(rel_path);
         let repo = self.repo.lock().ok()?;
         let workdir = repo.workdir().unwrap_or(Path::new(".")).to_path_buf();
@@ -153,15 +163,20 @@ impl EngineerBlame {
     /// Walk the revwalk once to find the boundary commit (first commit ≤ since_ts),
     /// cache it, then tree-diff it against HEAD to get all changed files. Returns
     /// `(boundary_oid, changed_files)`. Returns `None` when no boundary exists.
-    fn find_boundary_and_changed_files(&self, since_ts: i64) -> Option<(gix::hash::ObjectId, HashSet<String>)> {
+    fn find_boundary_and_changed_files(
+        &self,
+        since_ts: i64,
+    ) -> Option<(gix::hash::ObjectId, HashSet<String>)> {
         let repo = self.repo.lock().ok()?;
         let head_id = repo.head_id().ok()?;
         let head_commit = repo.find_commit(head_id).ok()?;
         let head_tree = head_commit.tree().ok()?;
 
-        let walk = repo.rev_walk([head_id])
+        let walk = repo
+            .rev_walk([head_id])
             .sorting(Sorting::ByCommitTime(CommitTimeOrder::NewestFirst))
-            .all().ok()?;
+            .all()
+            .ok()?;
 
         let boundary_oid = 'found: {
             for info in walk {
@@ -181,15 +196,11 @@ impl EngineerBlame {
         let boundary_commit = repo.find_commit(boundary_oid).ok()?;
         let boundary_tree = boundary_commit.tree().ok()?;
 
-        let changes = repo.diff_tree_to_tree(
-            Some(&boundary_tree),
-            Some(&head_tree),
-            None,
-        ).ok()?;
+        let changes = repo
+            .diff_tree_to_tree(Some(&boundary_tree), Some(&head_tree), None)
+            .ok()?;
 
-        let changed: HashSet<String> = changes.iter()
-            .map(|c| c.location().to_string())
-            .collect();
+        let changed: HashSet<String> = changes.iter().map(|c| c.location().to_string()).collect();
 
         Some((boundary_oid, changed))
     }
@@ -209,9 +220,18 @@ impl EngineerBlame {
         let file_count = if self.since_ts.is_some() {
             results.files.len().max(1)
         } else {
-            results.files.iter().filter(|(_, v)| !v.is_empty()).count().max(1)
+            results
+                .files
+                .iter()
+                .filter(|(_, v)| !v.is_empty())
+                .count()
+                .max(1)
         };
-        let own_bar = if !using_external { make_bar(file_count, format) } else { None };
+        let own_bar = if !using_external {
+            make_bar(file_count, format)
+        } else {
+            None
+        };
         let bar: &Option<ProgressBar> = if using_external { blame_bar } else { &own_bar };
 
         if self.since_ts.is_some() {
@@ -233,22 +253,22 @@ impl EngineerBlame {
         if !self.filter_authors.is_empty() {
             report.retain(|author, _| {
                 let lower = author.to_lowercase();
-                self.filter_authors.iter().any(|f| lower.contains(&f.to_lowercase()))
+                self.filter_authors
+                    .iter()
+                    .any(|f| lower.contains(&f.to_lowercase()))
             });
         }
 
         if !self.filter_rules.is_empty() {
             for entry in report.values_mut() {
-                entry.rules.retain(|rule, _| {
-                    self.filter_rules.iter().any(|f| rule.contains(f))
-                });
+                entry
+                    .rules
+                    .retain(|rule, _| self.filter_rules.iter().any(|f| rule.contains(f)));
                 entry.total_fixed = entry.rules.values().map(|rc| rc.fixed).sum();
                 entry.total_introduced = entry.rules.values().map(|rc| rc.introduced).sum();
                 entry.net = (entry.total_fixed as i64) - (entry.total_introduced as i64);
             }
-            report.retain(|_, entry| {
-                entry.total_fixed > 0 || entry.total_introduced > 0
-            });
+            report.retain(|_, entry| entry.total_fixed > 0 || entry.total_introduced > 0);
         }
 
         if self.min_violations > 0 {
@@ -266,7 +286,9 @@ impl EngineerBlame {
         report: &mut EngineerReport,
         bar: &Option<ProgressBar>,
     ) {
-        let file_entries: Vec<_> = results.files.iter()
+        let file_entries: Vec<_> = results
+            .files
+            .iter()
             .filter(|(_, v)| !v.is_empty())
             .collect();
         if file_entries.is_empty() {
@@ -274,7 +296,8 @@ impl EngineerBlame {
         }
 
         let num_threads = std::thread::available_parallelism()
-            .map(|n| n.get()).unwrap_or(4)
+            .map(|n| n.get())
+            .unwrap_or(4)
             .min(file_entries.len());
         let chunk_size = file_entries.len().div_ceil(num_threads);
 
@@ -283,7 +306,11 @@ impl EngineerBlame {
         let since_ts = self.since_ts;
         let until_ts = self.until_ts;
         let repo_path = self.repo_path.clone();
-        let workdir = self.repo.lock().unwrap().workdir()
+        let workdir = self
+            .repo
+            .lock()
+            .unwrap()
+            .workdir()
             .map(|p| p.to_path_buf())
             .unwrap_or_else(|| PathBuf::from("."));
         let bar_inner = bar.clone();
@@ -308,17 +335,20 @@ impl EngineerBlame {
 
                     for (file_path, violations) in &chunk {
                         for violation in *violations {
-                            let blame_lines = match get_blame_lines(&cache, &gix_repo, file_path, &wd) {
-                                Ok(l) => l,
-                                Err(_) => continue,
-                            };
+                            let blame_lines =
+                                match get_blame_lines(&cache, &gix_repo, file_path, &wd) {
+                                    Ok(l) => l,
+                                    Err(_) => continue,
+                                };
 
                             let mut counts: HashMap<String, u64> = HashMap::new();
                             let start = violation.start_line.saturating_sub(1);
                             let end = violation.end_line.min(blame_lines.len());
 
                             for i in start..end {
-                                if i >= blame_lines.len() { break; }
+                                if i >= blame_lines.len() {
+                                    break;
+                                }
                                 let bl = &blame_lines[i];
                                 let time_ok = match (since_ts, until_ts) {
                                     (Some(s), Some(u)) => bl.time >= s && bl.time <= u,
@@ -331,9 +361,7 @@ impl EngineerBlame {
                                 }
                             }
 
-                            let author = counts.into_iter()
-                                .max_by_key(|&(_, c)| c)
-                                .map(|(a, _)| a);
+                            let author = counts.into_iter().max_by_key(|&(_, c)| c).map(|(a, _)| a);
                             let author = match author {
                                 Some(a) => a,
                                 None => continue,
@@ -378,18 +406,20 @@ impl EngineerBlame {
             None => return,
         };
 
-        let workdir = self.repo.lock().unwrap().workdir()
-            .map(|p| p.to_path_buf());
+        let workdir = self.repo.lock().unwrap().workdir().map(|p| p.to_path_buf());
 
         // Pre-compute old file contents from boundary tree (fast blob lookups, no revwalk)
         let file_paths: Vec<String> = results.files.keys().cloned().collect();
-        let mut file_entries: Vec<(String, Option<String>, &Vec<Violation>)> = Vec::with_capacity(file_paths.len());
+        let mut file_entries: Vec<(String, Option<String>, &Vec<Violation>)> =
+            Vec::with_capacity(file_paths.len());
 
         for file_path in &file_paths {
             if !changed_files.is_empty() {
                 let normalized = file_path.strip_prefix("./").unwrap_or(file_path);
                 let rel = match &workdir {
-                    Some(ref wd) => Path::new(normalized).strip_prefix(wd).unwrap_or(Path::new(normalized)),
+                    Some(ref wd) => Path::new(normalized)
+                        .strip_prefix(wd)
+                        .unwrap_or(Path::new(normalized)),
                     None => Path::new(normalized),
                 };
                 if !changed_files.contains(rel.to_str().unwrap_or(normalized)) {
@@ -411,7 +441,8 @@ impl EngineerBlame {
 
         // Parallel analysis + blame
         let num_threads = std::thread::available_parallelism()
-            .map(|n| n.get()).unwrap_or(4)
+            .map(|n| n.get())
+            .unwrap_or(4)
             .min(file_entries.len().max(1));
         let chunk_size = file_entries.len().div_ceil(num_threads);
 
@@ -444,23 +475,29 @@ impl EngineerBlame {
                         let old_violations: Vec<Violation> = match old_content_opt {
                             Some(content) => {
                                 let arena = LocalArena::new();
-                                let mut old_file = File::new(&arena, PathBuf::from(file_path), content.clone());
+                                let mut old_file =
+                                    File::new(&arena, PathBuf::from(file_path), content.clone());
                                 let (violations, _) = analyse.analyse_file(&mut old_file, false);
                                 violations
                             }
                             None => vec![],
                         };
 
-                        let current_set: HashSet<String> = current_violations.iter().map(violation_key).collect();
-                        let old_set: HashSet<String> = old_violations.iter().map(violation_key).collect();
+                        let current_set: HashSet<String> =
+                            current_violations.iter().map(violation_key).collect();
+                        let old_set: HashSet<String> =
+                            old_violations.iter().map(violation_key).collect();
 
-                        let introduced_keys: Vec<&String> = current_set.difference(&old_set).collect();
+                        let introduced_keys: Vec<&String> =
+                            current_set.difference(&old_set).collect();
                         let fixed_keys: Vec<&String> = old_set.difference(&current_set).collect();
 
-                        let current_by_key: HashMap<String, &Violation> = current_violations.iter()
+                        let current_by_key: HashMap<String, &Violation> = current_violations
+                            .iter()
                             .map(|v| (violation_key(v), v))
                             .collect();
-                        let old_by_key: HashMap<String, &Violation> = old_violations.iter()
+                        let old_by_key: HashMap<String, &Violation> = old_violations
+                            .iter()
                             .map(|v| (violation_key(v), v))
                             .collect();
 
@@ -469,9 +506,14 @@ impl EngineerBlame {
                         for key in introduced_keys {
                             if let Some(violation) = current_by_key.get(key) {
                                 let author = get_majority_author(
-                                    &cache, &gix_repo, file_path, &workdir,
-                                    since_ts, until_ts,
-                                    violation.start_line, violation.end_line,
+                                    &cache,
+                                    &gix_repo,
+                                    file_path,
+                                    &workdir,
+                                    since_ts,
+                                    until_ts,
+                                    violation.start_line,
+                                    violation.end_line,
                                 );
                                 if let Some(ref author) = author {
                                     if is_author_excluded(author, "", &ex) {
@@ -479,7 +521,8 @@ impl EngineerBlame {
                                     }
                                     let entry = local_report.entry(author.clone()).or_default();
                                     entry.total_introduced += 1;
-                                    let rule_entry = entry.rules.entry(violation.rule.clone()).or_default();
+                                    let rule_entry =
+                                        entry.rules.entry(violation.rule.clone()).or_default();
                                     rule_entry.introduced += 1;
                                 }
                             }
@@ -488,9 +531,14 @@ impl EngineerBlame {
                         for key in fixed_keys {
                             if let Some(violation) = old_by_key.get(key) {
                                 let author = get_majority_author(
-                                    &cache, &gix_repo, file_path, &workdir,
-                                    since_ts, until_ts,
-                                    violation.start_line, violation.end_line,
+                                    &cache,
+                                    &gix_repo,
+                                    file_path,
+                                    &workdir,
+                                    since_ts,
+                                    until_ts,
+                                    violation.start_line,
+                                    violation.end_line,
                                 );
                                 if let Some(ref author) = author {
                                     if is_author_excluded(author, "", &ex) {
@@ -498,7 +546,8 @@ impl EngineerBlame {
                                     }
                                     let entry = local_report.entry(author.clone()).or_default();
                                     entry.total_fixed += 1;
-                                    let rule_entry = entry.rules.entry(violation.rule.clone()).or_default();
+                                    let rule_entry =
+                                        entry.rules.entry(violation.rule.clone()).or_default();
                                     rule_entry.fixed += 1;
                                 }
                             }
@@ -545,18 +594,18 @@ fn get_blame_lines(
     let path = Path::new(normalized)
         .strip_prefix(workdir)
         .unwrap_or(Path::new(normalized));
-    let head = gix_repo.head_id()
+    let head = gix_repo
+        .head_id()
         .map_err(|e| format!("Cannot get HEAD: {e}"))?;
     let path_str = path.to_string_lossy();
-    let outcome = gix_repo.blame_file(
-        path_str.as_bytes().into(),
-        head,
-        Default::default(),
-    ).map_err(|e| format!("Cannot blame {}: {e}", rel_path))?;
+    let outcome = gix_repo
+        .blame_file(path_str.as_bytes().into(), head, Default::default())
+        .map_err(|e| format!("Cannot blame {}: {e}", rel_path))?;
 
     let mut lines = Vec::new();
     for entry in outcome.entries {
-        let commit = gix_repo.find_commit(entry.commit_id)
+        let commit = gix_repo
+            .find_commit(entry.commit_id)
             .map_err(|e| format!("Cannot find commit {}: {e}", entry.commit_id))?;
         let (name, _, time) = match commit.author() {
             Ok(sig) => (
@@ -636,7 +685,7 @@ fn violation_key(v: &Violation) -> String {
 mod tests {
     use super::*;
     use crate::results::{EngineerEntry, Message, RuleChange};
-    use chrono::{Timelike, Datelike};
+    use chrono::{Datelike, Timelike};
 
     #[test]
     fn test_parse_relative_date_rfc3339() {
@@ -658,8 +707,7 @@ mod tests {
     #[test]
     fn test_parse_relative_date_days_ago() {
         let dt = parse_relative_date("7 days ago").unwrap();
-        let expected = Utc::now()
-            .with_timezone(&FixedOffset::east_opt(0).unwrap())
+        let expected = Utc::now().with_timezone(&FixedOffset::east_opt(0).unwrap())
             - TimeDelta::try_days(7).unwrap();
         assert!((dt - expected).num_seconds().abs() < 2);
     }
@@ -667,8 +715,7 @@ mod tests {
     #[test]
     fn test_parse_relative_date_days() {
         let dt = parse_relative_date("30 days").unwrap();
-        let expected = Utc::now()
-            .with_timezone(&FixedOffset::east_opt(0).unwrap())
+        let expected = Utc::now().with_timezone(&FixedOffset::east_opt(0).unwrap())
             - TimeDelta::try_days(30).unwrap();
         assert!((dt - expected).num_seconds().abs() < 2);
     }
@@ -676,8 +723,7 @@ mod tests {
     #[test]
     fn test_parse_relative_date_short_d() {
         let dt = parse_relative_date("7d").unwrap();
-        let expected = Utc::now()
-            .with_timezone(&FixedOffset::east_opt(0).unwrap())
+        let expected = Utc::now().with_timezone(&FixedOffset::east_opt(0).unwrap())
             - TimeDelta::try_days(7).unwrap();
         assert!((dt - expected).num_seconds().abs() < 2);
     }
@@ -685,8 +731,7 @@ mod tests {
     #[test]
     fn test_parse_relative_date_years() {
         let dt = parse_relative_date("1 year").unwrap();
-        let expected = Utc::now()
-            .with_timezone(&FixedOffset::east_opt(0).unwrap())
+        let expected = Utc::now().with_timezone(&FixedOffset::east_opt(0).unwrap())
             - TimeDelta::try_days(365).unwrap();
         assert!((dt - expected).num_seconds().abs() < 2);
     }
@@ -694,8 +739,7 @@ mod tests {
     #[test]
     fn test_parse_relative_date_short_y() {
         let dt = parse_relative_date("2y").unwrap();
-        let expected = Utc::now()
-            .with_timezone(&FixedOffset::east_opt(0).unwrap())
+        let expected = Utc::now().with_timezone(&FixedOffset::east_opt(0).unwrap())
             - TimeDelta::try_days(730).unwrap();
         assert!((dt - expected).num_seconds().abs() < 2);
     }
@@ -703,8 +747,7 @@ mod tests {
     #[test]
     fn test_parse_relative_date_months() {
         let dt = parse_relative_date("6 months").unwrap();
-        let expected = Utc::now()
-            .with_timezone(&FixedOffset::east_opt(0).unwrap())
+        let expected = Utc::now().with_timezone(&FixedOffset::east_opt(0).unwrap())
             - TimeDelta::try_days(180).unwrap();
         assert!((dt - expected).num_seconds().abs() < 2);
     }
@@ -719,23 +762,43 @@ mod tests {
     #[test]
     fn test_is_author_excluded_name() {
         let exclude = vec!["dependabot".to_string(), "bot".to_string()];
-        assert!(is_author_excluded("dependabot[bot]", "dependabot@github.com", &exclude));
-        assert!(is_author_excluded("My Bot Account", "bot@example.com", &exclude));
+        assert!(is_author_excluded(
+            "dependabot[bot]",
+            "dependabot@github.com",
+            &exclude
+        ));
+        assert!(is_author_excluded(
+            "My Bot Account",
+            "bot@example.com",
+            &exclude
+        ));
         assert!(!is_author_excluded("Alice", "alice@example.com", &exclude));
     }
 
     #[test]
     fn test_is_author_excluded_email() {
         let exclude = vec!["dependabot".to_string()];
-        assert!(is_author_excluded("dependabot[bot]", "dependabot@github.com", &exclude));
+        assert!(is_author_excluded(
+            "dependabot[bot]",
+            "dependabot@github.com",
+            &exclude
+        ));
         assert!(!is_author_excluded("Alice", "alice@example.com", &exclude));
     }
 
     #[test]
     fn test_is_author_excluded_case_insensitive() {
         let exclude = vec!["Dependabot".to_string()];
-        assert!(is_author_excluded("dependabot[bot]", "dependabot@github.com", &exclude));
-        assert!(is_author_excluded("DEPENDABOT", "dependabot@github.com", &exclude));
+        assert!(is_author_excluded(
+            "dependabot[bot]",
+            "dependabot@github.com",
+            &exclude
+        ));
+        assert!(is_author_excluded(
+            "DEPENDABOT",
+            "dependabot@github.com",
+            &exclude
+        ));
     }
 
     #[test]
@@ -793,8 +856,20 @@ mod tests {
             net: -5,
             ..Default::default()
         };
-        entry.rules.insert("E001".to_string(), RuleChange { fixed: 0, introduced: 3 });
-        entry.rules.insert("E002".to_string(), RuleChange { fixed: 1, introduced: 1 });
+        entry.rules.insert(
+            "E001".to_string(),
+            RuleChange {
+                fixed: 0,
+                introduced: 3,
+            },
+        );
+        entry.rules.insert(
+            "E002".to_string(),
+            RuleChange {
+                fixed: 1,
+                introduced: 1,
+            },
+        );
         report.insert("Alice".to_string(), entry);
 
         let json = serde_json::to_string(&report).unwrap();
