@@ -17,6 +17,8 @@ use super::summary::{self, ConstantValue, FunctionSummary};
 use super::value::{ArrayKey, ResourceState, Value};
 use super::Settings;
 
+const LOOP_BUDGET: usize = 4096;
+
 pub struct Finding {
     pub class: FindingClass,
     pub message: Message,
@@ -91,6 +93,7 @@ struct Analyzer<'a, 'arena> {
     doc_templates: Vec<String>,
     method_domains: HashMap<String, Vec<Option<ParameterDomain>>>,
     in_generator: bool,
+    loop_budget: usize,
     next_unverified_numeric: u64,
     next_fresh: u64,
     next_resource: u64,
@@ -137,6 +140,7 @@ pub fn analyze_file_with_summaries(
         doc_templates: Vec::new(),
         method_domains: HashMap::new(),
         in_generator: false,
+        loop_budget: LOOP_BUDGET,
         next_unverified_numeric: 0,
         next_fresh: 0,
         next_resource: 0,
@@ -523,6 +527,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         body: &'arena Block<'arena>,
         span: Span,
     ) {
+        self.loop_budget = LOOP_BUDGET;
         let previous_hint = self.return_hint;
         let previous_doc_return = self.doc_return.take();
         let previous_doc_templates = std::mem::take(&mut self.doc_templates);
@@ -1288,6 +1293,9 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         let mut ran: Option<Bool> = None;
 
         for _ in 0..depth {
+            if self.loop_budget > 0 {
+                self.loop_budget -= 1;
+            }
             let condition_value =
                 condition.map(|condition| self.eval_expr(condition, &mut current));
             let condition = condition_value.as_ref().and_then(Value::truthiness);
@@ -1368,6 +1376,9 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         let mut modified = state.modified.clone();
 
         for _ in 0..depth {
+            if self.loop_budget > 0 {
+                self.loop_budget -= 1;
+            }
             let mut body_state = current.clone();
             self.analyze_statement(do_while.statement, &mut body_state);
 
@@ -1432,7 +1443,8 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             return 1;
         }
 
-        self.settings.unroll_depth.clamp(1, 64)
+        let base = self.settings.unroll_depth.clamp(1, 64);
+        base.min(self.loop_budget.max(1))
     }
 
     fn eval_expr(&mut self, expression: &'arena Expression<'arena>, state: &mut State) -> Value {

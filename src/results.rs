@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::time::Duration;
 
 use serde::ser::SerializeStruct;
@@ -106,6 +107,13 @@ pub struct Results {
 impl Results {
     pub fn add_file_violations(&mut self, file: &File<'_>, violations: Vec<Violation>) {
         if violations.is_empty() {
+            return;
+        }
+        self.add_file_violations_for_path(file.path.clone(), violations);
+    }
+
+    pub fn add_file_violations_for_path(&mut self, path: PathBuf, violations: Vec<Violation>) {
+        if violations.is_empty() {
             // Don't reserve an entry (and its path string) for files with
             // nothing to report: a full-project scan touches far more files
             // than it reports on.
@@ -118,7 +126,7 @@ impl Results {
             *self.codes_count.entry(violation.rule.clone()).or_insert(0) += 1;
         }
 
-        let path = file.path.display().to_string();
+        let path = path.display().to_string();
         // `violations` is owned, so entries are moved in rather than cloned.
         // Every violation carries several `String`s, so cloning them all was
         // doubling the allocation churn on the scan's hottest path.

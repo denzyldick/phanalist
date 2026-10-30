@@ -5,11 +5,11 @@ use mago_syntax::cst::*;
 
 use crate::file::File;
 use crate::results::{Message, Violation};
-use crate::rules::Rule as _;
 use crate::rules::ast_support::{
-    call_arguments, direct_variable_name, function_name, walk_expression,
+    call_arguments, direct_variable_name, function_name, literal_string, walk_expression,
     walk_statement_expressions,
 };
+use crate::rules::Rule as _;
 
 pub(crate) static CODE: &str = "E0056";
 static DESCRIPTION: &str = "Weak randomness for security-sensitive value";
@@ -68,7 +68,16 @@ impl crate::rules::Rule for Rule {
                     }
 
                     let call = Call::Function(call.clone());
-                    for argument in call_arguments(&call) {
+                    let arguments = call_arguments(&call);
+                    if is_hash_function(&name)
+                        && arguments
+                            .first()
+                            .and_then(|argument| literal_string(argument))
+                            .is_some_and(|algorithm| is_non_cryptographic_hash(&algorithm))
+                    {
+                        return;
+                    }
+                    for argument in arguments {
                         if let Some(span) = find_weak_random(argument) {
                             self.report(
                                 file,
@@ -136,6 +145,28 @@ fn is_weak_random(name: &str) -> bool {
     )
 }
 
+fn is_hash_function(name: &str) -> bool {
+    matches!(name, "hash" | "hash_hmac")
+}
+
+fn is_non_cryptographic_hash(name: &str) -> bool {
+    let name = name.to_ascii_lowercase();
+    name.starts_with("xxh")
+        || name.starts_with("murmur")
+        || matches!(
+            name.as_str(),
+            "crc32"
+                | "crc32b"
+                | "crc32c"
+                | "adler32"
+                | "fnv132"
+                | "fnv1a32"
+                | "fnv164"
+                | "fnv1a64"
+                | "joaat"
+        )
+}
+
 fn is_sensitive_sink(name: &str) -> bool {
     matches!(
         name,
@@ -192,5 +223,6 @@ mod tests {
     #[test]
     fn accepts_secure_randomness_and_non_security_uses() {
         assert!(analyze_file_for_rule("e56/weak_randomness_safe.php", CODE).is_empty());
+        assert!(analyze_file_for_rule("e56/non_crypto_hash_safe.php", CODE).is_empty());
     }
 }

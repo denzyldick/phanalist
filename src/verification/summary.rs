@@ -87,6 +87,12 @@ impl SummaryIndex {
             .insert(file.path.clone(), FileSummaries { summaries, parents });
     }
 
+    pub fn merge(&mut self, other: SummaryIndex) {
+        let SummaryIndex { files, .. } = other;
+        self.files.extend(files);
+        self.invalidate();
+    }
+
     pub fn snapshot(&self) -> Arc<HashMap<String, FunctionSummary>> {
         if let Some(snapshot) = self
             .snapshot_cache
@@ -113,35 +119,48 @@ impl SummaryIndex {
         let parents = self.inheritors();
 
         for _ in 0..32 {
-            let mut additions = Vec::new();
-            for (child, inheritors) in &parents {
-                let mut candidates: HashMap<String, Option<FunctionSummary>> = HashMap::new();
-                for parent in inheritors {
-                    let prefix = format!("{parent}::");
-                    for (name, summary) in &summaries {
-                        let Some(method) = name.strip_prefix(&prefix) else {
+            let additions = {
+                let mut methods_by_class: HashMap<&str, Vec<(&str, &FunctionSummary)>> =
+                    HashMap::new();
+                for (name, summary) in &summaries {
+                    if let Some((class, method)) = name.split_once("::") {
+                        methods_by_class
+                            .entry(class)
+                            .or_default()
+                            .push((method, summary));
+                    }
+                }
+
+                let mut additions = Vec::new();
+                for (child, inheritors) in &parents {
+                    let mut candidates: HashMap<&str, Option<&FunctionSummary>> = HashMap::new();
+                    for parent in inheritors {
+                        let Some(methods) = methods_by_class.get(parent.as_str()) else {
                             continue;
                         };
-                        let key = format!("{child}::{method}");
-                        if summaries.contains_key(&key) {
-                            continue;
+                        for (method, summary) in methods {
+                            let key = format!("{child}::{method}");
+                            if summaries.contains_key(&key) {
+                                continue;
+                            }
+                            candidates
+                                .entry(method)
+                                .and_modify(|candidate| {
+                                    if candidate.as_ref() != Some(summary) {
+                                        *candidate = None;
+                                    }
+                                })
+                                .or_insert(Some(summary));
                         }
-                        candidates
-                            .entry(key)
-                            .and_modify(|candidate| {
-                                if candidate.as_ref() != Some(summary) {
-                                    *candidate = None;
-                                }
-                            })
-                            .or_insert_with(|| Some(summary.clone()));
+                    }
+                    for (method, summary) in candidates {
+                        if let Some(summary) = summary {
+                            additions.push((format!("{child}::{method}"), summary.clone()));
+                        }
                     }
                 }
-                for (name, summary) in candidates {
-                    if let Some(summary) = summary {
-                        additions.push((name, summary));
-                    }
-                }
-            }
+                additions
+            };
             if additions.is_empty() {
                 break;
             }

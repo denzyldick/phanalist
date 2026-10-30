@@ -1,4 +1,6 @@
-use std::collections::HashMap;
+use std::cell::RefCell;
+use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, Mutex, RwLock};
 
 use mago_span::{HasSpan, Span};
 use mago_syntax::cst::*;
@@ -16,25 +18,94 @@ static DESCRIPTION: &str =
 pub struct TypeRegistry {
     pub methods: HashMap<String, HashMap<String, String>>,
     pub properties: HashMap<String, HashMap<String, String>>,
-    pub interfaces: std::collections::HashSet<String>,
+    pub interfaces: HashSet<String>,
+    /// Project-wide types used as a read-only fallback. Keeping this as an
+    /// `Arc` avoids cloning the entire project registry for every file.
+    fallback: Option<Arc<TypeRegistry>>,
+}
+
+impl TypeRegistry {
+    fn methods_for(&self, class_name: &str) -> Option<&HashMap<String, String>> {
+        self.methods.get(class_name).or_else(|| {
+            self.fallback
+                .as_deref()
+                .and_then(|global| global.methods.get(class_name))
+        })
+    }
+
+    fn properties_for(&self, class_name: &str) -> Option<&HashMap<String, String>> {
+        self.properties.get(class_name).or_else(|| {
+            self.fallback
+                .as_deref()
+                .and_then(|global| global.properties.get(class_name))
+        })
+    }
+
+    fn contains_interface(&self, name: &str) -> bool {
+        self.interfaces.contains(name)
+            || self
+                .fallback
+                .as_deref()
+                .is_some_and(|global| global.interfaces.contains(name))
+    }
+
+    /// Merge global entries only for classes defined in this file. This keeps
+    /// the previous local-plus-global view without copying every project type.
+    fn merge_global_definitions(&mut self, global: &TypeRegistry) {
+        let classes: Vec<String> = self.methods.keys().cloned().collect();
+        for class_name in classes {
+            if let (Some(global_methods), Some(local_methods)) = (
+                global.methods.get(&class_name),
+                self.methods.get_mut(&class_name),
+            ) {
+                for (method_name, return_type) in global_methods {
+                    local_methods.insert(method_name.clone(), return_type.clone());
+                }
+            }
+        }
+
+        let classes: Vec<String> = self.properties.keys().cloned().collect();
+        for class_name in classes {
+            if let (Some(global_properties), Some(local_properties)) = (
+                global.properties.get(&class_name),
+                self.properties.get_mut(&class_name),
+            ) {
+                for (property_name, property_type) in global_properties {
+                    local_properties.insert(property_name.clone(), property_type.clone());
+                }
+            }
+        }
+    }
 }
 
 /// Maps local variable name → resolved type string
 type VarTypes = HashMap<String, String>;
 
+thread_local! {
+    /// Memoizes `resolve_object_type` by expression span for the duration of a
+    /// single file. Without it, the chain-fluency check re-resolves the receiver
+    /// of every chain link, making a chain of N calls cost `O(phi^N)` and
+    /// hanging on long fluent chains. Spans only carry byte offsets, so the
+    /// cache is thread-local and cleared at the start of every file.
+    static RESOLVE_CACHE: RefCell<HashMap<Span, Option<String>>> = RefCell::new(HashMap::new());
+}
+
 #[derive(Default)]
 pub struct Rule {
-    pub global_registry: std::sync::Mutex<TypeRegistry>,
-    /// Memoizes `resolve_object_type` by expression span for the duration of a
-    /// single `validate` call. Without it, the chain-fluency check re-resolves
-    /// the receiver of every chain link, making a chain of N calls cost
-    /// `O(phi^N)` and hanging on long fluent chains. Cleared per `validate`
-    /// because spans only carry byte offsets (no file id), so entries from one
-    /// file must not leak into the next.
-    resolve_cache: std::sync::Mutex<HashMap<Span, Option<String>>>,
+    pub global_registry: Mutex<TypeRegistry>,
+    global_snapshot: RwLock<Option<Arc<TypeRegistry>>>,
 }
 
 impl crate::rules::Rule for Rule {
+    fn begin_index(&self) {
+        if let Ok(mut global) = self.global_registry.lock() {
+            *global = TypeRegistry::default();
+        }
+        if let Ok(mut snapshot) = self.global_snapshot.write() {
+            *snapshot = None;
+        }
+    }
+
     fn index_file(&self, file: &File<'_>) {
         if let Some(program) = file.ast {
             let mut file_registry = TypeRegistry::default();
@@ -58,6 +129,19 @@ impl crate::rules::Rule for Rule {
                 }
                 global.interfaces.extend(file_registry.interfaces);
             }
+            if let Ok(mut snapshot) = self.global_snapshot.write() {
+                *snapshot = None;
+            }
+        }
+    }
+
+    fn finalize_index(&self) {
+        let snapshot = match self.global_registry.lock() {
+            Ok(global) => Arc::new(global.clone()),
+            Err(_) => return,
+        };
+        if let Ok(mut cache) = self.global_snapshot.write() {
+            *cache = Some(snapshot);
         }
     }
 
@@ -70,68 +154,58 @@ impl crate::rules::Rule for Rule {
     }
 
     fn do_validate(&self, _file: &File<'_>) -> bool {
-        true
+        false
     }
 
-    fn validate(&self, file: &File<'_>, statement: &Statement<'_>) -> Vec<Violation> {
-        let mut violations = Vec::new();
+    fn validate(&self, _file: &File<'_>, _statement: &Statement<'_>) -> Vec<Violation> {
+        Vec::new()
+    }
 
-        // Start each validation with an empty type cache; see `resolve_cache`.
-        if let Ok(mut cache) = self.resolve_cache.lock() {
-            cache.clear();
+    fn validate_file(&self, file: &File<'_>) -> Option<Vec<Violation>> {
+        let program = file.ast?;
+
+        // Build the local registry once per file. Cross-file types are resolved
+        // through the read-only snapshot fallback instead of cloning the whole
+        // project registry for every file.
+        let mut registry = TypeRegistry::default();
+        for statement in program.statements.iter() {
+            self.collect_types(statement, &mut registry);
         }
 
-        // Build the type registry from ALL statements in the file so that cross-file
-        // references (e.g. a class using a trait defined elsewhere in the same file)
-        // are resolvable. Fall back to building from just this statement if no AST.
-        let mut registry = TypeRegistry::default();
-        if let Some(program) = file.ast {
-            for s in program.statements.iter() {
-                self.collect_types(s, &mut registry);
-            }
-        } else {
+        let snapshot = self
+            .global_snapshot
+            .read()
+            .ok()
+            .and_then(|snapshot| snapshot.clone())
+            .or_else(|| {
+                self.global_registry
+                    .lock()
+                    .ok()
+                    .map(|global| Arc::new(global.clone()))
+            });
+
+        if let Some(global) = snapshot {
+            registry.merge_global_definitions(&global);
+            registry.fallback = Some(global);
+        }
+
+        RESOLVE_CACHE.with(|cache| cache.borrow_mut().clear());
+
+        let mut violations = Vec::new();
+        for statement in program.statements.iter() {
             match statement {
                 Statement::Namespace(ns) => {
-                    for s in ns.statements().iter() {
-                        self.collect_types(s, &mut registry);
+                    for inner in ns.statements().iter() {
+                        self.validate_statement(file, inner, &registry, &mut violations);
                     }
                 }
                 _ => {
-                    self.collect_types(statement, &mut registry);
+                    self.validate_statement(file, statement, &registry, &mut violations);
                 }
             }
         }
 
-        if let Ok(global) = self.global_registry.lock() {
-            for (class_name, methods) in global.methods.iter() {
-                registry
-                    .methods
-                    .entry(class_name.clone())
-                    .or_default()
-                    .extend(methods.clone());
-            }
-            for (class_name, props) in global.properties.iter() {
-                registry
-                    .properties
-                    .entry(class_name.clone())
-                    .or_default()
-                    .extend(props.clone());
-            }
-            registry.interfaces.extend(global.interfaces.clone());
-        }
-
-        match statement {
-            Statement::Namespace(ns) => {
-                for s in ns.statements().iter() {
-                    self.validate_statement(file, s, &registry, &mut violations);
-                }
-            }
-            _ => {
-                self.validate_statement(file, statement, &registry, &mut violations);
-            }
-        }
-
-        violations
+        Some(violations)
     }
 
     fn traverse_statements_to_validate<'a>(
@@ -165,7 +239,10 @@ impl Rule {
                         ClassLikeMember::Method(m) => {
                             if let Some(hint) = &m.return_type_hint {
                                 if let Some(t) = self.extract_type_hint(&hint.hint) {
-                                    method_map.insert(String::from_utf8_lossy(m.name.value).into_owned(), t);
+                                    method_map.insert(
+                                        String::from_utf8_lossy(m.name.value).into_owned(),
+                                        t,
+                                    );
                                 }
                             }
                         }
@@ -173,8 +250,10 @@ impl Rule {
                             if let Some(hint) = p.hint() {
                                 if let Some(t) = self.extract_type_hint(hint) {
                                     for var in p.variables() {
-                                        let prop_name =
-                                            std::str::from_utf8(var.name).unwrap_or_default().trim_start_matches('$').to_string();
+                                        let prop_name = std::str::from_utf8(var.name)
+                                            .unwrap_or_default()
+                                            .trim_start_matches('$')
+                                            .to_string();
                                         prop_map.insert(prop_name, t.clone());
                                     }
                                 }
@@ -195,7 +274,10 @@ impl Rule {
                         ClassLikeMember::Method(m) => {
                             if let Some(hint) = &m.return_type_hint {
                                 if let Some(t) = self.extract_type_hint(&hint.hint) {
-                                    method_map.insert(String::from_utf8_lossy(m.name.value).into_owned(), t);
+                                    method_map.insert(
+                                        String::from_utf8_lossy(m.name.value).into_owned(),
+                                        t,
+                                    );
                                 }
                             }
                         }
@@ -203,8 +285,10 @@ impl Rule {
                             if let Some(hint) = p.hint() {
                                 if let Some(t) = self.extract_type_hint(hint) {
                                     for var in p.variables() {
-                                        let prop_name =
-                                            std::str::from_utf8(var.name).unwrap_or_default().trim_start_matches('$').to_string();
+                                        let prop_name = std::str::from_utf8(var.name)
+                                            .unwrap_or_default()
+                                            .trim_start_matches('$')
+                                            .to_string();
                                         prop_map.insert(prop_name, t.clone());
                                     }
                                 }
@@ -223,7 +307,8 @@ impl Rule {
                     if let ClassLikeMember::Method(m) = member {
                         if let Some(hint) = &m.return_type_hint {
                             if let Some(t) = self.extract_type_hint(&hint.hint) {
-                                method_map.insert(String::from_utf8_lossy(m.name.value).into_owned(), t);
+                                method_map
+                                    .insert(String::from_utf8_lossy(m.name.value).into_owned(), t);
                             }
                         }
                     }
@@ -260,8 +345,9 @@ impl Rule {
                 ClassLikeMember::TraitUse(trait_use) => {
                     // Merge methods from used traits
                     for trait_name_id in trait_use.trait_names.iter() {
-                        let trait_name = String::from_utf8_lossy(trait_name_id.value()).into_owned();
-                        if let Some(trait_map) = registry.methods.get(&trait_name) {
+                        let trait_name =
+                            String::from_utf8_lossy(trait_name_id.value()).into_owned();
+                        if let Some(trait_map) = registry.methods_for(&trait_name) {
                             for (method_name, ret_type) in trait_map {
                                 // Don't override class's own method definitions
                                 map.entry(method_name.clone())
@@ -1095,7 +1181,7 @@ impl Rule {
         match &object_type {
             Some(t) if self.is_own_type(t, current_class) || is_fluent_on_foreign => self
                 .resolve_method_return(Some(t), &method_name, current_class, method_map, registry),
-            Some(t) if registry.interfaces.contains(t) => self.resolve_method_return(
+            Some(t) if registry.contains_interface(t) => self.resolve_method_return(
                 Some(t),
                 &method_name,
                 current_class,
@@ -1130,7 +1216,6 @@ impl Rule {
     // Helper: resolve the type of the receiver object
     // -------------------------------------------------------------------------
 
-
     /// Caching wrapper around [`Self::resolve_object_type_uncached`].
     ///
     /// The first time a given expression span is resolved it runs the real
@@ -1150,10 +1235,9 @@ impl Rule {
         violations: &mut Vec<Violation>,
     ) -> Option<String> {
         let key = object.span();
-        if let Ok(cache) = self.resolve_cache.lock() {
-            if let Some(cached) = cache.get(&key) {
-                return cached.clone();
-            }
+        let cached = RESOLVE_CACHE.with(|cache| cache.borrow().get(&key).cloned());
+        if let Some(cached) = cached {
+            return cached;
         }
 
         let result = self.resolve_object_type_uncached(
@@ -1166,9 +1250,9 @@ impl Rule {
             violations,
         );
 
-        if let Ok(mut cache) = self.resolve_cache.lock() {
-            cache.insert(key, result.clone());
-        }
+        RESOLVE_CACHE.with(|cache| {
+            cache.borrow_mut().insert(key, result.clone());
+        });
 
         result
     }
@@ -1247,7 +1331,7 @@ impl Rule {
                                 t
                             };
                             if let Some(mut prop_type) =
-                                registry.properties.get(lookup_type).and_then(|props| {
+                                registry.properties_for(lookup_type).and_then(|props| {
                                     let prop_name = self.member_selector_name(&pa.property);
                                     props.get(prop_name.trim_start_matches('$')).cloned()
                                 })
@@ -1280,7 +1364,7 @@ impl Rule {
                                 t
                             };
                             if let Some(mut prop_type) =
-                                registry.properties.get(lookup_type).and_then(|props| {
+                                registry.properties_for(lookup_type).and_then(|props| {
                                     let prop_name = self.member_selector_name(&pa.property);
                                     props.get(prop_name.trim_start_matches('$')).cloned()
                                 })
@@ -1407,12 +1491,12 @@ impl Rule {
                 if let Some(ret) = method_map.get(method_name) {
                     return Some(ret.clone());
                 }
-                if let Some(type_map) = registry.methods.get(t) {
+                if let Some(type_map) = registry.methods_for(t) {
                     if let Some(ret) = type_map.get(method_name) {
                         return Some(ret.clone());
                     }
                 }
-            } else if let Some(type_map) = registry.methods.get(t) {
+            } else if let Some(type_map) = registry.methods_for(t) {
                 if let Some(ret) = type_map.get(method_name) {
                     return Some(ret.clone());
                 }
@@ -1441,7 +1525,9 @@ impl Rule {
 
     fn member_selector_name(&self, selector: &ClassLikeMemberSelector<'_>) -> String {
         match selector {
-            ClassLikeMemberSelector::Identifier(local_id) => String::from_utf8_lossy(local_id.value).into_owned(),
+            ClassLikeMemberSelector::Identifier(local_id) => {
+                String::from_utf8_lossy(local_id.value).into_owned()
+            }
             ClassLikeMemberSelector::Variable(v) => {
                 if let Variable::Direct(d) = v {
                     String::from_utf8_lossy(d.name).into_owned()
@@ -1626,14 +1712,12 @@ mod tests {
             .to_string();
         let file2 = File::new(&arena, path2, content2);
 
+        crate::rules::Rule::begin_index(&rule);
         crate::rules::Rule::index_file(&rule, &file1);
         crate::rules::Rule::index_file(&rule, &file2);
+        crate::rules::Rule::finalize_index(&rule);
 
-        let violations = crate::rules::Rule::validate(
-            &rule,
-            &file2,
-            file2.ast.unwrap().statements.first().unwrap(),
-        );
+        let violations = crate::rules::Rule::validate_file(&rule, &file2).unwrap();
         assert!(
             violations.is_empty(),
             "Expected no violations for cross-file injection, got: {:?}",

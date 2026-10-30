@@ -234,6 +234,14 @@ impl Rule {
                     let Expression::Call(call) = expression else {
                         return;
                     };
+                    if let Call::Method(method_call) = call {
+                        if !is_recursive_call(call, name, class_name)
+                            && root_variable(method_call.object)
+                                .is_some_and(|variable| variable.trim_start_matches('$') == "this")
+                        {
+                            state_mutated = true;
+                        }
+                    }
                     let Some(function) = call_function_name(call) else {
                         return;
                     };
@@ -325,6 +333,8 @@ fn root_variable<'a>(expression: &'a Expression<'a>) -> Option<&'a str> {
         Expression::Parenthesized(parenthesized) => root_variable(parenthesized.expression),
         Expression::ArrayAccess(access) => root_variable(access.array),
         Expression::ArrayAppend(append) => root_variable(append.array),
+        Expression::Access(Access::Property(access)) => root_variable(access.object),
+        Expression::Access(Access::NullSafeProperty(access)) => root_variable(access.object),
         _ => None,
     }
 }
@@ -444,6 +454,8 @@ mod tests {
         assert!(analyze_file_for_rule("e48/reassigned_safe.php", CODE).is_empty());
         assert!(analyze_file_for_rule("e48/mutated_array_safe.php", CODE).is_empty());
         assert!(analyze_file_for_rule("e48/property_state_safe.php", CODE).is_empty());
+        assert!(analyze_file_for_rule("e48/object_parameter_state_safe.php", CODE).is_empty());
+        assert!(analyze_file_for_rule("e48/this_method_state_safe.php", CODE).is_empty());
         assert!(analyze_file_for_rule("e48/method_function_collision_safe.php", CODE).is_empty());
         assert!(analyze_file_for_rule("e48/foreach_target_safe.php", CODE).is_empty());
         assert!(analyze_file_for_rule("e48/global_function_safe.php", CODE).is_empty());

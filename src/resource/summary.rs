@@ -50,6 +50,12 @@ impl ResourceSummaryIndex {
         self.files.insert(file.path.clone(), summaries);
     }
 
+    pub fn merge(&mut self, other: ResourceSummaryIndex) {
+        let ResourceSummaryIndex { files, .. } = other;
+        self.files.extend(files);
+        self.invalidate();
+    }
+
     pub fn snapshot(&self) -> Arc<HashMap<String, ResourceSummary>> {
         if let Some(snapshot) = self
             .snapshot_cache
