@@ -11,7 +11,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/denzyldic
 It will automatically download executable for your platform.
 ```bash
 ~/phanalist -V
-phanalist 1.0.0
+phanalist 1.2.0
 ```
 
 ### Pre-compiled architecture-specific binary.
@@ -24,6 +24,10 @@ Available tarballs:
 - `phanalist-aarch64-unknown-linux-gnu.tar.gz`
 - `phanalist-x86_64-unknown-linux-gnu.tar.gz`
 - `phanalist-x86_64-pc-windows-msvc.zip`
+
+Linux tarballs require glibc. Phanalist no longer publishes musl binaries, so
+Alpine and other musl-based systems must compile from source or use the Docker
+image. The installation script stops with a clear error on musl systems.
 
 ### Compile from source
 
