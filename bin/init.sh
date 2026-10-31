@@ -81,14 +81,13 @@ main() {
 }
 
 get_architecture() {
-    local _ostype _cputype _arch _clibtype
+    local _ostype _cputype _arch
     _ostype="$(uname -s)"
     _cputype="$(uname -m)"
-    _clibtype="gnu"
 
     if [ "$_ostype" = Linux ]; then
         if ldd --version 2>&1 | grep -q 'musl'; then
-            _clibtype="musl"
+            err "No prebuilt binary is available for musl-based Linux (for example Alpine)."
         fi
     fi
 
@@ -100,7 +99,7 @@ get_architecture() {
     fi
 
     case "$_ostype" in
-        Linux) _ostype=unknown-linux-$_clibtype;;
+        Linux) _ostype=unknown-linux-gnu;;
         Darwin) _ostype=apple-darwin;;
         *) err "Unrecognized OS type: $_ostype";;
     esac

@@ -1,6 +1,11 @@
 # Changelog
 
-## [Unreleased]
+## [Unreleased] - yyyy-mm-dd
+
+### Breaking
+
+- Linux musl binaries are no longer published. Alpine and other musl-based systems must build from source or use the Docker image. The installation script now stops with a clear error instead of requesting a missing release asset.
+- Verification settings are scoped to individual rules. Settings under `E0031` apply only to division-by-zero checks; configure `E0032`-`E0043` separately. New default-on rules may also add findings to existing CI runs.
 
 ### Added
 
@@ -10,7 +15,7 @@
 - Added resource-analysis rules `E0044` input-dependent runtime growth, `E0045` input-dependent live-heap growth, and `E0046` input-controlled cardinality. The rules use symbolic size, cost, allocation, retention, and peak-heap summaries across functions and files; track request cardinality separately from taint; model array copying, appends, streams, and guards conservatively; and share a dedicated resource settings block.
 - The Z3-backed formal verification engine is split into one rule per finding class: `E0031` division by zero, `E0032` modulo by zero, `E0033` `intdiv()` by zero, `E0034` `intdiv()` overflow, `E0035` missing array key, `E0036` array index out of bounds, `E0037` string offset out of bounds, `E0038` method call on null, `E0039` property access on null, `E0040` return contract violation, `E0041` unreachable code, `E0042` impossible assertion, and `E0043` stream resource used after close. Each code has its own settings block and can be enabled, disabled, and configured independently.
 - The shared formal verification engine proves division, modulo and `intdiv()` safety; array and string bounds; null method and property access; declared and PHPDoc return contracts; PHPDoc parameter and `@var` refinements; `@phpstan-assert`/`@psalm-assert` contracts; assertions; unreachable statements; stream use-after-close and double-close; `switch`/`match` guards; numbered `break`/`continue`; per-element `foreach` analysis; closures and arrow functions; `try`/`catch`/`finally`; `never` return contracts; and `strlen()`/`count()` derived bounds. It unrolls `while`, `for`, `do`/`while`, and literal-array `foreach` loops, and uses project-wide constant-return and identity function and method summaries, including inherited and trait methods, `parent::` calls, and class and function `use` aliases, and reports unverified properties according to `unknown_policy`.
-- Vendored Z3 so the verifier builds without a system Z3 installation. Release binaries now target GNU Linux (musl builds are no longer produced).
+- Vendored Z3 so the verifier builds without a system Z3 installation.
 - The verification family propagates bounded integer ranges through direct same-class helper calls, including expressions such as `$max - $min + 1` and `max()`, `min()`, `abs()`, and `intdiv()`.
 - The verification family propagates PHPDoc return contracts to callers, including numeric ranges, non-empty strings/lists, and shaped arrays; documented non-empty values carry length information for `strlen()` and `count()`.
 - The verification family proves bounds for PHPDoc `list<T>` and `non-empty-list<T>` values, including `count()`/`sizeof()` lengths, appends, `foreach` keys, `isset()` guards, and guards in short-circuited `&&` chains. Reachable symbolic out-of-bounds indexes report `array-index`; indexes that cannot be modeled report `unverified` under `unknown_policy: report`.
