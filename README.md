@@ -1,29 +1,50 @@
 <img src="https://raw.githubusercontent.com/denzyldick/phanalist/main/docs/branding/banner-cropped.png"/>
 
-> Performant static analyzer for PHP, written in Rust. Catches common mistakes and enforces best practices with zero configuration required.
+> Fast static analyzer for PHP, written in Rust. Finds maintainability and runtime risks with zero configuration required.
 ---
 ### 🤔 Why Phanalist?
 
-PHP codebases grow. As they grow, they accumulate technical debt — god classes that do everything, methods no one can follow, hidden complexity that breaks with every change. Traditional linters catch syntax errors and style issues, but they don't tell you if your code is **maintainable**.
+PHP codebases grow. As they grow, they collect technical debt: classes that do too much, methods that are hard to follow, and hidden risks that only appear under real traffic. Most tools check syntax, style, or types. Phanalist checks whether the code will stay **maintainable and safe as it grows**.
 
-Phanalist focuses on **structural health**. It measures what matters for long-term maintainability:
+It looks at two things:
 
-- **Complexity metrics** — cyclomatic complexity, cognitive complexity, LOC per method, nested paths
-- **Coupling & cohesion** — Law of Demeter violations, god classes, data classes, fan-in/fan-out
-- **Object-oriented design** — depth of inheritance, weighted methods per class, response for a class
-- **Readability** — comment ratios, error suppression, method parameter counts
+- **Code health** — complexity, coupling, class design, and readability
+- **Runtime risk** — memory that grows with input, work that grows too fast, and collections with no size limit
 
-Think of it as a health checkup for your PHP code. It doesn't just tell you *that* something is wrong — each rule explains *why* it matters and *how* to fix it.
+In plain terms, Phanalist helps you answer questions like:
+
+- Is this class becoming too large to maintain?
+- Does this loop keep allocating memory as the input grows?
+- Is this code using a risky PHP feature in a security-sensitive place?
+
+Each finding explains what is wrong, why it matters, and how to fix it. You do not need to be a static-analysis expert to use it.
 
 ---
 
 ### ✨ Features
 
-- 🚀 **Fast** — built in Rust, analyzes large codebases in seconds
-- 🔍 **59 built-in rules** — covering complexity, style, design patterns, and more
-- ⚙️ **Zero config to start** — works out of the box, configure only what you need
-- 📄 **Multiple output formats** — `text`, `json`, `sarif` (for CI pipelines with inline PR annotations via [GitHub Action](https://github.com/marketplace/actions/phanalist)), and `codeclimate` (for Code Quality platforms)
+- 🚀 **Fast** — built in Rust, analyzes large codebases in seconds and keeps memory use predictable
+- 🔍 **59 built-in rules** — covering architecture, runtime risk, security, and more
+- **Formal verification** — uses a solver to check every modeled path for common runtime errors, not just a few examples
+- **Resource analysis** — finds loops and helpers that use more time or memory as input grows
+- **Security checks** — flags risky PHP patterns such as `eval()`, unsafe deserialization, weak randomness, and insecure cookies
+- ⚙️ **Zero config to start** — works out of the box; configure only what you need
+- 📄 **Multiple output formats** — `text`, `json`, `sarif` for GitHub code scanning and other CI tools, and `codeclimate` for code-quality platforms
 - 🔌 **Extensible** — adding a custom rule takes minutes
+
+### Where Phanalist fits
+
+Phanalist is not an all-in-one replacement for every tool in your pipeline. It focuses on code health and runtime risk, and it can run next to the tools you already use.
+
+| Tool category | What it usually checks | What Phanalist adds | Run together? |
+|---|---|---|---|
+| Type analysis | Types, nullability, and contracts | Architecture, runtime/resource, and security findings | Yes |
+| Style and formatting | Coding standard and layout | Design and runtime risk | Yes |
+| Architecture and metrics | Coupling, complexity, and dependency rules | Actionable findings with explanations and fix guidance | Yes, or use instead |
+| Security scanning | Broad source-to-sink analysis | Targeted PHP-specific hazards | Yes |
+| Quality dashboard | History, trends, and team reporting | SARIF and Code Climate output for your existing dashboard | Yes |
+
+The short version: keep your type checker for correctness, your style tool for formatting, and use Phanalist for the code-health and runtime risks they do not cover.
 
 ---
 
@@ -39,10 +60,12 @@ It will automatically download the executable for your platform:
 
 ```bash
 $ ~/phanalist -V
-phanalist 1.0.0
+phanalist 1.2.0
 ```
 
 There are also [multiple other installation options](./docs/installation.md).
+
+Prebuilt Linux binaries require glibc. Alpine and other musl-based systems must [compile from source](./docs/installation.md#compile-from-source) or use the Docker image.
 
 ### GitHub Action
 
@@ -241,6 +264,7 @@ rules:
     unknown_policy: report
     max_findings_per_function: 50
   E0044:
+    # E0045 and E0046 accept the same settings block.
     runtime_threshold: quadratic
     heap_alloc_threshold: quadratic
     retained_element_bytes: 32
@@ -249,14 +273,14 @@ rules:
     max_findings_per_function: 20
 ```
 
-E0032-E0043 accept the same settings schema. Every verification code is enabled,
+E0032-E0043 accept the same options. Every verification code is enabled,
 disabled, and configured independently; settings under `E0031` apply only to
 division-by-zero checks.
 
 E0044-E0046 share the resource settings block. `runtime_threshold` and
 `heap_alloc_threshold` accept `linear`, `quadratic`, `cubic`, or `exponential`;
-`retained_element_bytes` is the minimum known element size treated as large
-retention. E0046 can be disabled with
+`retained_element_bytes` is the smallest known element size that counts as
+large retained memory. E0046 can be disabled with
 `report_input_cardinality: false`, and `include_cli_input` controls whether
 `$argv` and `readline()` are treated as request sources. It defaults to `false`;
 `$_SERVER` is only request-controlled for explicit request keys such as
@@ -269,7 +293,7 @@ retention. E0046 can be disabled with
 
 #### Scanning a whole project
 
-Pointing `--src .` at a project root works and stays memory-safe: files are analysed in parallel, but each worker releases a file's parse tree before reading its next file. Peak memory therefore tracks the largest file per worker rather than the size of the whole tree. Set `PHANALIST_JOBS=1` to restore strictly one-file-at-a-time memory use, or use a small value to cap worker memory on constrained machines.
+Pointing `--src .` at a project root works and stays memory-safe. Files are analysed in parallel, and each worker releases a file's parse tree before reading its next file. That means peak memory depends on the largest file per worker, not the size of the whole project. Set `PHANALIST_JOBS=1` to process one file at a time, or use a small value to cap memory on constrained machines.
 
 Two things do still scale with the run: the violations you asked to report, and the time spent parsing. Excluding dependencies and generated code with `exclude_paths` is the cheapest way to cut both:
 
