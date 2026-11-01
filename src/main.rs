@@ -125,7 +125,7 @@ fn main() {
     let paths = args.src;
     for path in paths.iter() {
         if !Path::new(&path).exists() {
-            println!("Path {} does not exist", path);
+            eprintln!("Path {} does not exist", path);
             process::exit(exitcode::IOERR);
         }
     }
