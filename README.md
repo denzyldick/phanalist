@@ -1,40 +1,77 @@
 <img src="https://raw.githubusercontent.com/denzyldick/phanalist/main/docs/branding/banner-cropped.png"/>
 
 > Fast static analyzer for PHP, written in Rust. Finds maintainability and runtime risks with zero configuration required.
+
 ---
-### 🤔 Why Phanalist?
+
+## 📖 Table of Contents
+- [Why Phanalist?](#-why-phanalist)
+- [✨ Features](#-features)
+- [🚀 Quickstart (5 Minutes)](#-quickstart-5-minutes)
+- [📦 Installation](./docs/installation.md)
+- [💻 Usage & CLI Flags](#-usage)
+- [📈 Engineer Quality Report (--blame)](#-engineer-quality-report)
+- [🛡️ Baseline (Adopting without fixing everything)](#-baseline)
+- [⚙️ Configuration](#-configuration)
+- [📜 Rules Reference](#-rules)
+- [🔌 Language Server Protocol (LSP)](#-language-server-protocol-lsp)
+
+---
+
+## 🤔 Why Phanalist?
 
 PHP codebases grow. As they grow, they collect technical debt: classes that do too much, methods that are hard to follow, and hidden risks that only appear under real traffic. Most tools check syntax, style, or types. Phanalist checks whether the code will stay **maintainable and safe as it grows**.
 
-It looks at two things:
-
+It looks at two core things:
 - **Code health** — complexity, coupling, class design, and readability
 - **Runtime risk** — memory that grows with input, work that grows too fast, and collections with no size limit
 
 In plain terms, Phanalist helps you answer questions like:
-
 - Is this class becoming too large to maintain?
-- Does this loop keep allocating memory as the input grows?
+- Does this loop keep allocating memory as input grows?
 - Is this code using a risky PHP feature in a security-sensitive place?
 
-Each finding explains what is wrong, why it matters, and how to fix it. You do not need to be a static-analysis expert to use it.
+Each finding explains what is wrong, why it matters, and how to fix it. **You do not need to be a static-analysis expert to use it.**
 
 ---
 
-### ✨ Features
+## ✨ Features
 
-- 🚀 **Fast** — built in Rust, analyzes large codebases in seconds and keeps memory use predictable
-- 🔍 **59 built-in rules** — covering architecture, runtime risk, security, and more
-- **Formal verification** — uses a solver to check every modeled path for common runtime errors, not just a few examples
-- **Resource analysis** — finds loops and helpers that use more time or memory as input grows
-- **Security checks** — flags risky PHP patterns such as `eval()`, unsafe deserialization, weak randomness, and insecure cookies
-- ⚙️ **Zero config to start** — works out of the box; configure only what you need
-- 📄 **Multiple output formats** — `text`, `json`, `sarif` for GitHub code scanning and other CI tools, and `codeclimate` for code-quality platforms
-- 🔌 **Extensible** — adding a custom rule takes minutes
+- 🚀 **Fast** — built in Rust, analyzes large codebases in seconds and keeps memory use predictable.
+- 🔍 **59 built-in rules** — covering architecture, runtime risk, security, and code health.
+- **Formal verification** — uses a solver (Z3) to check every modeled path for common runtime errors (like division by zero or array bounds issues).
+- **Resource analysis** — finds loops and functions that use more time or memory as input grows.
+- **Security checks** — flags risky PHP patterns such as `eval()`, unsafe deserialization (`unserialize`), weak randomness, and insecure cookies.
+- ⚙️ **Zero config to start** — works out of the box; configure only what you need in `phanalist.yaml`.
+- 📄 **Multiple output formats** — `text`, `json`, `sarif` for GitHub code scanning, and `codeclimate` for code-quality platforms.
+- 🔌 **Extensible** — adding a custom rule takes minutes.
 
-### Where Phanalist fits
+---
 
-Phanalist is not an all-in-one replacement for every tool in your pipeline. It focuses on code health and runtime risk, and it can run next to the tools you already use.
+## 🚀 Quickstart (5 Minutes)
+
+### Step 1: Install Phanalist
+Run the installation script in your terminal:
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/denzyldick/phanalist/main/bin/init.sh | sh
+```
+
+### Step 2: Run Your First Scan
+Navigate to your PHP project root and run:
+```bash
+~/phanalist
+```
+*(On the first run, `phanalist.yaml` is automatically created with sensible defaults).*
+
+### Step 3: Review Findings
+Phanalist outputs actionable findings with file paths, line numbers, and clear explanations. To see violations per rule summary only, run:
+```bash
+~/phanalist --summary-only
+```
+
+---
+
+### Where Phanalist Fits in Your Pipeline
 
 | Tool category | What it usually checks | What Phanalist adds | Run together? |
 |---|---|---|---|
@@ -44,28 +81,7 @@ Phanalist is not an all-in-one replacement for every tool in your pipeline. It f
 | Security scanning | Broad source-to-sink analysis | Targeted PHP-specific hazards | Yes |
 | Quality dashboard | History, trends, and team reporting | SARIF and Code Climate output for your existing dashboard | Yes |
 
-The short version: keep your type checker for correctness, your style tool for formatting, and use Phanalist for the code-health and runtime risks they do not cover.
-
 ---
-
-### Installation
-
-The simplest way to install Phanalist is to use the installation script:
-
-```bash
-curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/denzyldick/phanalist/main/bin/init.sh | sh
-```
-
-It will automatically download the executable for your platform:
-
-```bash
-$ ~/phanalist -V
-phanalist 1.2.0
-```
-
-There are also [multiple other installation options](./docs/installation.md).
-
-Prebuilt Linux binaries require glibc. Alpine and other musl-based systems must [compile from source](./docs/installation.md#compile-from-source) or use the Docker image.
 
 ### GitHub Action
 
@@ -84,24 +100,11 @@ jobs:
       - uses: denzyldick/phanalist-action@v1
 ```
 
-By default, the action appends each rule's full documentation to inline pull
-request annotations.
+By default, the action appends each rule's full documentation to inline pull request annotations.
 
 ---
 
 ### Usage
-
-To analyze your project sources, run:
-
-```bash
-~/phanalist
-```
-
-#### Example
-
-![Example](docs/branding/example.gif)
-
-On the first run `phanalist.yaml` will be created with the default configuration and reused on all subsequent runs.
 
 **Additional CLI flags:**
 
@@ -114,13 +117,13 @@ On the first run `phanalist.yaml` will be created with the default configuration
 | `--summary-only` | Show only violation counts per rule | — |
 | `--quiet`, `-q` | Suppress all output | — |
 | `--verbose`, `-v` | Increase verbosity; repeat for more (`-v` main pass, `-vv` parsing, `-vvv` indexing) | — |
-| `--debug-rule-timing` | Print per-rule per-file timing (min/max/avg/p90/p95/p99 + slowest files) | — |
-| `--debug-rule-stats` | Print per-rule cost/coverage stats (time, %, violations, files, statements) | — |
+| `--debug-rule-timing` | Print per-rule per-file timing | — |
+| `--debug-rule-stats` | Print per-rule cost/coverage stats | — |
 | `--use-baseline` | Filter results against a baseline file, reporting only new violations | — |
-| `--update-baseline` | Regenerate the baseline from the current scan (requires `--use-baseline`) | — |
+| `--update-baseline` | Regenerate the baseline from the current scan | — |
 | `--blame` | Attribute violations to engineers via git blame and show a quality report | — |
-| `--since` | Only count violations from commits after this date (e.g. `"30 days"`, `"1 year"`, `"2025-01-01"`) | — |
-| `--until` | Only count violations from commits before this date (e.g. `"2025-06-01"`) | — |
+| `--since` | Only count violations from commits after this date (e.g. `"30 days"`, `"2025-01-01"`) | — |
+| `--until` | Only count violations from commits before this date | — |
 | `--export-chart` | Export engineer chart as PNG/SVG image (requires `--blame`) | — |
 | `--exclude-author` | Exclude authors from the report (repeatable, e.g. `--exclude-author dependabot`) | — |
 | `--min-violations` | Minimum total violations to include an engineer in the report | `0` |
@@ -139,17 +142,9 @@ Use the `--blame` flag to see who is introducing and fixing violations in your c
 # See what changed in the last 30 days (Net column shows who is improving vs degrading)
 ~/phanalist --blame --since "30 days"
 
-# See changes over the last year
-~/phanalist --blame --since "1 year"
-
-# Exclude bots
-~/phanalist --blame --since "30 days" --exclude-author dependabot
-
-# Sort by net improvements (who is adding the most value)
-~/phanalist --blame --since "30 days" --sort net
+# Exclude bots and sort by net improvements
+~/phanalist --blame --since "30 days" --exclude-author dependabot --sort net
 ```
-
-The report shows a table with:
 
 | Column | Meaning |
 |---|---|
@@ -158,48 +153,19 @@ The report shows a table with:
 | **Introduced (✗)** | Violations that appeared compared to the `--since` snapshot |
 | **Net** | `Fixed - Introduced` — positive means improving, negative means degrading |
 
-**Sorting:**
-
-Use `--sort` to change the order: `total` (default, by volume), `net` (by net improvements), `name`, `fixed`, `introduced`.
-
-**How it works:**
-
-- **Without `--since`:** Looks at the current violations in your code and uses git blame to figure out who last touched each affected line. Engineers are credited with the violations in code they most recently worked on.
-- **With `--since <date>`:** Takes a snapshot of your code as it was at that date, runs the same analysis on the old version, and compares the results. Violations that disappeared were "fixed" — violations that appeared were "introduced". Each change is attributed to the engineer who made it.
-
-**Output:**
-
-The report includes a summary table and a per-rule breakdown with colored counts (green for fixed, red for introduced).
-
-The `--blame` flag works with `--output-format json` — the engineer data is included as an `"engineer_report"` field in the JSON output for use in pipelines or dashboards.
-
-Requires a `.git` directory (discovered from the current working directory). Only files within `--src` paths are attributed.
-
 ---
 
 ### Baseline
 
-A baseline lets you adopt phanalist on an existing codebase without fixing every
-finding at once. It freezes the current violations; later runs report only new
-ones, so CI stays green on known debt but fails on regressions.
-
-Generate (or regenerate) the baseline:
+A baseline lets you adopt Phanalist on an existing codebase without fixing every finding at once. It freezes current violations; later runs report only new ones so CI stays green on known debt but fails on regressions.
 
 ```bash
+# Generate baseline
 ~/phanalist --use-baseline phanalist-baseline.json --update-baseline
-```
 
-Then run against it (in CI, or locally):
-
-```bash
+# Run against baseline in CI
 ~/phanalist --use-baseline phanalist-baseline.json
 ```
-
-The baseline is a pretty-printed, stably sorted JSON file, so it produces clean
-diffs and merges. Each entry is keyed on the file, rule, and a stable message id
-with a count, so unrelated edits that shift line numbers do not invalidate it,
-and reworded message text does not either. When you fix violations, regenerate
-the baseline to shrink it.
 
 ---
 
@@ -208,107 +174,24 @@ the baseline to shrink it.
 ```yaml
 enabled_rules: []   # empty = all rules active
 disable_rules: []
-exclude_paths: []   # paths skipped before any rule runs (see below)
+exclude_paths:
+  - vendor
+  - node_modules
+  - var/generated
 rules:
   E0007:
     check_constructor: true
     max_parameters: 5
   E0009:
     max_complexity: 10
-  E0010:
-    max_paths: 200
-  E0012:
-    include_namespaces:
-      - "App\\Service\\"
-      - "App\\Controller\\"
-    exclude_namespaces: []
-    reset_interfaces:
-      - "ResetInterface"
-  E0015:
-    threshold: 1
-  E0016:
-    max_complexity: 15
-  E0024:
-    max_loc: 30
-  E0025:
-    max_loc: 500
-  E0026:
-    min_ratio: 0.1
-    max_ratio: 0.5
-  E0027:
-    max_methods: 15
-    max_fields: 10
-  E0028:
-    max_getter_setter_ratio: 0.7
-    min_methods: 3
-  E0029:
-    max_fan_out: 10
-    max_fan_in: 20
-  E0030:
-    max_density: 0.3
-  E0031:
-    php_version: "8.4"
-    check_division: true
-    check_modulo: true
-    check_intdiv: true
-    check_array_index: true
-    check_string_offset: true
-    check_nullability: true
-    check_types: true
-    check_assertions: true
-    check_unreachable: true
-    check_return_contracts: true
-    loop_strategy: auto
-    unroll_depth: 16
-    timeout_ms: 1000
-    unknown_policy: report
-    max_findings_per_function: 50
-  E0044:
-    # E0045 and E0046 accept the same settings block.
-    runtime_threshold: quadratic
-    heap_alloc_threshold: quadratic
-    retained_element_bytes: 32
-    report_input_cardinality: true
-    include_cli_input: false
-    max_findings_per_function: 20
-```
-
-E0032-E0043 accept the same options. Every verification code is enabled,
-disabled, and configured independently; settings under `E0031` apply only to
-division-by-zero checks.
-
-E0044-E0046 share the resource settings block. `runtime_threshold` and
-`heap_alloc_threshold` accept `linear`, `quadratic`, `cubic`, or `exponential`;
-`retained_element_bytes` is the smallest known element size that counts as
-large retained memory. E0046 can be disabled with
-`report_input_cardinality: false`, and `include_cli_input` controls whether
-`$argv` and `readline()` are treated as request sources. It defaults to `false`;
-`$_SERVER` is only request-controlled for explicit request keys such as
-`HTTP_*`, not when iterated as a whole array.
-
-- **`enabled_rules`** — whitelist of rules to run (empty = all)
-- **`disable_rules`** — rules to skip
-- **`rules`** — per-rule configuration options
-- **`exclude_paths`** — files skipped before any rule runs, as directory prefixes (`var/cache`, `bootstrap/cache`) or globs (`**/*.generated.php`). Handy for framework caches and frozen code like migrations that would only add noise. Literal (non-glob) patterns that don't exist on disk trigger a warning at `-v` verbosity — a helpful catch for typos. Globs that match nothing are silently accepted.
-
-#### Scanning a whole project
-
-Pointing `--src .` at a project root works and stays memory-safe. Files are analysed in parallel, and each worker releases a file's parse tree before reading its next file. That means peak memory depends on the largest file per worker, not the size of the whole project. Set `PHANALIST_JOBS=1` to process one file at a time, or use a small value to cap memory on constrained machines.
-
-Two things do still scale with the run: the violations you asked to report, and the time spent parsing. Excluding dependencies and generated code with `exclude_paths` is the cheapest way to cut both:
-
-```yaml
-exclude_paths:
-  - vendor
-  - node_modules
-  - var/generated
+  # ... (see documentation for individual rule settings)
 ```
 
 ---
 
 ### Rules
 
-New to the terminology? See the [rule glossary](./docs/rule_glossary.md).
+New to the terminology? Check the [Rule Glossary](./docs/rule_glossary.md). Every rule links to detailed, junior-friendly documentation with bad/good examples and junior rules of thumb.
 
 | Code | Name | Options |
 | :--: | :--- | :------ |
@@ -343,33 +226,33 @@ New to the terminology? See the [rule glossary](./docs/rule_glossary.md).
 | [E0028](/src/rules/examples/e28/e28.md) | Data Class | `max_getter_setter_ratio: 0.7`, `min_methods: 3` |
 | [E0029](/src/rules/examples/e29/e29.md) | Fan-in / Fan-out | `max_fan_out: 10`, `max_fan_in: 20` |
 | [E0030](/src/rules/examples/e30/e30.md) | Cyclomatic Complexity Density | `max_density: 0.3` |
-| [E0031](/src/rules/examples/e31/e31.md) | Division by Zero | `php_version`, `check_division`, `check_modulo`, `check_intdiv`, `check_array_index`, `check_string_offset`, `check_nullability`, `check_types`, `check_assertions`, `check_unreachable`, `check_return_contracts`, `loop_strategy`, `unroll_depth`, `timeout_ms`, `unknown_policy`, `max_findings_per_function` |
-| [E0032](/src/rules/examples/e32/e32.md) | Modulo by Zero | same schema as E0031 |
-| [E0033](/src/rules/examples/e33/e33.md) | `intdiv()` by Zero | same schema as E0031 |
-| [E0034](/src/rules/examples/e34/e34.md) | `intdiv()` Overflow | same schema as E0031 |
-| [E0035](/src/rules/examples/e35/e35.md) | Missing Array Key | same schema as E0031 |
-| [E0036](/src/rules/examples/e36/e36.md) | Array Index Out of Bounds | same schema as E0031 |
-| [E0037](/src/rules/examples/e37/e37.md) | String Offset Out of Bounds | same schema as E0031 |
-| [E0038](/src/rules/examples/e38/e38.md) | Method Call on Null | same schema as E0031 |
-| [E0039](/src/rules/examples/e39/e39.md) | Property Access on Null | same schema as E0031 |
-| [E0040](/src/rules/examples/e40/e40.md) | Return Contract Violation | same schema as E0031 |
-| [E0041](/src/rules/examples/e41/e41.md) | Unreachable Code | same schema as E0031 |
-| [E0042](/src/rules/examples/e42/e42.md) | Impossible Assertion | same schema as E0031 |
-| [E0043](/src/rules/examples/e43/e43.md) | Stream Resource Used After Close | same schema as E0031 |
-| [E0044](/src/rules/examples/e44/e44.md) | Input-dependent runtime growth | `runtime_threshold`, `heap_alloc_threshold`, `retained_element_bytes`, `report_input_cardinality`, `include_cli_input`, `max_findings_per_function` |
-| [E0045](/src/rules/examples/e45/e45.md) | Input-dependent live-heap growth | same as E0044 |
-| [E0046](/src/rules/examples/e46/e46.md) | Input-controlled cardinality | same as E0044 |
+| [E0031](/src/rules/examples/e31/e31.md) | Division by Zero | Configurable |
+| [E0032](/src/rules/examples/e32/e32.md) | Modulo by Zero | Configurable |
+| [E0033](/src/rules/examples/e33/e33.md) | `intdiv()` by Zero | Configurable |
+| [E0034](/src/rules/examples/e34/e34.md) | `intdiv()` Overflow | Configurable |
+| [E0035](/src/rules/examples/e35/e35.md) | Missing Array Key | Configurable |
+| [E0036](/src/rules/examples/e36/e36.md) | Array Index Out of Bounds | Configurable |
+| [E0037](/src/rules/examples/e37/e37.md) | String Offset Out of Bounds | Configurable |
+| [E0038](/src/rules/examples/e38/e38.md) | Method Call on Null | Configurable |
+| [E0039](/src/rules/examples/e39/e39.md) | Property Access on Null | Configurable |
+| [E0040](/src/rules/examples/e40/e40.md) | Return Contract Violation | Configurable |
+| [E0041](/src/rules/examples/e41/e41.md) | Unreachable Code | Configurable |
+| [E0042](/src/rules/examples/e42/e42.md) | Impossible Assertion | Configurable |
+| [E0043](/src/rules/examples/e43/e43.md) | Stream Resource Used After Close | Configurable |
+| [E0044](/src/rules/examples/e44/e44.md) | Input-dependent runtime growth | Configurable |
+| [E0045](/src/rules/examples/e45/e45.md) | Input-dependent live-heap growth | Configurable |
+| [E0046](/src/rules/examples/e46/e46.md) | Input-controlled cardinality | Configurable |
 | [E0047](/src/rules/examples/e47/e47.md) | Resource lifecycle leak | |
 | [E0048](/src/rules/examples/e48/e48.md) | Unbounded direct recursion | |
-| [E0049](/src/rules/examples/e49/e49.md) | Invalid builtin argument | |
+| [E0049](/src/rules/examples/e49/e49.md) | Builtin argument validation | |
 | [E0050](/src/rules/examples/e50/e50.md) | Position check used as boolean | |
 | [E0051](/src/rules/examples/e51/e51.md) | Count of a non-countable value | |
 | [E0052](/src/rules/examples/e52/e52.md) | Unchecked json_decode result | |
 | [E0053](/src/rules/examples/e53/e53.md) | Unserialize without allowed_classes | |
 | [E0054](/src/rules/examples/e54/e54.md) | Dynamic variable creation | |
 | [E0055](/src/rules/examples/e55/e55.md) | Dynamic include or require | |
-| [E0056](/src/rules/examples/e56/e56.md) | Weak randomness for security-sensitive value | |
-| [E0057](/src/rules/examples/e57/e57.md) | MD5 or SHA1 used for a password | |
+| [E0056](/src/rules/examples/e56/e56.md) | Weak randomness for security | |
+| [E0057](/src/rules/examples/e57/e57.md) | MD5 or SHA1 for passwords | |
 | [E0058](/src/rules/examples/e58/e58.md) | Cookie missing Secure or HttpOnly | |
 | [E0059](/src/rules/examples/e59/e59.md) | Dynamic eval or assert | |
 
@@ -379,45 +262,10 @@ Adding a new rule is straightforward — [this tutorial](./docs/adding_new_rule.
 
 ### 🔌 Language Server Protocol (LSP)
 
-Phanalist includes built-in LSP support to provide real-time, as-you-type diagnostics directly in your editor.
-
-To start the language server, run:
-```bash
-phanalist --lsp
-```
-
-#### Editor Configuration Examples
-
-##### Neovim (using `vim.lsp`)
-Add the following to your `init.lua` or filetype plugin (`ftplugin/php.lua`):
-```lua
-vim.api.nvim_create_autocmd("FileType", {
-  pattern = "php",
-  callback = function()
-    local root_dir = vim.fs.dirname(vim.fs.find({'phanalist.yaml', '.git'}, { upward = true })[1])
-    if root_dir then
-      vim.lsp.start({
-        name = "phanalist-lsp",
-        cmd = { "phanalist", "--lsp" },
-        root_dir = root_dir,
-      })
-    end
-  end,
-})
-```
-
-##### VS Code
-You can use any generic LSP extension or configure your settings to run `phanalist --lsp` as a language client for PHP files.
+Phanalist includes built-in LSP support to provide real-time, as-you-type diagnostics directly in your editor (`phanalist --lsp`).
 
 ---
 
 ### Articles
 
-Read a series of chapters on [https://dev.to/denzyldick](https://dev.to/denzyldick) to understand the project's internals — a great, easy-to-read introduction.
-
-1. [Write your own static analyzer for PHP.](https://dev.to/denzyldick/the-beginning-of-my-php-static-analyzer-in-rust-5bp8)
-2. [How I made it impossible to write spaghetti code.](https://dev.to/denzyldick/how-i-made-it-impossible-to-write-spaghetti-code-dg4)
-3. [Detecting spaghetti code in AST of a PHP source code.](https://dev.to/denzyldick/traversing-an-ast-of-php-source-code-2kee)
-4. [Getting Symfony app ready for Swoole, RoadRunner, and FrankenPHP (no AI involved).](https://dev.to/sergiid/getting-symfony-app-ready-for-swoole-roadrunner-and-frankenphp-no-ai-involved-2d0g)
-5. [Improve your CI output](https://dev.to/denzyldick/improve-your-ci-output-2eg)
-6. [Why using unserialize in PHP is a bad idea](https://dev.to/denzyldick/why-is-unserializing-an-object-in-php-a-bad-idea-3odl)
+Read a series of chapters on [https://dev.to/denzyldick](https://dev.to/denzyldick) to understand the project's internals.
