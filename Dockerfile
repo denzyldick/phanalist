@@ -1,6 +1,6 @@
 FROM rust:slim AS builder
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends cmake g++ make \
+    && apt-get install -y --no-install-recommends cmake g++ make python3 \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /usr/phanalist
 COPY . .
