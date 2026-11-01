@@ -126,7 +126,7 @@ impl Results {
             *self.codes_count.entry(violation.rule.clone()).or_insert(0) += 1;
         }
 
-        let path = path.display().to_string();
+        let path = crate::paths::normalize_relative(&path);
         // `violations` is owned, so entries are moved in rather than cloned.
         // Every violation carries several `String`s, so cloning them all was
         // doubling the allocation churn on the scan's hottest path.
@@ -228,13 +228,26 @@ mod tests {
         let expected_file2_violations = vec![violation3];
 
         assert_eq!(
-            results.files.get("./class1.php").unwrap(),
+            results.files.get("class1.php").unwrap(),
             &expected_file1_violations
         );
         assert_eq!(
-            results.files.get("./class2.php").unwrap(),
+            results.files.get("class2.php").unwrap(),
             &expected_file2_violations
         );
+    }
+
+    #[test]
+    fn add_file_violations_normalizes_absolute_paths() {
+        let mut results = get_results();
+        let arena = LocalArena::new();
+        let cwd = std::env::current_dir().unwrap();
+        let file = get_file(&arena, cwd.join("src/Foo.php").to_str().unwrap());
+
+        results.add_file_violations(&file, vec![get_violation("E001")]);
+
+        assert!(results.files.contains_key("src/Foo.php"));
+        assert!(!results.files.keys().any(|key| key.starts_with('/')));
     }
 
     #[test]

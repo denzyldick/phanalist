@@ -153,7 +153,7 @@ pub trait Rule: Sync {
     }
 
     fn output_error(&self, e: Box<dyn Error>) {
-        println!(
+        eprintln!(
             "{}",
             format!(
                 "Unable to parse config for rule #{}, so default values will be used. Parsing error: {}",

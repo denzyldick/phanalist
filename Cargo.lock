@@ -2433,6 +2433,7 @@ dependencies = [
  "mago-span",
  "mago-syntax",
  "memory-stats",
+ "percent-encoding",
  "serde",
  "serde-sarif",
  "serde_json",
