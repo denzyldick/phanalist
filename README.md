@@ -12,8 +12,8 @@
 - [💻 Usage & CLI Flags](#-usage)
 - [📈 Engineer Quality Report (--blame)](#-engineer-quality-report)
 - [🛡️ Baseline (Adopting without fixing everything)](#-baseline)
-- [⚙️ Configuration](#-configuration)
-- [📜 Rules Reference](#-rules)
+- [⚙️ Configuration & Rule Sections](#-configuration--rule-sections)
+- [📜 Rules Reference](#-rules-reference)
 - [🔌 Language Server Protocol (LSP)](#-language-server-protocol-lsp)
 
 ---
@@ -39,7 +39,7 @@ Each finding explains what is wrong, why it matters, and how to fix it. **You do
 
 - 🚀 **Fast** — built in Rust, analyzes large codebases in seconds and keeps memory use predictable.
 - 🔍 **59 built-in rules** — covering architecture, runtime risk, security, and code health.
-- **Formal verification** — uses a solver (Z3) to check every modeled path for common runtime errors (like division by zero or array bounds issues).
+- **Formal verification** — checks code paths for common runtime errors (like division by zero or array bounds issues).
 - **Resource analysis** — finds loops and functions that use more time or memory as input grows.
 - **Security checks** — flags risky PHP patterns such as `eval()`, unsafe deserialization (`unserialize`), weak randomness, and insecure cookies.
 - ⚙️ **Zero config to start** — works out of the box; configure only what you need in `phanalist.yaml`.
@@ -169,7 +169,14 @@ A baseline lets you adopt Phanalist on an existing codebase without fixing every
 
 ---
 
-### Configuration
+## ⚙️ Configuration & Rule Sections
+
+Phanalist organizes rules into four internal analysis sections. You can configure thresholds or disable rules in `phanalist.yaml`:
+
+1. **AST & Code Quality (`ast`):** Checks syntax structure, formatting conventions, naming rules, method complexity metrics, and class design.
+2. **Formal Verification (`verification`):** Analyzes control flow to prove runtime safety (such as preventing division by zero, null errors, and array bounds violations).
+3. **Resource Analysis (`resource`):** Measures time complexity, memory allocation growth, and untrusted loop cardinality.
+4. **Security & Lifecycle (`security`):** Detects security vulnerabilities, unclosed file/stream resources, and dangerous execution sinks.
 
 ```yaml
 enabled_rules: []   # empty = all rules active
@@ -177,84 +184,107 @@ disable_rules: []
 exclude_paths:
   - vendor
   - node_modules
-  - var/generated
 rules:
   E0007:
-    check_constructor: true
     max_parameters: 5
   E0009:
     max_complexity: 10
-  # ... (see documentation for individual rule settings)
+  E0031:
+    php_version: "8.4"
+    timeout_ms: 1000
+  E0044:
+    runtime_threshold: quadratic
 ```
 
 ---
 
-### Rules
+## 📜 Rules Reference
 
 New to the terminology? Check the [Rule Glossary](./docs/rule_glossary.md). Every rule links to detailed, junior-friendly documentation with bad/good examples and junior rules of thumb.
 
-| Code | Name | Options |
+### Section 1: AST & Code Quality Rules (E0000–E0030)
+*Type: Syntax, metrics, structure, and design checks.*
+
+| Code | Name | Primary Option / Threshold |
 | :--: | :--- | :------ |
-| E0000 | Example rule | |
-| [E0001](/src/rules/examples/e1/e1.md) | Opening tag position | |
-| [E0002](/src/rules/examples/e2/e2.md) | Empty catch | |
-| [E0003](/src/rules/examples/e3/e3.md) | Method modifiers | |
-| [E0004](/src/rules/examples/e4/e4.md) | Uppercase constants | |
-| [E0005](/src/rules/examples/e5/e5.md) | Capitalized class name | |
-| [E0006](/src/rules/examples/e6/e6.md) | Property modifiers | |
-| [E0007](/src/rules/examples/e7/e7.md) | Method parameters count | `check_constructor: true`, `max_parameters: 5` |
-| [E0008](/src/rules/examples/e8/e8.md) | Return type signature | |
+| E0000 | Example rule | — |
+| [E0001](/src/rules/examples/e1/e1.md) | Opening tag position | — |
+| [E0002](/src/rules/examples/e2/e2.md) | Empty catch block | — |
+| [E0003](/src/rules/examples/e3/e3.md) | Method visibility modifiers | — |
+| [E0004](/src/rules/examples/e4/e4.md) | Uppercase constants | — |
+| [E0005](/src/rules/examples/e5/e5.md) | Capitalized class name | — |
+| [E0006](/src/rules/examples/e6/e6.md) | Property visibility modifiers | — |
+| [E0007](/src/rules/examples/e7/e7.md) | Method parameters count | `max_parameters: 5` |
+| [E0008](/src/rules/examples/e8/e8.md) | Return type signature | — |
 | [E0009](/src/rules/examples/e9/e9.md) | Cyclomatic complexity | `max_complexity: 10` |
 | [E0010](/src/rules/examples/e10/e10.md) | Npath complexity | `max_paths: 200` |
-| [E0011](/src/rules/examples/e11/e11.md) | Detect error suppression symbol (`@`) | |
-| [E0012](/src/rules/examples/e12/e12.md) | Service compatibility with Shared Memory Model | `include_namespaces`, `exclude_namespaces`, `reset_interfaces` |
-| [E0013](/src/rules/examples/e13/e13.md) | Private method not being used | |
-| [E0014](/src/rules/examples/e14/e14.md) | Law of Demeter | |
-| [E0015](/src/rules/examples/e15/e15.md) | Lack of Cohesion of Methods (LCOM4) | `threshold: 1` |
+| [E0011](/src/rules/examples/e11/e11.md) | Error suppression symbol (`@`) | — |
+| [E0012](/src/rules/examples/e12/e12.md) | Service Shared Memory Model compatibility | `include_namespaces`, `reset_interfaces` |
+| [E0013](/src/rules/examples/e13/e13.md) | Unused private method | — |
+| [E0014](/src/rules/examples/e14/e14.md) | Law of Demeter | — |
+| [E0015](/src/rules/examples/e15/e15.md) | Method Cohesion (LCOM4) | `threshold: 1` |
 | [E0016](/src/rules/examples/e16/e16.md) | Cognitive complexity | `max_complexity: 15` |
 | [E0017](/src/rules/examples/e17/e17.md) | Coupling Between Objects (CBO) | `max_coupling: 10` |
 | [E0018](/src/rules/examples/e18/e18.md) | Weighted Methods per Class (WMC) | `max_wmc: 50` |
 | [E0019](/src/rules/examples/e19/e19.md) | Response For a Class (RFC) | `max_rfc: 50` |
 | [E0020](/src/rules/examples/e20/e20.md) | Depth of Inheritance Tree (DIT) | `max_depth: 4` |
 | [E0021](/src/rules/examples/e21/e21.md) | Number of Children (NOC) | `max_children: 15` |
-| [E0022](/src/rules/examples/e22/e22.md) | Afferent and Efferent Coupling (Ca/Ce) | `max_ca: 20`, `max_ce: 20` |
-| [E0023](/src/rules/examples/e23/e23.md) | Instability, Abstractness, Distance (I/A/D) | `max_instability: 0.8`, `max_abstractness: 0.8`, `max_distance: 0.5` |
+| [E0022](/src/rules/examples/e22/e22.md) | Afferent/Efferent Coupling (Ca/Ce) | `max_ca: 20`, `max_ce: 20` |
+| [E0023](/src/rules/examples/e23/e23.md) | Instability, Abstractness, Distance | `max_distance: 0.5` |
 | [E0024](/src/rules/examples/e24/e24.md) | Lines of Code per Method | `max_loc: 30` |
 | [E0025](/src/rules/examples/e25/e25.md) | Lines of Code per File | `max_loc: 500` |
 | [E0026](/src/rules/examples/e26/e26.md) | Comment Ratio | `min_ratio: 0.1`, `max_ratio: 0.5` |
 | [E0027](/src/rules/examples/e27/e27.md) | God Class (Brain Class) | `max_methods: 15`, `max_fields: 10` |
-| [E0028](/src/rules/examples/e28/e28.md) | Data Class | `max_getter_setter_ratio: 0.7`, `min_methods: 3` |
+| [E0028](/src/rules/examples/e28/e28.md) | Data Class | `min_methods: 3` |
 | [E0029](/src/rules/examples/e29/e29.md) | Fan-in / Fan-out | `max_fan_out: 10`, `max_fan_in: 20` |
 | [E0030](/src/rules/examples/e30/e30.md) | Cyclomatic Complexity Density | `max_density: 0.3` |
-| [E0031](/src/rules/examples/e31/e31.md) | Division by Zero | Configurable |
-| [E0032](/src/rules/examples/e32/e32.md) | Modulo by Zero | Configurable |
-| [E0033](/src/rules/examples/e33/e33.md) | `intdiv()` by Zero | Configurable |
-| [E0034](/src/rules/examples/e34/e34.md) | `intdiv()` Overflow | Configurable |
-| [E0035](/src/rules/examples/e35/e35.md) | Missing Array Key | Configurable |
-| [E0036](/src/rules/examples/e36/e36.md) | Array Index Out of Bounds | Configurable |
-| [E0037](/src/rules/examples/e37/e37.md) | String Offset Out of Bounds | Configurable |
-| [E0038](/src/rules/examples/e38/e38.md) | Method Call on Null | Configurable |
-| [E0039](/src/rules/examples/e39/e39.md) | Property Access on Null | Configurable |
-| [E0040](/src/rules/examples/e40/e40.md) | Return Contract Violation | Configurable |
-| [E0041](/src/rules/examples/e41/e41.md) | Unreachable Code | Configurable |
-| [E0042](/src/rules/examples/e42/e42.md) | Impossible Assertion | Configurable |
-| [E0043](/src/rules/examples/e43/e43.md) | Stream Resource Used After Close | Configurable |
-| [E0044](/src/rules/examples/e44/e44.md) | Input-dependent runtime growth | Configurable |
-| [E0045](/src/rules/examples/e45/e45.md) | Input-dependent live-heap growth | Configurable |
-| [E0046](/src/rules/examples/e46/e46.md) | Input-controlled cardinality | Configurable |
-| [E0047](/src/rules/examples/e47/e47.md) | Resource lifecycle leak | |
-| [E0048](/src/rules/examples/e48/e48.md) | Unbounded direct recursion | |
-| [E0049](/src/rules/examples/e49/e49.md) | Builtin argument validation | |
-| [E0050](/src/rules/examples/e50/e50.md) | Position check used as boolean | |
-| [E0051](/src/rules/examples/e51/e51.md) | Count of a non-countable value | |
-| [E0052](/src/rules/examples/e52/e52.md) | Unchecked json_decode result | |
-| [E0053](/src/rules/examples/e53/e53.md) | Unserialize without allowed_classes | |
-| [E0054](/src/rules/examples/e54/e54.md) | Dynamic variable creation | |
-| [E0055](/src/rules/examples/e55/e55.md) | Dynamic include or require | |
-| [E0056](/src/rules/examples/e56/e56.md) | Weak randomness for security | |
-| [E0057](/src/rules/examples/e57/e57.md) | MD5 or SHA1 for passwords | |
-| [E0058](/src/rules/examples/e58/e58.md) | Cookie missing Secure or HttpOnly | |
-| [E0059](/src/rules/examples/e59/e59.md) | Dynamic eval or assert | |
+
+### Section 2: Formal Verification Rules (E0031–E0043)
+*Type: Path analysis and runtime safety checks.*
+
+| Code | Name | What it Proves / Checks |
+| :--: | :--- | :------ |
+| [E0031](/src/rules/examples/e31/e31.md) | Division by Zero | Proves that divisors are never zero |
+| [E0032](/src/rules/examples/e32/e32.md) | Modulo by Zero | Proves that modulo divisors are never zero |
+| [E0033](/src/rules/examples/e33/e33.md) | `intdiv()` by Zero | Proves integer division divisors are valid |
+| [E0034](/src/rules/examples/e34/e34.md) | `intdiv()` Overflow | Prevents integer overflow during division |
+| [E0035](/src/rules/examples/e35/e35.md) | Missing Array Key | Proves that required array keys exist before access |
+| [E0036](/src/rules/examples/e36/e36.md) | Array Index Out of Bounds | Proves array index access stays within bounds |
+| [E0037](/src/rules/examples/e37/e37.md) | String Offset Out of Bounds | Proves string character offsets are valid |
+| [E0038](/src/rules/examples/e38/e38.md) | Method Call on Null | Proves objects are not null before calling methods |
+| [E0039](/src/rules/examples/e39/e39.md) | Property Access on Null | Proves objects are not null before accessing properties |
+| [E0040](/src/rules/examples/e40/e40.md) | Return Contract Violation | Verifies return types match documented contracts |
+| [E0041](/src/rules/examples/e41/e41.md) | Unreachable Code | Detects dead statements after returns or throws |
+| [E0042](/src/rules/examples/e42/e42.md) | Impossible Assertion | Detects assertions that can never hold true |
+| [E0043](/src/rules/examples/e43/e43.md) | Stream Resource Used After Close | Detects reading/writing streams after closing them |
+
+### Section 3: Resource Analysis Rules (E0044–E0046)
+*Type: Scalability, memory growth, and time complexity checks.*
+
+| Code | Name | What it Analyzes |
+| :--: | :--- | :------ |
+| [E0044](/src/rules/examples/e44/e44.md) | Input-Dependent Runtime Growth | Flags loops whose time complexity scales poorly with input size |
+| [E0045](/src/rules/examples/e45/e45.md) | Input-Dependent Live-Heap Growth | Flags memory allocation patterns that grow with input size |
+| [E0046](/src/rules/examples/e46/e46.md) | Input-Controlled Cardinality | Flags collections sized directly from untrusted user input |
+
+### Section 4: Security & Lifecycle Rules (E0047–E0059)
+*Type: Security hazards and resource leak checks.*
+
+| Code | Name | Security / Lifecycle Risk |
+| :--: | :--- | :------ |
+| [E0047](/src/rules/examples/e47/e47.md) | Resource Lifecycle Leak | Unclosed file handles or database connections |
+| [E0048](/src/rules/examples/e48/e48.md) | Unbounded Direct Recursion | Infinite recursion without base condition changes |
+| [E0049](/src/rules/examples/e49/e49.md) | Builtin Argument Validation | Invalid literal arguments passed to built-in functions |
+| [E0050](/src/rules/examples/e50/e50.md) | Position Check Used as Boolean | Using `strpos()` without strict comparison (`!== false`) |
+| [E0051](/src/rules/examples/e51/e51.md) | Count of Non-Countable Value | Calling `count()` on non-array scalars |
+| [E0052](/src/rules/examples/e52/e52.md) | Unchecked `json_decode` Result | Missing validation after JSON decoding |
+| [E0053](/src/rules/examples/e53/e53.md) | Unserialize Without `allowed_classes` | PHP object injection risk |
+| [E0054](/src/rules/examples/e54/e54.md) | Dynamic Variable Creation | Variable variables (`$$x`) or `extract()` usage |
+| [E0055](/src/rules/examples/e55/e55.md) | Dynamic Include or Require | Unsafe dynamic file inclusion paths |
+| [E0056](/src/rules/examples/e56/e56.md) | Weak Randomness for Security | Using `rand()` or `mt_rand()` for security tokens |
+| [E0057](/src/rules/examples/e57/e57.md) | MD5 or SHA1 for Passwords | Insecure hashing algorithms for credentials |
+| [E0058](/src/rules/examples/e58/e58.md) | Cookie Missing Secure or HttpOnly | Cookies missing security flags |
+| [E0059](/src/rules/examples/e59/e59.md) | Dynamic Eval or Assert | Dangerous code execution sinks (`eval()`) |
 
 Adding a new rule is straightforward — [this tutorial](./docs/adding_new_rule.md) explains how.
 
