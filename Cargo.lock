@@ -2241,9 +2241,9 @@ dependencies = [
 
 [[package]]
 name = "mago-span"
-version = "1.53.0"
+version = "1.59.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1bb8d5fa3ac6c8c670dd0e738d1adffe859d6741820976e19764e0cc10f7be5"
+checksum = "9489a42d32ccbc30fd1105c5f13aeded4170b2cdfc2008182bdd0bb854766fb1"
 dependencies = [
  "mago-database",
  "serde",
