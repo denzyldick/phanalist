@@ -74,6 +74,10 @@ impl crate::rules::Rule for Rule {
         String::from(DESCRIPTION)
     }
 
+    fn settings_json(&self) -> Option<Value> {
+        serde_json::to_value(&self.settings).ok()
+    }
+
     fn do_validate(&self, _file: &File<'_>) -> bool {
         true
     }

@@ -1,5 +1,6 @@
 use crate::results::Results;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::str::FromStr;
 
 pub mod chart;
@@ -10,6 +11,18 @@ pub mod text;
 
 pub trait OutputFormatter {
     fn output(_results: &mut Results) {}
+
+    fn output_with_settings(
+        _results: &mut Results,
+        _settings: &HashMap<String, serde_json::Value>,
+    ) {
+    }
+
+    fn output_with_effective(
+        _results: &mut Results,
+        _settings: &HashMap<String, serde_json::Value>,
+    ) {
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]

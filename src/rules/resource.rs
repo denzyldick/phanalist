@@ -60,6 +60,10 @@ impl crate::rules::Rule for Rule {
     fn resource_settings(&self) -> Option<ResourceSettings> {
         Some(self.settings.clone())
     }
+
+    fn settings_json(&self) -> Option<serde_json::Value> {
+        serde_json::to_value(&self.settings).ok()
+    }
 }
 
 #[cfg(test)]
