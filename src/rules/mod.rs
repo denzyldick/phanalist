@@ -13,6 +13,7 @@ use crate::file::File;
 use crate::resource::{ResourceClass, ResourceSettings};
 use crate::results::{Message, Violation};
 use crate::verification::{FindingClass, Settings};
+include!(concat!(env!("OUT_DIR"), "/embedded_docs.rs"));
 pub mod ast_support;
 pub mod e0;
 pub mod e1;
@@ -125,6 +126,10 @@ pub trait Rule: Sync {
         } else {
             rule_number
         };
+
+        if let Some(text) = embedded_rule_doc(&rule_number) {
+            return Some(text.to_string());
+        }
 
         let relative_path = PathBuf::from(format!(
             "./src/rules/examples/e{rule_number}/e{rule_number}.md"
@@ -440,6 +445,12 @@ mod tests {
     use crate::analyse::Analyse;
 
     use super::*;
+
+    #[test]
+    fn embedded_rule_docs_are_available() {
+        let doc = embedded_rule_doc("13").expect("embedded E0013 docs");
+        assert!(doc.contains("E0013"));
+    }
 
     pub(crate) fn analyze_file_for_rule(path: &str, rule_code: &str) -> Vec<Violation> {
         let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
