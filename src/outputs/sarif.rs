@@ -115,6 +115,14 @@ fn sarif_region(violation: &Violation) -> sarif::Region {
 
 impl OutputFormatter for Sarif {
     fn output(results: &mut Results) {
+        Self::output_with_effective(results, &HashMap::new());
+    }
+
+    fn output_with_settings(results: &mut Results, settings: &HashMap<String, serde_json::Value>) {
+        Self::output_with_effective(results, settings);
+    }
+
+    fn output_with_effective(results: &mut Results, settings: &HashMap<String, serde_json::Value>) {
         let version: &str = env!("CARGO_PKG_VERSION");
         let description = MultiformatMessageString {
             markdown: None,
@@ -138,7 +146,7 @@ impl OutputFormatter for Sarif {
                 rule_number
             };
 
-            let detailed = rule.get_detailed_explanation();
+            let detailed = rules::render_rule_documentation(&code, settings.get(&code));
             let text = detailed
                 .as_deref()
                 .map(markdown_to_text)

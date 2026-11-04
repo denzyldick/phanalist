@@ -79,7 +79,7 @@ Create `src/rules/examples/e1234/e1234.md`. Every rule documentation file must f
 5. **What the rule checks:** Specific conditions inspected.
 6. **When it does not report:** Edge cases and exceptions.
 7. **How to fix:** Actionable instructions.
-8. **Configuration:** Default status and config schema.
+8. **Configuration:** Config schema; runtime output replaces it with the effective configuration.
 9. **Junior Engineer's Rule of Thumb:** A concise, memorable takeaway.
 
 ### Step 8: Update `README.md`

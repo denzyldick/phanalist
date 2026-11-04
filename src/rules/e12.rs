@@ -44,6 +44,10 @@ impl RuleTrait for Rule {
         String::from(DESCRIPTION)
     }
 
+    fn settings_json(&self) -> Option<Value> {
+        serde_json::to_value(&self.settings).ok()
+    }
+
     fn set_config(&mut self, json: &Value) {
         match serde_json::from_value(json.to_owned()) {
             Ok(settings) => self.settings = settings,

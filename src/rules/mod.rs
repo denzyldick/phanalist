@@ -101,6 +101,11 @@ pub trait Rule: Sync {
         None
     }
 
+    /// Effective settings used by this rule, serialized as a JSON object.
+    fn settings_json(&self) -> Option<serde_json::Value> {
+        None
+    }
+
     /// Optional hook for whole-file validation. Most rules validate each
     /// top-level statement through `validate`; verification rules need the
     /// entire file (and its CFG) at once and override this instead.
@@ -127,7 +132,7 @@ pub trait Rule: Sync {
             rule_number
         };
 
-        if let Some(text) = embedded_rule_doc(&rule_number) {
+        if let Some(text) = embedded_rule_doc(rule_number) {
             return Some(text.to_string());
         }
 
@@ -380,6 +385,80 @@ fn add_rule(rules: &mut HashMap<String, Box<dyn Rule>>, rule: Box<dyn Rule>) {
     rules.insert(rule.get_code(), rule as Box<dyn Rule>);
 }
 
+pub fn render_rule_documentation(
+    code: &str,
+    settings: Option<&serde_json::Value>,
+) -> Option<String> {
+    let rules = all_rules();
+    let rule = rules.get(code)?;
+    let markdown = rule.get_detailed_explanation()?;
+
+    if let Some(settings) = settings {
+        return Some(replace_configuration(&markdown, code, settings));
+    }
+
+    Some(markdown)
+}
+
+fn replace_configuration(markdown: &str, code: &str, settings: &serde_json::Value) -> String {
+    let mut lines: Vec<String> = markdown.lines().map(|l| l.to_string()).collect();
+    let heading_index = lines.iter().position(|l| {
+        let trimmed = l.trim_start();
+        let level = trimmed.chars().take_while(|c| *c == '#').count();
+        if level == 0 {
+            return false;
+        }
+        let text = trimmed[level..].trim().to_lowercase();
+        (2..=6).contains(&level) && text == "configuration"
+    });
+
+    let generated = serde_yaml::to_string(&serde_json::json!({
+        "rules": { code.to_string(): settings.clone() }
+    }))
+    .unwrap_or_default()
+    .trim_end()
+    .to_string();
+    let generated_lines: Vec<String> = generated.lines().map(|l| l.to_string()).collect();
+
+    if let Some(heading) = heading_index {
+        let mut fence_start: Option<usize> = None;
+        let mut fence_end: Option<usize> = None;
+        let mut in_fence = false;
+        for (i, line) in lines.iter().enumerate().skip(heading + 1) {
+            let trimmed = line.trim();
+            if !in_fence && trimmed.starts_with("```yaml") {
+                fence_start = Some(i);
+                in_fence = true;
+            } else if in_fence && trimmed.starts_with("```") {
+                fence_end = Some(i);
+                break;
+            }
+        }
+
+        if let (Some(start), Some(end)) = (fence_start, fence_end) {
+            let mut block: Vec<String> = Vec::new();
+            block.push("```yaml".to_string());
+            block.extend(generated_lines.iter().cloned());
+            block.push("```".to_string());
+            lines.splice(start..=end, block);
+            return lines.join("\n");
+        }
+
+        lines.insert(heading + 1, format!("\n\n```yaml\n{}", generated));
+        return lines.join("\n");
+    }
+
+    let mut rendered = lines.join("\n");
+    if !rendered.ends_with('\n') {
+        rendered.push('\n');
+    }
+    rendered.push_str(&format!(
+        "\n\n## Configuration\n\n```yaml\n{}\n```\n",
+        generated
+    ));
+    rendered
+}
+
 pub fn all_rules() -> HashMap<String, Box<dyn Rule>> {
     let mut rules: HashMap<String, Box<dyn Rule>> = HashMap::new();
 
@@ -450,6 +529,24 @@ mod tests {
     fn embedded_rule_docs_are_available() {
         let doc = embedded_rule_doc("13").expect("embedded E0013 docs");
         assert!(doc.contains("E0013"));
+    }
+
+    #[test]
+    fn rendered_rule_documentation_uses_effective_settings() {
+        let settings = serde_json::json!({
+            "min_ratio": 0.2,
+            "max_ratio": 0.5
+        });
+        let doc = render_rule_documentation("E0026", Some(&settings))
+            .expect("E0026 rendered documentation");
+        assert!(doc.contains("min_ratio: 0.2"));
+        assert!(!doc.contains("min_ratio: 0.05"));
+    }
+
+    #[test]
+    fn rendered_rule_documentation_uses_static_docs_without_settings() {
+        let doc = render_rule_documentation("E0001", None).expect("E0001 rendered documentation");
+        assert!(doc.contains("E0001"));
     }
 
     pub(crate) fn analyze_file_for_rule(path: &str, rule_code: &str) -> Vec<Violation> {

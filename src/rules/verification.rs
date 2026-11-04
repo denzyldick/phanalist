@@ -72,6 +72,10 @@ impl crate::rules::Rule for Rule {
     fn verification_settings(&self) -> Option<Settings> {
         Some(self.settings.clone())
     }
+
+    fn settings_json(&self) -> Option<Value> {
+        serde_json::to_value(&self.settings).ok()
+    }
 }
 
 #[cfg(test)]
