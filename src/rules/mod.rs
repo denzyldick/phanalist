@@ -12,6 +12,7 @@ use crate::config::Config;
 use crate::file::File;
 use crate::resource::{ResourceClass, ResourceSettings};
 use crate::results::{Message, Violation};
+use crate::security::{FileTaint, TaintMode};
 use crate::verification::{FindingClass, Settings};
 include!(concat!(env!("OUT_DIR"), "/embedded_docs.rs"));
 pub mod ast_support;
@@ -111,6 +112,22 @@ pub trait Rule: Sync {
     /// entire file (and its CFG) at once and override this instead.
     fn validate_file(&self, _file: &File<'_>) -> Option<Vec<Violation>> {
         None
+    }
+
+    /// Taint mode for security rules that can use source-to-sink information.
+    /// Returning `Some` makes the analyser build a taint model for each file.
+    fn taint_mode(&self) -> Option<TaintMode> {
+        None
+    }
+
+    /// Whole-file validation with taint results. Rules that do not use taint
+    /// fall back to `validate_file`.
+    fn validate_file_with_taint(
+        &self,
+        file: &File<'_>,
+        _taint: &FileTaint,
+    ) -> Option<Vec<Violation>> {
+        self.validate_file(file)
     }
 
     /// Would be a good idea to have default implementation which extracts the code from struct name
