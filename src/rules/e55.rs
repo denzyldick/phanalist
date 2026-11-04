@@ -1,15 +1,33 @@
 use mago_span::HasSpan;
 use mago_syntax::cst::*;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use crate::file::File;
 use crate::results::{Message, Violation};
 use crate::rules::ast_support::{function_name, literal_i64, walk_statement_expressions};
+use crate::security::{FileTaint, SinkKind, TaintMode};
 
 pub(crate) static CODE: &str = "E0055";
 static DESCRIPTION: &str = "Dynamic include or require";
 
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct Settings {
+    pub taint_mode: TaintMode,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Self {
+            taint_mode: TaintMode::Annotate,
+        }
+    }
+}
+
 #[derive(Default)]
-pub struct Rule {}
+pub struct Rule {
+    settings: Settings,
+}
 
 impl crate::rules::Rule for Rule {
     fn get_code(&self) -> String {
@@ -28,7 +46,25 @@ impl crate::rules::Rule for Rule {
         Vec::new()
     }
 
-    fn validate_file(&self, file: &File<'_>) -> Option<Vec<Violation>> {
+    fn taint_mode(&self) -> Option<TaintMode> {
+        Some(self.settings.taint_mode)
+    }
+
+    fn settings_json(&self) -> Option<Value> {
+        serde_json::to_value(&self.settings).ok()
+    }
+
+    fn set_config(&mut self, json: &Value) {
+        if let Ok(settings) = serde_json::from_value::<Settings>(json.clone()) {
+            self.settings = settings;
+        }
+    }
+
+    fn validate_file_with_taint(
+        &self,
+        file: &File<'_>,
+        taint: &FileTaint,
+    ) -> Option<Vec<Violation>> {
         let program = file.ast?;
         let mut violations = Vec::new();
 
@@ -49,11 +85,22 @@ impl crate::rules::Rule for Rule {
                     return;
                 }
 
-                let message = Message::new(
-                    format!("E0055:dynamic-include:{kind}"),
-                    "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
-                )
-                .arg("kind", kind);
+                let origin = taint.origin(SinkKind::Include, construct.span());
+                if self.settings.taint_mode == TaintMode::Only && origin.is_none() {
+                    return;
+                }
+
+                let base_id = format!("E0055:dynamic-include:{kind}");
+                let template = "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.";
+                let message = match origin {
+                    Some(origin) => Message::new(
+                        format!("{base_id}:tainted"),
+                        format!("{template} The path comes from {{source}}."),
+                    )
+                    .arg("kind", kind)
+                    .arg("source", origin),
+                    None => Message::new(base_id, template).arg("kind", kind),
+                };
 
                 violations.push(self.new_violation(file, message, construct.span()));
             });
@@ -148,5 +195,13 @@ mod tests {
     #[test]
     fn accepts_literal_and_project_root_paths() {
         assert!(analyze_file_for_rule("e55/dynamic_include_safe.php", CODE).is_empty());
+    }
+
+    #[test]
+    fn marks_tainted_includes() {
+        let violations = analyze_file_for_rule("e55/dynamic_include_bad.php", CODE);
+        assert!(violations
+            .iter()
+            .any(|violation| violation.message.id.contains(":tainted")));
     }
 }

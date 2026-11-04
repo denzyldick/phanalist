@@ -1,15 +1,33 @@
 use mago_span::HasSpan;
 use mago_syntax::cst::*;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use crate::file::File;
 use crate::results::{Message, Violation};
 use crate::rules::ast_support::{function_name, literal_string, walk_statement_expressions};
+use crate::security::{FileTaint, SinkKind, TaintMode};
 
 pub(crate) static CODE: &str = "E0053";
 static DESCRIPTION: &str = "Unserialize without allowed_classes";
 
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct Settings {
+    pub taint_mode: TaintMode,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Self {
+            taint_mode: TaintMode::Annotate,
+        }
+    }
+}
+
 #[derive(Default)]
-pub struct Rule {}
+pub struct Rule {
+    settings: Settings,
+}
 
 impl crate::rules::Rule for Rule {
     fn get_code(&self) -> String {
@@ -28,7 +46,25 @@ impl crate::rules::Rule for Rule {
         Vec::new()
     }
 
-    fn validate_file(&self, file: &File<'_>) -> Option<Vec<Violation>> {
+    fn taint_mode(&self) -> Option<TaintMode> {
+        Some(self.settings.taint_mode)
+    }
+
+    fn settings_json(&self) -> Option<Value> {
+        serde_json::to_value(&self.settings).ok()
+    }
+
+    fn set_config(&mut self, json: &Value) {
+        if let Ok(settings) = serde_json::from_value::<Settings>(json.clone()) {
+            self.settings = settings;
+        }
+    }
+
+    fn validate_file_with_taint(
+        &self,
+        file: &File<'_>,
+        taint: &FileTaint,
+    ) -> Option<Vec<Violation>> {
         let program = file.ast?;
         let mut violations = Vec::new();
 
@@ -60,15 +96,31 @@ impl crate::rules::Rule for Rule {
                     },
                 };
 
-                let message = match reason {
-                    "enabled" => Message::new(
-                        "E0053:unserialize-allowed-classes:enabled",
-                        "unserialize() explicitly enables every class. Set allowed_classes to false or to a list of trusted classes.",
-                    ),
-                    _ => Message::new(
-                        "E0053:unserialize-allowed-classes:missing",
-                        "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
-                    ),
+                let origin = taint.origin(SinkKind::Unserialize, call.span());
+                if self.settings.taint_mode == TaintMode::Only && origin.is_none() {
+                    return;
+                }
+
+                let base_id = match reason {
+                    "enabled" => "E0053:unserialize-allowed-classes:enabled",
+                    _ => "E0053:unserialize-allowed-classes:missing",
+                };
+                let template = match reason {
+                    "enabled" => {
+                        "unserialize() explicitly enables every class. Set allowed_classes to false or to a list of trusted classes."
+                    }
+                    _ => {
+                        "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes."
+                    }
+                };
+
+                let message = match origin {
+                    Some(origin) => Message::new(
+                        format!("{base_id}:tainted"),
+                        format!("{template} The data comes from {{source}}."),
+                    )
+                    .arg("source", origin),
+                    None => Message::new(base_id, template),
                 };
 
                 violations.push(self.new_violation(file, message, call.span()));
@@ -172,5 +224,13 @@ mod tests {
     #[test]
     fn accepts_restricted_or_dynamic_options() {
         assert!(analyze_file_for_rule("e53/unserialize_safe.php", CODE).is_empty());
+    }
+
+    #[test]
+    fn marks_tainted_unserialize_flows() {
+        let violations = analyze_file_for_rule("e53/unserialize_bad.php", CODE);
+        assert!(violations
+            .iter()
+            .any(|violation| violation.message.id.contains(":tainted")));
     }
 }

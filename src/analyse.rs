@@ -25,6 +25,7 @@ use crate::resource::{ResourceClass, ResourceFinding, ResourceService, ResourceS
 use crate::results::{Results, Violation};
 use crate::rules::Rule;
 use crate::rules::{self};
+use crate::security::{FileTaint, SecurityService};
 use crate::verification::{Finding, FindingClass, Settings, VerificationService};
 
 struct FileOutcome {
@@ -154,6 +155,7 @@ pub struct Analyse {
     pub(crate) rules: HashMap<String, Box<dyn Rule>>,
     verification: VerificationService,
     resource: ResourceService,
+    security: SecurityService,
 }
 
 impl Analyse {
@@ -162,6 +164,7 @@ impl Analyse {
             rules: Self::get_active_rules(config),
             verification: VerificationService::new(),
             resource: ResourceService::new(),
+            security: SecurityService::new(),
         }
     }
 
@@ -238,7 +241,10 @@ impl Analyse {
                 arena.reset();
             }
         } else {
-            if self.has_verification_rules() || self.has_resource_rules() {
+            if self.has_verification_rules()
+                || self.has_resource_rules()
+                || self.has_security_rules()
+            {
                 let next = AtomicUsize::new(0);
                 std::thread::scope(|scope| {
                     for _ in 0..worker_count {
@@ -303,6 +309,9 @@ impl Analyse {
         if self.has_resource_rules() {
             self.resource.begin_index();
         }
+        if self.has_security_rules() {
+            self.security.begin_index();
+        }
     }
 
     fn index_rule_file(&self, file: &File<'_>) {
@@ -319,6 +328,9 @@ impl Analyse {
         }
         if self.has_resource_rules() {
             self.resource.index_file(file);
+        }
+        if self.has_security_rules() {
+            self.security.index_file(file);
         }
     }
 
@@ -339,6 +351,9 @@ impl Analyse {
         if self.has_resource_rules() {
             self.resource.finalize_index();
         }
+        if self.has_security_rules() {
+            self.security.finalize_index();
+        }
     }
 
     /// Drop cross-file rule state for a file removed by the editor.
@@ -354,6 +369,13 @@ impl Analyse {
         if self.has_resource_rules() {
             self.resource.remove_file(path);
         }
+        if self.has_security_rules() {
+            self.security.remove_file(path);
+        }
+    }
+
+    fn has_security_rules(&self) -> bool {
+        self.rules.values().any(|rule| rule.taint_mode().is_some())
     }
 
     fn has_verification_rules(&self) -> bool {
@@ -691,6 +713,12 @@ impl Analyse {
         if let Some(program) = file.ast {
             file.reference_counter.build_reference_counter(program);
 
+            let file_taint: Option<FileTaint> = if self.has_security_rules() {
+                Some(self.security.analyze(file))
+            } else {
+                None
+            };
+
             let mut verification_groups: Vec<(Settings, Vec<FindingClass>)> = Vec::new();
             let mut resource_groups: Vec<(ResourceSettings, Vec<ResourceClass>)> = Vec::new();
             for rule in self.rules.values() {
@@ -722,7 +750,11 @@ impl Analyse {
                 }
 
                 let rule_start = timings.as_ref().map(|_| Instant::now());
-                let Some(mut file_violations) = rule.validate_file(file) else {
+                let validated = match &file_taint {
+                    Some(taint) => rule.validate_file_with_taint(file, taint),
+                    None => rule.validate_file(file),
+                };
+                let Some(mut file_violations) = validated else {
                     continue;
                 };
                 violations.append(&mut file_violations);

@@ -102,6 +102,27 @@ impl Default for Config {
             String::from(rules::e30::CODE),
             serde_json::to_value(rules::e30::Settings::default()).unwrap(),
         );
+        for (code, settings) in [
+            (
+                rules::e53::CODE,
+                serde_json::to_value(rules::e53::Settings::default()).unwrap(),
+            ),
+            (
+                rules::e54::CODE,
+                serde_json::to_value(rules::e54::Settings::default()).unwrap(),
+            ),
+            (
+                rules::e55::CODE,
+                serde_json::to_value(rules::e55::Settings::default()).unwrap(),
+            ),
+            (
+                rules::e59::CODE,
+                serde_json::to_value(rules::e59::Settings::default()).unwrap(),
+            ),
+        ] {
+            rules.insert(String::from(code), settings);
+        }
+
         for class in FindingClass::ALL {
             rules.insert(
                 String::from(class.code()),

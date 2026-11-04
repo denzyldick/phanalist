@@ -12,6 +12,7 @@ pub mod paths;
 pub mod resource;
 pub mod results;
 pub mod rules;
+pub mod security;
 pub mod verification;
 
 pub fn scan(path: String) -> results::Results {

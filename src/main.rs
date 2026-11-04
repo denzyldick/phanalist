@@ -25,6 +25,7 @@ mod paths;
 mod resource;
 mod results;
 mod rules;
+mod security;
 mod verification;
 
 ///
