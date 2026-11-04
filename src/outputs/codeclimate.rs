@@ -1,4 +1,5 @@
 use crate::{results::Results, rules};
+use std::collections::HashMap;
 
 use super::OutputFormatter;
 
@@ -9,6 +10,14 @@ pub struct CodeClimate {}
 impl OutputFormatter for CodeClimate {
     /// Produce output for CodeClimate format (that is also Gitlab-compatible)
     fn output(results: &mut Results) {
+        Self::output_with_effective(results, &HashMap::new());
+    }
+
+    fn output_with_settings(results: &mut Results, settings: &HashMap<String, serde_json::Value>) {
+        Self::output_with_effective(results, settings);
+    }
+
+    fn output_with_effective(results: &mut Results, settings: &HashMap<String, serde_json::Value>) {
         // CodeClimate spec:
         // https://github.com/codeclimate/platform/blob/master/spec/analyzers/SPEC.md#data-types
 
@@ -18,7 +27,11 @@ impl OutputFormatter for CodeClimate {
             for violation in violations {
                 let rule_id = &violation.rule;
                 let rule_markdown = match rules.get(rule_id) {
-                    Some(rule) => rule.get_detailed_explanation().unwrap_or_default(),
+                    Some(_) => rules::render_rule_documentation(
+                        &violation.rule,
+                        settings.get(&violation.rule),
+                    )
+                    .unwrap_or_default(),
                     None => String::from("Unknown rule"),
                 };
 
