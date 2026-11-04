@@ -452,6 +452,31 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
         }
     }
 
+    fn source_access(&mut self, access: &mago_syntax::cst::ArrayAccess<'arena>) -> Option<Origins> {
+        let base = access.array.unparenthesized();
+        if let Expression::ArrayAccess(inner) = base {
+            return self.source_access(inner);
+        }
+        let Expression::Variable(Variable::Direct(variable)) = base else {
+            return None;
+        };
+        let name = variable_name(variable.name);
+        if name == "_SERVER" {
+            let key = literal_string(access.index)?;
+            if is_request_server_key(&key) {
+                return Some(single_origin(format!("$_SERVER[{key}]")));
+            }
+            return None;
+        }
+        if !is_superglobal(&name) {
+            return None;
+        }
+        let origin = literal_string(access.index)
+            .map(|key| format!("${name}['{key}']"))
+            .unwrap_or_else(|| format!("${name}[...]"));
+        Some(single_origin(origin))
+    }
+
     fn source_origins(
         &mut self,
         expression: &'arena Expression<'arena>,
@@ -466,28 +491,7 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
                     None
                 }
             }
-            Expression::ArrayAccess(access) => {
-                let Expression::Variable(Variable::Direct(variable)) =
-                    access.array.unparenthesized()
-                else {
-                    return None;
-                };
-                let name = variable_name(variable.name);
-                if name == "_SERVER" {
-                    let key = literal_string(access.index)?;
-                    if is_request_server_key(&key) {
-                        return Some(single_origin(format!("$_SERVER[{key}]")));
-                    }
-                    return None;
-                }
-                if !is_superglobal(&name) {
-                    return None;
-                }
-                let origin = literal_string(access.index)
-                    .map(|key| format!("${name}['{key}']"))
-                    .unwrap_or_else(|| format!("${name}[...]"));
-                Some(single_origin(origin))
-            }
+            Expression::ArrayAccess(access) => self.source_access(access),
             _ => {
                 let _ = state;
                 None
