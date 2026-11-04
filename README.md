@@ -186,7 +186,8 @@ exclude_paths:
   - node_modules
 rules:
   E0007:
-    max_parameters: 5
+    check_constructor: true
+    max_parameters: 8
   E0009:
     max_complexity: 10
   E0031:
@@ -214,7 +215,7 @@ New to the terminology? Check the [Rule Glossary](./docs/rule_glossary.md). Ever
 | [E0004](/src/rules/examples/e4/e4.md) | Uppercase constants | — |
 | [E0005](/src/rules/examples/e5/e5.md) | Capitalized class name | — |
 | [E0006](/src/rules/examples/e6/e6.md) | Property visibility modifiers | — |
-| [E0007](/src/rules/examples/e7/e7.md) | Method parameters count | `max_parameters: 5` |
+| [E0007](/src/rules/examples/e7/e7.md) | Method parameters count | `check_constructor`, `max_parameters: 8` |
 | [E0008](/src/rules/examples/e8/e8.md) | Return type signature | — |
 | [E0009](/src/rules/examples/e9/e9.md) | Cyclomatic complexity | `max_complexity: 10` |
 | [E0010](/src/rules/examples/e10/e10.md) | Npath complexity | `max_paths: 200` |
@@ -231,9 +232,9 @@ New to the terminology? Check the [Rule Glossary](./docs/rule_glossary.md). Ever
 | [E0021](/src/rules/examples/e21/e21.md) | Number of Children (NOC) | `max_children: 15` |
 | [E0022](/src/rules/examples/e22/e22.md) | Afferent/Efferent Coupling (Ca/Ce) | `max_ca: 20`, `max_ce: 20` |
 | [E0023](/src/rules/examples/e23/e23.md) | Instability, Abstractness, Distance | `max_distance: 0.5` |
-| [E0024](/src/rules/examples/e24/e24.md) | Lines of Code per Method | `max_loc: 30` |
+| [E0024](/src/rules/examples/e24/e24.md) | Lines of Code per Method | `max_loc: 50` |
 | [E0025](/src/rules/examples/e25/e25.md) | Lines of Code per File | `max_loc: 500` |
-| [E0026](/src/rules/examples/e26/e26.md) | Comment Ratio | `min_ratio: 0.1`, `max_ratio: 0.5` |
+| [E0026](/src/rules/examples/e26/e26.md) | Comment Ratio | `min_ratio: 0.05`, `max_ratio: 0.5` |
 | [E0027](/src/rules/examples/e27/e27.md) | God Class (Brain Class) | `max_methods: 15`, `max_fields: 10` |
 | [E0028](/src/rules/examples/e28/e28.md) | Data Class | `min_methods: 3` |
 | [E0029](/src/rules/examples/e29/e29.md) | Fan-in / Fan-out | `max_fan_out: 10`, `max_fan_in: 20` |

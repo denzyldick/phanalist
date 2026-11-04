@@ -648,15 +648,32 @@ impl Analyse {
 
         // Baseline filtering can leave a file with nothing to report. Prune in
         // place: cloning the map first would duplicate every violation, which
-        // on a full-project scan is the largest allocation of the whole run.
+        // is the largest allocation of the whole run.
         results.files.retain(|_, violations| !violations.is_empty());
 
+        let effective_settings = self.effective_rule_settings();
         match format {
             Format::json => Json::output(results),
-            Format::sarif => Sarif::output(results),
-            Format::codeclimate => CodeClimate::output(results),
+            Format::sarif => Sarif::output_with_settings(results, &effective_settings),
+            Format::codeclimate => CodeClimate::output_with_settings(results, &effective_settings),
             _ => Text::output(results),
         };
+    }
+
+    pub(crate) fn effective_rule_settings(&self) -> HashMap<String, serde_json::Value> {
+        let all_rules = rules::all_rules();
+        let mut effective = HashMap::new();
+        for (code, rule) in all_rules {
+            let settings = self
+                .rules
+                .get(&code)
+                .and_then(|configured| configured.settings_json())
+                .or_else(|| rule.settings_json());
+            if let Some(settings) = settings {
+                effective.insert(code, settings);
+            }
+        }
+        effective
     }
 
     pub(crate) fn analyse_file(
