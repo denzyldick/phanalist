@@ -23,3 +23,6 @@ e12_debug.txt
 
 # Cross-compilation Dockerfiles (obsolete, CI uses taiki-e/upload-rust-binary-action)
 /docker/
+
+# Local OSS security scan reports and PoCs
+/reports/

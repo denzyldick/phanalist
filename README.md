@@ -171,12 +171,13 @@ A baseline lets you adopt Phanalist on an existing codebase without fixing every
 
 ## ⚙️ Configuration & Rule Sections
 
-Phanalist organizes rules into four internal analysis sections. You can configure thresholds or disable rules in `phanalist.yaml`:
+Phanalist groups its rules into the following areas. All rules are enabled by default; use `enabled_rules`, `disable_rules`, and per-rule `rules` settings in `phanalist.yaml` to customize them:
 
-1. **AST & Code Quality (`ast`):** Checks syntax structure, formatting conventions, naming rules, method complexity metrics, and class design.
-2. **Formal Verification (`verification`):** Analyzes control flow to prove runtime safety (such as preventing division by zero, null errors, and array bounds violations).
-3. **Resource Analysis (`resource`):** Measures time complexity, memory allocation growth, and untrusted loop cardinality.
-4. **Security & Lifecycle (`security`):** Detects security vulnerabilities, unclosed file/stream resources, and dangerous execution sinks.
+1. **AST & Code Quality:** Checks syntax structure, formatting conventions, naming rules, method complexity metrics, and class design.
+2. **Formal Verification:** Analyzes control flow to prove runtime safety (such as preventing division by zero, null errors, and array bounds violations).
+3. **Resource Analysis:** Measures time complexity, memory allocation growth, and untrusted loop cardinality.
+4. **Lifecycle & Runtime Safety:** Checks resource cleanup, runtime-error traps, and reliability hazards.
+5. **Security:** Detects security vulnerabilities and dangerous execution sinks.
 
 ```yaml
 enabled_rules: []   # empty = all rules active
@@ -195,7 +196,16 @@ rules:
     timeout_ms: 1000
   E0044:
     runtime_threshold: quadratic
+  E0053:
+    taint_mode: annotate
 ```
+
+Security rules that can use source-to-sink taint analysis accept a per-rule
+`taint_mode`:
+
+- `annotate` (default) keeps the finding and adds the proven source origin.
+- `only` reports only proven tainted flows.
+- `off` keeps the legacy heuristic-only behaviour.
 
 ---
 
@@ -268,10 +278,10 @@ New to the terminology? Check the [Rule Glossary](./docs/rule_glossary.md). Ever
 | [E0045](/src/rules/examples/e45/e45.md) | Input-Dependent Live-Heap Growth | Flags memory allocation patterns that grow with input size |
 | [E0046](/src/rules/examples/e46/e46.md) | Input-Controlled Cardinality | Flags collections sized directly from untrusted user input |
 
-### Section 4: Security & Lifecycle Rules (E0047–E0059)
-*Type: Security hazards and resource leak checks.*
+### Section 4: Lifecycle & Runtime Safety Rules (E0047–E0052)
+*Type: Resource lifecycle, runtime-correctness, and reliability checks.*
 
-| Code | Name | Security / Lifecycle Risk |
+| Code | Name | What it Checks |
 | :--: | :--- | :------ |
 | [E0047](/src/rules/examples/e47/e47.md) | Resource Lifecycle Leak | Unclosed file handles or database connections |
 | [E0048](/src/rules/examples/e48/e48.md) | Unbounded Direct Recursion | Infinite recursion without base condition changes |
@@ -279,6 +289,12 @@ New to the terminology? Check the [Rule Glossary](./docs/rule_glossary.md). Ever
 | [E0050](/src/rules/examples/e50/e50.md) | Position Check Used as Boolean | Using `strpos()` without strict comparison (`!== false`) |
 | [E0051](/src/rules/examples/e51/e51.md) | Count of Non-Countable Value | Calling `count()` on non-array scalars |
 | [E0052](/src/rules/examples/e52/e52.md) | Unchecked `json_decode` Result | Missing validation after JSON decoding |
+
+### Section 5: Security Rules (E0053–E0059)
+*Type: Security vulnerabilities and dangerous sinks.*
+
+| Code | Name | Security Risk |
+| :--: | :--- | :------ |
 | [E0053](/src/rules/examples/e53/e53.md) | Unserialize Without `allowed_classes` | PHP object injection risk |
 | [E0054](/src/rules/examples/e54/e54.md) | Dynamic Variable Creation | Variable variables (`$$x`) or `extract()` usage |
 | [E0055](/src/rules/examples/e55/e55.md) | Dynamic Include or Require | Unsafe dynamic file inclusion paths |

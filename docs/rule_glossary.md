@@ -74,6 +74,11 @@ as `if ($index < count($items))` or `if ($divisor !== 0)`.
 **Source** — Where untrusted data enters the program, such as `$_GET`, `$_POST`,
 request headers, cookies, or a file upload.
 
+**Taint mode** — How a security rule uses the taint model. `annotate` reports the
+finding and adds the proven source origin to it, `only` reports only findings
+reached by proven tainted data, and `off` keeps the legacy heuristic-only
+behaviour.
+
 **Sink** — A dangerous operation that should not receive untrusted data, such as
 SQL, shell commands, file paths, HTML output, or `eval()`.
 
