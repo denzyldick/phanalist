@@ -98,7 +98,8 @@ impl crate::rules::Rule for Rule {
                         format!("{template} The path comes from {{source}}."),
                     )
                     .arg("kind", kind)
-                    .arg("source", origin),
+                    .arg("source", origin)
+                    .with_tainted(true),
                     None => Message::new(base_id, template).arg("kind", kind),
                 };
 
