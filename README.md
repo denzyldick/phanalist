@@ -207,6 +207,10 @@ Security rules that can use source-to-sink taint analysis accept a per-rule
 - `only` reports only proven tainted flows.
 - `off` keeps the legacy heuristic-only behaviour.
 
+Tainted findings also set `message.tainted: true` in JSON output and include the
+proven `source` argument, so CI and dashboards can filter them without parsing
+the message id. Summaries propagate across indexed files.
+
 ---
 
 ## 📜 Rules Reference

@@ -119,7 +119,8 @@ impl crate::rules::Rule for Rule {
                         format!("{base_id}:tainted"),
                         format!("{template} The data comes from {{source}}."),
                     )
-                    .arg("source", origin),
+                    .arg("source", origin)
+                    .with_tainted(true),
                     None => Message::new(base_id, template),
                 };
 

@@ -83,7 +83,8 @@ impl crate::rules::Rule for Rule {
                             format!("{base_id}:tainted"),
                             format!("{template} The code comes from {{source}}."),
                         )
-                        .arg("source", origin),
+                        .arg("source", origin)
+                        .with_tainted(true),
                         None => Message::new(base_id, template),
                     };
                     violations.push(self.new_violation(file, message, construct.span()));
@@ -121,7 +122,8 @@ impl crate::rules::Rule for Rule {
                         format!("{base_id}:tainted"),
                         format!("{template} The code comes from {{source}}."),
                     )
-                    .arg("source", origin),
+                    .arg("source", origin)
+                    .with_tainted(true),
                     None => Message::new(base_id, template),
                 };
                 violations.push(self.new_violation(file, message, call.span()));
