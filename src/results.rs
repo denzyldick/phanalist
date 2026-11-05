@@ -34,6 +34,10 @@ pub struct Message {
     pub id: String,
     pub template: String,
     pub args: Vec<(String, String)>,
+    /// True when the diagnostic was produced by a source-to-sink taint flow.
+    /// Outputs (JSON/SARIF/text) can key off this rather than parsing `id`.
+    #[serde(default)]
+    pub tainted: bool,
 }
 
 impl Message {
@@ -42,11 +46,18 @@ impl Message {
             id: id.into(),
             template: template.into(),
             args: Vec::new(),
+            tainted: false,
         }
     }
 
     pub fn arg(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
         self.args.push((name.into(), value.into()));
+        self
+    }
+
+    /// Mark the message as originating from a taint flow.
+    pub fn with_tainted(mut self, tainted: bool) -> Self {
+        self.tainted = tainted;
         self
     }
 
@@ -194,6 +205,29 @@ mod tests {
     #[test]
     fn message_keeps_id() {
         assert_eq!(Message::new("e1.x", "t").id, "e1.x");
+    }
+
+    #[test]
+    fn message_tracks_taint_flow() {
+        let plain = Message::new("e1.x", "plain");
+        assert!(!plain.tainted);
+        let tainted = Message::new("e1.x:tainted", "tainted").with_tainted(true);
+        assert!(tainted.tainted);
+    }
+
+    #[test]
+    fn violation_json_exposes_structured_taint_flag() {
+        let mut v = get_violation("E0059");
+        v.message = v.message.with_tainted(true);
+        let json = serde_json::to_string(&v).unwrap();
+        assert!(json.contains("\"tainted\":true"));
+    }
+
+    #[test]
+    fn message_deserializes_without_taint_field() {
+        let message: Message =
+            serde_json::from_str(r#"{"id":"e","template":"t","args":[]}"#).unwrap();
+        assert!(!message.tainted);
     }
 
     #[test]

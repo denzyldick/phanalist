@@ -485,7 +485,7 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
         match expression.unparenthesized() {
             Expression::Variable(Variable::Direct(variable)) => {
                 let name = variable_name(variable.name);
-                if is_superglobal(&name) {
+                if is_superglobal(&name) || name == "_SERVER" {
                     Some(single_origin(format!("${name}")))
                 } else {
                     None
@@ -855,7 +855,7 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
     ) -> Option<Origins> {
         match name {
             "getallheaders" | "apache_request_headers" => Some(single_origin(format!("{name}()"))),
-            "filter_input" => Some(single_origin(String::from("filter_input()"))),
+            "filter_input" | "filter_input_array" => Some(single_origin(format!("{name}()"))),
             "file_get_contents"
                 if arguments
                     .first()
@@ -1112,7 +1112,9 @@ fn summarize_function(
 
 fn parameter_index(origin: &str, params: &[String]) -> Option<usize> {
     let origin = origin.strip_prefix('$').unwrap_or(origin);
-    params.iter().position(|param| param == origin)
+    params
+        .iter()
+        .position(|param| param.strip_prefix('$').unwrap_or(param) == origin)
 }
 
 fn collect_function_bodies<'arena>(
@@ -1216,4 +1218,127 @@ fn parameter_names(parameters: &FunctionLikeParameterList<'_>) -> Vec<String> {
         .iter()
         .map(|parameter| String::from_utf8_lossy(parameter.variable.name).to_string())
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::security::SecurityService;
+    use mago_allocator::prelude::LocalArena;
+    use std::path::PathBuf;
+
+    fn analyze_pair(source: &str, sink: &str) -> FileTaint {
+        let service = SecurityService::new();
+        let arena = LocalArena::new();
+        let source = File::new(&arena, PathBuf::from("source.php"), source.to_string());
+        let sink = File::new(&arena, PathBuf::from("sink.php"), sink.to_string());
+
+        service.begin_index();
+        service.index_file(&source);
+        service.index_file(&sink);
+        service.finalize_index();
+
+        service.analyze(&sink)
+    }
+
+    fn analyze_single(source: &str) -> FileTaint {
+        let arena = LocalArena::new();
+        let file = File::new(&arena, PathBuf::from("s.php"), source.to_string());
+        analyze_file(&file, &HashMap::new())
+    }
+
+    #[test]
+    fn treats_filter_input_array_as_a_source() {
+        let taint = analyze_single("<?php eval(filter_input_array(INPUT_GET));");
+        assert!(
+            taint
+                .sinks
+                .iter()
+                .any(|sink| sink.kind == SinkKind::Eval
+                    && sink.origins.contains("filter_input_array()")),
+            "got {:?}",
+            taint.sinks
+        );
+    }
+
+    #[test]
+    fn treats_bare_server_superglobal_as_a_source() {
+        let taint = analyze_single("<?php eval(implode($_SERVER));");
+        assert!(
+            taint
+                .sinks
+                .iter()
+                .any(|sink| sink.kind == SinkKind::Eval && sink.origins.contains("$_SERVER")),
+            "got {:?}",
+            taint.sinks
+        );
+    }
+
+    #[test]
+    fn propagates_source_returning_function_across_files() {
+        let taint = analyze_pair(
+            "<?php function user_code() { return $_GET['code']; }",
+            "<?php eval(user_code());",
+        );
+
+        assert!(
+            taint
+                .sinks
+                .iter()
+                .any(|sink| sink.kind == SinkKind::Eval && sink.origins.contains("user_code()")),
+            "expected cross-file source flow, got {:?}",
+            taint.sinks
+        );
+    }
+
+    #[test]
+    fn propagates_parameter_taint_into_callee_sink_across_files() {
+        let taint = analyze_pair(
+            "<?php function run_code($code) { eval($code); }",
+            "<?php run_code($_GET['code']);",
+        );
+
+        assert!(
+            taint
+                .sinks
+                .iter()
+                .any(|sink| sink.kind == SinkKind::Eval && !sink.origins.is_empty()),
+            "expected cross-file parameter flow, got {:?}",
+            taint.sinks
+        );
+    }
+
+    #[test]
+    fn ignores_ambiguous_cross_file_function_names() {
+        let service = SecurityService::new();
+        let arena = LocalArena::new();
+        let first = File::new(
+            &arena,
+            PathBuf::from("one.php"),
+            "<?php function user_code() { return $_GET['code']; }".to_string(),
+        );
+        let second = File::new(
+            &arena,
+            PathBuf::from("two.php"),
+            "<?php function user_code() { return 'safe'; }".to_string(),
+        );
+        let sink = File::new(
+            &arena,
+            PathBuf::from("three.php"),
+            "<?php eval(user_code());".to_string(),
+        );
+
+        service.begin_index();
+        service.index_file(&first);
+        service.index_file(&second);
+        service.index_file(&sink);
+        service.finalize_index();
+
+        let taint = service.analyze(&sink);
+        assert!(
+            taint.sinks.iter().all(|sink| sink.kind != SinkKind::Eval),
+            "ambiguous names must not be trusted, got {:?}",
+            taint.sinks
+        );
+    }
 }
