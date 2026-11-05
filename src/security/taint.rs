@@ -462,11 +462,17 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
         };
         let name = variable_name(variable.name);
         if name == "_SERVER" {
-            let key = literal_string(access.index)?;
+            let Some(key) = literal_string(access.index) else {
+                // A dynamic key may reach a request field; stay conservative.
+                return Some(single_origin(String::from("$_SERVER")));
+            };
             if is_request_server_key(&key) {
                 return Some(single_origin(format!("$_SERVER[{key}]")));
             }
-            return None;
+            // Literal keys such as SCRIPT_FILENAME or APP_RUNTIME are server
+            // configuration, not request data. Returning an empty result stops
+            // eval_inner from falling back to the bare superglobal source.
+            return Some(Origins::new());
         }
         if !is_superglobal(&name) {
             return None;
@@ -1264,6 +1270,29 @@ mod tests {
     #[test]
     fn treats_bare_server_superglobal_as_a_source() {
         let taint = analyze_single("<?php eval(implode($_SERVER));");
+        assert!(
+            taint
+                .sinks
+                .iter()
+                .any(|sink| sink.kind == SinkKind::Eval && sink.origins.contains("$_SERVER")),
+            "got {:?}",
+            taint.sinks
+        );
+    }
+
+    #[test]
+    fn ignores_non_request_literal_server_keys() {
+        let taint = analyze_single("<?php eval(base64_decode($_SERVER['SCRIPT_FILENAME']));");
+        assert!(
+            taint.sinks.iter().all(|sink| sink.kind != SinkKind::Eval),
+            "got {:?}",
+            taint.sinks
+        );
+    }
+
+    #[test]
+    fn keeps_dynamic_server_keys_tainted() {
+        let taint = analyze_single("<?php eval($_SERVER[$key]);");
         assert!(
             taint
                 .sinks
