@@ -2,7 +2,7 @@
 
 # Phanalist
 
-> Fast static analyzer for PHP, written in Rust. Finds maintainability and runtime risks with zero configuration required.
+> Fast static analyzer for PHP. Finds maintainability and runtime risks with zero configuration required.
 
 [![Build](https://img.shields.io/github/actions/workflow/status/denzyldick/phanalist/release.yml?branch=main&label=build)](https://github.com/denzyldick/phanalist/actions/workflows/release.yml)
 [![Latest release](https://img.shields.io/github/v/release/denzyldick/phanalist)](https://github.com/denzyldick/phanalist/releases/latest)
