@@ -294,6 +294,7 @@ pub trait Rule: Sync {
             start_column,
             end_line,
             end_column,
+            taint_source: None,
         }
     }
 

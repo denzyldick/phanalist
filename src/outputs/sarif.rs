@@ -390,6 +390,7 @@ mod tests {
             start_column,
             end_line: start_line,
             end_column,
+            taint_source: None,
         }
     }
 

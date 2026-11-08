@@ -23,6 +23,47 @@ pub enum TaintMode {
     Only,
 }
 
+/// The kind of a taint origin. Used to distinguish request-controlled data
+/// (potentially exploitable) from parameter-derived data (a lead only).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum SourceKind {
+    #[default]
+    Unknown,
+    /// Data comes from a request source: $_GET, $_POST, $_COOKIE, $_FILES,
+    /// $_SERVER, request object methods, php://input, filter_input(), etc.
+    Request,
+    /// Data comes from a function parameter whose origin is unknown.
+    Parameter,
+    /// Data is created inside the function (e.g. a local file read).
+    Internal,
+}
+
+/// Filter for which source kinds should be reported.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, clap::ValueEnum)]
+pub enum SourceFilter {
+    /// Only report findings whose taint originates from a request source.
+    #[default]
+    Request,
+    /// Report all tainted findings, including parameter-derived leads.
+    All,
+}
+
+/// Structured information about a taint sink's source, for clean output.
+#[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct SinkSourceInfo {
+    /// Whether at least one origin is request-rooted.
+    pub request_rooted: bool,
+    /// The dominant source kind (Request > Parameter > Internal).
+    pub source_kind: SourceKind,
+    /// All origin strings (clean, no prefixes: e.g. `$_GET['id']`, `$value`).
+    pub origins: Vec<String>,
+    /// File where the tainted data originates (if known).
+    pub source_file: Option<String>,
+    /// Line where the tainted data originates (if known).
+    pub source_line: Option<usize>,
+}
+
 /// A dangerous operation that the taint pass understands.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum SinkKind {
@@ -42,6 +83,10 @@ pub struct TaintSink {
     pub call_span: Span,
     pub origins: Origins,
     pub via: Option<String>,
+    /// True if any origin is request-rooted.
+    pub request_rooted: bool,
+    /// The dominant source kind for this sink.
+    pub source_kind: SourceKind,
 }
 
 /// Taint findings for a single file.
@@ -72,6 +117,29 @@ impl FileTaint {
         self.find(kind, span)
             .and_then(|sink| sink.origins.iter().next().map(String::as_str))
     }
+
+    /// Return structured source information for a sink, if found.
+    pub fn sink_source_info(
+        &self,
+        kind: SinkKind,
+        span: Span,
+        file: &File<'_>,
+    ) -> Option<SinkSourceInfo> {
+        self.find(kind, span).map(|sink| {
+            let mut origins: Vec<String> = sink.origins.iter().cloned().collect();
+            origins.sort();
+            let source_kind = sink.source_kind;
+            let source_line = file.line_number(sink.span.start.offset);
+            let source_file = Some(file.path.to_string_lossy().to_string());
+            SinkSourceInfo {
+                request_rooted: sink.request_rooted,
+                source_kind,
+                origins,
+                source_file,
+                source_line: Some(source_line),
+            }
+        })
+    }
 }
 
 fn same_span(left: Span, right: Span) -> bool {
@@ -100,6 +168,9 @@ struct FunctionDef<'arena> {
 struct State {
     env: HashMap<String, Origins>,
     return_taint: Origins,
+    /// Origins that have been validated by a regex guard (e.g. preg_match)
+    /// in the current branch — sinks using these origins are skipped.
+    sanitized_origins: BTreeSet<String>,
 }
 
 impl State {
@@ -110,7 +181,15 @@ impl State {
                 .or_default()
                 .extend(origins.iter().cloned());
         }
-        self.return_taint.extend(other.return_taint.iter().cloned());
+        let return_taint_clone = self.return_taint.clone();
+        self.return_taint.extend(return_taint_clone.iter().cloned());
+        // An origin is sanitized only if it is sanitized in ALL branches
+        // (conservative: intersection)
+        self.sanitized_origins = self
+            .sanitized_origins
+            .intersection(&other.sanitized_origins)
+            .cloned()
+            .collect();
     }
 }
 
@@ -119,16 +198,22 @@ struct Analyzer<'summaries, 'arena> {
     sinks: Vec<TaintSink>,
     symbolic: bool,
     depth: usize,
+    source_filter: SourceFilter,
     _marker: std::marker::PhantomData<&'arena ()>,
 }
 
 impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
-    fn new(summaries: &'summaries HashMap<String, TaintSummary>, symbolic: bool) -> Self {
+    fn new(
+        summaries: &'summaries HashMap<String, TaintSummary>,
+        symbolic: bool,
+        source_filter: SourceFilter,
+    ) -> Self {
         Self {
             summaries,
             sinks: Vec::new(),
             symbolic,
             depth: 0,
+            source_filter,
             _marker: Default::default(),
         }
     }
@@ -180,7 +265,20 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
             }
             Statement::If(statement) => {
                 self.eval(statement.condition, state);
-                self.analyze_if_body(&statement.body, state);
+                // Check if the if-condition is a regex guard (preg_match) — if so,
+                // mark the checked variable as sanitized in the then-branch.
+                if let Some(guard_var) = is_regex_guard_call(statement.condition.unparenthesized()) {
+                    let mut then_state = clone_state(state);
+                    // Look up the variable's taint origins and mark them as sanitized
+                    if let Some(origins) = state.env.get(&guard_var) {
+                        for origin in origins {
+                            then_state.sanitized_origins.insert(origin.clone());
+                        }
+                    }
+                    self.analyze_if_body(&statement.body, &mut then_state);
+                } else {
+                    self.analyze_if_body(&statement.body, state);
+                }
             }
             Statement::While(statement) => {
                 self.eval(statement.condition, state);
@@ -514,6 +612,7 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
                         variable.span(),
                         origins,
                         None,
+                        &state.sanitized_origins,
                     );
                 }
                 Origins::new()
@@ -527,6 +626,7 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
                         variable.span(),
                         origins,
                         None,
+                        &state.sanitized_origins,
                     );
                 }
                 Origins::new()
@@ -554,8 +654,10 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
         assignment: &'arena Assignment<'arena>,
         state: &mut State,
     ) -> Origins {
+        let lhs_name = direct_variable_name(assignment.lhs).unwrap_or_default().to_string();
         let _ = self.eval(assignment.lhs, state);
         let rhs = self.eval(assignment.rhs, state);
+        eprintln!("DEBUG assign: lhs={lhs_name}, rhs_origins={rhs:?}");
 
         if let Some(name) = direct_variable_name(assignment.lhs) {
             match assignment.operator {
@@ -648,26 +750,26 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
         match call {
             Call::Function(call) => {
                 if let Some(origins) = self.function_source(&name, &arguments) {
-                    self.record_argument_sinks(&name, call.span(), &arguments, &argument_taints);
+                    self.record_argument_sinks(&name, call.span(), &arguments, &argument_taints, &state.sanitized_origins);
                     return origins;
                 }
             }
             Call::Method(call) => {
                 if is_request_method(&name) && is_request_object(call.object) {
-                    self.record_argument_sinks(&name, call.span(), &arguments, &argument_taints);
+                    self.record_argument_sinks(&name, call.span(), &arguments, &argument_taints, &state.sanitized_origins);
                     return single_origin(format!("request->{name}()"));
                 }
             }
             Call::NullSafeMethod(call) => {
                 if is_request_method(&name) && is_request_object(call.object) {
-                    self.record_argument_sinks(&name, call.span(), &arguments, &argument_taints);
+                    self.record_argument_sinks(&name, call.span(), &arguments, &argument_taints, &state.sanitized_origins);
                     return single_origin(format!("request->{name}()"));
                 }
             }
             Call::StaticMethod(_) => {}
         }
 
-        self.record_argument_sinks(&name, call.span(), &arguments, &argument_taints);
+        self.record_argument_sinks(&name, call.span(), &arguments, &argument_taints, &state.sanitized_origins);
 
         if let Some(summary) = self.summary(&name) {
             let mut origins = Origins::new();
@@ -689,6 +791,7 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
                             call.span(),
                             taint.clone(),
                             Some(name.clone()),
+                            &state.sanitized_origins,
                         );
                     }
                 }
@@ -707,6 +810,7 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
         call_span: Span,
         arguments: &[&'arena Expression<'arena>],
         argument_taints: &[Origins],
+        sanitized_origins: &BTreeSet<String>,
     ) {
         match name {
             "assert" => {
@@ -719,6 +823,7 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
                             call_span,
                             taint.clone(),
                             None,
+                            sanitized_origins,
                         );
                     }
                 }
@@ -732,6 +837,7 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
                             call_span,
                             taint.clone(),
                             None,
+                            sanitized_origins,
                         );
                     }
                 }
@@ -745,6 +851,7 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
                             call_span,
                             taint.clone(),
                             None,
+                            sanitized_origins,
                         );
                     }
                 }
@@ -768,6 +875,7 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
                         construct.span(),
                         origins,
                         None,
+                        &state.sanitized_origins,
                     );
                 }
             }
@@ -780,6 +888,7 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
                         construct.span(),
                         origins,
                         None,
+                        &state.sanitized_origins,
                     );
                 }
             }
@@ -792,6 +901,7 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
                         construct.span(),
                         origins,
                         None,
+                        &state.sanitized_origins,
                     );
                 }
             }
@@ -804,6 +914,7 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
                         construct.span(),
                         origins,
                         None,
+                        &state.sanitized_origins,
                     );
                 }
             }
@@ -816,6 +927,7 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
                         construct.span(),
                         origins,
                         None,
+                        &state.sanitized_origins,
                     );
                 }
             }
@@ -879,19 +991,38 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
         call_span: Span,
         origins: Origins,
         via: Option<String>,
+        sanitized_origins: &BTreeSet<String>,
     ) {
+        eprintln!("DEBUG record: kind={:?}, span=({},{}), origins={:?}, sanitized={:?}", kind, span.start.offset, span.end.offset, origins, sanitized_origins);
         let already = self.sinks.iter().any(|sink| {
             sink.kind == kind && same_span(sink.span, span) && same_span(sink.call_span, call_span)
         });
         if already {
+            eprintln!("DEBUG record: ALREADY EXISTS, skipping");
             return;
         }
+        let request_rooted = origins.iter().any(|o| is_request_origin(o));
+        let source_kind = if request_rooted {
+            SourceKind::Request
+        } else if origins.iter().any(|o| o.starts_with('$')) {
+            SourceKind::Parameter
+        } else {
+            SourceKind::Internal
+        };
+
+        if is_guard_suppressed(&origins, sanitized_origins) {
+            eprintln!("DEBUG record: SUPPRESSED");
+            return;
+        }
+
         self.sinks.push(TaintSink {
             kind,
             span,
             call_span,
             origins,
             via,
+            request_rooted,
+            source_kind,
         });
     }
 }
@@ -900,6 +1031,7 @@ fn clone_state(state: &State) -> State {
     State {
         env: state.env.clone(),
         return_taint: state.return_taint.clone(),
+        sanitized_origins: state.sanitized_origins.clone(),
     }
 }
 
@@ -1016,9 +1148,70 @@ fn is_sanitizer(name: &str) -> bool {
     )
 }
 
+
+/// Returns true if an origin string represents request-controlled data.
+fn is_request_origin(origin: &str) -> bool {
+    let o = origin.trim();
+    // Superglobals
+    o.starts_with("$_GET")
+        || o.starts_with("$_POST")
+        || o.starts_with("$_COOKIE")
+        || o.starts_with("$_FILES")
+        || o.starts_with("$_REQUEST")
+        || o.starts_with("$_SERVER")
+        // Request helper functions
+        || o == "filter_input()"
+        || o == "getallheaders()"
+        || o == "apache_request_headers()"
+        || o == "php://input"
+        // Request object methods (e.g. $request->input())
+        || o.ends_with("()")
+            && ["input", "query", "post", "get", "all", "json", "file", "cookie", "header", "param"]
+                .iter()
+                .any(|m| o.contains(m))
+}
+
+/// Check if an expression is a `preg_match()` or `preg_match_all()` guard call
+/// and return the variable name being validated. Returns `None` if not a guard.
+fn is_regex_guard_call(expression: &Expression<'_>) -> Option<String> {
+    let Expression::Call(Call::Function(call)) = expression.unparenthesized() else {
+        return None;
+    };
+    eprintln!("DEBUG is_regex_guard_call: function={:?}, arg_list={:?}", function_name(call.function), call.argument_list);
+    let Some(name) = function_name(call.function) else {
+        return None;
+    };
+    if name != "preg_match" && name != "preg_match_all" {
+        return None;
+    }
+    let arguments: Vec<&Expression<'_>> = call.argument_list.arguments.iter().map(|arg| arg.value()).collect();
+    // preg_match(pattern, $subject) — the subject is the 2nd argument
+    let subject = arguments.get(1)?;
+    match subject.unparenthesized() {
+        Expression::Variable(Variable::Direct(variable)) => {
+            let name = variable_name(variable.name);
+            Some(name)
+        }
+        _ => None,
+    }
+}
+
+/// Check whether a sink should be suppressed because all its tainted origins
+/// are covered by regex guard variables (e.g. preg_match validated them).
+fn is_guard_suppressed(origins: &Origins, sanitized_origins: &BTreeSet<String>) -> bool {
+    if origins.is_empty() {
+        return false;
+    }
+    eprintln!("DEBUG is_guard_suppressed: origins={origins:?}, sanitized={sanitized_origins:?}");
+    let result = origins.iter().all(|o| sanitized_origins.contains(o));
+    eprintln!("DEBUG is_guard_suppressed: result={result}");
+    result
+}
+
 pub(crate) fn analyze_file<'arena>(
     file: &File<'arena>,
     summaries: &HashMap<String, TaintSummary>,
+    source_filter: SourceFilter,
 ) -> FileTaint {
     let Some(program) = file.ast else {
         return FileTaint::default();
@@ -1026,14 +1219,14 @@ pub(crate) fn analyze_file<'arena>(
 
     let mut sinks = Vec::new();
 
-    let mut top_level = Analyzer::new(summaries, false);
+    let mut top_level = Analyzer::new(summaries, false, source_filter);
     let mut state = State::default();
     top_level.analyze_statements(program.statements.as_slice(), &mut state);
     sinks.append(&mut top_level.sinks);
 
     let functions = collect_function_bodies(program.statements.as_slice());
     for function in functions {
-        let mut analyzer = Analyzer::new(summaries, true);
+        let mut analyzer = Analyzer::new(summaries, true, source_filter);
         let (_, mut function_sinks) = analyzer.analyze_function(&function.params, function.body);
         sinks.append(&mut function_sinks);
     }
@@ -1041,7 +1234,10 @@ pub(crate) fn analyze_file<'arena>(
     FileTaint::new(sinks)
 }
 
-pub(crate) fn summarize_file<'arena>(file: &File<'arena>) -> Vec<(String, TaintSummary)> {
+pub(crate) fn summarize_file<'arena>(
+    file: &File<'arena>,
+    _source_filter: SourceFilter,
+) -> Vec<(String, TaintSummary)> {
     let Some(program) = file.ast else {
         return Vec::new();
     };
@@ -1076,7 +1272,7 @@ fn summarize_function(
     function: &FunctionDef<'_>,
     summaries: &HashMap<String, TaintSummary>,
 ) -> TaintSummary {
-    let mut analyzer = Analyzer::new(summaries, true);
+    let mut analyzer = Analyzer::new(summaries, true, SourceFilter::All);
     let (return_taint, sinks) = analyzer.analyze_function(&function.params, function.body);
 
     let mut return_from = Vec::new();

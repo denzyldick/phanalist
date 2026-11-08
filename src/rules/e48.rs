@@ -152,7 +152,13 @@ impl Rule {
         let parameters = parameter_list
             .parameters
             .iter()
-            .map(|parameter| String::from_utf8_lossy(parameter.variable.name).to_string())
+            .map(|parameter| {
+                String::from_utf8_lossy(parameter.variable.name)
+                    .to_string()
+                    .strip_prefix('$')
+                    .unwrap_or_default()
+                    .to_string()
+            })
             .collect::<Vec<_>>();
 
         if parameter_list
@@ -188,14 +194,22 @@ impl Rule {
                     if let Expression::Closure(closure) = expression {
                         for parameter in closure.parameter_list.parameters.iter() {
                             shadowed.insert(
-                                String::from_utf8_lossy(parameter.variable.name).to_string(),
+                                String::from_utf8_lossy(parameter.variable.name)
+                                    .to_string()
+                                    .strip_prefix('$')
+                                    .unwrap_or_default()
+                                    .to_string(),
                             );
                         }
                     }
                     if let Expression::ArrowFunction(function) = expression {
                         for parameter in function.parameter_list.parameters.iter() {
                             shadowed.insert(
-                                String::from_utf8_lossy(parameter.variable.name).to_string(),
+                                String::from_utf8_lossy(parameter.variable.name)
+                                    .to_string()
+                                    .strip_prefix('$')
+                                    .unwrap_or_default()
+                                    .to_string(),
                             );
                         }
                     }
@@ -329,7 +343,11 @@ fn call_function_name(call: &Call<'_>) -> Option<String> {
 
 fn root_variable<'a>(expression: &'a Expression<'a>) -> Option<&'a str> {
     match expression {
-        Expression::Variable(Variable::Direct(variable)) => std::str::from_utf8(variable.name).ok(),
+        Expression::Variable(Variable::Direct(variable)) => {
+            std::str::from_utf8(variable.name).ok().map(|name| {
+                name.strip_prefix('$').unwrap_or(name)
+            })
+        }
         Expression::Parenthesized(parenthesized) => root_variable(parenthesized.expression),
         Expression::ArrayAccess(access) => root_variable(access.array),
         Expression::ArrayAppend(append) => root_variable(append.array),
