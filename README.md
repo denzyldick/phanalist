@@ -108,6 +108,7 @@ Every rule links to junior-friendly documentation with bad/good examples, "why i
 | [E0000](/src/rules/examples/e0/e0.md) | Example rule | — |
 | [E0001](/src/rules/examples/e1/e1.md) | Opening tag position | — |
 | [E0002](/src/rules/examples/e2/e2.md) | Empty catch block | — |
+| [E0003](/src/rules/examples/e3/e3.md) | Method modifiers | — |
 | [E0004](/src/rules/examples/e4/e4.md) | Uppercase constants | — |
 | [E0005](/src/rules/examples/e5/e5.md) | Capitalized class name | — |
 | [E0006](/src/rules/examples/e6/e6.md) | Property visibility modifiers | — |
