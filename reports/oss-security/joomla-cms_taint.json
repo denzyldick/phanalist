@@ -1,0 +1,3836 @@
+{
+  "files": {
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/html/batch/user.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 18,
+        "start_column": 0,
+        "end_line": 18,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/modules/mod_articles_category/tmpl/default.php": [
+      {
+        "rule": "E0055",
+        "line": "                <?php require ModuleHelper::getLayoutPath('mod_articles_category', $params->get('layout', 'default') . '_items'); ?>",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 27,
+        "start_column": 22,
+        "end_line": 27,
+        "end_column": 128
+      },
+      {
+        "rule": "E0055",
+        "line": "        <?php require ModuleHelper::getLayoutPath('mod_articles_category', $params->get('layout', 'default') . '_items'); ?>",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 33,
+        "start_column": 14,
+        "end_line": 33,
+        "end_column": 120
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/subform/repeatable.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 17,
+        "start_column": 0,
+        "end_line": 17,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/administrator/modules/mod_privacy_dashboard/src/Dispatcher/Dispatcher.php": [
+      {
+        "rule": "E0055",
+        "line": "                require ModuleHelper::getLayoutPath('mod_privacy_dashboard', $params->get('layout', 'default'));",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 83,
+        "start_column": 16,
+        "end_line": 83,
+        "end_column": 111
+      },
+      {
+        "rule": "E0054",
+        "line": "                extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 69,
+        "start_column": 16,
+        "end_line": 69,
+        "end_column": 37
+      },
+      {
+        "rule": "E0054",
+        "line": "                extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 72,
+        "start_column": 16,
+        "end_line": 72,
+        "end_column": 37
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/toolbar/standard.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData, EXTR_OVERWRITE);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 16,
+        "start_column": 0,
+        "end_line": 16,
+        "end_column": 37
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/text.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 16,
+        "start_column": 0,
+        "end_line": 16,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/datetime.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 39,
+        "start_column": 0,
+        "end_line": 39,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/toolbar/versions.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 16,
+        "start_column": 0,
+        "end_line": 16,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/file.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 17,
+        "start_column": 0,
+        "end_line": 17,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/plugins/multifactorauth/webauthn/src/Extension/Webauthn.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $layoutPath;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 147,
+        "start_column": 12,
+        "end_line": 147,
+        "end_column": 31
+      },
+      {
+        "rule": "E0055",
+        "line": "            include $layoutPath;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 345,
+        "start_column": 12,
+        "end_line": 345,
+        "end_column": 31
+      },
+      {
+        "rule": "E0053",
+        "line": "            $pkOptions         = unserialize($serializedOptions);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 326,
+        "start_column": 33,
+        "end_line": 326,
+        "end_column": 64
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/administrator/modules/mod_logged/src/Dispatcher/Dispatcher.php": [
+      {
+        "rule": "E0055",
+        "line": "                require ModuleHelper::getLayoutPath('mod_logged', $params->get('layout', 'default'));",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 70,
+        "start_column": 16,
+        "end_line": 70,
+        "end_column": 100
+      },
+      {
+        "rule": "E0055",
+        "line": "                require ModuleHelper::getLayoutPath('mod_logged', 'disabled');",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 72,
+        "start_column": 16,
+        "end_line": 72,
+        "end_column": 77
+      },
+      {
+        "rule": "E0054",
+        "line": "                extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 55,
+        "start_column": 16,
+        "end_line": 55,
+        "end_column": 37
+      },
+      {
+        "rule": "E0054",
+        "line": "                extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 58,
+        "start_column": 16,
+        "end_line": 58,
+        "end_column": 37
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/modules/mod_menu/tmpl/collapse-default.php": [
+      {
+        "rule": "E0055",
+        "line": "        <?php require ModuleHelper::getLayoutPath(module: 'mod_menu', layout:'default'); ?>",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 25,
+        "start_column": 14,
+        "end_line": 25,
+        "end_column": 87
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/administrator/modules/mod_menu/src/Menu/CssMenu.php": [
+      {
+        "rule": "E0055",
+        "line": "                require $layoutFile;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$layoutFile"
+          ],
+          "file": "/tmp/phanalist-scan/joomla-cms/administrator/modules/mod_menu/src/Menu/CssMenu.php",
+          "line": 199
+        },
+        "start_line": 199,
+        "start_column": 16,
+        "end_line": 199,
+        "end_column": 35
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/combo.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 13,
+        "start_column": 0,
+        "end_line": 13,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/range.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 13,
+        "start_column": 0,
+        "end_line": 13,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/textarea.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 16,
+        "start_column": 0,
+        "end_line": 16,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/toolbar/basic.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData, EXTR_OVERWRITE);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 16,
+        "start_column": 0,
+        "end_line": 16,
+        "end_column": 37
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/libraries/src/Cache/Controller/ViewController.php": [
+      {
+        "rule": "E0053",
+        "line": "            $data = unserialize(trim($data));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$id",
+            "$method",
+            "$view"
+          ],
+          "file": "/tmp/phanalist-scan/joomla-cms/libraries/src/Cache/Controller/ViewController.php",
+          "line": 68
+        },
+        "start_line": 68,
+        "start_column": 20,
+        "end_line": 68,
+        "end_column": 44
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/groupedlist.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 15,
+        "start_column": 0,
+        "end_line": 15,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/plugins/system/webauthn/manage.php": [
+      {
+        "rule": "E0054",
+        "line": "extract(array_merge($defaultDisplayData, $displayData));",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 54,
+        "start_column": 0,
+        "end_line": 54,
+        "end_column": 55
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/libraries/src/HTML/HTMLHelper.php": [
+      {
+        "rule": "E0054",
+        "line": "                    $$param = $title[$param];",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 1000,
+        "start_column": 20,
+        "end_line": 1000,
+        "end_column": 27
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/plugins/user/token/token.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 16,
+        "start_column": 0,
+        "end_line": 16,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/libraries/src/MVC/Model/LegacyModelLoaderTrait.php": [
+      {
+        "rule": "E0055",
+        "line": "            require_once $path;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$prefix",
+            "$type"
+          ],
+          "file": "/tmp/phanalist-scan/joomla-cms/libraries/src/MVC/Model/LegacyModelLoaderTrait.php",
+          "line": 96
+        },
+        "start_line": 96,
+        "start_column": 12,
+        "end_line": 96,
+        "end_column": 30
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/media.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 21,
+        "start_column": 0,
+        "end_line": 21,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/radio/switcher.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 15,
+        "start_column": 0,
+        "end_line": 15,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/checkboxes.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 13,
+        "start_column": 0,
+        "end_line": 13,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/libraries/src/Factory.php": [
+      {
+        "rule": "E0055",
+        "line": "            include_once $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$file"
+          ],
+          "file": "/tmp/phanalist-scan/joomla-cms/libraries/src/Factory.php",
+          "line": 572
+        },
+        "start_line": 572,
+        "start_column": 12,
+        "end_line": 572,
+        "end_column": 30
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/color/advanced.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 15,
+        "start_column": 0,
+        "end_line": 15,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/calendar.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 17,
+        "start_column": 0,
+        "end_line": 17,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/administrator/components/com_postinstall/src/Model/MessagesModel.php": [
+      {
+        "rule": "E0055",
+        "line": "                    require_once $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$resultArray"
+          ],
+          "file": "/tmp/phanalist-scan/joomla-cms/administrator/components/com_postinstall/src/Model/MessagesModel.php",
+          "line": 416
+        },
+        "start_line": 416,
+        "start_column": 20,
+        "end_line": 416,
+        "end_column": 38
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/templates/cassiopeia/html/mod_menu/dropdown-metismenu.php": [
+      {
+        "rule": "E0055",
+        "line": "            require ModuleHelper::getLayoutPath('mod_menu', 'dropdown-metismenu_' . $item->type);",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 82,
+        "start_column": 12,
+        "end_line": 82,
+        "end_column": 96
+      },
+      {
+        "rule": "E0055",
+        "line": "            require ModuleHelper::getLayoutPath('mod_menu', 'dropdown-metismenu_url');",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 86,
+        "start_column": 12,
+        "end_line": 86,
+        "end_column": 85
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/administrator/components/com_admin/src/View/Help/HtmlView.php": [
+      {
+        "rule": "E0055",
+        "line": "            require $layoutFile;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$layoutFile"
+          ],
+          "file": "/tmp/phanalist-scan/joomla-cms/administrator/components/com_admin/src/View/Help/HtmlView.php",
+          "line": 99
+        },
+        "start_line": 99,
+        "start_column": 12,
+        "end_line": 99,
+        "end_column": 31
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/libraries/src/Form/FormHelper.php": [
+      {
+        "rule": "E0055",
+        "line": "            require_once $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$entity",
+            "$type"
+          ],
+          "file": "/tmp/phanalist-scan/joomla-cms/libraries/src/Form/FormHelper.php",
+          "line": 271
+        },
+        "start_line": 271,
+        "start_column": 12,
+        "end_line": 271,
+        "end_column": 30
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/subform/repeatable-grid/section-byfieldsets.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 16,
+        "start_column": 0,
+        "end_line": 16,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/plugins/editors/codemirror/layouts/editors/codemirror/codemirror.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 18,
+        "start_column": 0,
+        "end_line": 18,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/subform/repeatable-grid.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 17,
+        "start_column": 0,
+        "end_line": 17,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/list-fancy-select.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 17,
+        "start_column": 0,
+        "end_line": 17,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/libraries/src/Installer/InstallerAdapter.php": [
+      {
+        "rule": "E0055",
+        "line": "        $installer = require_once $manifestScriptFile;",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 971,
+        "start_column": 21,
+        "end_line": 971,
+        "end_column": 53
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/libraries/src/Dispatcher/AbstractModuleDispatcher.php": [
+      {
+        "rule": "E0055",
+        "line": "            require ModuleHelper::getLayoutPath($module->module, $params->get('layout', 'default'));",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 87,
+        "start_column": 12,
+        "end_line": 87,
+        "end_column": 99
+      },
+      {
+        "rule": "E0054",
+        "line": "                extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 74,
+        "start_column": 16,
+        "end_line": 74,
+        "end_column": 37
+      },
+      {
+        "rule": "E0054",
+        "line": "                extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 77,
+        "start_column": 16,
+        "end_line": 77,
+        "end_column": 37
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/toolbar/popup.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 16,
+        "start_column": 0,
+        "end_line": 16,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/plugins/installer/folderinstaller/src/Extension/FolderInstaller.php": [
+      {
+        "rule": "E0055",
+        "line": "        include PluginHelper::getLayoutPath('installer', 'folderinstaller');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 61,
+        "start_column": 8,
+        "end_line": 61,
+        "end_column": 75
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/media/accessiblemedia.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 13,
+        "start_column": 0,
+        "end_line": 13,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/subform/repeatable-grid/section.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 16,
+        "start_column": 0,
+        "end_line": 16,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/plugins/behaviour/compat6/classes/Filesystem/Stream.php": [
+      {
+        "rule": "E0055",
+        "line": "                require_once __DIR__ . '/streams/' . $url['scheme'] . '.php';",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$filename",
+            "$mode",
+            "$relative",
+            "$usePrefix"
+          ],
+          "file": "/tmp/phanalist-scan/joomla-cms/plugins/behaviour/compat6/classes/Filesystem/Stream.php",
+          "line": 228
+        },
+        "start_line": 228,
+        "start_column": 16,
+        "end_line": 228,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/libraries/src/Extension/LegacyComponent.php": [
+      {
+        "rule": "E0055",
+        "line": "            include_once $path;",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 123,
+        "start_column": 12,
+        "end_line": 123,
+        "end_column": 30
+      },
+      {
+        "rule": "E0055",
+        "line": "                require_once $path;",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 238,
+        "start_column": 16,
+        "end_line": 238,
+        "end_column": 34
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/modules/mod_whosonline/src/Dispatcher/Dispatcher.php": [
+      {
+        "rule": "E0055",
+        "line": "                require ModuleHelper::getLayoutPath('mod_whosonline', $params->get('layout', 'default'));",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 67,
+        "start_column": 16,
+        "end_line": 67,
+        "end_column": 104
+      },
+      {
+        "rule": "E0055",
+        "line": "                require ModuleHelper::getLayoutPath('mod_whosonline', 'disabled');",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 69,
+        "start_column": 16,
+        "end_line": 69,
+        "end_column": 81
+      },
+      {
+        "rule": "E0054",
+        "line": "                extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 53,
+        "start_column": 16,
+        "end_line": 53,
+        "end_column": 37
+      },
+      {
+        "rule": "E0054",
+        "line": "                extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 56,
+        "start_column": 16,
+        "end_line": 56,
+        "end_column": 37
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/libraries/html/bootstrap/modal/body.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 13,
+        "start_column": 0,
+        "end_line": 13,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/administrator/components/com_newsfeeds/layouts/joomla/form/field/modal-select/extra-buttons.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 18,
+        "start_column": 0,
+        "end_line": 18,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/libraries/src/Pagination/Pagination.php": [
+      {
+        "rule": "E0055",
+        "line": "            include_once $chromePath;",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 379,
+        "start_column": 12,
+        "end_line": 379,
+        "end_column": 36
+      },
+      {
+        "rule": "E0055",
+        "line": "            include_once $chromePath;",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 530,
+        "start_column": 12,
+        "end_line": 530,
+        "end_column": 36
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/contenthistory.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 16,
+        "start_column": 0,
+        "end_line": 16,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/modules/mod_articles_news/tmpl/default.php": [
+      {
+        "rule": "E0055",
+        "line": "            <?php require ModuleHelper::getLayoutPath('mod_articles_news', '_item'); ?>",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 23,
+        "start_column": 18,
+        "end_line": 23,
+        "end_column": 83
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/administrator/components/com_content/layouts/joomla/form/field/modal-select/extra-buttons.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 18,
+        "start_column": 0,
+        "end_line": 18,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/checkbox.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 15,
+        "start_column": 0,
+        "end_line": 15,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/plugins/content/pagenavigation/src/Extension/PageNavigation.php": [
+      {
+        "rule": "E0055",
+        "line": "                include $path;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 254,
+        "start_column": 16,
+        "end_line": 254,
+        "end_column": 29
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/renderlabel.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 13,
+        "start_column": 0,
+        "end_line": 13,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/build/build.php": [
+      {
+        "rule": "E0055",
+        "line": "require_once $fullpath . '/libraries/src/Version.php';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 384,
+        "start_column": 0,
+        "end_line": 384,
+        "end_column": 53
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/administrator/components/com_categories/layouts/joomla/form/field/categoryedit.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 19,
+        "start_column": 0,
+        "end_line": 19,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/subform/repeatable/section.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 16,
+        "start_column": 0,
+        "end_line": 16,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/toolbar/dropdown.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData, EXTR_OVERWRITE);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 16,
+        "start_column": 0,
+        "end_line": 16,
+        "end_column": 37
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/administrator/components/com_finder/src/Indexer/Result.php": [
+      {
+        "rule": "E0053",
+        "line": "        $this->__unserialize(unserialize($serialized));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$serialized"
+          ],
+          "file": "/tmp/phanalist-scan/joomla-cms/administrator/components/com_finder/src/Indexer/Result.php",
+          "line": 490
+        },
+        "start_line": 490,
+        "start_column": 29,
+        "end_line": 490,
+        "end_column": 53
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/libraries/src/Table/Table.php": [
+      {
+        "rule": "E0055",
+        "line": "                    include_once $tryThis;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$type"
+          ],
+          "file": "/tmp/phanalist-scan/joomla-cms/libraries/src/Table/Table.php",
+          "line": 323
+        },
+        "start_line": 323,
+        "start_column": 20,
+        "end_line": 323,
+        "end_column": 41
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/libraries/src/Language/Language.php": [
+      {
+        "rule": "E0055",
+        "line": "                require_once $path;",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 170,
+        "start_column": 16,
+        "end_line": 170,
+        "end_column": 34
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/date.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 39,
+        "start_column": 0,
+        "end_line": 39,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/modules/mod_articles_categories/tmpl/default.php": [
+      {
+        "rule": "E0055",
+        "line": "<?php require ModuleHelper::getLayoutPath('mod_articles_categories', $params->get('layout', 'default') . '_items'); ?>",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 21,
+        "start_column": 6,
+        "end_line": 21,
+        "end_column": 114
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/plugins/user/terms/label.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 17,
+        "start_column": 0,
+        "end_line": 17,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/password.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 16,
+        "start_column": 0,
+        "end_line": 16,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/radio/buttons.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 13,
+        "start_column": 0,
+        "end_line": 13,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/list.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 15,
+        "start_column": 0,
+        "end_line": 15,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/administrator/components/com_installer/src/Model/UpdateModel.php": [
+      {
+        "rule": "E0055",
+        "line": "                    require_once $path;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$table"
+          ],
+          "file": "/tmp/phanalist-scan/joomla-cms/administrator/components/com_installer/src/Model/UpdateModel.php",
+          "line": 543
+        },
+        "start_line": 543,
+        "start_column": 20,
+        "end_line": 543,
+        "end_column": 38
+      },
+      {
+        "rule": "E0055",
+        "line": "                    require_once $path;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$table"
+          ],
+          "file": "/tmp/phanalist-scan/joomla-cms/administrator/components/com_installer/src/Model/UpdateModel.php",
+          "line": 558
+        },
+        "start_line": 558,
+        "start_column": 20,
+        "end_line": 558,
+        "end_column": 38
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/plugins/behaviour/compat6/classes/Input/Input.php": [
+      {
+        "rule": "E0053",
+        "line": "        list($this->options, $this->data, $this->inputs) = unserialize($input);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$input"
+          ],
+          "file": "/tmp/phanalist-scan/joomla-cms/plugins/behaviour/compat6/classes/Input/Input.php",
+          "line": 213
+        },
+        "start_line": 213,
+        "start_column": 59,
+        "end_line": 213,
+        "end_column": 78
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/color/simple.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 17,
+        "start_column": 0,
+        "end_line": 17,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/administrator/components/com_associations/src/Helper/AssociationsHelper.php": [
+      {
+        "rule": "E0055",
+        "line": "        require_once JPATH_ADMINISTRATOR . '/components/' . $extensionName . '/helpers/associations.php';",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$extensionName"
+          ],
+          "file": "/tmp/phanalist-scan/joomla-cms/administrator/components/com_associations/src/Helper/AssociationsHelper.php",
+          "line": 157
+        },
+        "start_line": 157,
+        "start_column": 8,
+        "end_line": 157,
+        "end_column": 104
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/modules/mod_articles_news/tmpl/vertical.php": [
+      {
+        "rule": "E0055",
+        "line": "            <?php require ModuleHelper::getLayoutPath('mod_articles_news', '_item'); ?>",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 28,
+        "start_column": 18,
+        "end_line": 28,
+        "end_column": 83
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/email.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 15,
+        "start_column": 0,
+        "end_line": 15,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/button/transition-button.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData, EXTR_OVERWRITE);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 18,
+        "start_column": 0,
+        "end_line": 18,
+        "end_column": 37
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/libraries/namespacemap.php": [
+      {
+        "rule": "E0055",
+        "line": "        $map = $this->cachedMap ?: require $this->file;",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 104,
+        "start_column": 35,
+        "end_line": 104,
+        "end_column": 54
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/rules.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 21,
+        "start_column": 0,
+        "end_line": 21,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/libraries/html/bootstrap/modal/footer.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 13,
+        "start_column": 0,
+        "end_line": 13,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/libraries/src/Cache/Controller/PageController.php": [
+      {
+        "rule": "E0053",
+        "line": "            $data = unserialize(trim($data));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$group",
+            "$id"
+          ],
+          "file": "/tmp/phanalist-scan/joomla-cms/libraries/src/Cache/Controller/PageController.php",
+          "line": 100
+        },
+        "start_line": 100,
+        "start_column": 20,
+        "end_line": 100,
+        "end_column": 44
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/plugins/content/vote/src/Extension/Vote.php": [
+      {
+        "rule": "E0055",
+        "line": "        include $path;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 122,
+        "start_column": 8,
+        "end_line": 122,
+        "end_column": 21
+      },
+      {
+        "rule": "E0055",
+        "line": "            include $path;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 131,
+        "start_column": 12,
+        "end_line": 131,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/plugins/editors/tinymce/field/tinymcebuilder/setaccess.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 13,
+        "start_column": 0,
+        "end_line": 13,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/toolbar/separator.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData, EXTR_OVERWRITE);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 13,
+        "start_column": 0,
+        "end_line": 13,
+        "end_column": 37
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/plugins/editors/tinymce/field/tinymcebuilder.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 19,
+        "start_column": 0,
+        "end_line": 19,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/plugins/system/privacyconsent/label.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 17,
+        "start_column": 0,
+        "end_line": 17,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/libraries/src/Toolbar/ContainerAwareToolbarFactory.php": [
+      {
+        "rule": "E0055",
+        "line": "                include_once $buttonFile;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$type"
+          ],
+          "file": "/tmp/phanalist-scan/joomla-cms/libraries/src/Toolbar/ContainerAwareToolbarFactory.php",
+          "line": 54
+        },
+        "start_line": 54,
+        "start_column": 16,
+        "end_line": 54,
+        "end_column": 40
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/toolbar/link.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData, EXTR_OVERWRITE);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 13,
+        "start_column": 0,
+        "end_line": 13,
+        "end_column": 37
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/administrator/components/com_media/src/Model/ApiModel.php": [
+      {
+        "rule": "E0054",
+        "line": "                    $extensions = array_merge($extensions, ${$type});",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:indirect",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 568,
+        "start_column": 59,
+        "end_line": 568,
+        "end_column": 67
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/tag.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 18,
+        "start_column": 0,
+        "end_line": 18,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/meter.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 13,
+        "start_column": 0,
+        "end_line": 13,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/tel.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 13,
+        "start_column": 0,
+        "end_line": 13,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/administrator/components/com_joomlaupdate/extract.php": [
+      {
+        "rule": "E0055",
+        "line": "    require_once $setupFile;",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 1800,
+        "start_column": 4,
+        "end_line": 1800,
+        "end_column": 27
+      },
+      {
+        "rule": "E0055",
+        "line": "                include_once $filename;",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 1964,
+        "start_column": 16,
+        "end_line": 1964,
+        "end_column": 38
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/administrator/components/com_modules/layouts/joomla/form/field/modulespositionedit.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 19,
+        "start_column": 0,
+        "end_line": 19,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/libraries/src/Layout/FileLayout.php": [
+      {
+        "rule": "E0055",
+        "line": "        include $path;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 128,
+        "start_column": 8,
+        "end_line": 128,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/radiobasic.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 18,
+        "start_column": 0,
+        "end_line": 18,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/groupedlist-transition.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 17,
+        "start_column": 0,
+        "end_line": 17,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/subform/repeatable-table.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 17,
+        "start_column": 0,
+        "end_line": 17,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/administrator/components/com_menus/layouts/joomla/form/field/modal-select/extra-buttons.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 18,
+        "start_column": 0,
+        "end_line": 18,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/subform/default.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 15,
+        "start_column": 0,
+        "end_line": 15,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/hidden.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 13,
+        "start_column": 0,
+        "end_line": 13,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/libraries/src/Document/Renderer/Html/MessageRenderer.php": [
+      {
+        "rule": "E0055",
+        "line": "            include_once $chromePath;",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 52,
+        "start_column": 12,
+        "end_line": 52,
+        "end_column": 36
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/administrator/components/com_contact/layouts/joomla/form/field/modal-select/extra-buttons.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 18,
+        "start_column": 0,
+        "end_line": 18,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/plugins/editors/tinymce/field/tinymcebuilder/setoptions.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 13,
+        "start_column": 0,
+        "end_line": 13,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/html/treeprefix.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 13,
+        "start_column": 0,
+        "end_line": 13,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/administrator/components/com_fields/src/Plugin/FieldsPlugin.php": [
+      {
+        "rule": "E0055",
+        "line": "        include $path;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$field"
+          ],
+          "file": "/tmp/phanalist-scan/joomla-cms/administrator/components/com_fields/src/Plugin/FieldsPlugin.php",
+          "line": 227
+        },
+        "start_line": 227,
+        "start_column": 8,
+        "end_line": 227,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/plugins/system/webauthn/src/Authentication.php": [
+      {
+        "rule": "E0053",
+        "line": "        $publicKeyCredentialRequestOptions = unserialize($serializedOptions);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 248,
+        "start_column": 45,
+        "end_line": 248,
+        "end_column": 76
+      },
+      {
+        "rule": "E0053",
+        "line": "            $publicKeyCredentialCreationOptions = unserialize(base64_decode($encodedOptions));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 305,
+        "start_column": 50,
+        "end_line": 305,
+        "end_column": 93
+      },
+      {
+        "rule": "E0053",
+        "line": "            $publicKeyCredentialRequestOptions = unserialize(base64_decode($encodedOptions));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 499,
+        "start_column": 49,
+        "end_line": 499,
+        "end_column": 92
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/modules/mod_articles_categories/tmpl/default_items.php": [
+      {
+        "rule": "E0055",
+        "line": "            <?php require ModuleHelper::getLayoutPath('mod_articles_categories', $params->get('layout', 'default') . '_items'); ?>",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 46,
+        "start_column": 18,
+        "end_line": 46,
+        "end_column": 126
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/plugins/content/pagebreak/src/Extension/PageBreak.php": [
+      {
+        "rule": "E0055",
+        "line": "        include $path;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 337,
+        "start_column": 8,
+        "end_line": 337,
+        "end_column": 21
+      },
+      {
+        "rule": "E0055",
+        "line": "        include $path;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 373,
+        "start_column": 8,
+        "end_line": 373,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/color/slider.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 21,
+        "start_column": 0,
+        "end_line": 21,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/administrator/components/com_postinstall/src/Controller/MessageController.php": [
+      {
+        "rule": "E0055",
+        "line": "                    require_once $file;",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 161,
+        "start_column": 20,
+        "end_line": 161,
+        "end_column": 38
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/renderfield.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 15,
+        "start_column": 0,
+        "end_line": 15,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/libraries/src/MVC/Controller/BaseController.php": [
+      {
+        "rule": "E0055",
+        "line": "                require_once $path;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$config"
+          ],
+          "file": "/tmp/phanalist-scan/joomla-cms/libraries/src/MVC/Controller/BaseController.php",
+          "line": 339
+        },
+        "start_line": 339,
+        "start_column": 16,
+        "end_line": 339,
+        "end_column": 34
+      },
+      {
+        "rule": "E0055",
+        "line": "                require_once $backuppath;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$config"
+          ],
+          "file": "/tmp/phanalist-scan/joomla-cms/libraries/src/MVC/Controller/BaseController.php",
+          "line": 341
+        },
+        "start_line": 341,
+        "start_column": 16,
+        "end_line": 341,
+        "end_column": 40
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/plugins/multifactorauth/webauthn/src/Helper/Credentials.php": [
+      {
+        "rule": "E0053",
+        "line": "            $publicKeyCredentialCreationOptions = unserialize(base64_decode($encodedOptions));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 102,
+        "start_column": 50,
+        "end_line": 102,
+        "end_column": 93
+      },
+      {
+        "rule": "E0053",
+        "line": "        $publicKeyCredentialRequestOptions = unserialize($serializedOptions);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 201,
+        "start_column": 45,
+        "end_line": 201,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/libraries/src/Session/Storage/JoomlaStorage.php": [
+      {
+        "rule": "E0053",
+        "line": "            $this->data = unserialize(base64_decode($_SESSION['joomla']));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 317,
+        "start_column": 26,
+        "end_line": 317,
+        "end_column": 73
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/libraries/src/Language/LanguageHelper.php": [
+      {
+        "rule": "E0055",
+        "line": "            $result = include $cacheFile;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$fileName"
+          ],
+          "file": "/tmp/phanalist-scan/joomla-cms/libraries/src/Language/LanguageHelper.php",
+          "line": 457
+        },
+        "start_line": 457,
+        "start_column": 22,
+        "end_line": 457,
+        "end_column": 40
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/administrator/modules/mod_latest/src/Dispatcher/Dispatcher.php": [
+      {
+        "rule": "E0055",
+        "line": "                require ModuleHelper::getLayoutPath('mod_latest', $params->get('layout', 'default'));",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 69,
+        "start_column": 16,
+        "end_line": 69,
+        "end_column": 100
+      },
+      {
+        "rule": "E0054",
+        "line": "                extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 55,
+        "start_column": 16,
+        "end_line": 55,
+        "end_column": 37
+      },
+      {
+        "rule": "E0054",
+        "line": "                extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 58,
+        "start_column": 16,
+        "end_line": 58,
+        "end_column": 37
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/plugins/system/stats/layouts/field/uniqueid.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 15,
+        "start_column": 0,
+        "end_line": 15,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/modules/mod_articles/tmpl/default.php": [
+      {
+        "rule": "E0055",
+        "line": "            <?php require ModuleHelper::getLayoutPath('mod_articles', $params->get('layout', 'default') . $layoutSuffix); ?>",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 43,
+        "start_column": 18,
+        "end_line": 43,
+        "end_column": 120
+      },
+      {
+        "rule": "E0055",
+        "line": "    <?php require ModuleHelper::getLayoutPath('mod_articles', $params->get('layout', 'default') . $layoutSuffix); ?>",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 48,
+        "start_column": 10,
+        "end_line": 48,
+        "end_column": 112
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/administrator/components/com_scheduler/layouts/form/field/webcron_link.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 17,
+        "start_column": 0,
+        "end_line": 17,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/administrator/components/com_joomlaupdate/finalisation.php": [
+      {
+        "rule": "E0055",
+        "line": "                require_once $filePath;",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 63,
+        "start_column": 16,
+        "end_line": 63,
+        "end_column": 38
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/libraries/html/bootstrap/modal/iframe.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 15,
+        "start_column": 0,
+        "end_line": 15,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/libraries/src/Input/Cli.php": [
+      {
+        "rule": "E0053",
+        "line": "        [$this->executable, $this->args, $this->options, $this->data, $this->inputs] = unserialize($input);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$input"
+          ],
+          "file": "/tmp/phanalist-scan/joomla-cms/libraries/src/Input/Cli.php",
+          "line": 116
+        },
+        "start_line": 116,
+        "start_column": 87,
+        "end_line": 116,
+        "end_column": 106
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/modal-select.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 15,
+        "start_column": 0,
+        "end_line": 15,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/libraries/loader.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $success = (bool) include_once $base . '/' . $path . '.php';",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$base",
+            "$key"
+          ],
+          "file": "/tmp/phanalist-scan/joomla-cms/libraries/loader.php",
+          "line": 219
+        },
+        "start_line": 219,
+        "start_column": 38,
+        "end_line": 219,
+        "end_column": 79
+      },
+      {
+        "rule": "E0055",
+        "line": "            $found = (bool) include_once self::$classes[$key];",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 251,
+        "start_column": 28,
+        "end_line": 251,
+        "end_column": 61
+      },
+      {
+        "rule": "E0055",
+        "line": "                        $found = (bool) include_once $classFilePath;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$class"
+          ],
+          "file": "/tmp/phanalist-scan/joomla-cms/libraries/loader.php",
+          "line": 521
+        },
+        "start_line": 521,
+        "start_column": 40,
+        "end_line": 521,
+        "end_column": 67
+      },
+      {
+        "rule": "E0055",
+        "line": "                $found = (bool) include_once $path;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$class",
+            "$lookup"
+          ],
+          "file": "/tmp/phanalist-scan/joomla-cms/libraries/loader.php",
+          "line": 625
+        },
+        "start_line": 625,
+        "start_column": 32,
+        "end_line": 625,
+        "end_column": 50
+      },
+      {
+        "rule": "E0055",
+        "line": "                    $found = (bool) include_once $path;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$class",
+            "$lookup"
+          ],
+          "file": "/tmp/phanalist-scan/joomla-cms/libraries/loader.php",
+          "line": 643
+        },
+        "start_line": 643,
+        "start_column": 36,
+        "end_line": 643,
+        "end_column": 54
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/libraries/src/Document/HtmlDocument.php": [
+      {
+        "rule": "E0055",
+        "line": "            require $directory . '/' . $filename;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$directory",
+            "$filename"
+          ],
+          "file": "/tmp/phanalist-scan/joomla-cms/libraries/src/Document/HtmlDocument.php",
+          "line": 734
+        },
+        "start_line": 734,
+        "start_column": 12,
+        "end_line": 734,
+        "end_column": 48
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/libraries/src/Dispatcher/LegacyComponentDispatcher.php": [
+      {
+        "rule": "E0055",
+        "line": "            require_once $path;",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 71,
+        "start_column": 12,
+        "end_line": 71,
+        "end_column": 30
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/subform/repeatable-table/section.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 16,
+        "start_column": 0,
+        "end_line": 16,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/plugins/system/stats/layouts/message.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 16,
+        "start_column": 0,
+        "end_line": 16,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/administrator/components/com_categories/layouts/joomla/form/field/modal-select/extra-buttons.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 18,
+        "start_column": 0,
+        "end_line": 18,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/groupedlist-fancy-select.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 17,
+        "start_column": 0,
+        "end_line": 17,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/subform/repeatable-table/section-byfieldsets.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 16,
+        "start_column": 0,
+        "end_line": 16,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/number.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 13,
+        "start_column": 0,
+        "end_line": 13,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/libraries/src/Dispatcher/ModuleDispatcher.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $path;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 52,
+        "start_column": 12,
+        "end_line": 52,
+        "end_column": 25
+      },
+      {
+        "rule": "E0054",
+        "line": "                extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 46,
+        "start_column": 16,
+        "end_line": 46,
+        "end_column": 37
+      },
+      {
+        "rule": "E0054",
+        "line": "                extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 49,
+        "start_column": 16,
+        "end_line": 49,
+        "end_column": 37
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/components/com_finder/src/Model/SearchModel.php": [
+      {
+        "rule": "E0053",
+        "line": "                $result = unserialize(stream_get_contents($row->object));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 119,
+        "start_column": 26,
+        "end_line": 119,
+        "end_column": 72
+      },
+      {
+        "rule": "E0053",
+        "line": "                $result = unserialize($row->object);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 121,
+        "start_column": 26,
+        "end_line": 121,
+        "end_column": 51
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/url.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 15,
+        "start_column": 0,
+        "end_line": 15,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/html/batch/item.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 17,
+        "start_column": 0,
+        "end_line": 17,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/time.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 16,
+        "start_column": 0,
+        "end_line": 16,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/modules/mod_articles_news/tmpl/horizontal.php": [
+      {
+        "rule": "E0055",
+        "line": "            <?php require ModuleHelper::getLayoutPath('mod_articles_news', '_item'); ?>",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 27,
+        "start_column": 18,
+        "end_line": 27,
+        "end_column": 83
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/libraries/src/Cache/Controller/OutputController.php": [
+      {
+        "rule": "E0053",
+        "line": "            $data = unserialize(trim($data));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$group",
+            "$id"
+          ],
+          "file": "/tmp/phanalist-scan/joomla-cms/libraries/src/Cache/Controller/OutputController.php",
+          "line": 71
+        },
+        "start_line": 71,
+        "start_column": 20,
+        "end_line": 71,
+        "end_column": 44
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/plugins/user/terms/message.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 13,
+        "start_column": 0,
+        "end_line": 13,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/plugins/system/privacyconsent/message.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 13,
+        "start_column": 0,
+        "end_line": 13,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/libraries/src/MVC/View/HtmlView.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $this->_template;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 423,
+        "start_column": 12,
+        "end_line": 423,
+        "end_column": 36
+      },
+      {
+        "rule": "E0055",
+        "line": "            include_once $helper;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$hlp"
+          ],
+          "file": "/tmp/phanalist-scan/joomla-cms/libraries/src/MVC/View/HtmlView.php",
+          "line": 454
+        },
+        "start_line": 454,
+        "start_column": 12,
+        "end_line": 454,
+        "end_column": 32
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/libraries/src/Cache/Controller/CallbackController.php": [
+      {
+        "rule": "E0053",
+        "line": "            $data = unserialize(trim($data));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$args",
+            "$callback",
+            "$id"
+          ],
+          "file": "/tmp/phanalist-scan/joomla-cms/libraries/src/Cache/Controller/CallbackController.php",
+          "line": 77
+        },
+        "start_line": 77,
+        "start_column": 20,
+        "end_line": 77,
+        "end_column": 44
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/libraries/src/Extension/ExtensionManagerTrait.php": [
+      {
+        "rule": "E0055",
+        "line": "            $provider = require_once $path;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$extensionPath"
+          ],
+          "file": "/tmp/phanalist-scan/joomla-cms/libraries/src/Extension/ExtensionManagerTrait.php",
+          "line": 141
+        },
+        "start_line": 141,
+        "start_column": 24,
+        "end_line": 141,
+        "end_column": 42
+      },
+      {
+        "rule": "E0055",
+        "line": "        require_once $path;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$plugin",
+            "$type"
+          ],
+          "file": "/tmp/phanalist-scan/joomla-cms/libraries/src/Extension/ExtensionManagerTrait.php",
+          "line": 217
+        },
+        "start_line": 217,
+        "start_column": 8,
+        "end_line": 217,
+        "end_column": 26
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/administrator/components/com_finder/src/Model/SearchesModel.php": [
+      {
+        "rule": "E0053",
+        "line": "                $item->query = unserialize(stream_get_contents($item->query));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 144,
+        "start_column": 31,
+        "end_line": 144,
+        "end_column": 77
+      },
+      {
+        "rule": "E0053",
+        "line": "                $item->query = unserialize($item->query);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 146,
+        "start_column": 31,
+        "end_line": 146,
+        "end_column": 56
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/subform/repeatable/section-byfieldsets.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 16,
+        "start_column": 0,
+        "end_line": 16,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/libraries/html/bootstrap/modal/main.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 16,
+        "start_column": 0,
+        "end_line": 16,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/button/action-button.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData, EXTR_OVERWRITE);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 18,
+        "start_column": 0,
+        "end_line": 18,
+        "end_column": 37
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/plugins/system/stats/layouts/field/data.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 20,
+        "start_column": 0,
+        "end_line": 20,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/plugins/installer/urlinstaller/src/Extension/UrlInstaller.php": [
+      {
+        "rule": "E0055",
+        "line": "        include PluginHelper::getLayoutPath('installer', 'urlinstaller');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 61,
+        "start_column": 8,
+        "end_line": 61,
+        "end_column": 72
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/plugins/installer/webinstaller/src/Extension/WebInstaller.php": [
+      {
+        "rule": "E0055",
+        "line": "        include PluginHelper::getLayoutPath('installer', 'webinstaller');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 130,
+        "start_column": 8,
+        "end_line": 130,
+        "end_column": 72
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/modules/mod_login/src/Dispatcher/Dispatcher.php": [
+      {
+        "rule": "E0055",
+        "line": "            require ModuleHelper::getLayoutPath('mod_login', $layout);",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 72,
+        "start_column": 12,
+        "end_line": 72,
+        "end_column": 69
+      },
+      {
+        "rule": "E0054",
+        "line": "                extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 54,
+        "start_column": 16,
+        "end_line": 54,
+        "end_column": 37
+      },
+      {
+        "rule": "E0054",
+        "line": "                extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 57,
+        "start_column": 16,
+        "end_line": 57,
+        "end_column": 37
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/plugins/system/stats/layouts/stats.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 15,
+        "start_column": 0,
+        "end_line": 15,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/libraries/html/bootstrap/modal/header.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 15,
+        "start_column": 0,
+        "end_line": 15,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/moduleorder.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 15,
+        "start_column": 0,
+        "end_line": 15,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/modal-select/buttons.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 16,
+        "start_column": 0,
+        "end_line": 16,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/toolbar/base.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData, EXTR_OVERWRITE);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 13,
+        "start_column": 0,
+        "end_line": 13,
+        "end_column": 37
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/modules/mod_menu/tmpl/default.php": [
+      {
+        "rule": "E0055",
+        "line": "            require ModuleHelper::getLayoutPath('mod_menu', 'default_' . $item->type);",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 77,
+        "start_column": 12,
+        "end_line": 77,
+        "end_column": 85
+      },
+      {
+        "rule": "E0055",
+        "line": "            require ModuleHelper::getLayoutPath('mod_menu', 'default_url');",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 81,
+        "start_column": 12,
+        "end_line": 81,
+        "end_column": 74
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/layouts/joomla/form/field/user.php": [
+      {
+        "rule": "E0054",
+        "line": "extract($displayData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 18,
+        "start_column": 0,
+        "end_line": 18,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/joomla-cms/plugins/installer/packageinstaller/src/Extension/PackageInstaller.php": [
+      {
+        "rule": "E0055",
+        "line": "        include PluginHelper::getLayoutPath('installer', 'packageinstaller');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 61,
+        "start_column": 8,
+        "end_line": 61,
+        "end_column": 76
+      }
+    ]
+  },
+  "codes_count": {
+    "E0053": 18,
+    "E0054": 106,
+    "E0055": 75
+  },
+  "total_files_count": 3296,
+  "duration": {
+    "secs": 0,
+    "nanos": 339268773
+  }
+}

@@ -78,15 +78,22 @@ impl crate::rules::Rule for Rule {
 
                     let base_id = "E0059:dynamic-eval:construct";
                     let template = "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.";
+                    let source_info = taint.sink_source_info(SinkKind::Eval, construct.span(), file);
                     let message = match origin {
-                        Some(origin) => Message::new(
-                            format!("{base_id}:tainted"),
-                            format!("{template} The code comes from {{source}}."),
-                        )
-                        .arg("source", origin),
+                        Some(_) => Message::new(base_id.to_string(), template.to_string()),
                         None => Message::new(base_id, template),
                     };
-                    violations.push(self.new_violation(file, message, construct.span()));
+                    let mut violation = self.new_violation(file, message, construct.span());
+                    if let Some(info) = source_info {
+                        violation.taint_source = Some(crate::results::TaintSource {
+                            request_rooted: info.request_rooted,
+                            source_kind: Some(format!("{:?}", info.source_kind).to_lowercase()),
+                            origins: info.origins,
+                            file: info.source_file,
+                            line: info.source_line,
+                        });
+                    }
+                    violations.push(violation);
                     return;
                 }
 
@@ -116,15 +123,22 @@ impl crate::rules::Rule for Rule {
 
                 let base_id = "E0059:dynamic-eval:assert-string";
                 let template = "assert() is given a string of code. Use a boolean expression or a dedicated validation library instead.";
+                let source_info = taint.sink_source_info(SinkKind::AssertString, call.span(), file);
                 let message = match origin {
-                    Some(origin) => Message::new(
-                        format!("{base_id}:tainted"),
-                        format!("{template} The code comes from {{source}}."),
-                    )
-                    .arg("source", origin),
+                    Some(_) => Message::new(base_id.to_string(), template.to_string()),
                     None => Message::new(base_id, template),
                 };
-                violations.push(self.new_violation(file, message, call.span()));
+                let mut violation = self.new_violation(file, message, call.span());
+                if let Some(info) = source_info {
+                    violation.taint_source = Some(crate::results::TaintSource {
+                        request_rooted: info.request_rooted,
+                        source_kind: Some(format!("{:?}", info.source_kind).to_lowercase()),
+                        origins: info.origins,
+                        file: info.source_file,
+                        line: info.source_line,
+                    });
+                }
+                violations.push(violation);
             });
         }
 
@@ -167,6 +181,6 @@ mod tests {
         let violations = analyze_file_for_rule("e59/dynamic_eval_bad.php", CODE);
         assert!(violations
             .iter()
-            .any(|violation| violation.message.id.contains(":tainted")));
+            .any(|violation| violation.taint_source.is_some()));
     }
 }

@@ -25,7 +25,7 @@ use crate::resource::{ResourceClass, ResourceFinding, ResourceService, ResourceS
 use crate::results::{Results, Violation};
 use crate::rules::Rule;
 use crate::rules::{self};
-use crate::security::{FileTaint, SecurityService};
+use crate::security::{FileTaint, SecurityService, SourceFilter};
 use crate::verification::{Finding, FindingClass, Settings, VerificationService};
 
 struct FileOutcome {
@@ -156,15 +156,24 @@ pub struct Analyse {
     verification: VerificationService,
     resource: ResourceService,
     security: SecurityService,
+    source_filter: SourceFilter,
 }
 
 impl Analyse {
     pub fn new(config: &Config) -> Self {
+        let source_filter = if config.taint_source_request {
+            SourceFilter::Request
+        } else {
+            SourceFilter::All
+        };
+        let mut security = SecurityService::new();
+        security = security.with_source_filter(source_filter);
         Self {
             rules: Self::get_active_rules(config),
             verification: VerificationService::new(),
             resource: ResourceService::new(),
-            security: SecurityService::new(),
+            security,
+            source_filter,
         }
     }
 
@@ -851,6 +860,7 @@ impl Analyse {
             start_column,
             end_line,
             end_column,
+            taint_source: None,
         }
     }
 
