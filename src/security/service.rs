@@ -5,17 +5,24 @@ use std::sync::Mutex;
 use crate::file::File;
 
 use super::summary::TaintSummaryIndex;
-use super::taint::{analyze_file, FileTaint, TaintSummary};
+use super::taint::{analyze_file, FileTaint, SourceFilter, TaintSummary};
 
 pub(crate) struct SecurityService {
     summaries: Mutex<TaintSummaryIndex>,
+    source_filter: SourceFilter,
 }
 
 impl SecurityService {
     pub fn new() -> Self {
         Self {
             summaries: Mutex::new(TaintSummaryIndex::default()),
+            source_filter: SourceFilter::default(),
         }
+    }
+
+    pub fn with_source_filter(mut self, filter: SourceFilter) -> Self {
+        self.source_filter = filter;
+        self
     }
 
     pub fn begin_index(&self) {
@@ -26,7 +33,7 @@ impl SecurityService {
 
     pub fn index_file(&self, file: &File<'_>) {
         if let Ok(mut summaries) = self.summaries.lock() {
-            summaries.replace_file(file);
+            summaries.replace_file(file, self.source_filter);
         }
     }
 
@@ -50,6 +57,6 @@ impl SecurityService {
             .map(|summaries| summaries.snapshot());
         let empty = HashMap::<String, TaintSummary>::new();
         let summaries = snapshot.as_deref().unwrap_or(&empty);
-        analyze_file(file, summaries)
+        analyze_file(file, summaries, self.source_filter)
     }
 }

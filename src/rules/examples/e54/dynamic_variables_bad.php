@@ -1,7 +1,11 @@
 <?php
 
-function hydrate(array $input, string $name, string $key): void
+function hydrate(): void
 {
+    $input = $_POST['input'] ?? [];
+    $name = $_POST['name'] ?? 'key';
+    $key = $_POST['key'] ?? 'val';
+
     extract($input);
 
     $$name = 'value';

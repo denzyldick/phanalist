@@ -92,17 +92,25 @@ impl crate::rules::Rule for Rule {
 
                 let base_id = format!("E0055:dynamic-include:{kind}");
                 let template = "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.";
+
+                let source_info =
+                    taint.sink_source_info(SinkKind::Include, construct.span(), file);
                 let message = match origin {
-                    Some(origin) => Message::new(
-                        format!("{base_id}:tainted"),
-                        format!("{template} The path comes from {{source}}."),
-                    )
-                    .arg("kind", kind)
-                    .arg("source", origin),
+                    Some(_) => Message::new(base_id, template),
                     None => Message::new(base_id, template).arg("kind", kind),
                 };
 
-                violations.push(self.new_violation(file, message, construct.span()));
+                let mut violation = self.new_violation(file, message, construct.span());
+                if let Some(info) = source_info {
+                    violation.taint_source = Some(crate::results::TaintSource {
+                        request_rooted: info.request_rooted,
+                        source_kind: Some(format!("{:?}", info.source_kind).to_lowercase()),
+                        origins: info.origins,
+                        file: info.source_file,
+                        line: info.source_line,
+                    });
+                }
+                violations.push(violation);
             });
         }
 
@@ -202,6 +210,6 @@ mod tests {
         let violations = analyze_file_for_rule("e55/dynamic_include_bad.php", CODE);
         assert!(violations
             .iter()
-            .any(|violation| violation.message.id.contains(":tainted")));
+            .any(|violation| violation.taint_source.is_some()));
     }
 }

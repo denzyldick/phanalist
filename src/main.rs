@@ -90,6 +90,9 @@ struct Args {
     /// Sort the engineer report by: total (default), net, name, fixed, introduced
     sort: String,
     #[arg(long)]
+    /// Report all tainted findings, including parameter-derived leads (default: request-only)
+    taint_source_all: bool,
+    #[arg(long)]
     /// Start as a Language Server (LSP) for editor integrations
     lsp: bool,
 }
@@ -109,6 +112,7 @@ fn main() {
     };
 
     let mut config = Analyse::parse_config(args.config.clone(), &format, quiet);
+    config.taint_source_request = !args.taint_source_all;
     if let Some(rules) = args.rules.clone() {
         config.enabled_rules = rules;
     }

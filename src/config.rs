@@ -18,6 +18,9 @@ pub struct Config {
     /// prefixes (`var/cache`) or globs (`**/*.generated.php`).
     #[serde(default)]
     pub exclude_paths: Vec<String>,
+    /// Only report taint findings whose source is request-controlled.
+    #[serde(default)]
+    pub taint_source_request: bool,
 }
 
 impl Default for Config {
@@ -141,6 +144,7 @@ impl Default for Config {
             disable_rules,
             rules,
             exclude_paths: vec![],
+            taint_source_request: true,
         }
     }
 }
