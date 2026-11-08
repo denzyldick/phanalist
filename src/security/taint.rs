@@ -10,6 +10,44 @@ use crate::rules::ast_support::{
 
 pub type Origins = BTreeSet<String>;
 
+/// A call graph edge: caller function name -> callee function name.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct CallGraph {
+    /// caller -> set of callees
+    pub edges: HashMap<String, BTreeSet<String>>,
+    /// reverse: callee -> set of callers
+    pub reverse: HashMap<String, BTreeSet<String>>,
+    /// Functions that are defined but never called (potential entry points).
+    pub entry_points: BTreeSet<String>,
+}
+
+impl CallGraph {
+    pub fn new() -> Self {
+        Self {
+            edges: HashMap::new(),
+            reverse: HashMap::new(),
+            entry_points: BTreeSet::new(),
+        }
+    }
+
+    pub fn add_edge(&mut self, caller: &str, callee: &str) {
+        self.edges.entry(caller.to_string()).or_default().insert(callee.to_string());
+        self.reverse.entry(callee.to_string()).or_default().insert(caller.to_string());
+    }
+
+    pub fn callees(&self, caller: &str) -> Option<&BTreeSet<String>> {
+        self.edges.get(caller)
+    }
+
+    pub fn callers(&self, callee: &str) -> Option<&BTreeSet<String>> {
+        self.reverse.get(callee)
+    }
+
+    pub fn all_callers(&self) -> &HashMap<String, BTreeSet<String>> {
+        &self.reverse
+    }
+}
+
 /// Taint-aware reporting mode for a security rule.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -87,6 +125,8 @@ pub struct TaintSink {
     pub request_rooted: bool,
     /// The dominant source kind for this sink.
     pub source_kind: SourceKind,
+    /// Name of the function containing this sink (for interprocedural filtering).
+    pub enclosing_function: Option<String>,
 }
 
 /// Taint findings for a single file.
@@ -199,6 +239,10 @@ struct Analyzer<'summaries, 'arena> {
     symbolic: bool,
     depth: usize,
     source_filter: SourceFilter,
+    /// Call graph being built during analysis.
+    call_graph: CallGraph,
+    /// Current function name being analyzed (for call graph edges).
+    current_function: Option<String>,
     _marker: std::marker::PhantomData<&'arena ()>,
 }
 
@@ -214,12 +258,15 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
             symbolic,
             depth: 0,
             source_filter,
+            call_graph: CallGraph::new(),
+            current_function: None,
             _marker: Default::default(),
         }
     }
 
     fn analyze_function(
         &mut self,
+        current_func: Option<&str>,
         params: &[String],
         body: &'arena [Statement<'arena>],
     ) -> (Origins, Vec<TaintSink>) {
@@ -232,7 +279,10 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
                 state.env.insert(name, origins);
             }
         }
+        let prev_func = self.current_function.clone();
+        self.current_function = current_func.map(|s| s.to_string());
         self.analyze_statements(body, &mut state);
+        self.current_function = prev_func;
         (state.return_taint, std::mem::take(&mut self.sinks))
     }
 
@@ -657,7 +707,6 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
         let lhs_name = direct_variable_name(assignment.lhs).unwrap_or_default().to_string();
         let _ = self.eval(assignment.lhs, state);
         let rhs = self.eval(assignment.rhs, state);
-        eprintln!("DEBUG assign: lhs={lhs_name}, rhs_origins={rhs:?}");
 
         if let Some(name) = direct_variable_name(assignment.lhs) {
             match assignment.operator {
@@ -746,6 +795,11 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
         let Some(name) = call_name(call) else {
             return union(&argument_taints);
         };
+
+        // Record call graph edge: current function -> callee
+        if let Some(caller) = &self.current_function {
+            self.call_graph.add_edge(caller, &name);
+        }
 
         match call {
             Call::Function(call) => {
@@ -993,12 +1047,10 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
         via: Option<String>,
         sanitized_origins: &BTreeSet<String>,
     ) {
-        eprintln!("DEBUG record: kind={:?}, span=({},{}), origins={:?}, sanitized={:?}", kind, span.start.offset, span.end.offset, origins, sanitized_origins);
         let already = self.sinks.iter().any(|sink| {
             sink.kind == kind && same_span(sink.span, span) && same_span(sink.call_span, call_span)
         });
         if already {
-            eprintln!("DEBUG record: ALREADY EXISTS, skipping");
             return;
         }
         let request_rooted = origins.iter().any(|o| is_request_origin(o));
@@ -1011,7 +1063,6 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
         };
 
         if is_guard_suppressed(&origins, sanitized_origins) {
-            eprintln!("DEBUG record: SUPPRESSED");
             return;
         }
 
@@ -1023,6 +1074,7 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
             via,
             request_rooted,
             source_kind,
+            enclosing_function: self.current_function.clone(),
         });
     }
 }
@@ -1177,7 +1229,6 @@ fn is_regex_guard_call(expression: &Expression<'_>) -> Option<String> {
     let Expression::Call(Call::Function(call)) = expression.unparenthesized() else {
         return None;
     };
-    eprintln!("DEBUG is_regex_guard_call: function={:?}, arg_list={:?}", function_name(call.function), call.argument_list);
     let Some(name) = function_name(call.function) else {
         return None;
     };
@@ -1202,9 +1253,7 @@ fn is_guard_suppressed(origins: &Origins, sanitized_origins: &BTreeSet<String>) 
     if origins.is_empty() {
         return false;
     }
-    eprintln!("DEBUG is_guard_suppressed: origins={origins:?}, sanitized={sanitized_origins:?}");
     let result = origins.iter().all(|o| sanitized_origins.contains(o));
-    eprintln!("DEBUG is_guard_suppressed: result={result}");
     result
 }
 
@@ -1212,26 +1261,31 @@ pub(crate) fn analyze_file<'arena>(
     file: &File<'arena>,
     summaries: &HashMap<String, TaintSummary>,
     source_filter: SourceFilter,
-) -> FileTaint {
+) -> (FileTaint, CallGraph) {
     let Some(program) = file.ast else {
-        return FileTaint::default();
+        return (FileTaint::default(), CallGraph::new());
     };
 
     let mut sinks = Vec::new();
+    let mut call_graph = CallGraph::new();
 
     let mut top_level = Analyzer::new(summaries, false, source_filter);
     let mut state = State::default();
     top_level.analyze_statements(program.statements.as_slice(), &mut state);
     sinks.append(&mut top_level.sinks);
+    call_graph = top_level.call_graph;
 
     let functions = collect_function_bodies(program.statements.as_slice());
     for function in functions {
+        let function_name = function.names.first().map(|s| s.as_str());
         let mut analyzer = Analyzer::new(summaries, true, source_filter);
-        let (_, mut function_sinks) = analyzer.analyze_function(&function.params, function.body);
+        let (_, mut function_sinks) = analyzer.analyze_function(function_name, &function.params, function.body);
         sinks.append(&mut function_sinks);
+        call_graph.edges.extend(analyzer.call_graph.edges);
+        call_graph.reverse.extend(analyzer.call_graph.reverse);
     }
 
-    FileTaint::new(sinks)
+    (FileTaint::new(sinks), call_graph)
 }
 
 pub(crate) fn summarize_file<'arena>(
@@ -1272,8 +1326,9 @@ fn summarize_function(
     function: &FunctionDef<'_>,
     summaries: &HashMap<String, TaintSummary>,
 ) -> TaintSummary {
+    let function_name = function.names.first().map(|s| s.as_str());
     let mut analyzer = Analyzer::new(summaries, true, SourceFilter::All);
-    let (return_taint, sinks) = analyzer.analyze_function(&function.params, function.body);
+    let (return_taint, sinks) = analyzer.analyze_function(function_name, &function.params, function.body);
 
     let mut return_from = Vec::new();
     let mut returns_source = false;

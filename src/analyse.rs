@@ -723,7 +723,9 @@ impl Analyse {
             file.reference_counter.build_reference_counter(program);
 
             let file_taint: Option<FileTaint> = if self.has_security_rules() {
-                Some(self.security.analyze(file))
+                let (taint, cg) = self.security.analyze(file);
+                self.security.merge_call_graph(cg);
+                Some(taint)
             } else {
                 None
             };
