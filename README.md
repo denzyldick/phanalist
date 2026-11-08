@@ -119,7 +119,7 @@ Every rule links to junior-friendly documentation with bad/good examples, "why i
 | [E0011](/src/rules/examples/e11/e11.md) | Detect the error suppression symbol: @ | — |
 | [E0012](/src/rules/examples/e12/e12.md) | Service compatibility with Shared Memory Model | `include_namespaces`, `reset_interfaces` |
 | [E0013](/src/rules/examples/e13/e13.md) | Private method not being called. | — |
-| [E0014](/src/rules/examples/e14/e14.md) | Law of Demeter | — |
+| [E0014](/src/rules/examples/e14/e14.md) | Law of Demeter violation. Method chaining should be avoided unless returning the same object type. | — |
 | [E0015](/src/rules/examples/e15/e15.md) | Lack of Cohesion of Methods (LCOM4) | `threshold: 1` |
 | [E0016](/src/rules/examples/e16/e16.md) | Cognitive complexity | `max_complexity: 15` |
 | [E0017](/src/rules/examples/e17/e17.md) | Coupling Between Objects (CBO) | `max_coupling: 10` |
