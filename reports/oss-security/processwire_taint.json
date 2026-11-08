@@ -1,0 +1,1583 @@
+{
+  "files": {
+    "/tmp/phanalist-scan2/processwire/wire/core/WireFileTools.php": [
+      {
+        "rule": "E0054",
+        "line": "\t\textract($fuel);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$vars"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/core/WireFileTools.php",
+          "line": 1695
+        },
+        "start_line": 1695,
+        "start_column": 2,
+        "end_line": 1695,
+        "end_column": 16
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\t\trequire($this->includeFile);",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 1700,
+        "start_column": 3,
+        "end_line": 1700,
+        "end_column": 30
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\t\trequire_once($this->includeFile);",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 1702,
+        "start_column": 3,
+        "end_line": 1702,
+        "end_column": 35
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\t\tinclude_once($this->includeFile);",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 1704,
+        "start_column": 3,
+        "end_line": 1704,
+        "end_column": 35
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\t\tinclude($this->includeFile);",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 1706,
+        "start_column": 3,
+        "end_line": 1706,
+        "end_column": 30
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\tinclude($file);\t",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$file",
+            "$options"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/core/WireFileTools.php",
+          "line": 1922
+        },
+        "start_line": 1922,
+        "start_column": 2,
+        "end_line": 1922,
+        "end_column": 16
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\tinclude_once($file);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$file",
+            "$options"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/core/WireFileTools.php",
+          "line": 1943
+        },
+        "start_line": 1943,
+        "start_column": 2,
+        "end_line": 1943,
+        "end_column": 21
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\trequire($file);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$file",
+            "$options"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/core/WireFileTools.php",
+          "line": 1964
+        },
+        "start_line": 1964,
+        "start_column": 2,
+        "end_line": 1964,
+        "end_column": 16
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\trequire_once($file);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$file",
+            "$options"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/core/WireFileTools.php",
+          "line": 1985
+        },
+        "start_line": 1985,
+        "start_column": 2,
+        "end_line": 1985,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan2/processwire/wire/templates-admin/controller.php": [
+      {
+        "rule": "E0055",
+        "line": "require($config->paths->core . \"admin.php\"); ",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 15,
+        "start_column": 0,
+        "end_line": 15,
+        "end_column": 43
+      }
+    ],
+    "/tmp/phanalist-scan2/processwire/site-blank/templates/admin.php": [
+      {
+        "rule": "E0055",
+        "line": "require($config->paths->core . \"admin.php\"); ",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 18,
+        "start_column": 0,
+        "end_line": 18,
+        "end_column": 43
+      }
+    ],
+    "/tmp/phanalist-scan2/processwire/wire/modules/AdminTheme/AdminThemeDefault/controller.php": [
+      {
+        "rule": "E0055",
+        "line": "require($config->paths->core . \"admin.php\"); ",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 13,
+        "start_column": 0,
+        "end_line": 13,
+        "end_column": 43
+      }
+    ],
+    "/tmp/phanalist-scan2/processwire/wire/modules/Fieldtype/FieldtypeFile/config.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\trequire_once($this->wire()->config->paths('InputfieldFile') . 'config.php');",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 113,
+        "start_column": 2,
+        "end_line": 113,
+        "end_column": 77
+      }
+    ],
+    "/tmp/phanalist-scan2/processwire/wire/core/TemplateFile.php": [
+      {
+        "rule": "E0054",
+        "line": "\t\textract($fuel); ",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 306,
+        "start_column": 2,
+        "end_line": 306,
+        "end_column": 16
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\t\t\trequire($_filename);",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 314,
+        "start_column": 4,
+        "end_line": 314,
+        "end_column": 23
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\t\t\t$this->returnValue = require($this->filename);",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 328,
+        "start_column": 25,
+        "end_line": 328,
+        "end_column": 49
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\t\t\trequire($_filename);",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 340,
+        "start_column": 4,
+        "end_line": 340,
+        "end_column": 23
+      }
+    ],
+    "/tmp/phanalist-scan2/processwire/wire/modules/AdminTheme/AdminThemeReno/controller.php": [
+      {
+        "rule": "E0055",
+        "line": "require($config->paths->core . \"admin.php\"); ",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 13,
+        "start_column": 0,
+        "end_line": 13,
+        "end_column": 43
+      }
+    ],
+    "/tmp/phanalist-scan2/processwire/wire/templates-admin/default.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\t\t<ul id='topnav' class='nav'><?php include($config->paths->adminTemplates . \"topnav.inc\"); ?>",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 117,
+        "start_column": 37,
+        "end_line": 117,
+        "end_column": 91
+      },
+      {
+        "rule": "E0055",
+        "line": "\t<?php if(count($notices)) include($config->paths->adminTemplates . \"notices.inc\"); ?>",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 140,
+        "start_column": 27,
+        "end_line": 140,
+        "end_column": 82
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\t\t<?php if($config->debug && $this->user->isSuperuser()) include($config->paths->adminTemplates . \"debug.inc\"); ?>",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 175,
+        "start_column": 58,
+        "end_line": 175,
+        "end_column": 111
+      }
+    ],
+    "/tmp/phanalist-scan2/processwire/wire/modules/Markup/MarkupHTMLPurifier/htmlpurifier/standalone/HTMLPurifier/ConfigSchema/InterchangeBuilder.php": [
+      {
+        "rule": "E0059",
+        "line": "        return eval('return array(' . $contents . ');');",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$contents"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/modules/Markup/MarkupHTMLPurifier/htmlpurifier/standalone/HTMLPurifier/ConfigSchema/InterchangeBuilder.php",
+          "line": 182
+        },
+        "start_line": 182,
+        "start_column": 15,
+        "end_line": 182,
+        "end_column": 55
+      }
+    ],
+    "/tmp/phanalist-scan2/processwire/wire/modules/AdminTheme/AdminThemeUikit/_main.php": [
+      {
+        "rule": "E0055",
+        "line": "\tif(!empty($themeInfo)) include(\"$themeInfo[path]ready.php\");",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 27,
+        "start_column": 24,
+        "end_line": 27,
+        "end_column": 60
+      }
+    ],
+    "/tmp/phanalist-scan2/processwire/wire/core/WireClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\t\tinclude_once($found);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$className",
+            "implode()"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/core/WireClassLoader.php",
+          "line": 322
+        },
+        "start_line": 322,
+        "start_column": 3,
+        "end_line": 322,
+        "end_column": 23
+      }
+    ],
+    "/tmp/phanalist-scan2/processwire/wire/core/ModulesConfigs.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\t\t\t\t\t\t\t\tinclude($file);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$class"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/core/ModulesConfigs.php",
+          "line": 276
+        },
+        "start_line": 276,
+        "start_column": 9,
+        "end_line": 276,
+        "end_column": 23
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\t\t\t\tinclude_once($configFile);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$module"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/core/ModulesConfigs.php",
+          "line": 434
+        },
+        "start_line": 434,
+        "start_column": 5,
+        "end_line": 434,
+        "end_column": 30
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\t\t\t\t\tinclude($configFile);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$module"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/core/ModulesConfigs.php",
+          "line": 457
+        },
+        "start_line": 457,
+        "start_column": 6,
+        "end_line": 457,
+        "end_column": 26
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\t\t\t\tinclude_once($configFile);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$moduleName"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/core/ModulesConfigs.php",
+          "line": 639
+        },
+        "start_line": 639,
+        "start_column": 5,
+        "end_line": 639,
+        "end_column": 30
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\t\t\t\t\tinclude($configFile); // in case of previous include_once ",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$moduleName"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/core/ModulesConfigs.php",
+          "line": 653
+        },
+        "start_line": 653,
+        "start_column": 6,
+        "end_line": 653,
+        "end_column": 26
+      }
+    ],
+    "/tmp/phanalist-scan2/processwire/install.php": [
+      {
+        "rule": "E0054",
+        "line": "\t\t\textract($fuel);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$user"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/install.php",
+          "line": 1639
+        },
+        "start_line": 1639,
+        "start_column": 3,
+        "end_line": 1639,
+        "end_column": 17
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\t\t\tinclude($infoFile);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "internal",
+          "origins": [
+            "rtrim()"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/install.php",
+          "line": 332
+        },
+        "start_line": 332,
+        "start_column": 4,
+        "end_line": 332,
+        "end_column": 22
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\t\tinclude($file);",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 1640,
+        "start_column": 3,
+        "end_line": 1640,
+        "end_column": 17
+      }
+    ],
+    "/tmp/phanalist-scan2/processwire/wire/core/ModulesFiles.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\t\t$success = @include_once($file);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$file",
+            "$moduleName"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/core/ModulesFiles.php",
+          "line": 328
+        },
+        "start_line": 328,
+        "start_column": 15,
+        "end_line": 328,
+        "end_column": 34
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\t\tif($file !== $file2) $success = @include_once($file2);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$file",
+            "$moduleName"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/core/ModulesFiles.php",
+          "line": 338
+        },
+        "start_line": 338,
+        "start_column": 36,
+        "end_line": 338,
+        "end_column": 56
+      }
+    ],
+    "/tmp/phanalist-scan2/processwire/wire/modules/AdminTheme/AdminThemeReno/AdminThemeRenoHelpers.php": [
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\tarray_key_exists($key, $item) ? ${$key} = $item[$key] : ${$key} = $val; ",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:indirect",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 180,
+        "start_column": 36,
+        "end_line": 180,
+        "end_column": 43
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\tarray_key_exists($key, $item) ? ${$key} = $item[$key] : ${$key} = $val; ",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:indirect",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 180,
+        "start_column": 60,
+        "end_line": 180,
+        "end_column": 67
+      }
+    ],
+    "/tmp/phanalist-scan2/processwire/wire/modules/Markup/MarkupHTMLPurifier/htmlpurifier/HTMLPurifier.standalone.php": [
+      {
+        "rule": "E0055",
+        "line": "        require_once HTMLPURIFIER_PREFIX . '/' . $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$class"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/modules/Markup/MarkupHTMLPurifier/htmlpurifier/HTMLPurifier.standalone.php",
+          "line": 1072
+        },
+        "start_line": 1072,
+        "start_column": 8,
+        "end_line": 1072,
+        "end_column": 54
+      },
+      {
+        "rule": "E0055",
+        "line": "            include $filename;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 7435,
+        "start_column": 12,
+        "end_line": 7435,
+        "end_column": 29
+      },
+      {
+        "rule": "E0053",
+        "line": "        $r = unserialize($contents);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 2800,
+        "start_column": 13,
+        "end_line": 2800,
+        "end_column": 35
+      },
+      {
+        "rule": "E0053",
+        "line": "        $this->table = unserialize(file_get_contents($file));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$file"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/modules/Markup/MarkupHTMLPurifier/htmlpurifier/HTMLPurifier.standalone.php",
+          "line": 4487
+        },
+        "start_line": 4487,
+        "start_column": 23,
+        "end_line": 4487,
+        "end_column": 60
+      },
+      {
+        "rule": "E0053",
+        "line": "        return unserialize(file_get_contents($file));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$config"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/modules/Markup/MarkupHTMLPurifier/htmlpurifier/HTMLPurifier.standalone.php",
+          "line": 15648
+        },
+        "start_line": 15648,
+        "start_column": 15,
+        "end_line": 15648,
+        "end_column": 52
+      },
+      {
+        "rule": "E0059",
+        "line": "        $result = eval(\"\\$var = $expr;\");",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$expr"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/modules/Markup/MarkupHTMLPurifier/htmlpurifier/HTMLPurifier.standalone.php",
+          "line": 22657
+        },
+        "start_line": 22657,
+        "start_column": 18,
+        "end_line": 22657,
+        "end_column": 40
+      }
+    ],
+    "/tmp/phanalist-scan2/processwire/wire/core/admin.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\t\tinclude_once($initFile);",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 171,
+        "start_column": 3,
+        "end_line": 171,
+        "end_column": 26
+      },
+      {
+        "rule": "E0055",
+        "line": "\trequire($adminThemeFile);",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 251,
+        "start_column": 1,
+        "end_line": 251,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/processwire/wire/core/ImageSizerEngine.php": [
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\tif(isset($value[$v])) $$v = $value[$v];",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 972,
+        "start_column": 26,
+        "end_line": 972,
+        "end_column": 29
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t$v = (int) (isset($$k) ? $$k : -1);",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 977,
+        "start_column": 21,
+        "end_line": 977,
+        "end_column": 24
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t$v = (int) (isset($$k) ? $$k : -1);",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 977,
+        "start_column": 28,
+        "end_line": 977,
+        "end_column": 31
+      }
+    ],
+    "/tmp/phanalist-scan2/processwire/wire/modules/AdminTheme/AdminThemeUikit/_footer.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\t\tinclude($config->paths->wire . 'templates-admin/debug.inc'); ?>",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 36,
+        "start_column": 3,
+        "end_line": 36,
+        "end_column": 62
+      }
+    ],
+    "/tmp/phanalist-scan2/processwire/wire/modules/Fieldtype/FieldtypeComments/CommentArray.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\tif(!class_exists($className) && is_file($file)) include_once($file); ",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$options"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/modules/Fieldtype/FieldtypeComments/CommentArray.php",
+          "line": 133
+        },
+        "start_line": 133,
+        "start_column": 50,
+        "end_line": 133,
+        "end_column": 69
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\tif(!class_exists($className) && is_file($file)) include_once($file);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$options"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/modules/Fieldtype/FieldtypeComments/CommentArray.php",
+          "line": 158
+        },
+        "start_line": 158,
+        "start_column": 50,
+        "end_line": 158,
+        "end_column": 69
+      }
+    ],
+    "/tmp/phanalist-scan2/processwire/wire/core/ProcessWire.php": [
+      {
+        "rule": "E0054",
+        "line": "\t\tif(count($data)) extract($data);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$data"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/core/ProcessWire.php",
+          "line": 892
+        },
+        "start_line": 892,
+        "start_column": 19,
+        "end_line": 892,
+        "end_column": 33
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\textract($fuel);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 894,
+        "start_column": 2,
+        "end_line": 894,
+        "end_column": 16
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\t\tinclude_once($file);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$config"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/core/ProcessWire.php",
+          "line": 386
+        },
+        "start_line": 386,
+        "start_column": 3,
+        "end_line": 386,
+        "end_column": 22
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\tinclude($this->fileSave);",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 896,
+        "start_column": 2,
+        "end_line": 896,
+        "end_column": 26
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\t\t@include($indexConfigFile);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "internal",
+          "origins": [
+            "implode()",
+            "rtrim()"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/core/ProcessWire.php",
+          "line": 1209
+        },
+        "start_line": 1209,
+        "start_column": 4,
+        "end_line": 1209,
+        "end_column": 29
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\trequire(\"$rootPath/$wireDir/config.php\");",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "internal",
+          "origins": [
+            "implode()",
+            "rtrim()"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/core/ProcessWire.php",
+          "line": 1264
+        },
+        "start_line": 1264,
+        "start_column": 2,
+        "end_line": 1264,
+        "end_column": 42
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\t\t@require($configFileDev);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$options",
+            "implode()",
+            "rtrim()"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/core/ProcessWire.php",
+          "line": 1271
+        },
+        "start_line": 1271,
+        "start_column": 4,
+        "end_line": 1271,
+        "end_column": 27
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\t\t@require($configFile);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$options",
+            "implode()",
+            "rtrim()"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/core/ProcessWire.php",
+          "line": 1274
+        },
+        "start_line": 1274,
+        "start_column": 4,
+        "end_line": 1274,
+        "end_column": 24
+      }
+    ],
+    "/tmp/phanalist-scan2/processwire/index.php": [
+      {
+        "rule": "E0054",
+        "line": "\t$config->internal ? $process->finished() : extract($wire->wire('all')->getArray());",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 57,
+        "start_column": 44,
+        "end_line": 57,
+        "end_column": 83
+      },
+      {
+        "rule": "E0055",
+        "line": "if(file_exists($composerAutoloader)) require_once($composerAutoloader);",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 32,
+        "start_column": 37,
+        "end_line": 32,
+        "end_column": 70
+      },
+      {
+        "rule": "E0055",
+        "line": "if(!class_exists(\"ProcessWire\\\\ProcessWire\", false)) require_once(\"$rootPath/wire/core/ProcessWire.php\");",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 33,
+        "start_column": 53,
+        "end_line": 33,
+        "end_column": 104
+      }
+    ],
+    "/tmp/phanalist-scan2/processwire/wire/modules/AdminTheme/AdminThemeDefault/default.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\t\t\tinclude($config->paths->root . '/wire/templates-admin/debug.inc');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 141,
+        "start_column": 4,
+        "end_line": 141,
+        "end_column": 69
+      }
+    ],
+    "/tmp/phanalist-scan2/processwire/wire/modules/AdminTheme/AdminThemeReno/default.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\t\t\tif($config->debug && $user->isSuperuser()) include($config->paths->root . \"wire/templates-admin/debug.inc\"); ",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 142,
+        "start_column": 47,
+        "end_line": 142,
+        "end_column": 111
+      }
+    ],
+    "/tmp/phanalist-scan2/processwire/wire/core/ModulesInfo.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\t\tinclude($filePHP); // will populate $info automatically",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$moduleName"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/core/ModulesInfo.php",
+          "line": 313
+        },
+        "start_line": 313,
+        "start_column": 3,
+        "end_line": 313,
+        "end_column": 20
+      }
+    ],
+    "/tmp/phanalist-scan2/processwire/wire/core/AdminThemeFramework.php": [
+      {
+        "rule": "E0054",
+        "line": "\t\textract($vars);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$vars"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/core/AdminThemeFramework.php",
+          "line": 852
+        },
+        "start_line": 852,
+        "start_column": 2,
+        "end_line": 852,
+        "end_column": 16
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\textract($vars);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$vars"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/core/AdminThemeFramework.php",
+          "line": 900
+        },
+        "start_line": 900,
+        "start_column": 3,
+        "end_line": 900,
+        "end_column": 17
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\t\tinclude_once($initFile);",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 166,
+        "start_column": 3,
+        "end_line": 166,
+        "end_column": 26
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\tinclude($file);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$file"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/core/AdminThemeFramework.php",
+          "line": 854
+        },
+        "start_line": 854,
+        "start_column": 2,
+        "end_line": 854,
+        "end_column": 16
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\t\tinclude($file);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$basename"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/core/AdminThemeFramework.php",
+          "line": 901
+        },
+        "start_line": 901,
+        "start_column": 3,
+        "end_line": 901,
+        "end_column": 17
+      }
+    ],
+    "/tmp/phanalist-scan2/processwire/wire/modules/Inputfield/InputfieldTinyMCE/InputfieldTinyMCE.module.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\t\trequire_once(__DIR__ . \"/$class.php\");",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$name"
+          ],
+          "file": "/tmp/phanalist-scan2/processwire/wire/modules/Inputfield/InputfieldTinyMCE/InputfieldTinyMCE.module.php",
+          "line": 829
+        },
+        "start_line": 829,
+        "start_column": 3,
+        "end_line": 829,
+        "end_column": 40
+      }
+    ],
+    "/tmp/phanalist-scan2/processwire/wire/modules/AdminTheme/AdminThemeUikit/controller.php": [
+      {
+        "rule": "E0055",
+        "line": "require($config->paths->core . \"admin.php\"); ",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 15,
+        "start_column": 0,
+        "end_line": 15,
+        "end_column": 43
+      }
+    ],
+    "/tmp/phanalist-scan2/processwire/wire/core/boot.php": [
+      {
+        "rule": "E0055",
+        "line": "\tinclude_once(PROCESSWIRE_CORE_PATH . $file);",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 108,
+        "start_column": 1,
+        "end_line": 108,
+        "end_column": 44
+      }
+    ]
+  },
+  "codes_count": {
+    "E0055": 54,
+    "E0059": 2,
+    "E0054": 13,
+    "E0053": 3
+  },
+  "total_files_count": 326,
+  "duration": {
+    "secs": 0,
+    "nanos": 54564036
+  }
+}

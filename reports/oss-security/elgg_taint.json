@@ -1,0 +1,616 @@
+{
+  "files": {
+    "/tmp/phanalist-scan2/elgg/engine/classes/Elgg/Router.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\t\t$response = include $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$file"
+          ],
+          "file": "/tmp/phanalist-scan2/elgg/engine/classes/Elgg/Router.php",
+          "line": 236
+        },
+        "start_line": 236,
+        "start_column": 15,
+        "end_line": 236,
+        "end_column": 28
+      }
+    ],
+    "/tmp/phanalist-scan2/elgg/index.php": [
+      {
+        "rule": "E0055",
+        "line": "$autoload_available = include_once($autoload_path);",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 3,
+        "start_column": 22,
+        "end_line": 3,
+        "end_column": 50
+      }
+    ],
+    "/tmp/phanalist-scan2/elgg/engine/tests/phpunit/unit/ElggObjectUnitTest.php": [
+      {
+        "rule": "E0053",
+        "line": "\t\t$unserialized = unserialize($data);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 210,
+        "start_column": 18,
+        "end_line": 210,
+        "end_column": 36
+      }
+    ],
+    "/tmp/phanalist-scan2/elgg/engine/classes/Elgg/Application/ExceptionHandler.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\t\t\tinclude $exception_include;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 87,
+        "start_column": 4,
+        "end_line": 87,
+        "end_column": 30
+      }
+    ],
+    "/tmp/phanalist-scan2/elgg/engine/tests/phpunit/unit/ElggGroupUnitTest.php": [
+      {
+        "rule": "E0053",
+        "line": "\t\t$unserialized = unserialize($data);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 28,
+        "start_column": 18,
+        "end_line": 28,
+        "end_column": 36
+      }
+    ],
+    "/tmp/phanalist-scan2/elgg/engine/tests/phpunit/unit/ElggRelationshipUnitTest.php": [
+      {
+        "rule": "E0053",
+        "line": "\t\t$unserialized_site = unserialize($data);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 76,
+        "start_column": 23,
+        "end_line": 76,
+        "end_column": 41
+      }
+    ],
+    "/tmp/phanalist-scan2/elgg/engine/tests/phpunit/unit/ElggMetadataUnitTest.php": [
+      {
+        "rule": "E0053",
+        "line": "\t\t$unserialized = unserialize($data);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 185,
+        "start_column": 18,
+        "end_line": 185,
+        "end_column": 36
+      }
+    ],
+    "/tmp/phanalist-scan2/elgg/engine/tests/phpunit/unit/ElggSiteUnitTest.php": [
+      {
+        "rule": "E0053",
+        "line": "\t\t$unserialized_site = unserialize($data);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 74,
+        "start_column": 23,
+        "end_line": 74,
+        "end_column": 41
+      }
+    ],
+    "/tmp/phanalist-scan2/elgg/engine/tests/phpunit/unit/Elgg/Notifications/NotificationUnitTest.php": [
+      {
+        "rule": "E0053",
+        "line": "\t\t$unserialized = unserialize($serialized);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 79,
+        "start_column": 18,
+        "end_line": 79,
+        "end_column": 42
+      }
+    ],
+    "/tmp/phanalist-scan2/elgg/engine/classes/Elgg/Queue/DatabaseQueue.php": [
+      {
+        "rule": "E0053",
+        "line": "\t\treturn unserialize($row->data);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 89,
+        "start_column": 9,
+        "end_line": 89,
+        "end_column": 32
+      }
+    ],
+    "/tmp/phanalist-scan2/elgg/engine/classes/Elgg/Includer.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\treturn include $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$file"
+          ],
+          "file": "/tmp/phanalist-scan2/elgg/engine/classes/Elgg/Includer.php",
+          "line": 19
+        },
+        "start_line": 19,
+        "start_column": 9,
+        "end_line": 19,
+        "end_column": 22
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\treturn require $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$file"
+          ],
+          "file": "/tmp/phanalist-scan2/elgg/engine/classes/Elgg/Includer.php",
+          "line": 29
+        },
+        "start_line": 29,
+        "start_column": 9,
+        "end_line": 29,
+        "end_column": 22
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\treturn require_once $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$file"
+          ],
+          "file": "/tmp/phanalist-scan2/elgg/engine/classes/Elgg/Includer.php",
+          "line": 39
+        },
+        "start_line": 39,
+        "start_column": 9,
+        "end_line": 39,
+        "end_column": 27
+      }
+    ],
+    "/tmp/phanalist-scan2/elgg/engine/classes/Elgg/Database/ConfigTable.php": [
+      {
+        "rule": "E0053",
+        "line": "\t\t\treturn unserialize($result->value);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 119,
+        "start_column": 10,
+        "end_line": 119,
+        "end_column": 37
+      },
+      {
+        "rule": "E0053",
+        "line": "\t\t\t$values[$row->name] = unserialize($row->value);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 138,
+        "start_column": 25,
+        "end_line": 138,
+        "end_column": 49
+      }
+    ],
+    "/tmp/phanalist-scan2/elgg/engine/tests/classes/Elgg/Mocks/Queue/DatabaseQueue.php": [
+      {
+        "rule": "E0053",
+        "line": "\t\t\treturn unserialize($item);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 28,
+        "start_column": 10,
+        "end_line": 28,
+        "end_column": 28
+      }
+    ],
+    "/tmp/phanalist-scan2/elgg/engine/tests/phpunit/integration/Elgg/Integration/ElggCoreMetastringsTest.php": [
+      {
+        "rule": "E0054",
+        "line": "\t\t\t$id = ${$type}[0];",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:indirect",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 304,
+        "start_column": 9,
+        "end_line": 304,
+        "end_column": 17
+      }
+    ],
+    "/tmp/phanalist-scan2/elgg/install.php": [
+      {
+        "rule": "E0055",
+        "line": "$autoload_available = include_once($autoload_path);",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 6,
+        "start_column": 22,
+        "end_line": 6,
+        "end_column": 50
+      }
+    ],
+    "/tmp/phanalist-scan2/elgg/engine/tests/phpunit/integration/ElggAccessCollectionIntegrationTest.php": [
+      {
+        "rule": "E0053",
+        "line": "\t\t$unserialized = unserialize($data);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 78,
+        "start_column": 18,
+        "end_line": 78,
+        "end_column": 36
+      }
+    ],
+    "/tmp/phanalist-scan2/elgg/upgrade.php": [
+      {
+        "rule": "E0055",
+        "line": "$autoload_available = include_once($autoload_path);",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 3,
+        "start_column": 22,
+        "end_line": 3,
+        "end_column": 50
+      }
+    ],
+    "/tmp/phanalist-scan2/elgg/engine/classes/Elgg/ViewsService.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\t\t\tinclude $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$view",
+            "$viewtype"
+          ],
+          "file": "/tmp/phanalist-scan2/elgg/engine/classes/Elgg/ViewsService.php",
+          "line": 417
+        },
+        "start_line": 417,
+        "start_column": 4,
+        "end_line": 417,
+        "end_column": 17
+      }
+    ],
+    "/tmp/phanalist-scan2/elgg/engine/classes/Elgg/Notifications/NotificationsQueue.php": [
+      {
+        "rule": "E0053",
+        "line": "\t\treturn unserialize($row->data);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 83,
+        "start_column": 9,
+        "end_line": 83,
+        "end_column": 32
+      }
+    ],
+    "/tmp/phanalist-scan2/elgg/engine/tests/phpunit/unit/ElggUserUnitTest.php": [
+      {
+        "rule": "E0053",
+        "line": "\t\t$unserialized = unserialize($data);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 83,
+        "start_column": 18,
+        "end_line": 83,
+        "end_column": 36
+      }
+    ],
+    "/tmp/phanalist-scan2/elgg/engine/tests/phpunit/unit/Elgg/RouterUnitTest.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\tinclude \"{$this->normalizeTestFilePath('pages')}/hello.php\";",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 77,
+        "start_column": 2,
+        "end_line": 77,
+        "end_column": 61
+      }
+    ],
+    "/tmp/phanalist-scan2/elgg/autoloader.php": [
+      {
+        "rule": "E0055",
+        "line": "\t$autoloader = (include $path);",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 22,
+        "start_column": 16,
+        "end_line": 22,
+        "end_column": 29
+      }
+    ],
+    "/tmp/phanalist-scan2/elgg/engine/tests/phpunit/integration/Elgg/Di/PublicContainerIntegrationTest.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\t$services = include Paths::elgg() . 'engine/public_services.php';",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 40,
+        "start_column": 14,
+        "end_line": 40,
+        "end_column": 66
+      }
+    ],
+    "/tmp/phanalist-scan2/elgg/engine/classes/Elgg/Cli/InstallCommand.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\t\t$params = include $config;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "internal",
+          "origins": [
+            "option()"
+          ],
+          "file": "/tmp/phanalist-scan2/elgg/engine/classes/Elgg/Cli/InstallCommand.php",
+          "line": 38
+        },
+        "start_line": 38,
+        "start_column": 13,
+        "end_line": 38,
+        "end_column": 28
+      }
+    ],
+    "/tmp/phanalist-scan2/elgg/engine/classes/Elgg/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\t\trequire $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$class"
+          ],
+          "file": "/tmp/phanalist-scan2/elgg/engine/classes/Elgg/ClassLoader.php",
+          "line": 189
+        },
+        "start_line": 189,
+        "start_column": 3,
+        "end_line": 189,
+        "end_column": 16
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\t\trequire $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$class"
+          ],
+          "file": "/tmp/phanalist-scan2/elgg/engine/classes/Elgg/ClassLoader.php",
+          "line": 197
+        },
+        "start_line": 197,
+        "start_column": 3,
+        "end_line": 197,
+        "end_column": 16
+      }
+    ],
+    "/tmp/phanalist-scan2/elgg/engine/classes/Elgg/Email/DelayedQueue/DatabaseRecord.php": [
+      {
+        "rule": "E0053",
+        "line": "\t\t\t\treturn unserialize($this->row->data);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 54,
+        "start_column": 11,
+        "end_line": 54,
+        "end_column": 40
+      }
+    ]
+  },
+  "codes_count": {
+    "E0053": 14,
+    "E0054": 1,
+    "E0055": 15
+  },
+  "total_files_count": 2869,
+  "duration": {
+    "secs": 0,
+    "nanos": 27037372
+  }
+}
