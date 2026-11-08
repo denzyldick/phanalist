@@ -11,7 +11,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/denzyldic
 It will automatically download executable for your platform.
 ```bash
 ~/phanalist -V
-phanalist 1.2.0
+phanalist 1.2.1
 ```
 
 ### Pre-compiled architecture-specific binary.
