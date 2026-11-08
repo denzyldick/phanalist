@@ -83,7 +83,7 @@ Create `src/rules/examples/e1234/e1234.md`. Every rule documentation file must f
 9. **Junior Engineer's Rule of Thumb:** A concise, memorable takeaway.
 
 ### Step 8: Update `README.md`
-Add your new rule to the Rules table in `README.md` with a link to its markdown documentation.
+Add your new rule to the matching section of the Rules Reference in `README.md` with a link to its markdown documentation.
 
 ### Step 9: Verify and Submit PR
 Run cargo test to ensure all tests pass:

@@ -10,17 +10,17 @@ want to keep everything simple.
 
 ## Adding new rule
 
-[E0000 Example Rule](../src/rules/e0.rs) can be used as a base for new rules. Please follow the next steps to add a new rule:
+[E0000 Example Rule](src/rules/e0.rs) can be used as a base for new rules. Please follow the next steps to add a new rule:
 
 1. Pickup available code for a new rule; let's say it is `E1234`.
 2. Create a new rule module:
     ```bash
     cp src/rules/e0.rs src/rules/e1234.rs
     ```
-3. Update `CODE` and `DESCRIPTION` variables in the new `src/rules/e1234.rs`:
+3. Update the `CODE` and `DESCRIPTION` constants in the new `src/rules/e1234.rs`:
     ```rust
     ...
-    static CODE: &str = "E1234";
+    pub(crate) static CODE: &str = "E1234";
     static DESCRIPTION: &str = "Your rule description";
     ...
     ```
@@ -28,7 +28,7 @@ want to keep everything simple.
     ```bash
     cp -r src/rules/examples/e0 src/rules/examples/e1234
     ```
-5. Implement the `validate` function in `src/rules/e1234.rs`. And cover it with tests in `mod tests.`
+5. Implement the `validate` function in `src/rules/e1234.rs`, and cover it with tests in `mod tests`.
 6. Enable the new rule in `src/rules/mod.rs`:
     ```rust
     ...
@@ -40,12 +40,12 @@ want to keep everything simple.
         ...
     }
     ```
-7. Update `README.md` with new rule details.
-8. Create a file named `e1234.md`.
-9. Explain the rule. 
+7. Add the rule to the matching section of the Rules Reference in `README.md` and link its documentation.
+8. Create `src/rules/examples/e1234/e1234.md`.
+9. Document the rule using the standard sections in `docs/adding_new_rule.md`.
 10. Done! Submit a new PR with the new rule.
-11. Wait for it to be released. 
-12. Repait again.
+11. Wait for it to be released.
+12. Repeat for your next rule.
 
 ### Documentation
 _The idea I have in my mind is that all the rules should be documented for an inexperienced PHP developer. If you have experience with PHP
