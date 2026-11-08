@@ -1,0 +1,1416 @@
+{
+  "files": {
+    "/tmp/phanalist-scan/codeigniter4/system/Cache/Handlers/RedisHandler.php": [
+      {
+        "rule": "E0053",
+        "line": "            'array', 'object'                                => unserialize($data['__ci_value']),",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$key"
+          ],
+          "file": "/tmp/phanalist-scan/codeigniter4/system/Cache/Handlers/RedisHandler.php",
+          "line": 109
+        },
+        "start_line": 109,
+        "start_column": 64,
+        "end_line": 109,
+        "end_column": 96
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/system/Cache/Handlers/PredisHandler.php": [
+      {
+        "rule": "E0053",
+        "line": "            'array', 'object'                                => unserialize($data['__ci_value']),",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$key"
+          ],
+          "file": "/tmp/phanalist-scan/codeigniter4/system/Cache/Handlers/PredisHandler.php",
+          "line": 93
+        },
+        "start_line": 93,
+        "start_column": 64,
+        "end_line": 93,
+        "end_column": 96
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/system/CodeIgniter.php": [
+      {
+        "rule": "E0055",
+        "line": "                    require_once $file;",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 276,
+        "start_column": 20,
+        "end_line": 276,
+        "end_column": 38
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/system/Events/Events.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 93,
+        "start_column": 12,
+        "end_line": 93,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/system/Router/RouteCollection.php": [
+      {
+        "rule": "E0055",
+        "line": "            require $routesFile;",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 339,
+        "start_column": 12,
+        "end_line": 339,
+        "end_column": 31
+      },
+      {
+        "rule": "E0055",
+        "line": "                include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 372,
+        "start_column": 16,
+        "end_line": 372,
+        "end_column": 29
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/system/Filters/Filters.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 189,
+        "start_column": 12,
+        "end_line": 189,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/preload.php": [
+      {
+        "rule": "E0055",
+        "line": "        require rtrim($paths->systemDirectory, '\\\\/ ') . DIRECTORY_SEPARATOR . 'Boot.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 77,
+        "start_column": 8,
+        "end_line": 77,
+        "end_column": 89
+      },
+      {
+        "rule": "E0055",
+        "line": "                require_once $file[0];",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 103,
+        "start_column": 16,
+        "end_line": 103,
+        "end_column": 37
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/system/rewrite.php": [
+      {
+        "rule": "E0055",
+        "line": "require_once $_SERVER['DOCUMENT_ROOT'] . DIRECTORY_SEPARATOR . 'index.php';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 44,
+        "start_column": 0,
+        "end_line": 44,
+        "end_column": 74
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/system/Database/MigrationRunner.php": [
+      {
+        "rule": "E0055",
+        "line": "        include_once $migration->path;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$migration"
+          ],
+          "file": "/tmp/phanalist-scan/codeigniter4/system/Database/MigrationRunner.php",
+          "line": 976
+        },
+        "start_line": 976,
+        "start_column": 8,
+        "end_line": 976,
+        "end_column": 37
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/system/util_bootstrap.php": [
+      {
+        "rule": "E0055",
+        "line": "require $paths->systemDirectory . '/Boot.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 82,
+        "start_column": 0,
+        "end_line": 82,
+        "end_column": 45
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/tests/system/Config/BaseConfigTest.php": [
+      {
+        "rule": "E0055",
+        "line": "            require $this->fixturesFolder . '/SimpleConfig.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 49,
+        "start_column": 12,
+        "end_line": 49,
+        "end_column": 63
+      },
+      {
+        "rule": "E0055",
+        "line": "            require $this->fixturesFolder . '/RegistrarConfig.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 53,
+        "start_column": 12,
+        "end_line": 53,
+        "end_column": 66
+      },
+      {
+        "rule": "E0055",
+        "line": "            require $this->fixturesFolder . '/Encryption.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 57,
+        "start_column": 12,
+        "end_line": 57,
+        "end_column": 61
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/system/Language/Language.php": [
+      {
+        "rule": "E0055",
+        "line": "                $loadedStrings = require $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$path"
+          ],
+          "file": "/tmp/phanalist-scan/codeigniter4/system/Language/Language.php",
+          "line": 296
+        },
+        "start_line": 296,
+        "start_column": 33,
+        "end_line": 296,
+        "end_column": 46
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/system/Router/AutoRouter.php": [
+      {
+        "rule": "E0055",
+        "line": "        include_once $file;",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 140,
+        "start_column": 8,
+        "end_line": 140,
+        "end_column": 26
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/system/Commands/Translation/LocalizationSync.php": [
+      {
+        "rule": "E0055",
+        "line": "            $originalLanguageKeys = include $originalLanguageFile;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$originalLocale"
+          ],
+          "file": "/tmp/phanalist-scan/codeigniter4/system/Commands/Translation/LocalizationSync.php",
+          "line": 143
+        },
+        "start_line": 143,
+        "start_column": 36,
+        "end_line": 143,
+        "end_column": 65
+      },
+      {
+        "rule": "E0055",
+        "line": "                $targetLanguageKeys = include $targetLanguageFile;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$targetLocale"
+          ],
+          "file": "/tmp/phanalist-scan/codeigniter4/system/Commands/Translation/LocalizationSync.php",
+          "line": 146
+        },
+        "start_line": 146,
+        "start_column": 38,
+        "end_line": 146,
+        "end_column": 65
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/system/View/Parser.php": [
+      {
+        "rule": "E0059",
+        "line": "            eval('?>' . $this->conditionalSources[count($this->conditionalSources) - 1] . '<?php ');",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 559,
+        "start_column": 12,
+        "end_line": 559,
+        "end_column": 99
+      },
+      {
+        "rule": "E0054",
+        "line": "            extract($this->tempData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 557,
+        "start_column": 12,
+        "end_line": 557,
+        "end_column": 36
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/tests/system/Commands/Translation/LocalizationSyncTest.php": [
+      {
+        "rule": "E0055",
+        "line": "        $langKeys = include $langFile;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 95,
+        "start_column": 20,
+        "end_line": 95,
+        "end_column": 37
+      },
+      {
+        "rule": "E0055",
+        "line": "        $langKeys = include $langFile;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 109,
+        "start_column": 20,
+        "end_line": 109,
+        "end_column": 37
+      },
+      {
+        "rule": "E0055",
+        "line": "        $langKeys = include $langFile;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 164,
+        "start_column": 20,
+        "end_line": 164,
+        "end_column": 37
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/system/Debug/BaseExceptionHandler.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $viewFile;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 284,
+        "start_column": 12,
+        "end_line": 284,
+        "end_column": 29
+      },
+      {
+        "rule": "E0054",
+        "line": "            extract($vars, EXTR_SKIP);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 280,
+        "start_column": 12,
+        "end_line": 280,
+        "end_column": 37
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/system/Debug/Exceptions.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $viewFile;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 366,
+        "start_column": 12,
+        "end_line": 366,
+        "end_column": 29
+      },
+      {
+        "rule": "E0054",
+        "line": "            extract($vars, EXTR_SKIP);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 363,
+        "start_column": 12,
+        "end_line": 363,
+        "end_column": 37
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/system/Test/bootstrap.php": [
+      {
+        "rule": "E0055",
+        "line": "require $paths->systemDirectory . '/Boot.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 81,
+        "start_column": 0,
+        "end_line": 81,
+        "end_column": 45
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/system/Cache/FactoriesCache/FileVarExportHandler.php": [
+      {
+        "rule": "E0055",
+        "line": "        return @include $this->path . \"/{$key}\";",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$key"
+          ],
+          "file": "/tmp/phanalist-scan/codeigniter4/system/Cache/FactoriesCache/FileVarExportHandler.php",
+          "line": 66
+        },
+        "start_line": 66,
+        "start_column": 16,
+        "end_line": 66,
+        "end_column": 47
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/system/Entity/Cast/ArrayCast.php": [
+      {
+        "rule": "E0053",
+        "line": "            $value = unserialize($value);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$value"
+          ],
+          "file": "/tmp/phanalist-scan/codeigniter4/system/Entity/Cast/ArrayCast.php",
+          "line": 24
+        },
+        "start_line": 24,
+        "start_column": 21,
+        "end_line": 24,
+        "end_column": 40
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/system/HTTP/ResponseTrait.php": [
+      {
+        "rule": "E0054",
+        "line": "                    ${$item} = $name[$item];",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:indirect",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 536,
+        "start_column": 20,
+        "end_line": 536,
+        "end_column": 28
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/psalm-autoload.php": [
+      {
+        "rule": "E0055",
+        "line": "        require_once $file;",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 57,
+        "start_column": 8,
+        "end_line": 57,
+        "end_column": 26
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/system/Boot.php": [
+      {
+        "rule": "E0055",
+        "line": "        require_once $paths->systemDirectory . '/Config/DotEnv.php';",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$paths"
+          ],
+          "file": "/tmp/phanalist-scan/codeigniter4/system/Boot.php",
+          "line": 224
+        },
+        "start_line": 224,
+        "start_column": 8,
+        "end_line": 224,
+        "end_column": 67
+      },
+      {
+        "rule": "E0055",
+        "line": "            require_once $paths->appDirectory . '/Config/Boot/' . ENVIRONMENT . '.php';",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$paths"
+          ],
+          "file": "/tmp/phanalist-scan/codeigniter4/system/Boot.php",
+          "line": 244
+        },
+        "start_line": 244,
+        "start_column": 12,
+        "end_line": 244,
+        "end_column": 86
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/tests/system/Commands/Translation/LocalizationFinderTest.php": [
+      {
+        "rule": "E0055",
+        "line": "        $generatedKeys = require $generatedFile;",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 164,
+        "start_column": 25,
+        "end_line": 164,
+        "end_column": 47
+      },
+      {
+        "rule": "E0055",
+        "line": "        $translationOneKeys   = require self::$languageTestPath . self::$locale . '/TranslationOne.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 294,
+        "start_column": 32,
+        "end_line": 294,
+        "end_column": 103
+      },
+      {
+        "rule": "E0055",
+        "line": "        $translationThreeKeys = require self::$languageTestPath . self::$locale . '/TranslationThree.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 295,
+        "start_column": 32,
+        "end_line": 295,
+        "end_column": 105
+      },
+      {
+        "rule": "E0055",
+        "line": "        $translationFourKeys  = require self::$languageTestPath . self::$locale . '/Translation-Four.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 296,
+        "start_column": 32,
+        "end_line": 296,
+        "end_column": 105
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/system/View/View.php": [
+      {
+        "rule": "E0059",
+        "line": "            eval('?>' . func_get_arg(0));",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 333,
+        "start_column": 12,
+        "end_line": 333,
+        "end_column": 40
+      },
+      {
+        "rule": "E0055",
+        "line": "            include $this->renderVars['file'];",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 238,
+        "start_column": 12,
+        "end_line": 238,
+        "end_column": 45
+      },
+      {
+        "rule": "E0054",
+        "line": "            extract($this->tempData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 236,
+        "start_column": 12,
+        "end_line": 236,
+        "end_column": 36
+      },
+      {
+        "rule": "E0054",
+        "line": "            extract($this->tempData);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 331,
+        "start_column": 12,
+        "end_line": 331,
+        "end_column": 36
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/system/Debug/Toolbar.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $this->config->viewsPath . 'toolbarloader.js';",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 486,
+        "start_column": 12,
+        "end_line": 486,
+        "end_column": 65
+      },
+      {
+        "rule": "E0055",
+        "line": "                include $this->config->viewsPath . 'toolbar.tpl.php';",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 545,
+        "start_column": 16,
+        "end_line": 545,
+        "end_column": 68
+      },
+      {
+        "rule": "E0054",
+        "line": "                extract($data);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$data"
+          ],
+          "file": "/tmp/phanalist-scan/codeigniter4/system/Debug/Toolbar.php",
+          "line": 542
+        },
+        "start_line": 542,
+        "start_column": 16,
+        "end_line": 542,
+        "end_column": 30
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/phpstan-bootstrap.php": [
+      {
+        "rule": "E0055",
+        "line": "            require_once $file->getRealPath();",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 19,
+        "start_column": 12,
+        "end_line": 19,
+        "end_column": 45
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/tests/system/I18n/TimeTest.php": [
+      {
+        "rule": "E0053",
+        "line": "        $time2     = unserialize($timeCache);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 1354,
+        "start_column": 21,
+        "end_line": 1354,
+        "end_column": 44
+      },
+      {
+        "rule": "E0053",
+        "line": "        $time = unserialize($payload);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 1377,
+        "start_column": 16,
+        "end_line": 1377,
+        "end_column": 37
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/system/Autoloader/Autoloader.php": [
+      {
+        "rule": "E0055",
+        "line": "        $composer = include $this->composerPath;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 157,
+        "start_column": 20,
+        "end_line": 157,
+        "end_column": 47
+      },
+      {
+        "rule": "E0055",
+        "line": "            include_once $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$file"
+          ],
+          "file": "/tmp/phanalist-scan/codeigniter4/system/Autoloader/Autoloader.php",
+          "line": 338
+        },
+        "start_line": 338,
+        "start_column": 12,
+        "end_line": 338,
+        "end_column": 30
+      },
+      {
+        "rule": "E0055",
+        "line": "        $composer = include $this->composerPath;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 482,
+        "start_column": 20,
+        "end_line": 482,
+        "end_column": 47
+      },
+      {
+        "rule": "E0055",
+        "line": "                    require_once $file;",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 542,
+        "start_column": 20,
+        "end_line": 542,
+        "end_column": 38
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/public/index.php": [
+      {
+        "rule": "E0055",
+        "line": "require $paths->systemDirectory . '/Boot.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 57,
+        "start_column": 0,
+        "end_line": 57,
+        "end_column": 45
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/system/Cache/ResponseCache.php": [
+      {
+        "rule": "E0053",
+        "line": "            $cachedResponse = unserialize($cachedResponse);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$request"
+          ],
+          "file": "/tmp/phanalist-scan/codeigniter4/system/Cache/ResponseCache.php",
+          "line": 121
+        },
+        "start_line": 121,
+        "start_column": 30,
+        "end_line": 121,
+        "end_column": 58
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/system/Cache/Handlers/FileHandler.php": [
+      {
+        "rule": "E0053",
+        "line": "            $data = unserialize($content);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$filename"
+          ],
+          "file": "/tmp/phanalist-scan/codeigniter4/system/Cache/Handlers/FileHandler.php",
+          "line": 222
+        },
+        "start_line": 222,
+        "start_column": 20,
+        "end_line": 222,
+        "end_column": 41
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/system/Common.php": [
+      {
+        "rule": "E0055",
+        "line": "            include_once $path;",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 686,
+        "start_column": 12,
+        "end_line": 686,
+        "end_column": 30
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/tests/system/Language/LanguageTest.php": [
+      {
+        "rule": "E0055",
+        "line": "        $messages = require SYSTEMPATH . 'Language/en/' . $bundle . '.php';",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$bundle"
+          ],
+          "file": "/tmp/phanalist-scan/codeigniter4/tests/system/Language/LanguageTest.php",
+          "line": 282
+        },
+        "start_line": 282,
+        "start_column": 20,
+        "end_line": 282,
+        "end_column": 74
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/system/Commands/Translation/LocalizationFinder.php": [
+      {
+        "rule": "E0055",
+        "line": "                $languageStoredKeys = require $languageFilePath;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$currentDir",
+            "$currentLocale"
+          ],
+          "file": "/tmp/phanalist-scan/codeigniter4/system/Commands/Translation/LocalizationFinder.php",
+          "line": 130
+        },
+        "start_line": 130,
+        "start_column": 38,
+        "end_line": 130,
+        "end_column": 63
+      },
+      {
+        "rule": "E0055",
+        "line": "            $keys = require $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$currentLocale",
+            "$langFileName"
+          ],
+          "file": "/tmp/phanalist-scan/codeigniter4/system/Commands/Translation/LocalizationFinder.php",
+          "line": 196
+        },
+        "start_line": 196,
+        "start_column": 20,
+        "end_line": 196,
+        "end_column": 33
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/system/CLI/BaseCommand.php": [
+      {
+        "rule": "E0055",
+        "line": "        require $config->errorViewPath . '/cli/error_exception.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 133,
+        "start_column": 8,
+        "end_line": 133,
+        "end_column": 67
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/system/I18n/TimeTrait.php": [
+      {
+        "rule": "E0054",
+        "line": "        ${$name} = $value;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:indirect",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$name"
+          ],
+          "file": "/tmp/phanalist-scan/codeigniter4/system/I18n/TimeTrait.php",
+          "line": 655
+        },
+        "start_line": 655,
+        "start_column": 8,
+        "end_line": 655,
+        "end_column": 16
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/tests/system/I18n/TimeLegacyTest.php": [
+      {
+        "rule": "E0053",
+        "line": "        $time2     = unserialize($timeCache);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 1143,
+        "start_column": 21,
+        "end_line": 1143,
+        "end_column": 44
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/system/View/Cells/Cell.php": [
+      {
+        "rule": "E0055",
+        "line": "            include func_get_arg(0);",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 120,
+        "start_column": 12,
+        "end_line": 120,
+        "end_column": 35
+      },
+      {
+        "rule": "E0054",
+        "line": "            extract($properties);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 118,
+        "start_column": 12,
+        "end_line": 118,
+        "end_column": 32
+      }
+    ],
+    "/tmp/phanalist-scan/codeigniter4/system/Database/Seeder.php": [
+      {
+        "rule": "E0055",
+        "line": "                require_once $path;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$class"
+          ],
+          "file": "/tmp/phanalist-scan/codeigniter4/system/Database/Seeder.php",
+          "line": 148
+        },
+        "start_line": 148,
+        "start_column": 16,
+        "end_line": 148,
+        "end_column": 34
+      }
+    ]
+  },
+  "codes_count": {
+    "E0054": 9,
+    "E0055": 47,
+    "E0053": 8,
+    "E0059": 2
+  },
+  "total_files_count": 1271,
+  "duration": {
+    "secs": 0,
+    "nanos": 173413304
+  }
+}

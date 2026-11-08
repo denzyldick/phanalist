@@ -1,0 +1,2710 @@
+{
+  "files": {
+    "/tmp/phanalist-scan/laravel/tests/Bus/BusBatchTest.php": [
+      {
+        "rule": "E0053",
+        "line": "                return unserialize(base64_decode($argument['options'])) === $pendingBatch->options;",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 707,
+        "start_column": 23,
+        "end_line": 707,
+        "end_column": 71
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Foundation/ComposerScripts.php": [
+      {
+        "rule": "E0055",
+        "line": "        require_once $event->getComposer()->getConfig()->get('vendor-dir').'/autoload.php';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 24,
+        "start_column": 8,
+        "end_line": 24,
+        "end_column": 90
+      },
+      {
+        "rule": "E0055",
+        "line": "        require_once $event->getComposer()->getConfig()->get('vendor-dir').'/autoload.php';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 37,
+        "start_column": 8,
+        "end_line": 37,
+        "end_column": 90
+      },
+      {
+        "rule": "E0055",
+        "line": "        require_once $event->getComposer()->getConfig()->get('vendor-dir').'/autoload.php';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 50,
+        "start_column": 8,
+        "end_line": 50,
+        "end_column": 90
+      },
+      {
+        "rule": "E0055",
+        "line": "            require_once $event->getComposer()->getConfig()->get('vendor-dir').'/autoload.php';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 70,
+        "start_column": 12,
+        "end_line": 70,
+        "end_column": 94
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/tests/Routing/RoutingRouteTest.php": [
+      {
+        "rule": "E0053",
+        "line": "        unserialize($serializedClosure);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 2399,
+        "start_column": 8,
+        "end_line": 2399,
+        "end_column": 39
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Events/CallQueuedListener.php": [
+      {
+        "rule": "E0053",
+        "line": "            $this->data = unserialize($this->data);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 273,
+        "start_column": 26,
+        "end_line": 273,
+        "end_column": 50
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/tests/Integration/Routing/CompiledRouteCollectionTest.php": [
+      {
+        "rule": "E0055",
+        "line": "            return require $fixtures.'/app.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 106,
+        "start_column": 19,
+        "end_line": 106,
+        "end_column": 47
+      },
+      {
+        "rule": "E0055",
+        "line": "        require $fixtures.'/cache/routes-v7.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 115,
+        "start_column": 8,
+        "end_line": 115,
+        "end_column": 48
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Cache/DatabaseStore.php": [
+      {
+        "rule": "E0053",
+        "line": "        return unserialize($value);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$value"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/src/Illuminate/Cache/DatabaseStore.php",
+          "line": 597
+        },
+        "start_line": 597,
+        "start_column": 15,
+        "end_line": 597,
+        "end_column": 34
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Routing/RouteFileRegistrar.php": [
+      {
+        "rule": "E0055",
+        "line": "        require $routes;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$routes"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/src/Illuminate/Routing/RouteFileRegistrar.php",
+          "line": 34
+        },
+        "start_line": 34,
+        "start_column": 8,
+        "end_line": 34,
+        "end_column": 23
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Encryption/Encrypter.php": [
+      {
+        "rule": "E0053",
+        "line": "        return $unserialize ? unserialize($decrypted) : $decrypted;",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$payload"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/src/Illuminate/Encryption/Encrypter.php",
+          "line": 204
+        },
+        "start_line": 204,
+        "start_column": 30,
+        "end_line": 204,
+        "end_column": 53
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Cache/FileStore.php": [
+      {
+        "rule": "E0053",
+        "line": "        return unserialize($value);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$value"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/src/Illuminate/Cache/FileStore.php",
+          "line": 448
+        },
+        "start_line": 448,
+        "start_column": 15,
+        "end_line": 448,
+        "end_column": 34
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/tests/Integration/Generators/ProviderMakeCommandTest.php": [
+      {
+        "rule": "E0055",
+        "line": "        ], require $this->app->getBootstrapProvidersPath());",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 26,
+        "start_column": 11,
+        "end_line": 26,
+        "end_column": 58
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/tests/Database/DatabaseEloquentModelTest.php": [
+      {
+        "rule": "E0053",
+        "line": "        unserialize($string);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 2190,
+        "start_column": 8,
+        "end_line": 2190,
+        "end_column": 28
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Foundation/AliasLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "        require $this->ensureFacadeExists($alias);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$alias"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/src/Illuminate/Foundation/AliasLoader.php",
+          "line": 91
+        },
+        "start_line": 91,
+        "start_column": 8,
+        "end_line": 91,
+        "end_column": 49
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/tests/Database/DatabaseConnectorTest.php": [
+      {
+        "rule": "E0054",
+        "line": "        extract($config, EXTR_SKIP);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$config"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/tests/Database/DatabaseConnectorTest.php",
+          "line": 427
+        },
+        "start_line": 427,
+        "start_column": 8,
+        "end_line": 427,
+        "end_column": 35
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Foundation/Console/RouteCacheCommand.php": [
+      {
+        "rule": "E0055",
+        "line": "        return tap(require $this->laravel->bootstrapPath('app.php'), function ($app) {",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 95,
+        "start_column": 19,
+        "end_line": 95,
+        "end_column": 67
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/tests/Integration/Foundation/CloudBootstrapperTest.php": [
+      {
+        "rule": "E0059",
+        "line": "            $this->assertSame($config, eval('return '.var_export($config, true).';'));",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 369,
+        "start_column": 39,
+        "end_line": 369,
+        "end_column": 84
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/tests/Support/SupportCarbonTest.php": [
+      {
+        "rule": "E0059",
+        "line": "        $deserialized = eval($serialized);",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 100,
+        "start_column": 24,
+        "end_line": 100,
+        "end_column": 41
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Concurrency/Console/InvokeSerializedClosureCommand.php": [
+      {
+        "rule": "E0053",
+        "line": "                    ! is_null($this->argument('code')) => unserialize($this->argument('code')),",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "internal",
+          "origins": [
+            "argument()"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/src/Illuminate/Concurrency/Console/InvokeSerializedClosureCommand.php",
+          "line": 49
+        },
+        "start_line": 49,
+        "start_column": 58,
+        "end_line": 49,
+        "end_column": 94
+      },
+      {
+        "rule": "E0053",
+        "line": "                    isset($_SERVER['LARAVEL_INVOKABLE_CLOSURE']) => unserialize(",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 50,
+        "start_column": 68,
+        "end_line": 52,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Mail/SentMessage.php": [
+      {
+        "rule": "E0053",
+        "line": "        $this->sentMessage = $hasAttachments ? unserialize(base64_decode($data['sentMessage'])) : $data['sentMessage'];",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$data"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/src/Illuminate/Mail/SentMessage.php",
+          "line": 80
+        },
+        "start_line": 80,
+        "start_column": 47,
+        "end_line": 80,
+        "end_column": 95
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/tests/Integration/Concurrency/Console/InvokeSerializedClosureCommandTest.php": [
+      {
+        "rule": "E0053",
+        "line": "        $this->assertSame('Hello, World!', unserialize($result['result']));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 64,
+        "start_column": 43,
+        "end_line": 64,
+        "end_column": 73
+      },
+      {
+        "rule": "E0053",
+        "line": "        $this->assertSame('From Environment', unserialize($result['result']));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 87,
+        "start_column": 46,
+        "end_line": 87,
+        "end_column": 76
+      },
+      {
+        "rule": "E0053",
+        "line": "        $this->assertNull(unserialize($result['result']));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 106,
+        "start_column": 26,
+        "end_line": 106,
+        "end_column": 56
+      },
+      {
+        "rule": "E0053",
+        "line": "        $this->assertSame([null, null, false], unserialize($result['result']));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 173,
+        "start_column": 47,
+        "end_line": 173,
+        "end_column": 77
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/tests/Integration/Queue/RedisQueueTest.php": [
+      {
+        "rule": "E0053",
+        "line": "        $this->assertEquals($jobs[2], unserialize(json_decode($this->queue->pop()->getRawBody())->data->command));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 97,
+        "start_column": 38,
+        "end_line": 97,
+        "end_column": 112
+      },
+      {
+        "rule": "E0053",
+        "line": "        $this->assertEquals($jobs[1], unserialize(json_decode($this->queue->pop()->getRawBody())->data->command));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 98,
+        "start_column": 38,
+        "end_line": 98,
+        "end_column": 112
+      },
+      {
+        "rule": "E0053",
+        "line": "        $this->assertEquals($jobs[3], unserialize(json_decode($this->queue->pop()->getRawBody())->data->command));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 99,
+        "start_column": 38,
+        "end_line": 99,
+        "end_column": 112
+      },
+      {
+        "rule": "E0053",
+        "line": "            $this->assertEquals(12, unserialize(json_decode($this->queue->pop()->getRawBody())->data->command)->i);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 122,
+        "start_column": 36,
+        "end_line": 122,
+        "end_column": 110
+      },
+      {
+        "rule": "E0053",
+        "line": "        $this->assertEquals($job, unserialize(json_decode($redisJob->getRawBody())->data->command));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 170,
+        "start_column": 34,
+        "end_line": 170,
+        "end_column": 98
+      },
+      {
+        "rule": "E0053",
+        "line": "        $this->assertEquals($job, unserialize(json_decode($redisJob->getReservedJob())->data->command));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 172,
+        "start_column": 34,
+        "end_line": 172,
+        "end_column": 102
+      },
+      {
+        "rule": "E0053",
+        "line": "        $this->assertEquals($job, unserialize(json_decode($reservedJob)->data->command));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "internal",
+          "origins": [
+            "zrangebyscore()"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/tests/Integration/Queue/RedisQueueTest.php",
+          "line": 184
+        },
+        "start_line": 184,
+        "start_column": 34,
+        "end_line": 184,
+        "end_column": 87
+      },
+      {
+        "rule": "E0053",
+        "line": "        $this->assertEquals($job, unserialize(json_decode($this->queue->pop()->getRawBody())->data->command));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 201,
+        "start_column": 34,
+        "end_line": 201,
+        "end_column": 108
+      },
+      {
+        "rule": "E0053",
+        "line": "        $this->assertEquals($job, unserialize(json_decode($reservedJob)->data->command));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "internal",
+          "origins": [
+            "zrangebyscore()"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/tests/Integration/Queue/RedisQueueTest.php",
+          "line": 212
+        },
+        "start_line": 212,
+        "start_column": 34,
+        "end_line": 212,
+        "end_column": 87
+      },
+      {
+        "rule": "E0053",
+        "line": "        $this->assertEquals($job, unserialize(json_decode($this->queue->pop()->getRawBody())->data->command));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 232,
+        "start_column": 34,
+        "end_line": 232,
+        "end_column": 108
+      },
+      {
+        "rule": "E0053",
+        "line": "        $this->assertEquals($job, unserialize(json_decode($reservedJob)->data->command));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "internal",
+          "origins": [
+            "zrangebyscore()"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/tests/Integration/Queue/RedisQueueTest.php",
+          "line": 243
+        },
+        "start_line": 243,
+        "start_column": 34,
+        "end_line": 243,
+        "end_column": 87
+      },
+      {
+        "rule": "E0053",
+        "line": "        $this->assertEquals($job, unserialize(json_decode($redisJob->getReservedJob())->data->command));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 264,
+        "start_column": 34,
+        "end_line": 264,
+        "end_column": 102
+      },
+      {
+        "rule": "E0053",
+        "line": "        $this->assertEquals($jobs[0], unserialize(json_decode($this->queue->pop()->getRawBody())->data->command));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 288,
+        "start_column": 38,
+        "end_line": 288,
+        "end_column": 112
+      },
+      {
+        "rule": "E0053",
+        "line": "        $this->assertEquals($jobs[1], unserialize(json_decode($this->queue->pop()->getRawBody())->data->command));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 289,
+        "start_column": 38,
+        "end_line": 289,
+        "end_column": 112
+      },
+      {
+        "rule": "E0053",
+        "line": "        $this->assertEquals($job, unserialize(json_decode($this->queue->pop()->getRawBody())->data->command));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 323,
+        "start_column": 34,
+        "end_line": 323,
+        "end_column": 108
+      },
+      {
+        "rule": "E0053",
+        "line": "            $command = unserialize(json_decode($payload)->data->command);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "internal",
+          "origins": [
+            "zrangebyscore()"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/tests/Integration/Queue/RedisQueueTest.php",
+          "line": 332
+        },
+        "start_line": 332,
+        "start_column": 23,
+        "end_line": 332,
+        "end_column": 72
+      },
+      {
+        "rule": "E0053",
+        "line": "        $this->assertEquals($job, unserialize(json_decode($this->queue->pop()->getRawBody())->data->command));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 34,
+        "end_line": 364,
+        "end_column": 108
+      },
+      {
+        "rule": "E0053",
+        "line": "        $this->assertEquals($job, unserialize(json_decode($reservedJob)->data->command));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "internal",
+          "origins": [
+            "zrangebyscore()"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/tests/Integration/Queue/RedisQueueTest.php",
+          "line": 375
+        },
+        "start_line": 375,
+        "start_column": 34,
+        "end_line": 375,
+        "end_column": 87
+      },
+      {
+        "rule": "E0053",
+        "line": "        $this->assertEquals($job, unserialize($decoded->data->command));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "internal",
+          "origins": [
+            "zrangebyscore()"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/tests/Integration/Queue/RedisQueueTest.php",
+          "line": 414
+        },
+        "start_line": 414,
+        "start_column": 34,
+        "end_line": 414,
+        "end_column": 70
+      },
+      {
+        "rule": "E0053",
+        "line": "            $command = unserialize($decoded->data->command);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 606,
+        "start_column": 23,
+        "end_line": 606,
+        "end_column": 59
+      },
+      {
+        "rule": "E0053",
+        "line": "            $seen[] = unserialize(json_decode($this->queue->pop('bulk-test')->getRawBody())->data->command)->i;",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 801,
+        "start_column": 22,
+        "end_line": 801,
+        "end_column": 107
+      },
+      {
+        "rule": "E0053",
+        "line": "        $this->assertEquals($due, unserialize(json_decode($this->queue->pop()->getRawBody())->data->command));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 857,
+        "start_column": 34,
+        "end_line": 857,
+        "end_column": 108
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Mail/Events/MessageSent.php": [
+      {
+        "rule": "E0053",
+        "line": "            ? unserialize(base64_decode($data['data']))",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$data"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/src/Illuminate/Mail/Events/MessageSent.php",
+          "line": 53
+        },
+        "start_line": 53,
+        "start_column": 14,
+        "end_line": 53,
+        "end_column": 55
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Foundation/Bootstrap/RegisterProviders.php": [
+      {
+        "rule": "E0055",
+        "line": "            $packageProviders = require static::$bootstrapProviderPath;",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 49,
+        "start_column": 32,
+        "end_line": 49,
+        "end_column": 70
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Bus/DatabaseBatchRepository.php": [
+      {
+        "rule": "E0053",
+        "line": "            return unserialize($serialized);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$serialized"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/src/Illuminate/Bus/DatabaseBatchRepository.php",
+          "line": 356
+        },
+        "start_line": 356,
+        "start_column": 19,
+        "end_line": 356,
+        "end_column": 43
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Foundation/Console/DocsCommand.php": [
+      {
+        "rule": "E0055",
+        "line": "            $strategy = require Env::get('ARTISAN_DOCS_ASK_STRATEGY');",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 217,
+        "start_column": 24,
+        "end_line": 217,
+        "end_column": 69
+      },
+      {
+        "rule": "E0055",
+        "line": "            $command = require Env::get('ARTISAN_DOCS_OPEN_STRATEGY');",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 354,
+        "start_column": 23,
+        "end_line": 354,
+        "end_column": 69
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/tests/View/Blade/BladeComponentsTest.php": [
+      {
+        "rule": "E0059",
+        "line": "        eval(\" ?> $template <?php endif; \");",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 71,
+        "start_column": 8,
+        "end_line": 71,
+        "end_column": 43
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/tests/View/Blade/BladeEchoHandlerTest.php": [
+      {
+        "rule": "E0059",
+        "line": "        eval((new Stringable($this->compiler->compileString($blade)))->remove(['<?php', '?>']));",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 66,
+        "start_column": 8,
+        "end_line": 66,
+        "end_column": 95
+      },
+      {
+        "rule": "E0059",
+        "line": "        eval((new Stringable($this->compiler->compileString($blade)))->remove(['<?php', '?>']));",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 87,
+        "start_column": 8,
+        "end_line": 87,
+        "end_column": 95
+      },
+      {
+        "rule": "E0059",
+        "line": "        eval((new Stringable($this->compiler->compileString($blade)))->remove(['<?php', '?>']));",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 109,
+        "start_column": 8,
+        "end_line": 109,
+        "end_column": 95
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/tests/Integration/Foundation/MaintenanceModeTest.php": [
+      {
+        "rule": "E0055",
+        "line": "            include storage_path('framework/maintenance.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 162,
+        "start_column": 12,
+        "end_line": 162,
+        "end_column": 61
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/tests/Integration/Database/DatabaseEloquentModelCustomCastingTest.php": [
+      {
+        "rule": "E0053",
+        "line": "        return unserialize($value);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$value"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/tests/Integration/Database/DatabaseEloquentModelCustomCastingTest.php",
+          "line": 548
+        },
+        "start_line": 548,
+        "start_column": 15,
+        "end_line": 548,
+        "end_column": 34
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/tests/Foundation/Cloud/ExceptionReportingTest.php": [
+      {
+        "rule": "E0053",
+        "line": "            ? unserialize($context['hidden']['laravel_cloud_user_id'])",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$payload"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/tests/Foundation/Cloud/ExceptionReportingTest.php",
+          "line": 4140
+        },
+        "start_line": 4140,
+        "start_column": 14,
+        "end_line": 4140,
+        "end_column": 70
+      },
+      {
+        "rule": "E0053",
+        "line": "            ? unserialize($context['hidden']['laravel_cloud_trace_id'])",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$payload"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/tests/Foundation/Cloud/ExceptionReportingTest.php",
+          "line": 4152
+        },
+        "start_line": 4152,
+        "start_column": 14,
+        "end_line": 4152,
+        "end_column": 71
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Foundation/Support/Providers/EventServiceProvider.php": [
+      {
+        "rule": "E0055",
+        "line": "            $cache = require $this->app->getCachedEventsPath();",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 108,
+        "start_column": 21,
+        "end_line": 108,
+        "end_column": 62
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Foundation/Console/Kernel.php": [
+      {
+        "rule": "E0055",
+        "line": "                require $path;",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 539,
+        "start_column": 16,
+        "end_line": 539,
+        "end_column": 29
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/tests/View/Blade/BladePropsTest.php": [
+      {
+        "rule": "E0059",
+        "line": "        eval(\" ?> $template <?php \");",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 51,
+        "start_column": 8,
+        "end_line": 51,
+        "end_column": 36
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/tests/View/Blade/BladeBoolTest.php": [
+      {
+        "rule": "E0059",
+        "line": "        eval(substr($compiled, 6, -3));",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 36,
+        "start_column": 8,
+        "end_line": 36,
+        "end_column": 38
+      },
+      {
+        "rule": "E0059",
+        "line": "        eval(substr($compiled, 6, -3));",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 43,
+        "start_column": 8,
+        "end_line": 43,
+        "end_column": 38
+      },
+      {
+        "rule": "E0059",
+        "line": "        eval(substr($compiled, 6, -3));",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 50,
+        "start_column": 8,
+        "end_line": 50,
+        "end_column": 38
+      },
+      {
+        "rule": "E0059",
+        "line": "        eval(substr($compiled, 6, -3));",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 57,
+        "start_column": 8,
+        "end_line": 57,
+        "end_column": 38
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Foundation/resources/server.php": [
+      {
+        "rule": "E0055",
+        "line": "require_once $publicPath.'/index.php';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 23,
+        "start_column": 0,
+        "end_line": 23,
+        "end_column": 37
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Filesystem/Filesystem.php": [
+      {
+        "rule": "E0054",
+        "line": "                extract($__data, EXTR_SKIP);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 125,
+        "start_column": 16,
+        "end_line": 125,
+        "end_column": 43
+      },
+      {
+        "rule": "E0054",
+        "line": "                extract($__data, EXTR_SKIP);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 150,
+        "start_column": 16,
+        "end_line": 150,
+        "end_column": 43
+      },
+      {
+        "rule": "E0055",
+        "line": "                return require $__path;",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 127,
+        "start_column": 23,
+        "end_line": 127,
+        "end_column": 38
+      },
+      {
+        "rule": "E0055",
+        "line": "                return require_once $__path;",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 152,
+        "start_column": 23,
+        "end_line": 152,
+        "end_column": 43
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Console/View/Components/Component.php": [
+      {
+        "rule": "E0054",
+        "line": "        extract($data);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$data"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/src/Illuminate/Console/View/Components/Component.php",
+          "line": 63
+        },
+        "start_line": 63,
+        "start_column": 8,
+        "end_line": 63,
+        "end_column": 22
+      },
+      {
+        "rule": "E0055",
+        "line": "        include __DIR__.\"/../../resources/views/components/$view.php\";",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$view"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/src/Illuminate/Console/View/Components/Component.php",
+          "line": 67
+        },
+        "start_line": 67,
+        "start_column": 8,
+        "end_line": 67,
+        "end_column": 69
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Bus/Queueable.php": [
+      {
+        "rule": "E0053",
+        "line": "            dispatch(tap(unserialize(array_shift($this->chained)), function ($next) {",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 340,
+        "start_column": 25,
+        "end_line": 340,
+        "end_column": 65
+      },
+      {
+        "rule": "E0053",
+        "line": "            $chain = (new Collection($this->chained))->map(fn ($job) => get_class(unserialize($job)))->all();",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 382,
+        "start_column": 82,
+        "end_line": 382,
+        "end_column": 99
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Foundation/Console/ConfigCacheCommand.php": [
+      {
+        "rule": "E0059",
+        "line": "                    eval(var_export($value, true).';');",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 75,
+        "start_column": 20,
+        "end_line": 75,
+        "end_column": 54
+      },
+      {
+        "rule": "E0055",
+        "line": "            require $configPath;",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 69,
+        "start_column": 12,
+        "end_line": 69,
+        "end_column": 31
+      },
+      {
+        "rule": "E0055",
+        "line": "        $app = require $this->laravel->bootstrapPath('app.php');",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 94,
+        "start_column": 15,
+        "end_line": 94,
+        "end_column": 63
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/tests/View/Blade/BladeComponentTagCompilerTest.php": [
+      {
+        "rule": "E0059",
+        "line": "        eval(\" ?> $template <?php \");",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 920,
+        "start_column": 8,
+        "end_line": 920,
+        "end_column": 36
+      },
+      {
+        "rule": "E0059",
+        "line": "        eval(\" ?> $template <?php \");",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 972,
+        "start_column": 8,
+        "end_line": 972,
+        "end_column": 36
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Session/Store.php": [
+      {
+        "rule": "E0053",
+        "line": "                $data = @unserialize($this->prepareForUnserialize($data));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 132,
+        "start_column": 25,
+        "end_line": 132,
+        "end_column": 73
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/tests/Support/OnceTest.php": [
+      {
+        "rule": "E0059",
+        "line": "        $firstResolver = eval('return fn () => once( function () { return random_int(1, PHP_INT_MAX); } ) ;');",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 276,
+        "start_column": 25,
+        "end_line": 276,
+        "end_column": 109
+      },
+      {
+        "rule": "E0059",
+        "line": "        $secondResolver = eval('return fn () => fn () => once( function () { return random_int(1, PHP_INT_MAX); } ) ;');",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 281,
+        "start_column": 26,
+        "end_line": 281,
+        "end_column": 119
+      },
+      {
+        "rule": "E0059",
+        "line": "        $third = eval('return once( function () { return random_int(1, PHP_INT_MAX); } ) ;');",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 286,
+        "start_column": 17,
+        "end_line": 286,
+        "end_column": 92
+      },
+      {
+        "rule": "E0059",
+        "line": "        $fourth = eval('return once( function () { return random_int(1, PHP_INT_MAX); } ) ;');",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 287,
+        "start_column": 18,
+        "end_line": 287,
+        "end_column": 93
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/tests/Integration/Database/EloquentModelRelationAutoloadTest.php": [
+      {
+        "rule": "E0053",
+        "line": "        $post = unserialize($post);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 117,
+        "start_column": 16,
+        "end_line": 117,
+        "end_column": 34
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Bus/ChainedBatch.php": [
+      {
+        "rule": "E0053",
+        "line": "            $next = unserialize(array_shift($this->chained));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 122,
+        "start_column": 20,
+        "end_line": 122,
+        "end_column": 60
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Support/Testing/Fakes/QueueFake.php": [
+      {
+        "rule": "E0053",
+        "line": "                return get_class(unserialize($job));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 292,
+        "start_column": 33,
+        "end_line": 292,
+        "end_column": 50
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Support/ServiceProvider.php": [
+      {
+        "rule": "E0055",
+        "line": "                require $path, $config->get($key, [])",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$path"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/src/Illuminate/Support/ServiceProvider.php",
+          "line": 169
+        },
+        "start_line": 169,
+        "start_column": 16,
+        "end_line": 169,
+        "end_column": 29
+      },
+      {
+        "rule": "E0055",
+        "line": "                require $path, $config->get($key, [])",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$path"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/src/Illuminate/Support/ServiceProvider.php",
+          "line": 187
+        },
+        "start_line": 187,
+        "start_column": 16,
+        "end_line": 187,
+        "end_column": 29
+      },
+      {
+        "rule": "E0055",
+        "line": "            require $path;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$path"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/src/Illuminate/Support/ServiceProvider.php",
+          "line": 201
+        },
+        "start_line": 201,
+        "start_column": 12,
+        "end_line": 201,
+        "end_column": 25
+      },
+      {
+        "rule": "E0055",
+        "line": "        $providers = (new Collection(require $path))",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 600,
+        "start_column": 37,
+        "end_line": 600,
+        "end_column": 50
+      },
+      {
+        "rule": "E0055",
+        "line": "        $providers = (new Collection(require $path))",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 641,
+        "start_column": 37,
+        "end_line": 641,
+        "end_column": 50
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Queue/Console/RetryCommand.php": [
+      {
+        "rule": "E0053",
+        "line": "            return unserialize($payload['data']['command']);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$payload"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/src/Illuminate/Queue/Console/RetryCommand.php",
+          "line": 259
+        },
+        "start_line": 259,
+        "start_column": 19,
+        "end_line": 259,
+        "end_column": 59
+      },
+      {
+        "rule": "E0053",
+        "line": "            return unserialize($this->laravel->make(Encrypter::class)->decrypt($payload['data']['command']));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$payload"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/src/Illuminate/Queue/Console/RetryCommand.php",
+          "line": 263
+        },
+        "start_line": 263,
+        "start_column": 19,
+        "end_line": 263,
+        "end_column": 108
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Log/Context/Repository.php": [
+      {
+        "rule": "E0053",
+        "line": "                return tap($this->getRestoredPropertyValue(unserialize($value)), function ($value) {",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 669,
+        "start_column": 59,
+        "end_line": 669,
+        "end_column": 78
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Foundation/Support/Providers/RouteServiceProvider.php": [
+      {
+        "rule": "E0055",
+        "line": "            require $this->app->getCachedRoutesPath();",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 150,
+        "start_column": 12,
+        "end_line": 150,
+        "end_column": 53
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Queue/CallQueuedHandler.php": [
+      {
+        "rule": "E0053",
+        "line": "            return unserialize($data['command']);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$data"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/src/Illuminate/Queue/CallQueuedHandler.php",
+          "line": 116
+        },
+        "start_line": 116,
+        "start_column": 19,
+        "end_line": 116,
+        "end_column": 48
+      },
+      {
+        "rule": "E0053",
+        "line": "            return unserialize($this->container[Encrypter::class]->decrypt($data['command']));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$data"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/src/Illuminate/Queue/CallQueuedHandler.php",
+          "line": 120
+        },
+        "start_line": 120,
+        "start_column": 19,
+        "end_line": 120,
+        "end_column": 93
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/tests/Foundation/FoundationProviderRepositoryTest.php": [
+      {
+        "rule": "E0055",
+        "line": "        $written = include $manifestPath;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 62,
+        "start_column": 19,
+        "end_line": 62,
+        "end_column": 40
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Foundation/Configuration/ApplicationBuilder.php": [
+      {
+        "rule": "E0055",
+        "line": "                require $channels;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$channels"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/src/Illuminate/Foundation/Configuration/ApplicationBuilder.php",
+          "line": 131
+        },
+        "start_line": 131,
+        "start_column": 16,
+        "end_line": 131,
+        "end_column": 33
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Cache/StorageStore.php": [
+      {
+        "rule": "E0053",
+        "line": "        return unserialize($value);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$value"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/src/Illuminate/Cache/StorageStore.php",
+          "line": 243
+        },
+        "start_line": 243,
+        "start_column": 15,
+        "end_line": 243,
+        "end_column": 34
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Database/Connectors/PostgresConnector.php": [
+      {
+        "rule": "E0054",
+        "line": "        extract($config, EXTR_SKIP);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$config"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/src/Illuminate/Database/Connectors/PostgresConnector.php",
+          "line": 64
+        },
+        "start_line": 64,
+        "start_column": 8,
+        "end_line": 64,
+        "end_column": 35
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Bus/DynamoBatchRepository.php": [
+      {
+        "rule": "E0053",
+        "line": "        return unserialize($serialized);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$serialized"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/src/Illuminate/Bus/DynamoBatchRepository.php",
+          "line": 516
+        },
+        "start_line": 516,
+        "start_column": 15,
+        "end_line": 516,
+        "end_column": 39
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Cache/ArrayStore.php": [
+      {
+        "rule": "E0053",
+        "line": "        return unserialize($value);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$value"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/src/Illuminate/Cache/ArrayStore.php",
+          "line": 324
+        },
+        "start_line": 324,
+        "start_column": 15,
+        "end_line": 324,
+        "end_column": 34
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/tests/Integration/Queue/ModelSerializationTest.php": [
+      {
+        "rule": "E0053",
+        "line": "        $unSerialized = unserialize($serialized);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 98,
+        "start_column": 24,
+        "end_line": 98,
+        "end_column": 48
+      },
+      {
+        "rule": "E0053",
+        "line": "        $unSerialized = unserialize($serialized);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 105,
+        "start_column": 24,
+        "end_line": 105,
+        "end_column": 48
+      },
+      {
+        "rule": "E0053",
+        "line": "        $unSerialized = unserialize($serialized);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 125,
+        "start_column": 24,
+        "end_line": 125,
+        "end_column": 48
+      },
+      {
+        "rule": "E0053",
+        "line": "        $unSerialized = unserialize($serialized);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 132,
+        "start_column": 24,
+        "end_line": 132,
+        "end_column": 48
+      },
+      {
+        "rule": "E0053",
+        "line": "        unserialize($serialized);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 156,
+        "start_column": 8,
+        "end_line": 156,
+        "end_column": 32
+      },
+      {
+        "rule": "E0053",
+        "line": "        $unSerialized = unserialize($serialized);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 174,
+        "start_column": 24,
+        "end_line": 174,
+        "end_column": 48
+      },
+      {
+        "rule": "E0053",
+        "line": "        $unSerialized = unserialize($serialized);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 196,
+        "start_column": 24,
+        "end_line": 196,
+        "end_column": 48
+      },
+      {
+        "rule": "E0053",
+        "line": "        $nestedUnSerialized = unserialize($nestedSerialized);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 216,
+        "start_column": 30,
+        "end_line": 216,
+        "end_column": 60
+      },
+      {
+        "rule": "E0053",
+        "line": "        $unSerialized = unserialize($serialized);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 240,
+        "start_column": 24,
+        "end_line": 240,
+        "end_column": 48
+      },
+      {
+        "rule": "E0053",
+        "line": "        $unSerialized = unserialize($serialized);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 270,
+        "start_column": 24,
+        "end_line": 270,
+        "end_column": 48
+      },
+      {
+        "rule": "E0053",
+        "line": "        unserialize($serialized);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 332,
+        "start_column": 8,
+        "end_line": 332,
+        "end_column": 32
+      },
+      {
+        "rule": "E0053",
+        "line": "        unserialize($serialized);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 341,
+        "start_column": 8,
+        "end_line": 341,
+        "end_column": 32
+      },
+      {
+        "rule": "E0053",
+        "line": "        $unserialized = unserialize($serialized);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 353,
+        "start_column": 24,
+        "end_line": 353,
+        "end_column": 48
+      },
+      {
+        "rule": "E0053",
+        "line": "        $unserialized = unserialize($serialized);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 371,
+        "start_column": 24,
+        "end_line": 371,
+        "end_column": 48
+      },
+      {
+        "rule": "E0053",
+        "line": "        $unserialized = unserialize($serialized);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 388,
+        "start_column": 24,
+        "end_line": 388,
+        "end_column": 48
+      },
+      {
+        "rule": "E0053",
+        "line": "        $unSerialized = unserialize($serialized);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 409,
+        "start_column": 24,
+        "end_line": 409,
+        "end_column": 48
+      },
+      {
+        "rule": "E0053",
+        "line": "        $unSerialized = unserialize($serialized);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 418,
+        "start_column": 24,
+        "end_line": 418,
+        "end_column": 48
+      },
+      {
+        "rule": "E0053",
+        "line": "        $unserialized = unserialize($serialized);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 469,
+        "start_column": 24,
+        "end_line": 469,
+        "end_column": 48
+      },
+      {
+        "rule": "E0053",
+        "line": "        $unserialized = unserialize($serialized);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 485,
+        "start_column": 24,
+        "end_line": 485,
+        "end_column": 48
+      },
+      {
+        "rule": "E0053",
+        "line": "        unserialize($serialized);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 498,
+        "start_column": 8,
+        "end_line": 498,
+        "end_column": 32
+      },
+      {
+        "rule": "E0053",
+        "line": "        $unserialized = unserialize($serialized);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 526,
+        "start_column": 24,
+        "end_line": 526,
+        "end_column": 48
+      },
+      {
+        "rule": "E0053",
+        "line": "        $unserialized = unserialize($serialized);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 554,
+        "start_column": 24,
+        "end_line": 554,
+        "end_column": 48
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Foundation/Bootstrap/LoadConfiguration.php": [
+      {
+        "rule": "E0055",
+        "line": "            $items = require $cached;",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 42,
+        "start_column": 21,
+        "end_line": 42,
+        "end_column": 36
+      },
+      {
+        "rule": "E0055",
+        "line": "        $config = (fn () => require $path)();",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 115,
+        "start_column": 28,
+        "end_line": 115,
+        "end_column": 41
+      },
+      {
+        "rule": "E0055",
+        "line": "            $config[basename($file->getRealPath(), '.php')] = require $file->getRealPath();",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 209,
+        "start_column": 62,
+        "end_line": 209,
+        "end_column": 90
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Testing/Concerns/RunsInParallel.php": [
+      {
+        "rule": "E0055",
+        "line": "                $app = require $path;",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 177,
+        "start_column": 23,
+        "end_line": 177,
+        "end_column": 36
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Foundation/Testing/TestCase.php": [
+      {
+        "rule": "E0055",
+        "line": "        $app = require Application::inferBasePath().'/bootstrap/app.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 47,
+        "start_column": 15,
+        "end_line": 47,
+        "end_column": 72
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/tests/Integration/Queue/JobEncryptionTest.php": [
+      {
+        "rule": "E0053",
+        "line": "            unserialize(json_decode(DB::table('jobs')->first()->payload)->data->command)",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 56,
+        "start_column": 12,
+        "end_line": 56,
+        "end_column": 88
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/tests/Queue/QueueSqsQueueTest.php": [
+      {
+        "rule": "E0053",
+        "line": "            $command = unserialize($message['data']['command'] ?? '');",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 821,
+        "start_column": 23,
+        "end_line": 821,
+        "end_column": 69
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Support/Testing/Fakes/BusFake.php": [
+      {
+        "rule": "E0053",
+        "line": "                        $chainedBatch = unserialize($serializedChainedJob);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 458,
+        "start_column": 40,
+        "end_line": 458,
+        "end_column": 74
+      },
+      {
+        "rule": "E0053",
+        "line": "                        $chainedJob = unserialize($serializedChainedJob);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 467,
+        "start_column": 38,
+        "end_line": 467,
+        "end_column": 72
+      },
+      {
+        "rule": "E0053",
+        "line": "                        if ($chain[$index] != get_class(unserialize($serializedChainedJob))) {",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 477,
+        "start_column": 56,
+        "end_line": 477,
+        "end_column": 90
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Concurrency/ProcessDriver.php": [
+      {
+        "rule": "E0053",
+        "line": "            return [$key => unserialize($result['result'])];",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 76,
+        "start_column": 28,
+        "end_line": 76,
+        "end_column": 58
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Cache/RedisStore.php": [
+      {
+        "rule": "E0053",
+        "line": "        return unserialize($value);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$value"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/src/Illuminate/Cache/RedisStore.php",
+          "line": 544
+        },
+        "start_line": 544,
+        "start_column": 15,
+        "end_line": 544,
+        "end_column": 34
+      }
+    ],
+    "/tmp/phanalist-scan/laravel/src/Illuminate/Cache/DynamoDbStore.php": [
+      {
+        "rule": "E0053",
+        "line": "        return unserialize($value);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$value"
+          ],
+          "file": "/tmp/phanalist-scan/laravel/src/Illuminate/Cache/DynamoDbStore.php",
+          "line": 566
+        },
+        "start_line": 566,
+        "start_column": 15,
+        "end_line": 566,
+        "end_column": 34
+      }
+    ]
+  },
+  "codes_count": {
+    "E0055": 35,
+    "E0059": 18,
+    "E0054": 5,
+    "E0053": 85
+  },
+  "total_files_count": 3184,
+  "duration": {
+    "secs": 0,
+    "nanos": 285836775
+  }
+}

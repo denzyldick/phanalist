@@ -1,0 +1,2983 @@
+{
+  "files": {
+    "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/Menu/MenuTreeStorage.php": [
+      {
+        "rule": "E0053",
+        "line": "        $link[$name] = unserialize($link[$name]);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$link"
+          ],
+          "file": "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/Menu/MenuTreeStorage.php",
+          "line": 624
+        },
+        "start_line": 624,
+        "start_column": 23,
+        "end_line": 624,
+        "end_column": 48
+      },
+      {
+        "rule": "E0053",
+        "line": "          $link[$name] = unserialize($link[$name]);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 743,
+        "start_column": 25,
+        "end_line": 743,
+        "end_column": 50
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/ckeditor5/tests/src/Traits/SynchronizeCsrfTokenSeedTrait.php": [
+      {
+        "rule": "E0053",
+        "line": "    $csrf_token_seed = unserialize(explode('_sf2_meta|', $session_data)[1])['s'];",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 32,
+        "start_column": 23,
+        "end_line": 32,
+        "end_column": 75
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/lib/Drupal/Component/PhpStorage/FileReadOnlyStorage.php": [
+      {
+        "rule": "E0055",
+        "line": "    return (@include_once $this->getFullPath($name)) !== FALSE;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$name"
+          ],
+          "file": "/tmp/phanalist-scan/drupal/core/lib/Drupal/Component/PhpStorage/FileReadOnlyStorage.php",
+          "line": 45
+        },
+        "start_line": 45,
+        "start_column": 13,
+        "end_line": 45,
+        "end_column": 51
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/KernelTests/KernelTestBase.php": [
+      {
+        "rule": "E0055",
+        "line": "    $this->classLoader = require $this->root . '/autoload.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 254,
+        "start_column": 25,
+        "end_line": 254,
+        "end_column": 62
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/Tests/Core/Update/UpdateOrderingTest.php": [
+      {
+        "rule": "E0055",
+        "line": "    require_once $this->root . '/core/includes/update.inc';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 39,
+        "start_column": 4,
+        "end_line": 39,
+        "end_column": 58
+      },
+      {
+        "rule": "E0055",
+        "line": "    require_once $this->root . '/core/tests/fixtures/test_update_ordering/test_update_ordering.php';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 42,
+        "start_column": 4,
+        "end_line": 42,
+        "end_column": 99
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/FunctionalTests/Installer/InstallerNonDefaultDatabaseDriverTest.php": [
+      {
+        "rule": "E0055",
+        "line": "    include $app_root . '/' . $site_path . '/settings.php';",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 112,
+        "start_column": 4,
+        "end_line": 112,
+        "end_column": 58
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/system/tests/src/Functional/UpdateSystem/UpdateRemovedPostUpdateTest.php": [
+      {
+        "rule": "E0053",
+        "line": "    $extensions = unserialize($extensions);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 56,
+        "start_column": 18,
+        "end_line": 56,
+        "end_column": 42
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/layout_builder/src/Plugin/Block/InlineBlock.php": [
+      {
+        "rule": "E0053",
+        "line": "        $this->blockContent = unserialize($this->configuration['block_serialized']);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 200,
+        "start_column": 30,
+        "end_line": 200,
+        "end_column": 83
+      },
+      {
+        "rule": "E0053",
+        "line": "      $block = unserialize($this->configuration['block_serialized']);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 244,
+        "start_column": 15,
+        "end_line": 244,
+        "end_column": 68
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/KernelTests/Core/File/FileDeleteGadgetChainTest.php": [
+      {
+        "rule": "E0053",
+        "line": "      unserialize($payload);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 29,
+        "start_column": 6,
+        "end_line": 29,
+        "end_column": 27
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/Extension/ModuleInstaller.php": [
+      {
+        "rule": "E0055",
+        "line": "    include_once $this->root . '/core/includes/install.inc';",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 195,
+        "start_column": 4,
+        "end_line": 195,
+        "end_column": 59
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/KernelTests/Core/Entity/EntityTypeTest.php": [
+      {
+        "rule": "E0053",
+        "line": "    $entity_type = unserialize($tmp);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 64,
+        "start_column": 19,
+        "end_line": 64,
+        "end_column": 36
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/views_ui/tests/src/Unit/ViewUIObjectTest.php": [
+      {
+        "rule": "E0053",
+        "line": "    $unserialized = unserialize($serialized);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 140,
+        "start_column": 20,
+        "end_line": 140,
+        "end_column": 44
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/BuildTests/Composer/Plugin/Unpack/Functional/UnpackRecipeTest.php": [
+      {
+        "rule": "E0055",
+        "line": "    $installed_php = include_once $root_project_path . '/vendor/composer/installed.php';",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 349,
+        "start_column": 21,
+        "end_line": 349,
+        "end_column": 87
+      },
+      {
+        "rule": "E0055",
+        "line": "    $installed_php = include_once $root_project_path . '/vendor/composer/installed.php';",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 526,
+        "start_column": 21,
+        "end_line": 526,
+        "end_column": 87
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/system/tests/src/Functional/UpdateSystem/DependencyMissingTest.php": [
+      {
+        "rule": "E0055",
+        "line": "    require_once $this->root . '/core/includes/update.inc';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 35,
+        "start_column": 4,
+        "end_line": 35,
+        "end_column": 58
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/Tests/UpdatePathTestTrait.php": [
+      {
+        "rule": "E0055",
+        "line": "    require_once $this->root . '/core/includes/update.inc';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 43,
+        "start_column": 4,
+        "end_line": 43,
+        "end_column": 58
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/locale/src/LocaleTranslatableProject.php": [
+      {
+        "rule": "E0054",
+        "line": "      if (empty(trim($$property))) {",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 47,
+        "start_column": 21,
+        "end_line": 47,
+        "end_column": 31
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/system/tests/src/Functional/UpdateSystem/InvalidUpdateHookTest.php": [
+      {
+        "rule": "E0055",
+        "line": "    require_once $this->root . '/core/includes/update.inc';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 52,
+        "start_column": 4,
+        "end_line": 52,
+        "end_column": 58
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/dblog/src/Plugin/views/field/DblogMessage.php": [
+      {
+        "rule": "E0053",
+        "line": "      $variables = unserialize($this->getvalue($values, 'variables'));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$values"
+          ],
+          "file": "/tmp/phanalist-scan/drupal/core/modules/dblog/src/Plugin/views/field/DblogMessage.php",
+          "line": 62
+        },
+        "start_line": 62,
+        "start_column": 19,
+        "end_line": 62,
+        "end_column": 69
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/ckeditor5/tests/src/Unit/HTMLRestrictionsTest.php": [
+      {
+        "rule": "E0054",
+        "line": "      if ($a == $$parameter) {",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 943,
+        "start_column": 16,
+        "end_line": 943,
+        "end_column": 27
+      },
+      {
+        "rule": "E0054",
+        "line": "        if ($b == $$parameter) {",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 947,
+        "start_column": 18,
+        "end_line": 947,
+        "end_column": 29
+      },
+      {
+        "rule": "E0054",
+        "line": "      if ($$parameter === 'a') {",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 952,
+        "start_column": 10,
+        "end_line": 952,
+        "end_column": 21
+      },
+      {
+        "rule": "E0054",
+        "line": "        $$parameter = $a;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 953,
+        "start_column": 8,
+        "end_line": 953,
+        "end_column": 19
+      },
+      {
+        "rule": "E0054",
+        "line": "      elseif ($$parameter === 'b') {",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 955,
+        "start_column": 14,
+        "end_line": 955,
+        "end_column": 25
+      },
+      {
+        "rule": "E0054",
+        "line": "        $$parameter = $b;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 956,
+        "start_column": 8,
+        "end_line": 956,
+        "end_column": 19
+      },
+      {
+        "rule": "E0054",
+        "line": "      assert($$parameter instanceof HTMLRestrictions);",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 958,
+        "start_column": 13,
+        "end_line": 958,
+        "end_column": 24
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/Form/FormCache.php": [
+      {
+        "rule": "E0055",
+        "line": "          require_once $this->root . '/' . $file;",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 97,
+        "start_column": 10,
+        "end_line": 97,
+        "end_column": 48
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/Entity/Sql/SqlContentEntityStorage.php": [
+      {
+        "rule": "E0053",
+        "line": "    return unserialize($value);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$value"
+          ],
+          "file": "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/Entity/Sql/SqlContentEntityStorage.php",
+          "line": 2126
+        },
+        "start_line": 2126,
+        "start_column": 11,
+        "end_line": 2126,
+        "end_column": 30
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/big_pipe/tests/src/Functional/BigPipeTest.php": [
+      {
+        "rule": "E0053",
+        "line": "    $this->assertStringContainsString('Oh noes!', (string) unserialize($records[0]->variables)['@message']);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 204,
+        "start_column": 59,
+        "end_line": 204,
+        "end_column": 94
+      },
+      {
+        "rule": "E0053",
+        "line": "    $this->assertStringContainsString('You are not allowed to say llamas are not cool!', (string) unserialize($records[1]->variables)['@message']);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 206,
+        "start_column": 98,
+        "end_line": 206,
+        "end_column": 133
+      },
+      {
+        "rule": "E0053",
+        "line": "    $csrf_token_seed = unserialize(explode('_sf2_meta|', $session_data)[1])['s'];",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 446,
+        "start_column": 23,
+        "end_line": 446,
+        "end_column": 75
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/user/src/UserData.php": [
+      {
+        "rule": "E0053",
+        "line": "        return $result[$uid]->serialized ? unserialize($result[$uid]->value) : $result[$uid]->value;",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 41,
+        "start_column": 43,
+        "end_line": 41,
+        "end_column": 76
+      },
+      {
+        "rule": "E0053",
+        "line": "        $return[$record->name] = ($record->serialized ? unserialize($record->value) : $record->value);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 49,
+        "start_column": 56,
+        "end_line": 49,
+        "end_column": 83
+      },
+      {
+        "rule": "E0053",
+        "line": "        $return[$record->uid] = ($record->serialized ? unserialize($record->value) : $record->value);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 56,
+        "start_column": 55,
+        "end_line": 56,
+        "end_column": 82
+      },
+      {
+        "rule": "E0053",
+        "line": "      $return[$record->uid][$record->name] = ($record->serialized ? unserialize($record->value) : $record->value);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 62,
+        "start_column": 68,
+        "end_line": 62,
+        "end_column": 95
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/system/tests/fixtures/update/drupal-8.update-test-semver-update-n-enabled.php": [
+      {
+        "rule": "E0053",
+        "line": "$extensions = unserialize($extensions);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 30,
+        "start_column": 14,
+        "end_line": 30,
+        "end_column": 38
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/FunctionalTests/BrowserTestBaseTest.php": [
+      {
+        "rule": "E0053",
+        "line": "          $parameters = unserialize(urldecode($value));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 586,
+        "start_column": 24,
+        "end_line": 586,
+        "end_column": 54
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/lib/Drupal/Component/Transliteration/PhpTransliteration.php": [
+      {
+        "rule": "E0055",
+        "line": "      include $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$langcode"
+          ],
+          "file": "/tmp/phanalist-scan/drupal/core/lib/Drupal/Component/Transliteration/PhpTransliteration.php",
+          "line": 292
+        },
+        "start_line": 292,
+        "start_column": 6,
+        "end_line": 292,
+        "end_column": 19
+      },
+      {
+        "rule": "E0055",
+        "line": "      include $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$bank"
+          ],
+          "file": "/tmp/phanalist-scan/drupal/core/lib/Drupal/Component/Transliteration/PhpTransliteration.php",
+          "line": 318
+        },
+        "start_line": 318,
+        "start_column": 6,
+        "end_line": 318,
+        "end_column": 19
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/system/tests/src/Functional/UpdateSystem/EntityUpdateInitialTest.php": [
+      {
+        "rule": "E0053",
+        "line": "    $schema = unserialize($schema);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 50,
+        "start_column": 14,
+        "end_line": 50,
+        "end_column": 34
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/FunctionalTests/Entity/RevisionRevertFormTest.php": [
+      {
+        "rule": "E0053",
+        "line": "    $this->assertEquals($expectedLog, unserialize($logs[0]->variables));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 237,
+        "start_column": 38,
+        "end_line": 237,
+        "end_column": 70
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/assets/scaffold/files/ht.router.php": [
+      {
+        "rule": "E0055",
+        "line": "require $_SERVER['SCRIPT_FILENAME'];",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 71,
+        "start_column": 0,
+        "end_line": 71,
+        "end_column": 35
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/system/tests/src/Functional/UpdateSystem/UpdatePathLastRemovedTest.php": [
+      {
+        "rule": "E0055",
+        "line": "    require_once $this->root . '/core/includes/update.inc';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 50,
+        "start_column": 4,
+        "end_line": 50,
+        "end_column": 58
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/TestSite/Commands/TestSiteInstallCommand.php": [
+      {
+        "rule": "E0055",
+        "line": "    include_once $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$file"
+          ],
+          "file": "/tmp/phanalist-scan/drupal/core/tests/Drupal/TestSite/Commands/TestSiteInstallCommand.php",
+          "line": 184
+        },
+        "start_line": 184,
+        "start_column": 4,
+        "end_line": 184,
+        "end_column": 22
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/KernelTests/Core/Batch/BatchKernelTest.php": [
+      {
+        "rule": "E0055",
+        "line": "    require_once $this->root . '/core/includes/batch.inc';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 24,
+        "start_column": 4,
+        "end_line": 24,
+        "end_column": 57
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/package_manager/src/Validator/PendingUpdatesValidator.php": [
+      {
+        "rule": "E0055",
+        "line": "    require_once $this->appRoot . '/core/includes/install.inc';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 53,
+        "start_column": 4,
+        "end_line": 53,
+        "end_column": 62
+      },
+      {
+        "rule": "E0055",
+        "line": "    require_once $this->appRoot . '/core/includes/update.inc';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 54,
+        "start_column": 4,
+        "end_line": 54,
+        "end_column": 61
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/Queue/DatabaseQueue.php": [
+      {
+        "rule": "E0053",
+        "line": "        $item->data = unserialize($item->data);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 137,
+        "start_column": 22,
+        "end_line": 137,
+        "end_column": 46
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/user/tests/src/Kernel/UserRequirementsTest.php": [
+      {
+        "rule": "E0055",
+        "line": "    include_once $this->root . '/core/includes/install.inc';",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 41,
+        "start_column": 4,
+        "end_line": 41,
+        "end_column": 59
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/system/src/Controller/DbUpdateController.php": [
+      {
+        "rule": "E0055",
+        "line": "    require_once $this->root . '/core/includes/install.inc';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 123,
+        "start_column": 4,
+        "end_line": 123,
+        "end_column": 59
+      },
+      {
+        "rule": "E0055",
+        "line": "    require_once $this->root . '/core/includes/update.inc';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 124,
+        "start_column": 4,
+        "end_line": 124,
+        "end_column": 58
+      },
+      {
+        "rule": "E0055",
+        "line": "          require_once $this->root . '/core/includes/batch.inc';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 163,
+        "start_column": 10,
+        "end_line": 163,
+        "end_column": 63
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/Update/UpdateRegistry.php": [
+      {
+        "rule": "E0055",
+        "line": "      include_once $filename;",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 156,
+        "start_column": 6,
+        "end_line": 156,
+        "end_column": 28
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/KernelTests/Core/User/AccountTakeoverGadgetChainTest.php": [
+      {
+        "rule": "E0053",
+        "line": "      unserialize($payload);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 56,
+        "start_column": 6,
+        "end_line": 56,
+        "end_column": 27
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/KernelTests/Core/Extension/FileIncludeGadgetChainTest.php": [
+      {
+        "rule": "E0053",
+        "line": "      unserialize($payload);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$path"
+          ],
+          "file": "/tmp/phanalist-scan/drupal/core/tests/Drupal/KernelTests/Core/Extension/FileIncludeGadgetChainTest.php",
+          "line": 52
+        },
+        "start_line": 52,
+        "start_column": 6,
+        "end_line": 52,
+        "end_column": 27
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/KernelTests/Core/Database/SerializeQueryTest.php": [
+      {
+        "rule": "E0053",
+        "line": "    unserialize(sprintf('O:%d:\"%s\":0:{}', strlen($class), $class));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 34,
+        "start_column": 4,
+        "end_line": 34,
+        "end_column": 66
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/system/tests/src/Functional/UpdateSystem/UpdatesWith7xTest.php": [
+      {
+        "rule": "E0055",
+        "line": "    require_once $this->root . '/core/includes/update.inc';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 50,
+        "start_column": 4,
+        "end_line": 50,
+        "end_column": 58
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/system/src/Form/ThemeSettingsForm.php": [
+      {
+        "rule": "E0055",
+        "line": "            require_once $filename;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$theme"
+          ],
+          "file": "/tmp/phanalist-scan/drupal/core/modules/system/src/Form/ThemeSettingsForm.php",
+          "line": 344
+        },
+        "start_line": 344,
+        "start_column": 12,
+        "end_line": 344,
+        "end_column": 34
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/package_manager/src/Validator/MultisiteValidator.php": [
+      {
+        "rule": "E0055",
+        "line": "    include $sites_php_path;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 58,
+        "start_column": 4,
+        "end_line": 58,
+        "end_column": 27
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/Tests/Core/Template/AttributeTest.php": [
+      {
+        "rule": "E0053",
+        "line": "    print unserialize($payload);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 600,
+        "start_column": 10,
+        "end_line": 600,
+        "end_column": 31
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/system/tests/src/Functional/UpdateSystem/UpdatePostUpdateTest.php": [
+      {
+        "rule": "E0053",
+        "line": "    $extensions = unserialize($extensions);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 44,
+        "start_column": 18,
+        "end_line": 44,
+        "end_column": 42
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/KernelTests/Core/DrupalKernel/DrupalKernelTest.php": [
+      {
+        "rule": "E0055",
+        "line": "    $class_loader = require $this->root . '/autoload.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 66,
+        "start_column": 20,
+        "end_line": 66,
+        "end_column": 57
+      },
+      {
+        "rule": "E0055",
+        "line": "    $class_loader = require $this->root . '/autoload.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 195,
+        "start_column": 20,
+        "end_line": 195,
+        "end_column": 57
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/field/tests/src/Kernel/EntityReference/EntityReferenceItemTest.php": [
+      {
+        "rule": "E0053",
+        "line": "    $entity = unserialize($entity);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 329,
+        "start_column": 14,
+        "end_line": 329,
+        "end_column": 34
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/dblog/src/Controller/DbLogController.php": [
+      {
+        "rule": "E0053",
+        "line": "      $variables = @unserialize($row->variables);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$row"
+          ],
+          "file": "/tmp/phanalist-scan/drupal/core/modules/dblog/src/Controller/DbLogController.php",
+          "line": 358
+        },
+        "start_line": 358,
+        "start_column": 20,
+        "end_line": 358,
+        "end_column": 48
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/Queue/Batch.php": [
+      {
+        "rule": "E0053",
+        "line": "        $item->data = unserialize($item->data);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 31,
+        "start_column": 22,
+        "end_line": 31,
+        "end_column": 46
+      },
+      {
+        "rule": "E0053",
+        "line": "        $result[] = unserialize($item->data);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 61,
+        "start_column": 20,
+        "end_line": 61,
+        "end_column": 44
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/Cache/MemoryBackend.php": [
+      {
+        "rule": "E0053",
+        "line": "    $prepared->data = unserialize($prepared->data);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$cache"
+          ],
+          "file": "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/Cache/MemoryBackend.php",
+          "line": 99
+        },
+        "start_line": 99,
+        "start_column": 22,
+        "end_line": 99,
+        "end_column": 50
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/lib/Drupal/Component/PhpStorage/MTimeProtectedFileStorage.php": [
+      {
+        "rule": "E0055",
+        "line": "      return (@include_once $filename) !== FALSE;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$name"
+          ],
+          "file": "/tmp/phanalist-scan/drupal/core/lib/Drupal/Component/PhpStorage/MTimeProtectedFileStorage.php",
+          "line": 40
+        },
+        "start_line": 40,
+        "start_column": 15,
+        "end_line": 40,
+        "end_column": 37
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/FunctionalTests/Update/UpdateReducedThemeRegistryTest.php": [
+      {
+        "rule": "E0055",
+        "line": "    require_once $this->root . '/core/includes/update.inc';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 33,
+        "start_column": 4,
+        "end_line": 33,
+        "end_column": 58
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/views/src/Plugin/views/field/Serialized.php": [
+      {
+        "rule": "E0053",
+        "line": "      return $this->sanitizeValue(print_r(unserialize($value), TRUE));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$values"
+          ],
+          "file": "/tmp/phanalist-scan/drupal/core/modules/views/src/Plugin/views/field/Serialized.php",
+          "line": 73
+        },
+        "start_line": 73,
+        "start_column": 42,
+        "end_line": 73,
+        "end_column": 61
+      },
+      {
+        "rule": "E0053",
+        "line": "      $value = (array) unserialize($value);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$values"
+          ],
+          "file": "/tmp/phanalist-scan/drupal/core/modules/views/src/Plugin/views/field/Serialized.php",
+          "line": 76
+        },
+        "start_line": 76,
+        "start_column": 23,
+        "end_line": 76,
+        "end_column": 42
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/Command/DbImportCommand.php": [
+      {
+        "rule": "E0055",
+        "line": "      require $script;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$script"
+          ],
+          "file": "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/Command/DbImportCommand.php",
+          "line": 63
+        },
+        "start_line": 63,
+        "start_column": 6,
+        "end_line": 63,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/system/tests/src/Functional/UpdateSystem/DependencyHookInvocationTest.php": [
+      {
+        "rule": "E0055",
+        "line": "    require_once $this->root . '/core/includes/update.inc';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 37,
+        "start_column": 4,
+        "end_line": 37,
+        "end_column": 58
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/KernelTests/Core/Database/TransactionTest.php": [
+      {
+        "rule": "E0053",
+        "line": "    unserialize($payload);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 1383,
+        "start_column": 4,
+        "end_line": 1383,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/FunctionalTests/Update/UpdatePathTestBase.php": [
+      {
+        "rule": "E0053",
+        "line": "        unserialize($route);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 288,
+        "start_column": 8,
+        "end_line": 288,
+        "end_column": 27
+      },
+      {
+        "rule": "E0055",
+        "line": "    require_once $this->root . '/core/includes/update.inc';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 137,
+        "start_column": 4,
+        "end_line": 137,
+        "end_column": 58
+      },
+      {
+        "rule": "E0055",
+        "line": "      require $file;",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 163,
+        "start_column": 6,
+        "end_line": 163,
+        "end_column": 19
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/Batch/BatchStorage.php": [
+      {
+        "rule": "E0053",
+        "line": "      return unserialize($batch);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 67,
+        "start_column": 13,
+        "end_line": 67,
+        "end_column": 32
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/lib/Drupal/Component/DependencyInjection/PhpArrayContainer.php": [
+      {
+        "rule": "E0055",
+        "line": "      require_once $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$definition"
+          ],
+          "file": "/tmp/phanalist-scan/drupal/core/lib/Drupal/Component/DependencyInjection/PhpArrayContainer.php",
+          "line": 65
+        },
+        "start_line": 65,
+        "start_column": 6,
+        "end_line": 65,
+        "end_column": 24
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/system/tests/src/Functional/UpdateSystem/DependencyOrderingTest.php": [
+      {
+        "rule": "E0055",
+        "line": "    require_once $this->root . '/core/includes/update.inc';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 38,
+        "start_column": 4,
+        "end_line": 38,
+        "end_column": 58
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/Tests/Component/Plugin/Attribute/AttributeClassDiscoveryCachedTest.php": [
+      {
+        "rule": "E0053",
+        "line": "    ], unserialize($file_cache->get($file_path)['content']));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 75,
+        "start_column": 7,
+        "end_line": 75,
+        "end_column": 59
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/Tests/Core/Render/Element/ProceduralApiDeprecationTest.php": [
+      {
+        "rule": "E0055",
+        "line": "    include_once $this->root . '/core/includes/common.inc';",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 26,
+        "start_column": 4,
+        "end_line": 26,
+        "end_column": 58
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/KernelTests/Core/Database/ReplicaKillSwitchTest.php": [
+      {
+        "rule": "E0055",
+        "line": "    $class_loader = require $this->root . '/autoload.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 37,
+        "start_column": 20,
+        "end_line": 37,
+        "end_column": 57
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/Site/Settings.php": [
+      {
+        "rule": "E0055",
+        "line": "      require $app_root . '/' . $site_path . '/settings.php';",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$app_root",
+            "$site_path"
+          ],
+          "file": "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/Site/Settings.php",
+          "line": 142
+        },
+        "start_line": 142,
+        "start_column": 6,
+        "end_line": 142,
+        "end_column": 60
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/KernelTests/Core/Plugin/ContextTypedDataTest.php": [
+      {
+        "rule": "E0053",
+        "line": "    $context = unserialize($context);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 39,
+        "start_column": 15,
+        "end_line": 39,
+        "end_column": 36
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/system/tests/src/Functional/UpdateSystem/NoPreExistingSchemaUpdateTest.php": [
+      {
+        "rule": "E0053",
+        "line": "    $extensions = unserialize($extensions);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 42,
+        "start_column": 18,
+        "end_line": 42,
+        "end_column": 42
+      },
+      {
+        "rule": "E0055",
+        "line": "    require_once $this->root . '/core/includes/update.inc';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 60,
+        "start_column": 4,
+        "end_line": 60,
+        "end_column": 58
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/lib/Drupal/Component/Serialization/PhpSerialize.php": [
+      {
+        "rule": "E0053",
+        "line": "    return unserialize($raw);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$raw"
+          ],
+          "file": "/tmp/phanalist-scan/drupal/core/lib/Drupal/Component/Serialization/PhpSerialize.php",
+          "line": 21
+        },
+        "start_line": 21,
+        "start_column": 11,
+        "end_line": 21,
+        "end_column": 28
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/KernelTests/Core/Config/Storage/DatabaseStorageTest.php": [
+      {
+        "rule": "E0053",
+        "line": "    return unserialize($data);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 35,
+        "start_column": 11,
+        "end_line": 35,
+        "end_column": 29
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/mysql/tests/src/Kernel/mysql/DbDumpTest.php": [
+      {
+        "rule": "E0053",
+        "line": "    $config = unserialize($connection->select('config', 'c')->fields('c', ['data'])->condition('name', 'test_config')->execute()->fetchField());",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 208,
+        "start_column": 14,
+        "end_line": 208,
+        "end_column": 143
+      },
+      {
+        "rule": "E0055",
+        "line": "    require_once $file;",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 197,
+        "start_column": 4,
+        "end_line": 197,
+        "end_column": 22
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/Extension/ModuleHandler.php": [
+      {
+        "rule": "E0055",
+        "line": "      include_once $this->root . '/core/includes/install.inc';",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 240,
+        "start_column": 6,
+        "end_line": 240,
+        "end_column": 61
+      },
+      {
+        "rule": "E0055",
+        "line": "        require_once $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$module",
+            "$name",
+            "$type"
+          ],
+          "file": "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/Extension/ModuleHandler.php",
+          "line": 251
+        },
+        "start_line": 251,
+        "start_column": 8,
+        "end_line": 251,
+        "end_column": 26
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/Cache/PhpBackend.php": [
+      {
+        "rule": "E0055",
+        "line": "      $cache = @include $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$cidhash"
+          ],
+          "file": "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/Cache/PhpBackend.php",
+          "line": 82
+        },
+        "start_line": 82,
+        "start_column": 16,
+        "end_line": 82,
+        "end_column": 29
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/system/tests/src/Functional/UpdateSystem/UpdateSchemaTest.php": [
+      {
+        "rule": "E0055",
+        "line": "    require_once $this->root . '/core/includes/update.inc';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 51,
+        "start_column": 4,
+        "end_line": 51,
+        "end_column": 58
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/install.php": [
+      {
+        "rule": "E0055",
+        "line": "$class_loader = require_once $root_path . '/autoload.php';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 38,
+        "start_column": 16,
+        "end_line": 38,
+        "end_column": 57
+      },
+      {
+        "rule": "E0055",
+        "line": "require_once $root_path . '/core/includes/errors.inc';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 47,
+        "start_column": 0,
+        "end_line": 47,
+        "end_column": 53
+      },
+      {
+        "rule": "E0055",
+        "line": "require_once $root_path . '/core/includes/install.core.inc';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 52,
+        "start_column": 0,
+        "end_line": 52,
+        "end_column": 59
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/FunctionalTests/Installer/InstallerTestBase.php": [
+      {
+        "rule": "E0055",
+        "line": "      $class_loader = require $this->container->getParameter('app.root') . '/autoload.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 184,
+        "start_column": 22,
+        "end_line": 184,
+        "end_column": 90
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/system/tests/src/Functional/UpdateSystem/UpdatePostUpdateFailingTest.php": [
+      {
+        "rule": "E0053",
+        "line": "    $extensions = unserialize($extensions);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 43,
+        "start_column": 18,
+        "end_line": 43,
+        "end_column": 42
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/Routing/RouteProvider.php": [
+      {
+        "rule": "E0053",
+        "line": "      $collection->add($row['name'], unserialize($row['route']));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 303,
+        "start_column": 37,
+        "end_line": 303,
+        "end_column": 63
+      },
+      {
+        "rule": "E0053",
+        "line": "      $result[$name] = unserialize($route);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 332,
+        "start_column": 23,
+        "end_line": 332,
+        "end_column": 42
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/field_ui/tests/src/Kernel/EntityDisplayTest.php": [
+      {
+        "rule": "E0053",
+        "line": "    $this->assertEquals($arguments, unserialize($variables));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 696,
+        "start_column": 36,
+        "end_line": 696,
+        "end_column": 59
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/Tests/Core/DependencyInjection/DependencySerializationTest.php": [
+      {
+        "rule": "E0053",
+        "line": "    $dependencySerialization = unserialize($string);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 40,
+        "start_column": 31,
+        "end_line": 40,
+        "end_column": 51
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/views/tests/src/Kernel/ViewExecutableTest.php": [
+      {
+        "rule": "E0053",
+        "line": "    $unserialized = unserialize($serialized);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 497,
+        "start_column": 20,
+        "end_line": 497,
+        "end_column": 44
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/system/tests/src/Functional/UpdateSystem/PreventDowngradeTest.php": [
+      {
+        "rule": "E0053",
+        "line": "    $extensions = unserialize($extensions);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 79,
+        "start_column": 18,
+        "end_line": 79,
+        "end_column": 42
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/KernelTests/Core/Action/EmailActionTest.php": [
+      {
+        "rule": "E0053",
+        "line": "    $variables = unserialize($log->variables);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 67,
+        "start_column": 17,
+        "end_line": 67,
+        "end_column": 45
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/themes/default_admin/tests/src/Kernel/FocusColorPresetUpdateTest.php": [
+      {
+        "rule": "E0055",
+        "line": "    require_once $this->root . '/core/themes/default_admin/default_admin.post_update.php';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 31,
+        "start_column": 4,
+        "end_line": 31,
+        "end_column": 89
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/KernelTests/Core/Routing/MatcherDumperTest.php": [
+      {
+        "rule": "E0053",
+        "line": "    $loaded_route = unserialize($record->route);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 145,
+        "start_column": 20,
+        "end_line": 145,
+        "end_column": 47
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/KernelTests/DrupalApplicationTesterTrait.php": [
+      {
+        "rule": "E0055",
+        "line": "    $application = include static::binDir() . '/dr';",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 21,
+        "start_column": 19,
+        "end_line": 21,
+        "end_column": 51
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/system/src/Controller/BatchController.php": [
+      {
+        "rule": "E0055",
+        "line": "    require_once $this->root . '/core/includes/batch.inc';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 27,
+        "start_column": 4,
+        "end_line": 27,
+        "end_column": 57
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/Render/Element/MachineName.php": [
+      {
+        "rule": "E0055",
+        "line": "      include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 306,
+        "start_column": 6,
+        "end_line": 306,
+        "end_column": 19
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/DefaultContent/Exporter.php": [
+      {
+        "rule": "E0053",
+        "line": "        $value = unserialize($value);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 260,
+        "start_column": 17,
+        "end_line": 260,
+        "end_column": 36
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/DrupalKernel.php": [
+      {
+        "rule": "E0055",
+        "line": "    include $app_root . '/sites/sites.php';",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$app_root"
+          ],
+          "file": "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/DrupalKernel.php",
+          "line": 419
+        },
+        "start_line": 419,
+        "start_column": 4,
+        "end_line": 419,
+        "end_column": 42
+      },
+      {
+        "rule": "E0055",
+        "line": "    require_once $this->root . '/core/includes/common.inc';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 567,
+        "start_column": 4,
+        "end_line": 567,
+        "end_column": 58
+      },
+      {
+        "rule": "E0055",
+        "line": "    require_once $this->root . '/core/includes/module.inc';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 568,
+        "start_column": 4,
+        "end_line": 568,
+        "end_column": 58
+      },
+      {
+        "rule": "E0055",
+        "line": "    require_once $this->root . '/core/includes/theme.inc';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 569,
+        "start_column": 4,
+        "end_line": 569,
+        "end_column": 57
+      },
+      {
+        "rule": "E0055",
+        "line": "    require_once $this->root . '/core/includes/form.inc';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 570,
+        "start_column": 4,
+        "end_line": 570,
+        "end_column": 56
+      },
+      {
+        "rule": "E0055",
+        "line": "    require_once $this->root . '/core/includes/errors.inc';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 571,
+        "start_column": 4,
+        "end_line": 571,
+        "end_column": 58
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/Tests/Component/Datetime/DateTimePlusTest.php": [
+      {
+        "rule": "E0053",
+        "line": "    unserialize($serialized);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 1124,
+        "start_column": 4,
+        "end_line": 1124,
+        "end_column": 28
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/user/tests/src/Kernel/UserAccountFormFieldsTest.php": [
+      {
+        "rule": "E0055",
+        "line": "    require_once $this->root . '/core/includes/install.core.inc';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 35,
+        "start_column": 4,
+        "end_line": 35,
+        "end_column": 64
+      },
+      {
+        "rule": "E0055",
+        "line": "    require_once $this->root . '/core/includes/install.inc';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 36,
+        "start_column": 4,
+        "end_line": 36,
+        "end_column": 59
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/rest/tests/src/Functional/EntityResource/EntityResourceTestBase.php": [
+      {
+        "rule": "E0053",
+        "line": "        $cached_response = unserialize($cache_item->data);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 636,
+        "start_column": 27,
+        "end_line": 636,
+        "end_column": 57
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/Test/HttpClientMiddleware/TestHttpClientMiddleware.php": [
+      {
+        "rule": "E0053",
+        "line": "                  $parameters = unserialize(urldecode($header_value));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 45,
+        "start_column": 32,
+        "end_line": 45,
+        "end_column": 69
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/node/tests/src/Functional/NodeCreationTest.php": [
+      {
+        "rule": "E0053",
+        "line": "      $variables = (array) unserialize($row->variables);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 345,
+        "start_column": 27,
+        "end_line": 345,
+        "end_column": 55
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/Test/PhpUnitTestRunner.php": [
+      {
+        "rule": "E0055",
+        "line": "    $autoloader = require $this->appRoot . '/autoload.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 201,
+        "start_column": 18,
+        "end_line": 201,
+        "end_column": 58
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/system/tests/src/Functional/UpdateSystem/UpdatePostUpdateExceptionTest.php": [
+      {
+        "rule": "E0053",
+        "line": "    $extensions = unserialize($extensions);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 43,
+        "start_column": 18,
+        "end_line": 43,
+        "end_column": 42
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/system/tests/fixtures/update/drupal-8.update-test-schema-enabled.php": [
+      {
+        "rule": "E0053",
+        "line": "$extensions = unserialize($extensions);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 46,
+        "start_column": 14,
+        "end_line": 46,
+        "end_column": 38
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/Menu/MenuTreeParameters.php": [
+      {
+        "rule": "E0053",
+        "line": "    $this->__unserialize(unserialize($serialized));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$serialized"
+          ],
+          "file": "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/Menu/MenuTreeParameters.php",
+          "line": 222
+        },
+        "start_line": 222,
+        "start_column": 25,
+        "end_line": 222,
+        "end_column": 49
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/Batch/BatchBuilder.php": [
+      {
+        "rule": "E0055",
+        "line": "    include_once $filename;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$filename"
+          ],
+          "file": "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/Batch/BatchBuilder.php",
+          "line": 243
+        },
+        "start_line": 243,
+        "start_column": 4,
+        "end_line": 243,
+        "end_column": 26
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/KernelTests/Core/Site/SettingsRewriteTest.php": [
+      {
+        "rule": "E0055",
+        "line": "    include_once $this->root . '/core/includes/install.inc';",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 26,
+        "start_column": 4,
+        "end_line": 26,
+        "end_column": 59
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/FunctionalTests/Entity/RevisionDeleteFormTest.php": [
+      {
+        "rule": "E0053",
+        "line": "    $this->assertEquals($expectedLog, unserialize($logs[0]->variables));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 304,
+        "start_column": 38,
+        "end_line": 304,
+        "end_column": 70
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/lib/Drupal/Component/PhpStorage/FileStorage.php": [
+      {
+        "rule": "E0055",
+        "line": "    return (@include_once $this->getFullPath($name)) !== FALSE;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$name"
+          ],
+          "file": "/tmp/phanalist-scan/drupal/core/lib/Drupal/Component/PhpStorage/FileStorage.php",
+          "line": 45
+        },
+        "start_line": 45,
+        "start_column": 13,
+        "end_line": 45,
+        "end_column": 51
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/lib/Drupal/Component/DependencyInjection/Container.php": [
+      {
+        "rule": "E0053",
+        "line": "      $definition = unserialize($definition);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 166,
+        "start_column": 20,
+        "end_line": 166,
+        "end_column": 44
+      },
+      {
+        "rule": "E0053",
+        "line": "        $definition = unserialize($definition);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 218,
+        "start_column": 22,
+        "end_line": 218,
+        "end_column": 46
+      },
+      {
+        "rule": "E0055",
+        "line": "      require_once $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$definition"
+          ],
+          "file": "/tmp/phanalist-scan/drupal/core/lib/Drupal/Component/DependencyInjection/Container.php",
+          "line": 263
+        },
+        "start_line": 263,
+        "start_column": 6,
+        "end_line": 263,
+        "end_column": 24
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/jsonapi/tests/src/Functional/ResourceTestBase.php": [
+      {
+        "rule": "E0053",
+        "line": "      $cached_response = unserialize($cache_item->data);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 1027,
+        "start_column": 25,
+        "end_line": 1027,
+        "end_column": 55
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/lib/Drupal/Component/Annotation/Plugin/Discovery/AnnotatedClassDiscovery.php": [
+      {
+        "rule": "E0053",
+        "line": "                  $definitions[$cached['id']] = unserialize($cached['content']);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 104,
+        "start_column": 48,
+        "end_line": 104,
+        "end_column": 79
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/KernelTests/Core/Extension/UpdateDescriptionTest.php": [
+      {
+        "rule": "E0055",
+        "line": "    require_once $this->root . '/core/includes/update.inc';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 29,
+        "start_column": 4,
+        "end_line": 29,
+        "end_column": 58
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/lib/Drupal/Component/Plugin/Discovery/AttributeClassDiscovery.php": [
+      {
+        "rule": "E0053",
+        "line": "                  $dependencies = isset($cached['dependencies']) ? unserialize($cached['dependencies']) : [];",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 91,
+        "start_column": 67,
+        "end_line": 91,
+        "end_column": 103
+      },
+      {
+        "rule": "E0053",
+        "line": "                    $definitions[$cached['id']] = unserialize($cached['content']);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 93,
+        "start_column": 50,
+        "end_line": 93,
+        "end_column": 81
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/views/tests/src/Functional/ViewsConfigUpdaterTest.php": [
+      {
+        "rule": "E0053",
+        "line": "    $extensions = unserialize($extensions);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 49,
+        "start_column": 18,
+        "end_line": 49,
+        "end_column": 42
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/system/tests/src/Unit/Batch/BatchControllerTest.php": [
+      {
+        "rule": "E0055",
+        "line": "    require_once $this->root . '/core/includes/form.inc';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 29,
+        "start_column": 4,
+        "end_line": 29,
+        "end_column": 56
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/modules/system/tests/src/Functional/UpdateSystem/EquivalentUpdateTest.php": [
+      {
+        "rule": "E0055",
+        "line": "    require_once $this->root . '/core/includes/update.inc';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 52,
+        "start_column": 4,
+        "end_line": 52,
+        "end_column": 58
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/lib/Drupal/Core/Extension/Extension.php": [
+      {
+        "rule": "E0055",
+        "line": "      include_once $this->root . '/' . $this->getPath() . '/' . $this->filename;",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 151,
+        "start_column": 6,
+        "end_line": 151,
+        "end_column": 79
+      }
+    ],
+    "/tmp/phanalist-scan/drupal/core/tests/Drupal/Tests/Component/Diff/DiffOpOutputBuilderTest.php": [
+      {
+        "rule": "E0053",
+        "line": "    $this->assertEquals($expected, unserialize($diff));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$from",
+            "$to"
+          ],
+          "file": "/tmp/phanalist-scan/drupal/core/tests/Drupal/Tests/Component/Diff/DiffOpOutputBuilderTest.php",
+          "line": 131
+        },
+        "start_line": 131,
+        "start_column": 35,
+        "end_line": 131,
+        "end_column": 53
+      }
+    ]
+  },
+  "codes_count": {
+    "E0053": 70,
+    "E0055": 72,
+    "E0054": 8
+  },
+  "total_files_count": 10383,
+  "duration": {
+    "secs": 0,
+    "nanos": 511170838
+  }
+}

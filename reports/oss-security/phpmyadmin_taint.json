@@ -1,0 +1,145 @@
+{
+  "files": {
+    "/tmp/phanalist-scan/phpmyadmin/src/Routing/Routing.php": [
+      {
+        "rule": "E0055",
+        "line": "            $dispatchData = require self::ROUTES_CACHE_FILE;",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 98,
+        "start_column": 28,
+        "end_line": 98,
+        "end_column": 59
+      },
+      {
+        "rule": "E0055",
+        "line": "            $cachedDispatchData = file_exists(self::ROUTES_CACHE_FILE) ? require self::ROUTES_CACHE_FILE : [];",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 113,
+        "start_column": 73,
+        "end_line": 113,
+        "end_column": 104
+      }
+    ],
+    "/tmp/phanalist-scan/phpmyadmin/src/Html/Generator.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $filename;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$filename"
+          ],
+          "file": "/tmp/phanalist-scan/phpmyadmin/src/Html/Generator.php",
+          "line": 1127
+        },
+        "start_line": 1127,
+        "start_column": 12,
+        "end_line": 1127,
+        "end_column": 29
+      }
+    ],
+    "/tmp/phanalist-scan/phpmyadmin/src/Git.php": [
+      {
+        "rule": "E0055",
+        "line": "            $info = include $this->baseDir . 'revision-info.php';",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 551,
+        "start_column": 20,
+        "end_line": 551,
+        "end_column": 64
+      }
+    ],
+    "/tmp/phanalist-scan/phpmyadmin/src/Plugins/Auth/AuthenticationSignon.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $scriptName;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 132,
+        "start_column": 12,
+        "end_line": 132,
+        "end_column": 31
+      }
+    ],
+    "/tmp/phanalist-scan/phpmyadmin/src/Config.php": [
+      {
+        "rule": "E0055",
+        "line": "            @require $this->source;",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 193,
+        "start_column": 13,
+        "end_line": 193,
+        "end_column": 34
+      }
+    ]
+  },
+  "codes_count": {
+    "E0055": 6
+  },
+  "total_files_count": 1240,
+  "duration": {
+    "secs": 0,
+    "nanos": 158184845
+  }
+}

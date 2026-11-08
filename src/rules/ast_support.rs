@@ -25,7 +25,9 @@ pub(crate) fn direct_variable_name<'a>(expression: &'a Expression<'a>) -> Option
     let Expression::Variable(Variable::Direct(variable)) = expression else {
         return None;
     };
-    std::str::from_utf8(variable.name).ok()
+    std::str::from_utf8(variable.name)
+        .ok()
+        .map(|name| name.strip_prefix('$').unwrap_or(name))
 }
 
 pub(crate) fn literal_i64(expression: &Expression<'_>) -> Option<i64> {

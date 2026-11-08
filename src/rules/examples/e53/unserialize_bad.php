@@ -1,7 +1,8 @@
 <?php
 
-function restore(string $payload): object
+function restore(): object
 {
+    $payload = $_GET['payload'] ?? '';
     $first = unserialize($payload);
     $second = unserialize($payload, []);
     $third = unserialize($payload, ['allowed_classes' => true]);

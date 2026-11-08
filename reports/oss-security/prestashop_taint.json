@@ -1,0 +1,1914 @@
+{
+  "files": {
+    "/tmp/phanalist-scan/prestashop/app/AppKernel.php": [
+      {
+        "rule": "E0055",
+        "line": "                include_once $autoloader;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$modules"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/app/AppKernel.php",
+          "line": 296
+        },
+        "start_line": 296,
+        "start_column": 16,
+        "end_line": 296,
+        "end_column": 40
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/config/bootstrap.php": [
+      {
+        "rule": "E0055",
+        "line": "            $config = require $phpParametersFilepath;",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 59,
+        "start_column": 22,
+        "end_line": 59,
+        "end_column": 52
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/src/PrestaShopBundle/EventListener/Console/MultishopCommandListener.php": [
+      {
+        "rule": "E0055",
+        "line": "            require_once $this->rootDir . '/../config/config.inc.php';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 69,
+        "start_column": 12,
+        "end_line": 69,
+        "end_column": 69
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/tests/Resources/modules/translationtest/vendor/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "    include $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$file"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/tests/Resources/modules/translationtest/vendor/composer/ClassLoader.php",
+          "line": 444
+        },
+        "start_line": 444,
+        "start_column": 4,
+        "end_line": 444,
+        "end_column": 17
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/src/Core/Translation/Storage/Loader/LegacyFileReader.php": [
+      {
+        "rule": "E0055",
+        "line": "        include_once $filePath;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$locale",
+            "$path"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/src/Core/Translation/Storage/Loader/LegacyFileReader.php",
+          "line": 51
+        },
+        "start_line": 51,
+        "start_column": 8,
+        "end_line": 51,
+        "end_column": 30
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/admin-dev/filemanager/execute.php": [
+      {
+        "rule": "E0055",
+        "line": "require_once $language_file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": true,
+          "source_kind": "request",
+          "origins": [
+            "$_GET['lang']"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/admin-dev/filemanager/execute.php",
+          "line": 59
+        },
+        "start_line": 59,
+        "start_column": 0,
+        "end_line": 59,
+        "end_column": 27
+      },
+      {
+        "rule": "E0055",
+        "line": "        require_once $path.'config.php';",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": true,
+          "source_kind": "request",
+          "origins": [
+            "$_POST['path']"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/admin-dev/filemanager/execute.php",
+          "line": 74
+        },
+        "start_line": 74,
+        "start_column": 8,
+        "end_line": 74,
+        "end_column": 39
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/src/PrestaShopBundle/Translation/Loader/LegacyFileReader.php": [
+      {
+        "rule": "E0055",
+        "line": "        include $filePath;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$locale",
+            "$path"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/src/PrestaShopBundle/Translation/Loader/LegacyFileReader.php",
+          "line": 49
+        },
+        "start_line": 49,
+        "start_column": 8,
+        "end_line": 49,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/classes/Mail.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file_core;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 858,
+        "start_column": 12,
+        "end_line": 858,
+        "end_column": 30
+      },
+      {
+        "rule": "E0055",
+        "line": "            include $fileTheme;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 863,
+        "start_column": 12,
+        "end_line": 863,
+        "end_column": 30
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/tools/build/Library/ReleaseCreator.php": [
+      {
+        "rule": "E0055",
+        "line": "        require_once $this->projectPath . '/src/Core/Version.php';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 411,
+        "start_column": 8,
+        "end_line": 411,
+        "end_column": 65
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/classes/module/Module.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file_detail['file'];",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 659,
+        "start_column": 12,
+        "end_line": 659,
+        "end_column": 40
+      },
+      {
+        "rule": "E0055",
+        "line": "        include_once _PS_MODULE_DIR_ . $module_name . '/' . $module_name . '.php';",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$module_name"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/classes/module/Module.php",
+          "line": 1451
+        },
+        "start_line": 1451,
+        "start_column": 8,
+        "end_line": 1451,
+        "end_column": 81
+      },
+      {
+        "rule": "E0055",
+        "line": "            include_once _PS_OVERRIDE_DIR_ . 'modules/' . $module_name . '/' . $module_name . '.php';",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$module_name"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/classes/module/Module.php",
+          "line": 1455
+        },
+        "start_line": 1455,
+        "start_column": 12,
+        "end_line": 1455,
+        "end_column": 100
+      },
+      {
+        "rule": "E0055",
+        "line": "        if (Tools::file_exists_cache($file) && include_once ($file)) {",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$module"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/classes/module/Module.php",
+          "line": 1570
+        },
+        "start_line": 1570,
+        "start_column": 47,
+        "end_line": 1570,
+        "end_column": 67
+      },
+      {
+        "rule": "E0055",
+        "line": "                    if (Tools::file_exists_cache($file) && include_once ($file)) {",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 1671,
+        "start_column": 59,
+        "end_line": 1671,
+        "end_column": 79
+      },
+      {
+        "rule": "E0055",
+        "line": "                        require_once $file_path;",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 1718,
+        "start_column": 24,
+        "end_line": 1718,
+        "end_column": 47
+      },
+      {
+        "rule": "E0059",
+        "line": "            eval(",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": true,
+          "source_kind": "request",
+          "origins": [
+            "$classname",
+            "file()"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/classes/module/Module.php",
+          "line": 3075
+        },
+        "start_line": 3074,
+        "start_column": 12,
+        "end_line": 3086,
+        "end_column": 13
+      },
+      {
+        "rule": "E0059",
+        "line": "            eval(",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": true,
+          "source_kind": "request",
+          "origins": [
+            "$classname",
+            "file()"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/classes/module/Module.php",
+          "line": 3092
+        },
+        "start_line": 3091,
+        "start_column": 12,
+        "end_line": 3103,
+        "end_column": 13
+      },
+      {
+        "rule": "E0059",
+        "line": "                eval(",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": true,
+          "source_kind": "request",
+          "origins": [
+            "$classname",
+            "file()"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/classes/module/Module.php",
+          "line": 3173
+        },
+        "start_line": 3172,
+        "start_column": 16,
+        "end_line": 3184,
+        "end_column": 17
+      },
+      {
+        "rule": "E0059",
+        "line": "            eval(",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": true,
+          "source_kind": "request",
+          "origins": [
+            "$classname",
+            "file()"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/classes/module/Module.php",
+          "line": 3299
+        },
+        "start_line": 3298,
+        "start_column": 12,
+        "end_line": 3310,
+        "end_column": 13
+      },
+      {
+        "rule": "E0059",
+        "line": "            eval(",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": true,
+          "source_kind": "request",
+          "origins": [
+            "$classname",
+            "file()"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/classes/module/Module.php",
+          "line": 3315
+        },
+        "start_line": 3314,
+        "start_column": 12,
+        "end_line": 3326,
+        "end_column": 13
+      },
+      {
+        "rule": "E0059",
+        "line": "                eval(",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": true,
+          "source_kind": "request",
+          "origins": [
+            "$classname",
+            "file()"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/classes/module/Module.php",
+          "line": 3455
+        },
+        "start_line": 3454,
+        "start_column": 16,
+        "end_line": 3466,
+        "end_column": 17
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/classes/tax/TaxManagerModule.php": [
+      {
+        "rule": "E0055",
+        "line": "        require_once $class_file;",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 23,
+        "start_column": 8,
+        "end_line": 23,
+        "end_column": 32
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/src/Adapter/Configuration/PhpParameters.php": [
+      {
+        "rule": "E0055",
+        "line": "        $phpArray = require $this->filename;",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 36,
+        "start_column": 20,
+        "end_line": 36,
+        "end_column": 43
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/tests/Resources/modules/xlftranslatedmodule/vendor/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "    include $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$file"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/tests/Resources/modules/xlftranslatedmodule/vendor/composer/ClassLoader.php",
+          "line": 444
+        },
+        "start_line": 444,
+        "start_column": 4,
+        "end_line": 444,
+        "end_column": 17
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/src/PrestaShopBundle/Utils/SafeUnserializeTrait.php": [
+      {
+        "rule": "E0053",
+        "line": "            $token = unserialize($serializedToken);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$serializedToken"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/src/PrestaShopBundle/Utils/SafeUnserializeTrait.php",
+          "line": 27
+        },
+        "start_line": 27,
+        "start_column": 21,
+        "end_line": 27,
+        "end_column": 50
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/tests/Integration/Behaviour/bootstrap.php": [
+      {
+        "rule": "E0055",
+        "line": "require_once $rootDirectory . 'config/config.inc.php';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 20,
+        "start_column": 0,
+        "end_line": 20,
+        "end_column": 53
+      },
+      {
+        "rule": "E0055",
+        "line": "require_once $rootDirectory . 'app/AppKernel.php';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 21,
+        "start_column": 0,
+        "end_line": 21,
+        "end_column": 49
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/tests/Resources/modules/demo/vendor/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "    include $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$file"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/tests/Resources/modules/demo/vendor/composer/ClassLoader.php",
+          "line": 444
+        },
+        "start_line": 444,
+        "start_column": 4,
+        "end_line": 444,
+        "end_column": 17
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/app/config/set_parameters.php": [
+      {
+        "rule": "E0055",
+        "line": "    $parameters = require $parametersFilepath;",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 8,
+        "start_column": 18,
+        "end_line": 8,
+        "end_column": 45
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/install-dev/classes/controllerHttp.php": [
+      {
+        "rule": "E0055",
+        "line": "                self::$config = include $customPath;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 428,
+        "start_column": 32,
+        "end_line": 428,
+        "end_column": 51
+      },
+      {
+        "rule": "E0055",
+        "line": "                self::$config = include $path;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 433,
+        "start_column": 32,
+        "end_line": 433,
+        "end_column": 45
+      },
+      {
+        "rule": "E0055",
+        "line": "        include $path . $template . '.php';",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$path",
+            "$template"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/install-dev/classes/controllerHttp.php",
+          "line": 466
+        },
+        "start_line": 466,
+        "start_column": 8,
+        "end_line": 466,
+        "end_column": 42
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/install-dev/classes/session.php": [
+      {
+        "rule": "E0053",
+        "line": "                $ref = unserialize(substr($ref, strlen('serialized_array:')));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "internal",
+          "origins": [
+            "substr()"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/install-dev/classes/session.php",
+          "line": 90
+        },
+        "start_line": 90,
+        "start_column": 23,
+        "end_line": 90,
+        "end_column": 77
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/classes/SpecificPrice.php": [
+      {
+        "rule": "E0054",
+        "line": "                $select .= ' IF (`' . bqSQL($field) . '` = ' . (int) $$field . ', ' . 2 ** ($k + 1) . ', 0) + ';",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$id_product"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/classes/SpecificPrice.php",
+          "line": 229
+        },
+        "start_line": 229,
+        "start_column": 69,
+        "end_line": 229,
+        "end_column": 76
+      },
+      {
+        "rule": "E0054",
+        "line": "                ${$variableName} = 0;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:indirect",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 462,
+        "start_column": 16,
+        "end_line": 462,
+        "end_column": 32
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/src/PrestaShopBundle/Routing/LegacyRouterChecker.php": [
+      {
+        "rule": "E0055",
+        "line": "                include_once _PS_MODULE_DIR_ . \"{$moduleName}/controllers/admin/$controllerName.php\";",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 68,
+        "start_column": 16,
+        "end_line": 68,
+        "end_column": 100
+      },
+      {
+        "rule": "E0055",
+        "line": "                    include_once _PS_OVERRIDE_DIR_ . \"modules/{$moduleName}/controllers/admin/$controllerName.php\";",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 72,
+        "start_column": 20,
+        "end_line": 72,
+        "end_column": 114
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/classes/Dispatcher.php": [
+      {
+        "rule": "E0055",
+        "line": "                        include_once _PS_MODULE_DIR_ . \"$module_name/controllers/front/{$this->controller}.php\";",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 395,
+        "start_column": 24,
+        "end_line": 395,
+        "end_column": 111
+      },
+      {
+        "rule": "E0055",
+        "line": "                            include_once _PS_OVERRIDE_DIR_ . \"modules/$module_name/controllers/front/{$this->controller}.php\";",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 401,
+        "start_column": 28,
+        "end_line": 401,
+        "end_column": 125
+      },
+      {
+        "rule": "E0055",
+        "line": "                        include_once _PS_MODULE_DIR_ . \"{$tab->module}/controllers/admin/$controller_name.php\";",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 442,
+        "start_column": 24,
+        "end_line": 442,
+        "end_column": 110
+      },
+      {
+        "rule": "E0055",
+        "line": "                            include_once _PS_OVERRIDE_DIR_ . \"modules/{$tab->module}/controllers/admin/$controller_name.php\";",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 448,
+        "start_column": 28,
+        "end_line": 448,
+        "end_column": 124
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/src/Adapter/Module/ModuleDataProvider.php": [
+      {
+        "rule": "E0055",
+        "line": "                require_once $file_path;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$name"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/src/Adapter/Module/ModuleDataProvider.php",
+          "line": 287
+        },
+        "start_line": 287,
+        "start_column": 16,
+        "end_line": 287,
+        "end_column": 39
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/src/Adapter/Module/Module.php": [
+      {
+        "rule": "E0055",
+        "line": "        require_once $this->disk->get('path') . DIRECTORY_SEPARATOR . $this->attributes->get('name') . '.php';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 361,
+        "start_column": 8,
+        "end_line": 361,
+        "end_column": 109
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/classes/stock/StockManagerModule.php": [
+      {
+        "rule": "E0055",
+        "line": "        require_once $class_file;",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 27,
+        "start_column": 8,
+        "end_line": 27,
+        "end_column": 32
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/controllers/admin/AdminModulesPositionsController.php": [
+      {
+        "rule": "E0055",
+        "line": "                    include_once _PS_MODULE_DIR_ . $module['name'] . '/' . $module['name'] . '.php';",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 469,
+        "start_column": 20,
+        "end_line": 469,
+        "end_column": 99
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/src/Core/Util/File/YamlParser.php": [
+      {
+        "rule": "E0055",
+        "line": "            return require $phpConfigFile;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$sourceFile"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/src/Core/Util/File/YamlParser.php",
+          "line": 65
+        },
+        "start_line": 65,
+        "start_column": 19,
+        "end_line": 65,
+        "end_column": 41
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/classes/Translate.php": [
+      {
+        "rule": "E0055",
+        "line": "                    include_once $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$locale",
+            "$module"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/classes/Translate.php",
+          "line": 107
+        },
+        "start_line": 107,
+        "start_column": 20,
+        "end_line": 107,
+        "end_column": 38
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/controllers/admin/AdminTranslationsController.php": [
+      {
+        "rule": "E0055",
+        "line": "                    include_once _PS_ROOT_DIR_ . DIRECTORY_SEPARATOR . $file['filename'];",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$files"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/controllers/admin/AdminTranslationsController.php",
+          "line": 658
+        },
+        "start_line": 658,
+        "start_column": 20,
+        "end_line": 658,
+        "end_column": 88
+      },
+      {
+        "rule": "E0055",
+        "line": "        include $dir . DIRECTORY_SEPARATOR . $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 1559,
+        "start_column": 8,
+        "end_line": 1559,
+        "end_column": 50
+      },
+      {
+        "rule": "E0055",
+        "line": "                @include $lang_file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$lang",
+            "$modules",
+            "$root_dir"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/controllers/admin/AdminTranslationsController.php",
+          "line": 2794
+        },
+        "start_line": 2794,
+        "start_column": 17,
+        "end_line": 2794,
+        "end_column": 35
+      },
+      {
+        "rule": "E0055",
+        "line": "                    @include $lang_file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$lang",
+            "$modules",
+            "$root_dir"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/controllers/admin/AdminTranslationsController.php",
+          "line": 2816
+        },
+        "start_line": 2816,
+        "start_column": 21,
+        "end_line": 2816,
+        "end_column": 39
+      },
+      {
+        "rule": "E0055",
+        "line": "        @include $i18n_file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 2923,
+        "start_column": 9,
+        "end_line": 2923,
+        "end_column": 27
+      },
+      {
+        "rule": "E0055",
+        "line": "            @include $default_i18n_file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 2928,
+        "start_column": 13,
+        "end_line": 2928,
+        "end_column": 39
+      },
+      {
+        "rule": "E0055",
+        "line": "            include $directory . '/lang.php';",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$directory"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/controllers/admin/AdminTranslationsController.php",
+          "line": 3087
+        },
+        "start_line": 3087,
+        "start_column": 12,
+        "end_line": 3087,
+        "end_column": 44
+      },
+      {
+        "rule": "E0054",
+        "line": "        $$var = [];",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 1545,
+        "start_column": 8,
+        "end_line": 1545,
+        "end_column": 13
+      },
+      {
+        "rule": "E0054",
+        "line": "        return $$var;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 1561,
+        "start_column": 15,
+        "end_line": 1561,
+        "end_column": 20
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/admin-dev/filemanager/upload.php": [
+      {
+        "rule": "E0055",
+        "line": "        require_once $path.'config.php';",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": true,
+          "source_kind": "request",
+          "origins": [
+            "$_POST['path']"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/admin-dev/filemanager/upload.php",
+          "line": 59
+        },
+        "start_line": 59,
+        "start_column": 8,
+        "end_line": 59,
+        "end_column": 39
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/tests/Unit/Adapter/Module/Configuration/ModuleSelfConfiguratorTest.php": [
+      {
+        "rule": "E0055",
+        "line": "        require_once $php_filepath;",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 232,
+        "start_column": 8,
+        "end_line": 232,
+        "end_column": 34
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/install-dev/classes/Step.php": [
+      {
+        "rule": "E0055",
+        "line": "            require_once _PS_INSTALL_CONTROLLERS_PATH_ . 'http/' . $this->name . '.php';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 106,
+        "start_column": 12,
+        "end_line": 106,
+        "end_column": 87
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/admin-dev/filemanager/dialog.php": [
+      {
+        "rule": "E0055",
+        "line": "            require_once $current_path.$parent.'config.php';",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": true,
+          "source_kind": "request",
+          "origins": [
+            "$_COOKIE['last_position']"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/admin-dev/filemanager/dialog.php",
+          "line": 106
+        },
+        "start_line": 106,
+        "start_column": 12,
+        "end_line": 106,
+        "end_column": 59
+      },
+      {
+        "rule": "E0055",
+        "line": "    require_once $language_file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": true,
+          "source_kind": "request",
+          "origins": [
+            "$_GET['lang']"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/admin-dev/filemanager/dialog.php",
+          "line": 179
+        },
+        "start_line": 179,
+        "start_column": 4,
+        "end_line": 179,
+        "end_column": 31
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/admin-dev/filemanager/include/php_image_magician.php": [
+      {
+        "rule": "E0055",
+        "line": "          include_once $this->psdReaderPath;",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 3346,
+        "start_column": 10,
+        "end_line": 3346,
+        "end_column": 43
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/src/PrestaShopBundle/Command/CheckTranslationFixtures.php": [
+      {
+        "rule": "E0055",
+        "line": "            include_once $langFile;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "internal",
+          "origins": [
+            "ucwords()"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/src/PrestaShopBundle/Command/CheckTranslationFixtures.php",
+          "line": 79
+        },
+        "start_line": 79,
+        "start_column": 12,
+        "end_line": 79,
+        "end_column": 34
+      },
+      {
+        "rule": "E0055",
+        "line": "                include_once $objectFile;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "internal",
+          "origins": [
+            "ucwords()"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/src/PrestaShopBundle/Command/CheckTranslationFixtures.php",
+          "line": 85
+        },
+        "start_line": 85,
+        "start_column": 16,
+        "end_line": 85,
+        "end_column": 40
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/install-dev/autoload.php": [
+      {
+        "rule": "E0055",
+        "line": "        require_once sprintf('%s/controllers/console/%s.php', __DIR__, $fileName);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "internal",
+          "origins": [
+            "strtolower()"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/install-dev/autoload.php",
+          "line": 9
+        },
+        "start_line": 9,
+        "start_column": 8,
+        "end_line": 9,
+        "end_column": 81
+      },
+      {
+        "rule": "E0055",
+        "line": "        require_once sprintf('%s/controllers/http/%s.php', __DIR__, $fileName);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "internal",
+          "origins": [
+            "strtolower()"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/install-dev/autoload.php",
+          "line": 12
+        },
+        "start_line": 12,
+        "start_column": 8,
+        "end_line": 12,
+        "end_column": 78
+      },
+      {
+        "rule": "E0055",
+        "line": "        require_once sprintf('%s/classes/%s.php', __DIR__, $className);",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 14,
+        "start_column": 8,
+        "end_line": 14,
+        "end_column": 70
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/admin-dev/filemanager/include/utils.php": [
+      {
+        "rule": "E0055",
+        "line": "        require_once $current_path.$fld.\".config\";",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$current_path",
+            "$fld"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/admin-dev/filemanager/include/utils.php",
+          "line": 286
+        },
+        "start_line": 286,
+        "start_column": 8,
+        "end_line": 286,
+        "end_column": 49
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/src/PrestaShopBundle/Install/Install.php": [
+      {
+        "rule": "E0055",
+        "line": "        require_once _PS_ROOT_DIR_ . '/' . $this->bootstrapFile;",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 292,
+        "start_column": 8,
+        "end_line": 292,
+        "end_column": 63
+      },
+      {
+        "rule": "E0055",
+        "line": "            require_once $fixtures_path . '/install.php';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 1108,
+        "start_column": 12,
+        "end_line": 1108,
+        "end_column": 56
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/src/Adapter/ContainerBuilder.php": [
+      {
+        "rule": "E0055",
+        "line": "            require_once $this->dumpFile;",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 149,
+        "start_column": 12,
+        "end_line": 149,
+        "end_column": 40
+      },
+      {
+        "rule": "E0055",
+        "line": "                include_once $autoloader;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$installedModules"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/src/Adapter/ContainerBuilder.php",
+          "line": 250
+        },
+        "start_line": 250,
+        "start_column": 16,
+        "end_line": 250,
+        "end_column": 40
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/tests/Resources/modules/ps_banner/vendor/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "    include $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$file"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/tests/Resources/modules/ps_banner/vendor/composer/ClassLoader.php",
+          "line": 444
+        },
+        "start_line": 444,
+        "start_column": 4,
+        "end_line": 444,
+        "end_column": 17
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/classes/module/ModuleGrid.php": [
+      {
+        "rule": "E0055",
+        "line": "        require_once $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$render"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/classes/module/ModuleGrid.php",
+          "line": 60
+        },
+        "start_line": 60,
+        "start_column": 8,
+        "end_line": 60,
+        "end_column": 26
+      },
+      {
+        "rule": "E0055",
+        "line": "        require_once _PS_ROOT_DIR_ . '/modules/' . $render . '/' . $render . '.php';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 134,
+        "start_column": 8,
+        "end_line": 134,
+        "end_column": 83
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/src/Adapter/Module/Configuration/ModuleSelfConfigurator.php": [
+      {
+        "rule": "E0055",
+        "line": "        require_once $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$file"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/src/Adapter/Module/Configuration/ModuleSelfConfigurator.php",
+          "line": 297
+        },
+        "start_line": 297,
+        "start_column": 8,
+        "end_line": 297,
+        "end_column": 26
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/classes/Tools.php": [
+      {
+        "rule": "E0055",
+        "line": "        @include_once _PS_THEME_DIR_ . 'lang/' . $iso . '.php';",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 651,
+        "start_column": 9,
+        "end_line": 651,
+        "end_column": 62
+      },
+      {
+        "rule": "E0053",
+        "line": "        return @unserialize($serialized);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$serialized"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/classes/Tools.php",
+          "line": 3914
+        },
+        "start_line": 3914,
+        "start_column": 16,
+        "end_line": 3914,
+        "end_column": 40
+      },
+      {
+        "rule": "E0054",
+        "line": "        extract($options);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$options"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/classes/Tools.php",
+          "line": 1402
+        },
+        "start_line": 1402,
+        "start_column": 8,
+        "end_line": 1402,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/config/smarty.config.inc.php": [
+      {
+        "rule": "E0055",
+        "line": "    require_once $escapeModifierFile;",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 59,
+        "start_column": 4,
+        "end_line": 59,
+        "end_column": 36
+      }
+    ],
+    "/tmp/phanalist-scan/prestashop/classes/module/ModuleGraph.php": [
+      {
+        "rule": "E0055",
+        "line": "        require_once $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$render"
+          ],
+          "file": "/tmp/phanalist-scan/prestashop/classes/module/ModuleGraph.php",
+          "line": 249
+        },
+        "start_line": 249,
+        "start_column": 8,
+        "end_line": 249,
+        "end_column": 26
+      },
+      {
+        "rule": "E0055",
+        "line": "        require_once _PS_ROOT_DIR_ . '/modules/' . $render . '/' . $render . '.php';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 309,
+        "start_column": 8,
+        "end_line": 309,
+        "end_column": 83
+      }
+    ]
+  },
+  "codes_count": {
+    "E0055": 70,
+    "E0054": 5,
+    "E0053": 3,
+    "E0059": 6
+  },
+  "total_files_count": 7999,
+  "duration": {
+    "secs": 0,
+    "nanos": 363669432
+  }
+}

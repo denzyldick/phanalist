@@ -1,0 +1,777 @@
+{
+  "files": {
+    "/tmp/phanalist-scan/opencart/upload/system/storage/vendor/symfony/yaml/Inline.php": [
+      {
+        "rule": "E0053",
+        "line": "                            return unserialize(self::parseScalar(substr($scalar, 12)));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "internal",
+          "origins": [
+            "trim()"
+          ],
+          "file": "/tmp/phanalist-scan/opencart/upload/system/storage/vendor/symfony/yaml/Inline.php",
+          "line": 627
+        },
+        "start_line": 627,
+        "start_column": 35,
+        "end_line": 627,
+        "end_column": 86
+      }
+    ],
+    "/tmp/phanalist-scan/opencart/upload/install/controller/upgrade/upgrade_17.php": [
+      {
+        "rule": "E0053",
+        "line": "\t\t\t\t\t$this->db->query(\"UPDATE `\" . DB_PREFIX . \"user_group` SET `permission` = '\" . $this->db->escape(json_encode(unserialize($result['permission']))) . \"' WHERE `user_group_id` = '\" . (int)$result['user_group_id'] . \"'\");",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 25,
+        "start_column": 114,
+        "end_line": 25,
+        "end_column": 148
+      }
+    ],
+    "/tmp/phanalist-scan/opencart/upload/install/controller/upgrade/upgrade_7.php": [
+      {
+        "rule": "E0053",
+        "line": "\t\t\t\t\t$this->db->query(\"UPDATE `\" . DB_PREFIX . \"module` SET `setting` = '\" . $this->db->escape(json_encode(unserialize($result['setting']))) . \"' WHERE `module_id` = '\" . (int)$result['module_id'] . \"'\");",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 28,
+        "start_column": 107,
+        "end_line": 28,
+        "end_column": 138
+      }
+    ],
+    "/tmp/phanalist-scan/opencart/upload/install/controller/upgrade/upgrade_12.php": [
+      {
+        "rule": "E0053",
+        "line": "\t\t\t\t\t$this->db->query(\"UPDATE `\" . DB_PREFIX . \"order` SET `custom_field` = '\" . $this->db->escape(json_encode(unserialize($result['custom_field']))) . \"' WHERE `order_id` = '\" . (int)$result['order_id'] . \"'\");",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 25,
+        "start_column": 111,
+        "end_line": 25,
+        "end_column": 147
+      },
+      {
+        "rule": "E0053",
+        "line": "\t\t\t\t\t$this->db->query(\"UPDATE `\" . DB_PREFIX . \"order` SET `payment_custom_field` = '\" . $this->db->escape(json_encode(unserialize($result['payment_custom_field']))) . \"' WHERE `order_id` = '\" . (int)$result['order_id'] . \"'\");",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 29,
+        "start_column": 119,
+        "end_line": 29,
+        "end_column": 163
+      },
+      {
+        "rule": "E0053",
+        "line": "\t\t\t\t\t$this->db->query(\"UPDATE `\" . DB_PREFIX . \"order` SET `shipping_custom_field` = '\" . $this->db->escape(json_encode(unserialize($result['shipping_custom_field']))) . \"' WHERE `order_id` = '\" . (int)$result['order_id'] . \"'\");",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 33,
+        "start_column": 120,
+        "end_line": 33,
+        "end_column": 165
+      }
+    ],
+    "/tmp/phanalist-scan/opencart/upload/system/library/template/template.php": [
+      {
+        "rule": "E0054",
+        "line": "\t\t\textract($data);",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$data"
+          ],
+          "file": "/tmp/phanalist-scan/opencart/upload/system/library/template/template.php",
+          "line": 70
+        },
+        "start_line": 70,
+        "start_column": 3,
+        "end_line": 70,
+        "end_column": 17
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\t\tinclude($this->compile($filename, $code));",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$code",
+            "$filename"
+          ],
+          "file": "/tmp/phanalist-scan/opencart/upload/system/library/template/template.php",
+          "line": 72
+        },
+        "start_line": 72,
+        "start_column": 3,
+        "end_line": 72,
+        "end_column": 44
+      }
+    ],
+    "/tmp/phanalist-scan/opencart/upload/system/storage/vendor/twig/twig/src/Test/IntegrationTestCase.php": [
+      {
+        "rule": "E0059",
+        "line": "            eval('$ret = '.$condition.';');",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$condition"
+          ],
+          "file": "/tmp/phanalist-scan/opencart/upload/system/storage/vendor/twig/twig/src/Test/IntegrationTestCase.php",
+          "line": 220
+        },
+        "start_line": 220,
+        "start_column": 12,
+        "end_line": 220,
+        "end_column": 42
+      },
+      {
+        "rule": "E0059",
+        "line": "            ], $match[2] ? eval($match[2].';') : []);",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$outputs"
+          ],
+          "file": "/tmp/phanalist-scan/opencart/upload/system/storage/vendor/twig/twig/src/Test/IntegrationTestCase.php",
+          "line": 230
+        },
+        "start_line": 230,
+        "start_column": 27,
+        "end_line": 230,
+        "end_column": 46
+      },
+      {
+        "rule": "E0059",
+        "line": "                $output = trim($template->render(eval($match[1].';')), \"\\n \");",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$outputs"
+          ],
+          "file": "/tmp/phanalist-scan/opencart/upload/system/storage/vendor/twig/twig/src/Test/IntegrationTestCase.php",
+          "line": 305
+        },
+        "start_line": 305,
+        "start_column": 49,
+        "end_line": 305,
+        "end_column": 68
+      }
+    ],
+    "/tmp/phanalist-scan/opencart/upload/system/storage/vendor/mtdowling/jmespath.php/src/CompilerRuntime.php": [
+      {
+        "rule": "E0055",
+        "line": "            require $filename;",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 61,
+        "start_column": 12,
+        "end_line": 61,
+        "end_column": 29
+      }
+    ],
+    "/tmp/phanalist-scan/opencart/upload/system/engine/config.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\t\trequire($file);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$filename"
+          ],
+          "file": "/tmp/phanalist-scan/opencart/upload/system/engine/config.php",
+          "line": 104
+        },
+        "start_line": 104,
+        "start_column": 3,
+        "end_line": 104,
+        "end_column": 17
+      }
+    ],
+    "/tmp/phanalist-scan/opencart/upload/system/engine/loader.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\tinclude_once($file);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$route"
+          ],
+          "file": "/tmp/phanalist-scan/opencart/upload/system/engine/loader.php",
+          "line": 301
+        },
+        "start_line": 301,
+        "start_column": 2,
+        "end_line": 301,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan/opencart/upload/system/engine/autoloader.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\t\t\tif (isset($file) && is_file($file)) include_once($file);",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 90,
+        "start_column": 40,
+        "end_line": 90,
+        "end_column": 59
+      }
+    ],
+    "/tmp/phanalist-scan/opencart/upload/system/storage/vendor/scssphp/scssphp/src/Compiler.php": [
+      {
+        "rule": "E0053",
+        "line": "                        $value = unserialize($value);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 847,
+        "start_column": 33,
+        "end_line": 847,
+        "end_column": 52
+      }
+    ],
+    "/tmp/phanalist-scan/opencart/upload/install/controller/upgrade/upgrade_5.php": [
+      {
+        "rule": "E0053",
+        "line": "\t\t\t\t\t$this->db->query(\"UPDATE `\" . DB_PREFIX . \"setting` SET `value` = '\" . $this->db->escape(json_encode(unserialize($result['value']))) . \"' WHERE `setting_id` = '\" . (int)$result['setting_id'] . \"'\");",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 38,
+        "start_column": 106,
+        "end_line": 38,
+        "end_column": 135
+      }
+    ],
+    "/tmp/phanalist-scan/opencart/upload/system/storage/vendor/aws/aws-sdk-php/src/EndpointV2/EndpointDefinitionProvider.php": [
+      {
+        "rule": "E0055",
+        "line": "           return require($basePath . $file . '.php');",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 27,
+        "start_column": 18,
+        "end_line": 27,
+        "end_column": 53
+      },
+      {
+        "rule": "E0055",
+        "line": "            return require($rulesetPath . $fileName . '.json.php');",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$apiVersion",
+            "$baseDir",
+            "$service",
+            "$type"
+          ],
+          "file": "/tmp/phanalist-scan/opencart/upload/system/storage/vendor/aws/aws-sdk-php/src/EndpointV2/EndpointDefinitionProvider.php",
+          "line": 56
+        },
+        "start_line": 56,
+        "start_column": 19,
+        "end_line": 56,
+        "end_column": 66
+      }
+    ],
+    "/tmp/phanalist-scan/opencart/upload/system/library/language.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\t\t\trequire($file);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$code",
+            "$filename"
+          ],
+          "file": "/tmp/phanalist-scan/opencart/upload/system/library/language.php",
+          "line": 164
+        },
+        "start_line": 164,
+        "start_column": 4,
+        "end_line": 164,
+        "end_column": 18
+      }
+    ],
+    "/tmp/phanalist-scan/opencart/upload/system/storage/vendor/twig/twig/src/Environment.php": [
+      {
+        "rule": "E0059",
+        "line": "                    eval('?>'.$content);",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$name"
+          ],
+          "file": "/tmp/phanalist-scan/opencart/upload/system/storage/vendor/twig/twig/src/Environment.php",
+          "line": 420
+        },
+        "start_line": 420,
+        "start_column": 20,
+        "end_line": 420,
+        "end_column": 39
+      }
+    ],
+    "/tmp/phanalist-scan/opencart/upload/system/storage/vendor/composer/autoload_real.php": [
+      {
+        "rule": "E0055",
+        "line": "                require $file;",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 41,
+        "start_column": 16,
+        "end_line": 41,
+        "end_column": 29
+      }
+    ],
+    "/tmp/phanalist-scan/opencart/upload/system/storage/vendor/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan/opencart/upload/install/controller/upgrade/upgrade_11.php": [
+      {
+        "rule": "E0053",
+        "line": "\t\t\t\t\t$this->db->query(\"UPDATE `\" . DB_PREFIX . \"customer` SET `custom_field` = '\" . $this->db->escape(json_encode(unserialize($result['custom_field']))) . \"' WHERE `customer_id` = '\" . (int)$result['customer_id'] . \"'\");",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 27,
+        "start_column": 114,
+        "end_line": 27,
+        "end_column": 150
+      },
+      {
+        "rule": "E0053",
+        "line": "\t\t\t\t\t$this->db->query(\"UPDATE `\" . DB_PREFIX . \"customer_activity` SET `data` = '\" . $this->db->escape(json_encode(unserialize($result['data']))) . \"' WHERE `customer_activity_id` = '\" . (int)$result['customer_activity_id'] . \"'\");",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 36,
+        "start_column": 115,
+        "end_line": 36,
+        "end_column": 143
+      },
+      {
+        "rule": "E0053",
+        "line": "\t\t\t\t\t$this->db->query(\"UPDATE `\" . DB_PREFIX . \"address` SET `custom_field` = '\" . $this->db->escape(json_encode(unserialize($result['custom_field']))) . \"' WHERE `address_id` = '\" . (int)$result['address_id'] . \"'\");",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 45,
+        "start_column": 113,
+        "end_line": 45,
+        "end_column": 149
+      }
+    ],
+    "/tmp/phanalist-scan/opencart/upload/admin/controller/design/translation.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\t\tinclude($directory . $language_info['code'] . '/' . $route . '.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 585,
+        "start_column": 3,
+        "end_line": 585,
+        "end_column": 71
+      }
+    ],
+    "/tmp/phanalist-scan/opencart/tools/daux.io/libs/ConfigBuilder.php": [
+      {
+        "rule": "E0053",
+        "line": "        return unserialize(file_get_contents($file));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$file"
+          ],
+          "file": "/tmp/phanalist-scan/opencart/tools/daux.io/libs/ConfigBuilder.php",
+          "line": 20
+        },
+        "start_line": 20,
+        "start_column": 15,
+        "end_line": 20,
+        "end_column": 52
+      }
+    ],
+    "/tmp/phanalist-scan/opencart/upload/system/storage/vendor/symfony/polyfill-mbstring/Mbstring.php": [
+      {
+        "rule": "E0055",
+        "line": "            return require $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$file"
+          ],
+          "file": "/tmp/phanalist-scan/opencart/upload/system/storage/vendor/symfony/polyfill-mbstring/Mbstring.php",
+          "line": 945
+        },
+        "start_line": 945,
+        "start_column": 19,
+        "end_line": 945,
+        "end_column": 32
+      }
+    ],
+    "/tmp/phanalist-scan/opencart/upload/system/storage/vendor/twig/twig/src/Cache/FilesystemCache.php": [
+      {
+        "rule": "E0055",
+        "line": "            @include_once $key;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$key"
+          ],
+          "file": "/tmp/phanalist-scan/opencart/upload/system/storage/vendor/twig/twig/src/Cache/FilesystemCache.php",
+          "line": 42
+        },
+        "start_line": 42,
+        "start_column": 13,
+        "end_line": 42,
+        "end_column": 30
+      }
+    ],
+    "/tmp/phanalist-scan/opencart/upload/system/storage/vendor/twig/twig/src/Profiler/Profile.php": [
+      {
+        "rule": "E0053",
+        "line": "        $this->__unserialize(unserialize($data));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$data"
+          ],
+          "file": "/tmp/phanalist-scan/opencart/upload/system/storage/vendor/twig/twig/src/Profiler/Profile.php",
+          "line": 176
+        },
+        "start_line": 176,
+        "start_column": 29,
+        "end_line": 176,
+        "end_column": 47
+      }
+    ],
+    "/tmp/phanalist-scan/opencart/upload/system/storage/vendor/scssphp/scssphp/src/Cache.php": [
+      {
+        "rule": "E0053",
+        "line": "                $c = unserialize($c);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$operation",
+            "$options",
+            "$what"
+          ],
+          "file": "/tmp/phanalist-scan/opencart/upload/system/storage/vendor/scssphp/scssphp/src/Cache.php",
+          "line": 136
+        },
+        "start_line": 136,
+        "start_column": 21,
+        "end_line": 136,
+        "end_column": 36
+      }
+    ],
+    "/tmp/phanalist-scan/opencart/upload/system/storage/vendor/aws/aws-sdk-php/src/functions.php": [
+      {
+        "rule": "E0055",
+        "line": "            $compiledList[$compiledFilepath] = include($compiledFilepath);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$path"
+          ],
+          "file": "/tmp/phanalist-scan/opencart/upload/system/storage/vendor/aws/aws-sdk-php/src/functions.php",
+          "line": 150
+        },
+        "start_line": 150,
+        "start_column": 47,
+        "end_line": 150,
+        "end_column": 73
+      }
+    ],
+    "/tmp/phanalist-scan/opencart/upload/system/storage/vendor/scssphp/scssphp/scss.inc.php": [
+      {
+        "rule": "E0055",
+        "line": "            require $path;",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 18,
+        "start_column": 12,
+        "end_line": 18,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan/opencart/upload/system/storage/vendor/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 333,
+        "start_column": 32,
+        "end_line": 333,
+        "end_column": 76
+      }
+    ]
+  },
+  "codes_count": {
+    "E0059": 4,
+    "E0055": 16,
+    "E0054": 1,
+    "E0053": 14
+  },
+  "total_files_count": 4756,
+  "duration": {
+    "secs": 0,
+    "nanos": 356365737
+  }
+}

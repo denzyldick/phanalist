@@ -4,15 +4,29 @@ use std::sync::{Arc, Mutex};
 
 use crate::file::File;
 
-use super::taint::{summarize_file, TaintSummary};
+use super::taint::{summarize_file, SourceFilter, TaintSummary};
 
 #[derive(Default)]
 pub(crate) struct TaintSummaryIndex {
     files: HashMap<PathBuf, Vec<(String, TaintSummary)>>,
     snapshot_cache: Mutex<Option<Arc<HashMap<String, TaintSummary>>>>,
+    source_filter: SourceFilter,
 }
 
 impl TaintSummaryIndex {
+    pub fn new() -> Self {
+        Self {
+            files: HashMap::new(),
+            snapshot_cache: Mutex::new(None),
+            source_filter: SourceFilter::default(),
+        }
+    }
+
+    pub fn with_source_filter(mut self, filter: SourceFilter) -> Self {
+        self.source_filter = filter;
+        self
+    }
+
     pub fn clear(&mut self) {
         self.files.clear();
         self.invalidate();
@@ -23,10 +37,10 @@ impl TaintSummaryIndex {
         self.invalidate();
     }
 
-    pub fn replace_file(&mut self, file: &File<'_>) {
+    pub fn replace_file(&mut self, file: &File<'_>, source_filter: SourceFilter) {
         self.files.remove(&file.path);
         self.invalidate();
-        let summaries = summarize_file(file);
+        let summaries = summarize_file(file, source_filter);
         if !summaries.is_empty() {
             self.files.insert(file.path.clone(), summaries);
         }

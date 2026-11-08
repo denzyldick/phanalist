@@ -85,15 +85,22 @@ impl crate::rules::Rule for Rule {
 
                     let base_id = "E0054:dynamic-variable-creation:extract";
                     let template = "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.";
+                    let source_info = taint.sink_source_info(SinkKind::Extract, call.span(), file);
                     let message = match origin {
-                        Some(origin) => Message::new(
-                            format!("{base_id}:tainted"),
-                            format!("{template} The data comes from {{source}}."),
-                        )
-                        .arg("source", origin),
+                        Some(_) => Message::new(base_id.to_string(), template.to_string()),
                         None => Message::new(base_id, template),
                     };
-                    violations.push(self.new_violation(file, message, call.span()));
+                    let mut violation = self.new_violation(file, message, call.span());
+                    if let Some(info) = source_info {
+                        violation.taint_source = Some(crate::results::TaintSource {
+                            request_rooted: info.request_rooted,
+                            source_kind: Some(format!("{:?}", info.source_kind).to_lowercase()),
+                            origins: info.origins,
+                            file: info.source_file,
+                            line: info.source_line,
+                        });
+                    }
+                    violations.push(violation);
                 }
                 Expression::Variable(Variable::Indirect(variable)) => {
                     let origin = taint.origin(SinkKind::VariableVariable, variable.span());
@@ -103,15 +110,23 @@ impl crate::rules::Rule for Rule {
 
                     let base_id = "E0054:dynamic-variable-creation:indirect";
                     let template = "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.";
+                    let source_info =
+                        taint.sink_source_info(SinkKind::VariableVariable, variable.span(), file);
                     let message = match origin {
-                        Some(origin) => Message::new(
-                            format!("{base_id}:tainted"),
-                            format!("{template} The name comes from {{source}}."),
-                        )
-                        .arg("source", origin),
+                        Some(_) => Message::new(base_id.to_string(), template.to_string()),
                         None => Message::new(base_id, template),
                     };
-                    violations.push(self.new_violation(file, message, variable.span()));
+                    let mut violation = self.new_violation(file, message, variable.span());
+                    if let Some(info) = source_info {
+                        violation.taint_source = Some(crate::results::TaintSource {
+                            request_rooted: info.request_rooted,
+                            source_kind: Some(format!("{:?}", info.source_kind).to_lowercase()),
+                            origins: info.origins,
+                            file: info.source_file,
+                            line: info.source_line,
+                        });
+                    }
+                    violations.push(violation);
                 }
                 Expression::Variable(Variable::Nested(variable)) => {
                     let origin = taint.origin(SinkKind::VariableVariable, variable.span());
@@ -121,15 +136,23 @@ impl crate::rules::Rule for Rule {
 
                     let base_id = "E0054:dynamic-variable-creation:nested";
                     let template = "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.";
+                    let source_info =
+                        taint.sink_source_info(SinkKind::VariableVariable, variable.span(), file);
                     let message = match origin {
-                        Some(origin) => Message::new(
-                            format!("{base_id}:tainted"),
-                            format!("{template} The name comes from {{source}}."),
-                        )
-                        .arg("source", origin),
+                        Some(_) => Message::new(base_id.to_string(), template.to_string()),
                         None => Message::new(base_id, template),
                     };
-                    violations.push(self.new_violation(file, message, variable.span()));
+                    let mut violation = self.new_violation(file, message, variable.span());
+                    if let Some(info) = source_info {
+                        violation.taint_source = Some(crate::results::TaintSource {
+                            request_rooted: info.request_rooted,
+                            source_kind: Some(format!("{:?}", info.source_kind).to_lowercase()),
+                            origins: info.origins,
+                            file: info.source_file,
+                            line: info.source_line,
+                        });
+                    }
+                    violations.push(violation);
                 }
                 _ => {}
             });
@@ -162,6 +185,6 @@ mod tests {
         let violations = analyze_file_for_rule("e54/dynamic_variables_bad.php", CODE);
         assert!(violations
             .iter()
-            .any(|violation| violation.message.id.contains(":tainted")));
+            .any(|violation| violation.taint_source.is_some()));
     }
 }
