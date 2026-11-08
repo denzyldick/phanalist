@@ -1,0 +1,3282 @@
+{
+  "files": {
+    "/tmp/phanalist-scan2/piwigo/upgrade_feed.php": [
+      {
+        "rule": "E0055",
+        "line": "include(PHPWG_ROOT_PATH .'include/dblayer/functions_'.$conf['dblayer'].'.inc.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 22,
+        "start_column": 0,
+        "end_line": 22,
+        "end_column": 82
+      },
+      {
+        "rule": "E0055",
+        "line": "  include(UPGRADES_PATH.'/'.$upgrade_id.'-database.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 88,
+        "start_column": 2,
+        "end_line": 88,
+        "end_column": 56
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/functions_plugins.inc.php": [
+      {
+        "rule": "E0055",
+        "line": "        include_once($handler['include_path']);",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 211,
+        "start_column": 8,
+        "end_line": 211,
+        "end_column": 46
+      },
+      {
+        "rule": "E0055",
+        "line": "        include_once($handler['include_path']);",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 261,
+        "start_column": 8,
+        "end_line": 261,
+        "end_column": 46
+      },
+      {
+        "rule": "E0055",
+        "line": "    include_once($file_name);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$plugin"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/functions_plugins.inc.php",
+          "line": 350
+        },
+        "start_line": 350,
+        "start_column": 4,
+        "end_line": 350,
+        "end_column": 28
+      },
+      {
+        "rule": "E0055",
+        "line": "      include_once($maintain_file);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$plugin"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/functions_plugins.inc.php",
+          "line": 401
+        },
+        "start_line": 401,
+        "start_column": 6,
+        "end_line": 401,
+        "end_column": 34
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/admin/updates.php": [
+      {
+        "rule": "E0055",
+        "line": "include(PHPWG_ROOT_PATH.'admin/updates_'.$page['tab'].'.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 33,
+        "start_column": 0,
+        "end_line": 33,
+        "end_column": 61
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/block.class.php": [
+      {
+        "rule": "E0053",
+        "line": "      $mb_conf = @unserialize($mb_conf);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 85,
+        "start_column": 18,
+        "end_line": 85,
+        "end_column": 39
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/install/db/125-database.php": [
+      {
+        "rule": "E0053",
+        "line": "    $content_new = serialize(replace_hotlinks(unserialize($content_orig)));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 114,
+        "start_column": 46,
+        "end_line": 114,
+        "end_column": 72
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/upgrade.php": [
+      {
+        "rule": "E0055",
+        "line": "include($config_file);",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 36,
+        "start_column": 0,
+        "end_line": 36,
+        "end_column": 21
+      },
+      {
+        "rule": "E0055",
+        "line": "include(PHPWG_ROOT_PATH .'include/dblayer/functions_'.$conf['dblayer'].'.inc.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 205,
+        "start_column": 0,
+        "end_line": 205,
+        "end_column": 82
+      },
+      {
+        "rule": "E0055",
+        "line": "    include($upgrade_file);",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 419,
+        "start_column": 4,
+        "end_line": 419,
+        "end_column": 26
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/admin/photo.php": [
+      {
+        "rule": "E0055",
+        "line": "  include(PHPWG_ROOT_PATH.'admin/photo_'.$page['tab'].'.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 84,
+        "start_column": 2,
+        "end_line": 84,
+        "end_column": 61
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/admin/include/languages.class.php": [
+      {
+        "rule": "E0053",
+        "line": "    if (fetchRemote($url, $result, $get_data) and $pem_versions = @unserialize($result))",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 219,
+        "start_column": 67,
+        "end_line": 219,
+        "end_column": 87
+      },
+      {
+        "rule": "E0053",
+        "line": "      $pem_languages = @unserialize($result);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 272,
+        "start_column": 24,
+        "end_line": 272,
+        "end_column": 44
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/HtmlTable.php": [
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t$$_key = (array)$_value;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$params"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/HtmlTable.php",
+          "line": 66
+        },
+        "start_line": 66,
+        "start_column": 5,
+        "end_line": 66,
+        "end_column": 11
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t$$_key = (int)$_value;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$params"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/HtmlTable.php",
+          "line": 82
+        },
+        "start_line": 82,
+        "start_column": 5,
+        "end_line": 82,
+        "end_column": 11
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t$$_key = (string)$_value;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$params"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/HtmlTable.php",
+          "line": 90
+        },
+        "start_line": 90,
+        "start_column": 5,
+        "end_line": 90,
+        "end_column": 11
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t$$_key = $_value;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$params"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/HtmlTable.php",
+          "line": 95
+        },
+        "start_line": 95,
+        "start_column": 5,
+        "end_line": 95,
+        "end_column": 11
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/install/upgrade_2.4.0.php": [
+      {
+        "rule": "E0055",
+        "line": "  include(UPGRADES_PATH.'/'.$upgrade_id.'-database.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 93,
+        "start_column": 2,
+        "end_line": 93,
+        "end_column": 56
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/install/db/153-database.php": [
+      {
+        "rule": "E0055",
+        "line": "    include($file);",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 22,
+        "start_column": 4,
+        "end_line": 22,
+        "end_column": 18
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/smarty/src/Runtime/TplFunctionRuntime.php": [
+      {
+        "rule": "E0059",
+        "line": "\t\t\t\teval($match[0]);",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 110,
+        "start_column": 4,
+        "end_line": 110,
+        "end_column": 19
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/admin/batch_manager.php": [
+      {
+        "rule": "E0054",
+        "line": "  ${$type} = array_unique(${$type});",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:indirect",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 898,
+        "start_column": 2,
+        "end_line": 898,
+        "end_column": 10
+      },
+      {
+        "rule": "E0054",
+        "line": "  ${$type} = array_unique(${$type});",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:indirect",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 898,
+        "start_column": 26,
+        "end_line": 898,
+        "end_column": 34
+      },
+      {
+        "rule": "E0054",
+        "line": "  sort(${$type});",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:indirect",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 899,
+        "start_column": 7,
+        "end_line": 899,
+        "end_column": 15
+      },
+      {
+        "rule": "E0054",
+        "line": "  $dimensions[$type] = implode(',', ${$type});",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:indirect",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 900,
+        "start_column": 36,
+        "end_line": 900,
+        "end_column": 44
+      },
+      {
+        "rule": "E0055",
+        "line": "include(PHPWG_ROOT_PATH.'admin/batch_manager_'.$page['tab'].'.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 1122,
+        "start_column": 0,
+        "end_line": 1122,
+        "end_column": 67
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/menubar.inc.php": [
+      {
+        "rule": "E0059",
+        "line": "          (eval($url_data['eval_visible']))",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 53,
+        "start_column": 11,
+        "end_line": 53,
+        "end_column": 42
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/install/upgrade_1.7.0.php": [
+      {
+        "rule": "E0055",
+        "line": "  include(UPGRADES_PATH.'/'.$upgrade_id.'-database.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 86,
+        "start_column": 2,
+        "end_line": 86,
+        "end_column": 56
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/install/upgrade_2.9.0.php": [
+      {
+        "rule": "E0055",
+        "line": "  include(UPGRADES_PATH.'/'.$upgrade_id.'-database.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 94,
+        "start_column": 2,
+        "end_line": 94,
+        "end_column": 56
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/admin/maintenance.php": [
+      {
+        "rule": "E0055",
+        "line": "include(PHPWG_ROOT_PATH.'admin/maintenance_'.$page['tab'].'.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 121,
+        "start_column": 0,
+        "end_line": 121,
+        "end_column": 65
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/common.inc.php": [
+      {
+        "rule": "E0055",
+        "line": "    include_once(PHPWG_ROOT_PATH . 'include/php_compat/'.$func.'.php');",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 75,
+        "start_column": 4,
+        "end_line": 75,
+        "end_column": 70
+      },
+      {
+        "rule": "E0055",
+        "line": "include(PHPWG_ROOT_PATH .'include/dblayer/functions_'.$conf['dblayer'].'.inc.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 90,
+        "start_column": 0,
+        "end_line": 90,
+        "end_column": 82
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/admin/album.php": [
+      {
+        "rule": "E0055",
+        "line": "  include(PHPWG_ROOT_PATH.'admin/album_'.$page['tab'].'.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 83,
+        "start_column": 2,
+        "end_line": 83,
+        "end_column": 61
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/functions.inc.php": [
+      {
+        "rule": "E0053",
+        "line": "    return unserialize($value);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$value"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/functions.inc.php",
+          "line": 1638
+        },
+        "start_line": 1638,
+        "start_column": 11,
+        "end_line": 1638,
+        "end_column": 30
+      },
+      {
+        "rule": "E0053",
+        "line": "  if (fetchRemote($url, $result) and $pem_extensions = @unserialize($result))",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 2687,
+        "start_column": 56,
+        "end_line": 2687,
+        "end_column": 76
+      },
+      {
+        "rule": "E0055",
+        "line": "      include($f);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$lang_id"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/functions.inc.php",
+          "line": 1811
+        },
+        "start_line": 1811,
+        "start_column": 6,
+        "end_line": 1811,
+        "end_column": 17
+      },
+      {
+        "rule": "E0055",
+        "line": "        @include(str_replace($selected_language, $options['force_fallback'], $source_file));",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$dirname",
+            "$filename",
+            "$options"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/functions.inc.php",
+          "line": 1914
+        },
+        "start_line": 1914,
+        "start_column": 9,
+        "end_line": 1914,
+        "end_column": 91
+      },
+      {
+        "rule": "E0055",
+        "line": "      @include($source_file);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$dirname",
+            "$filename",
+            "$options"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/functions.inc.php",
+          "line": 1918
+        },
+        "start_line": 1918,
+        "start_column": 7,
+        "end_line": 1918,
+        "end_column": 28
+      },
+      {
+        "rule": "E0055",
+        "line": "        @include(str_replace($selected_language, $parent_language, $source_file));",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$dirname",
+            "$filename",
+            "$options"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/functions.inc.php",
+          "line": 1937
+        },
+        "start_line": 1937,
+        "start_column": 9,
+        "end_line": 1937,
+        "end_column": 81
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/admin/maintenance_actions.php": [
+      {
+        "rule": "E0053",
+        "line": "    'cache_sizes' => (isset($conf['cache_sizes'])) ? unserialize($conf['cache_sizes']) : null,",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 319,
+        "start_column": 53,
+        "end_line": 319,
+        "end_column": 86
+      },
+      {
+        "rule": "E0053",
+        "line": "    'time_elapsed_since_last_calc' => (isset($conf['cache_sizes'])) ? time_since(unserialize($conf['cache_sizes'])[3]['value'], 'year') : null,",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 320,
+        "start_column": 81,
+        "end_line": 320,
+        "end_column": 114
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/admin/include/plugins.class.php": [
+      {
+        "rule": "E0053",
+        "line": "    if (fetchRemote($url, $result) and $pem_versions = @unserialize($result))",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 439,
+        "start_column": 56,
+        "end_line": 439,
+        "end_column": 76
+      },
+      {
+        "rule": "E0053",
+        "line": "      $pem_plugins = @unserialize($result);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 540,
+        "start_column": 22,
+        "end_line": 540,
+        "end_column": 42
+      },
+      {
+        "rule": "E0053",
+        "line": "      $pem_plugins = @unserialize($result);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 593,
+        "start_column": 22,
+        "end_line": 593,
+        "end_column": 42
+      },
+      {
+        "rule": "E0055",
+        "line": "      include_once($file_to_include.'.class.php');",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$plugin_id"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/admin/include/plugins.class.php",
+          "line": 84
+        },
+        "start_line": 84,
+        "start_column": 6,
+        "end_line": 84,
+        "end_column": 49
+      },
+      {
+        "rule": "E0055",
+        "line": "      include_once($file_to_include.'.inc.php');",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$plugin_id"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/admin/include/plugins.class.php",
+          "line": 91
+        },
+        "start_line": 91,
+        "start_column": 6,
+        "end_line": 91,
+        "end_column": 47
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/Mailto.php": [
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t$$var = $value;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$params"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/Mailto.php",
+          "line": 84
+        },
+        "start_line": 84,
+        "start_column": 5,
+        "end_line": 84,
+        "end_column": 10
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/admin/configuration.php": [
+      {
+        "rule": "E0053",
+        "line": "          'picture_informations' => unserialize($conf['picture_informations']),",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 555,
+        "start_column": 36,
+        "end_line": 555,
+        "end_column": 78
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/admin/include/themes.class.php": [
+      {
+        "rule": "E0053",
+        "line": "    if (fetchRemote($url, $result, $get_data) and $pem_versions = @unserialize($result))",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 495,
+        "start_column": 67,
+        "end_line": 495,
+        "end_column": 87
+      },
+      {
+        "rule": "E0053",
+        "line": "      $pem_themes = @unserialize($result);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 548,
+        "start_column": 21,
+        "end_line": 548,
+        "end_column": 41
+      },
+      {
+        "rule": "E0055",
+        "line": "      include_once($file_to_include);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$theme_id"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/admin/include/themes.class.php",
+          "line": 70
+        },
+        "start_line": 70,
+        "start_column": 6,
+        "end_line": 70,
+        "end_column": 36
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/admin/languages.php": [
+      {
+        "rule": "E0055",
+        "line": "  include(PHPWG_ROOT_PATH.'admin/languages_'.$page['tab'].'.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 39,
+        "start_column": 2,
+        "end_line": 39,
+        "end_column": 65
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/admin/include/check_integrity.class.php": [
+      {
+        "rule": "E0053",
+        "line": "    $conf_c13y_ignore = unserialize($conf['c13y_ignore']);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 33,
+        "start_column": 24,
+        "end_line": 33,
+        "end_column": 57
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/smarty/src/Compiler/Template.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\t\t\t\tinclude_once $script;",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 682,
+        "start_column": 5,
+        "end_line": 682,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/install/upgrade_2.10.0.php": [
+      {
+        "rule": "E0055",
+        "line": "  include(UPGRADES_PATH.'/'.$upgrade_id.'-database.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 94,
+        "start_column": 2,
+        "end_line": 94,
+        "end_column": 56
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/filter.inc.php": [
+      {
+        "rule": "E0053",
+        "line": "    $filter['categories'] = unserialize(pwg_get_session_var('filter_categories', serialize(array())));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": true,
+          "source_kind": "request",
+          "origins": [
+            "pwg_get_session_var()"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/filter.inc.php",
+          "line": 104
+        },
+        "start_line": 104,
+        "start_column": 28,
+        "end_line": 104,
+        "end_column": 101
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/install/upgrade_2.8.0.php": [
+      {
+        "rule": "E0055",
+        "line": "  include(UPGRADES_PATH.'/'.$upgrade_id.'-database.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 94,
+        "start_column": 2,
+        "end_line": 94,
+        "end_column": 56
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/install/upgrade_11.0.0.php": [
+      {
+        "rule": "E0055",
+        "line": "  include(UPGRADES_PATH.'/'.$upgrade_id.'-database.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 94,
+        "start_column": 2,
+        "end_line": 94,
+        "end_column": 56
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/ws_functions/pwg.php": [
+      {
+        "rule": "E0053",
+        "line": "          $details = @unserialize($row['details']);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$param"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/ws_functions/pwg.php",
+          "line": 581
+        },
+        "start_line": 581,
+        "start_column": 22,
+        "end_line": 581,
+        "end_column": 50
+      },
+      {
+        "rule": "E0053",
+        "line": "  $page['search'] = unserialize($serialized_rules);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 861,
+        "start_column": 20,
+        "end_line": 861,
+        "end_column": 50
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/admin/themes.php": [
+      {
+        "rule": "E0055",
+        "line": "  include(PHPWG_ROOT_PATH.'admin/themes_'.$page['tab'].'.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 34,
+        "start_column": 2,
+        "end_line": 34,
+        "end_column": 62
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/i.php": [
+      {
+        "rule": "E0053",
+        "line": "    return unserialize($value);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$value"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/i.php",
+          "line": 372
+        },
+        "start_line": 372,
+        "start_column": 11,
+        "end_line": 372,
+        "end_column": 30
+      },
+      {
+        "rule": "E0055",
+        "line": "include_once(PHPWG_ROOT_PATH .'include/dblayer/functions_'.$conf['dblayer'].'.inc.php');",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 385,
+        "start_column": 0,
+        "end_line": 385,
+        "end_column": 87
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/smarty/libs/Smarty.class.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\trequire_once($file);",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 40,
+        "start_column": 2,
+        "end_line": 40,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/install/upgrade_2.7.0.php": [
+      {
+        "rule": "E0055",
+        "line": "  include(UPGRADES_PATH.'/'.$upgrade_id.'-database.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 94,
+        "start_column": 2,
+        "end_line": 94,
+        "end_column": 56
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/install/upgrade_13.0.0.php": [
+      {
+        "rule": "E0055",
+        "line": "  include(UPGRADES_PATH.'/'.$upgrade_id.'-database.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 94,
+        "start_column": 2,
+        "end_line": 94,
+        "end_column": 56
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/smarty/src/Extension/BCPluginsAdapter.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\t\t\t\trequire_once $filename;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$path"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/Extension/BCPluginsAdapter.php",
+          "line": 184
+        },
+        "start_line": 184,
+        "start_column": 5,
+        "end_line": 184,
+        "end_column": 27
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\t\t\trequire_once $filename;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$path"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/Extension/BCPluginsAdapter.php",
+          "line": 197
+        },
+        "start_line": 197,
+        "start_column": 4,
+        "end_line": 197,
+        "end_column": 26
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\t\t\trequire_once $filename;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$path"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/Extension/BCPluginsAdapter.php",
+          "line": 208
+        },
+        "start_line": 208,
+        "start_column": 4,
+        "end_line": 208,
+        "end_column": 26
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/Math.php": [
+      {
+        "rule": "E0059",
+        "line": "\t\teval(\"\\$smarty_math_result = \" . $equation . \";\");",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$params"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/Math.php",
+          "line": 124
+        },
+        "start_line": 124,
+        "start_column": 2,
+        "end_line": 124,
+        "end_column": 51
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/HtmlSelectTime.php": [
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t$$_key = (string)$_value;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$params"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/HtmlSelectTime.php",
+          "line": 96
+        },
+        "start_line": 96,
+        "start_column": 5,
+        "end_line": 96,
+        "end_column": 11
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t$$_key = (bool)$_value;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$params"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/HtmlSelectTime.php",
+          "line": 103
+        },
+        "start_line": 103,
+        "start_column": 5,
+        "end_line": 103,
+        "end_column": 11
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t$$_key = (int)$_value;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$params"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/HtmlSelectTime.php",
+          "line": 111
+        },
+        "start_line": 111,
+        "start_column": 5,
+        "end_line": 111,
+        "end_column": 11
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t$$_variableName =",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 131,
+        "start_column": 5,
+        "end_line": 131,
+        "end_column": 20
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t$$_variableName = $params['time'][$field_array][$prefix . $_elementName] ?? date($_elementKey);",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 147,
+        "start_column": 5,
+        "end_line": 147,
+        "end_column": 20
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\tif (isset($$k)) {",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 325,
+        "start_column": 13,
+        "end_line": 325,
+        "end_column": 16
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t$_html .= $$k;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 329,
+        "start_column": 14,
+        "end_line": 329,
+        "end_column": 17
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/functions_calendar.inc.php": [
+      {
+        "rule": "E0055",
+        "line": "  include(PHPWG_ROOT_PATH.'include/'. $styles[$cal_style]['include']);",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 125,
+        "start_column": 2,
+        "end_line": 125,
+        "end_column": 69
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/HtmlCheckboxes.php": [
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t$$_key = (string)$_val;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$params"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/HtmlCheckboxes.php",
+          "line": 58
+        },
+        "start_line": 58,
+        "start_column": 5,
+        "end_line": 58,
+        "end_column": 11
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t$$_key = (bool)$_val;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$params"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/HtmlCheckboxes.php",
+          "line": 63
+        },
+        "start_line": 63,
+        "start_column": 5,
+        "end_line": 63,
+        "end_column": 11
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t$$_key = (array)$_val;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$params"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/HtmlCheckboxes.php",
+          "line": 66
+        },
+        "start_line": 66,
+        "start_column": 5,
+        "end_line": 66,
+        "end_column": 11
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t$$_key = array_values((array)$_val);",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$params"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/HtmlCheckboxes.php",
+          "line": 70
+        },
+        "start_line": 70,
+        "start_column": 5,
+        "end_line": 70,
+        "end_column": 11
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/cache.class.php": [
+      {
+        "rule": "E0053",
+        "line": "    if ($loaded !== false && ($loaded=unserialize($loaded)) !== false)",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$key"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/cache.class.php",
+          "line": 71
+        },
+        "start_line": 71,
+        "start_column": 38,
+        "end_line": 71,
+        "end_column": 58
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/install/upgrade_2.6.0.php": [
+      {
+        "rule": "E0055",
+        "line": "  include(UPGRADES_PATH.'/'.$upgrade_id.'-database.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 94,
+        "start_column": 2,
+        "end_line": 94,
+        "end_column": 56
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/admin/extend_for_templates.php": [
+      {
+        "rule": "E0053",
+        "line": "      unserialize($conf['extents_for_templates']) : array();",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 32,
+        "start_column": 6,
+        "end_line": 32,
+        "end_column": 49
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/install/upgrade_2.1.0.php": [
+      {
+        "rule": "E0055",
+        "line": "  include(UPGRADES_PATH.'/'.$upgrade_id.'-database.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 86,
+        "start_column": 2,
+        "end_line": 86,
+        "end_column": 56
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/admin/theme.php": [
+      {
+        "rule": "E0055",
+        "line": "  include_once($filename);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": true,
+          "source_kind": "request",
+          "origins": [
+            "$_GET['theme']"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/admin/theme.php",
+          "line": 32
+        },
+        "start_line": 32,
+        "start_column": 2,
+        "end_line": 32,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/HtmlRadios.php": [
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t$$_key = (string)$_val;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$params"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/HtmlRadios.php",
+          "line": 58
+        },
+        "start_line": 58,
+        "start_column": 5,
+        "end_line": 58,
+        "end_column": 11
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t$$_key = (bool)$_val;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$params"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/HtmlRadios.php",
+          "line": 81
+        },
+        "start_line": 81,
+        "start_column": 5,
+        "end_line": 81,
+        "end_column": 11
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t$$_key = (array)$_val;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$params"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/HtmlRadios.php",
+          "line": 84
+        },
+        "start_line": 84,
+        "start_column": 5,
+        "end_line": 84,
+        "end_column": 11
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t$$_key = array_values((array)$_val);",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$params"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/HtmlRadios.php",
+          "line": 88
+        },
+        "start_line": 88,
+        "start_column": 5,
+        "end_line": 88,
+        "end_column": 11
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/install/upgrade_2.3.0.php": [
+      {
+        "rule": "E0055",
+        "line": "  include(UPGRADES_PATH.'/'.$upgrade_id.'-database.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 93,
+        "start_column": 2,
+        "end_line": 93,
+        "end_column": 56
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/derivative_std_params.inc.php": [
+      {
+        "rule": "E0053",
+        "line": "    $arr = @unserialize($conf['derivatives']);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 169,
+        "start_column": 12,
+        "end_line": 169,
+        "end_column": 45
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/install/upgrade_15.0.0.php": [
+      {
+        "rule": "E0055",
+        "line": "  include(UPGRADES_PATH.'/'.$upgrade_id.'-database.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 94,
+        "start_column": 2,
+        "end_line": 94,
+        "end_column": 56
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/install/upgrade_14.0.0.php": [
+      {
+        "rule": "E0055",
+        "line": "  include(UPGRADES_PATH.'/'.$upgrade_id.'-database.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 94,
+        "start_column": 2,
+        "end_line": 94,
+        "end_column": 56
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/admin/intro.php": [
+      {
+        "rule": "E0053",
+        "line": "  $cache_sizes = unserialize($conf['cache_sizes']);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 438,
+        "start_column": 17,
+        "end_line": 438,
+        "end_column": 50
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/admin/include/updates.class.php": [
+      {
+        "rule": "E0053",
+        "line": "    if (fetchRemote($url, $result, $get_data) and $pem_versions = @unserialize($result))",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 284,
+        "start_column": 67,
+        "end_line": 284,
+        "end_column": 87
+      },
+      {
+        "rule": "E0053",
+        "line": "      $pem_exts = @unserialize($result);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 336,
+        "start_column": 19,
+        "end_line": 336,
+        "end_column": 39
+      },
+      {
+        "rule": "E0053",
+        "line": "          and $input = @unserialize($result))",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 545,
+        "start_column": 24,
+        "end_line": 545,
+        "end_column": 44
+      },
+      {
+        "rule": "E0055",
+        "line": "      include_once(PHPWG_ROOT_PATH.'admin/include/'.$type.'.class.php');",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 39,
+        "start_column": 6,
+        "end_line": 39,
+        "end_column": 71
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/smarty/src/Template/Compiled.php": [
+      {
+        "rule": "E0059",
+        "line": "\t\t\teval('?>' . $this->doCompile($_smarty_tpl));",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$_smarty_tpl"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/Template/Compiled.php",
+          "line": 162
+        },
+        "start_line": 162,
+        "start_column": 3,
+        "end_line": 162,
+        "end_column": 46
+      },
+      {
+        "rule": "E0059",
+        "line": "\t\t\teval('?>' . file_get_contents($this->filepath));",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 259,
+        "start_column": 3,
+        "end_line": 259,
+        "end_column": 50
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\t\tinclude $this->filepath;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 261,
+        "start_column": 3,
+        "end_line": 261,
+        "end_column": 26
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/smarty/src/Cacheresource/File.php": [
+      {
+        "rule": "E0059",
+        "line": "            eval('?>' . file_get_contents($_smarty_tpl->getCached()->filepath));",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 107,
+        "start_column": 12,
+        "end_line": 107,
+        "end_column": 79
+      },
+      {
+        "rule": "E0055",
+        "line": "            return @include $_smarty_tpl->getCached()->filepath;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 110,
+        "start_column": 20,
+        "end_line": 110,
+        "end_column": 63
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/install/upgrade_2.5.0.php": [
+      {
+        "rule": "E0055",
+        "line": "  include(UPGRADES_PATH.'/'.$upgrade_id.'-database.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 93,
+        "start_column": 2,
+        "end_line": 93,
+        "end_column": 56
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/admin/photos_add.php": [
+      {
+        "rule": "E0055",
+        "line": "include(PHPWG_ROOT_PATH.'admin/photos_add_'.$page['tab'].'.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 73,
+        "start_column": 0,
+        "end_line": 73,
+        "end_column": 64
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/smarty/src/Cacheresource/KeyValueStore.php": [
+      {
+        "rule": "E0059",
+        "line": "            eval('?>' . $content);",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$cached"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/Cacheresource/KeyValueStore.php",
+          "line": 129
+        },
+        "start_line": 129,
+        "start_column": 12,
+        "end_line": 129,
+        "end_column": 33
+      },
+      {
+        "rule": "E0054",
+        "line": "        extract(unpack('N1s/N1m/a*content', $content));",
+        "suggestion": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:extract",
+          "template": "extract() creates local variables from runtime data. Use explicit assignments or an allowlist so unexpected keys cannot overwrite local state.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$content"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/Cacheresource/KeyValueStore.php",
+          "line": 319
+        },
+        "start_line": 319,
+        "start_column": 8,
+        "end_line": 319,
+        "end_column": 54
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/template.class.php": [
+      {
+        "rule": "E0059",
+        "line": "        eval('$tmp='.$str.';');",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$str"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/template.class.php",
+          "line": 634
+        },
+        "start_line": 634,
+        "start_column": 8,
+        "end_line": 634,
+        "end_column": 30
+      },
+      {
+        "rule": "E0059",
+        "line": "      function($matches) { eval('$tmp='.$matches[1].';');return $tmp; }, ",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 1138,
+        "start_column": 27,
+        "end_line": 1138,
+        "end_column": 56
+      },
+      {
+        "rule": "E0053",
+        "line": "      $tpl_extents = unserialize($conf['extents_for_templates']);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 184,
+        "start_column": 21,
+        "end_line": 184,
+        "end_column": 64
+      },
+      {
+        "rule": "E0055",
+        "line": "      include($dir.'/themeconf.inc.php');",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$dir"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/template.class.php",
+          "line": 1189
+        },
+        "start_line": 1189,
+        "start_column": 6,
+        "end_line": 1189,
+        "end_column": 40
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/ws_core.inc.php": [
+      {
+        "rule": "E0055",
+        "line": "        include_once( $method['include'] );",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 603,
+        "start_column": 8,
+        "end_line": 603,
+        "end_column": 42
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/admin/updates_ext.php": [
+      {
+        "rule": "E0053",
+        "line": "$conf['updates_ignored'] = unserialize($conf['updates_ignored']);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 24,
+        "start_column": 27,
+        "end_line": 24,
+        "end_column": 64
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/admin.php": [
+      {
+        "rule": "E0055",
+        "line": "include(PHPWG_ROOT_PATH.'admin/'.$page['page'].'.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 408,
+        "start_column": 0,
+        "end_line": 408,
+        "end_column": 54
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/admin/menubar.php": [
+      {
+        "rule": "E0053",
+        "line": "  $mb_conf = unserialize( $mb_conf );",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 57,
+        "start_column": 13,
+        "end_line": 57,
+        "end_column": 36
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/admin/include/functions.php": [
+      {
+        "rule": "E0053",
+        "line": "    $news = unserialize(file_get_contents($cache_path));",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": true,
+          "source_kind": "request",
+          "origins": [
+            "conf_get_param()"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/admin/include/functions.php",
+          "line": 3759
+        },
+        "start_line": 3759,
+        "start_column": 12,
+        "end_line": 3759,
+        "end_column": 55
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/smarty/src/Cacheresource/Custom.php": [
+      {
+        "rule": "E0059",
+        "line": "            eval('?>' . $content);",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$cached"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/Cacheresource/Custom.php",
+          "line": 161
+        },
+        "start_line": 161,
+        "start_column": 12,
+        "end_line": 161,
+        "end_column": 33
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/section_init.inc.php": [
+      {
+        "rule": "E0059",
+        "line": "          if (empty($random_url_condition) or eval($random_url_condition))",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 135,
+        "start_column": 46,
+        "end_line": 135,
+        "end_column": 73
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/functions_user.inc.php": [
+      {
+        "rule": "E0053",
+        "line": "  $userdata['preferences'] = empty($userdata['preferences']) ? array() : unserialize($userdata['preferences']);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$user_id"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/functions_user.inc.php",
+          "line": 407
+        },
+        "start_line": 407,
+        "start_column": 73,
+        "end_line": 407,
+        "end_column": 110
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/smarty/src/Compile/Modifier/Base.php": [
+      {
+        "rule": "E0059",
+        "line": "\t\teval(\"\\$t = \" . $params[ $index ] . \";\");",
+        "suggestion": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+        "message": {
+          "id": "E0059:dynamic-eval:construct",
+          "template": "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$params"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/Compile/Modifier/Base.php",
+          "line": 45
+        },
+        "start_line": 45,
+        "start_column": 2,
+        "end_line": 45,
+        "end_column": 42
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/smarty/src/Data.php": [
+      {
+        "rule": "E0054",
+        "line": "\t\t\t$x = $$varName;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$varName"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/Data.php",
+          "line": 270
+        },
+        "start_line": 270,
+        "start_column": 8,
+        "end_line": 270,
+        "end_column": 17
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/install/upgrade_2.0.0.php": [
+      {
+        "rule": "E0055",
+        "line": "  include(UPGRADES_PATH.'/'.$upgrade_id.'-database.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 86,
+        "start_column": 2,
+        "end_line": 86,
+        "end_column": 56
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/functions_search.inc.php": [
+      {
+        "rule": "E0053",
+        "line": "  return unserialize($search['rules']);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 92,
+        "start_column": 9,
+        "end_line": 92,
+        "end_column": 38
+      },
+      {
+        "rule": "E0055",
+        "line": "  @include_once(PHPWG_ROOT_PATH.'include/inflectors/'.$lang_code.'.php');",
+        "suggestion": "include_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 1944,
+        "start_column": 3,
+        "end_line": 1944,
+        "end_column": 72
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/install/upgrade_12.0.0.php": [
+      {
+        "rule": "E0055",
+        "line": "  include(UPGRADES_PATH.'/'.$upgrade_id.'-database.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 94,
+        "start_column": 2,
+        "end_line": 94,
+        "end_column": 56
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/ws_functions/pwg.extensions.php": [
+      {
+        "rule": "E0053",
+        "line": "  $conf['updates_ignored'] = unserialize($conf['updates_ignored']);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 279,
+        "start_column": 29,
+        "end_line": 279,
+        "end_column": 66
+      },
+      {
+        "rule": "E0053",
+        "line": "  $conf['updates_ignored'] = unserialize($conf['updates_ignored']);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 340,
+        "start_column": 29,
+        "end_line": 340,
+        "end_column": 66
+      },
+      {
+        "rule": "E0055",
+        "line": "  include_once(PHPWG_ROOT_PATH.'admin/include/'.$params['type'].'.class.php');",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$params"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/ws_functions/pwg.extensions.php",
+          "line": 169
+        },
+        "start_line": 169,
+        "start_column": 2,
+        "end_line": 169,
+        "end_column": 77
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/HtmlImage.php": [
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t$$_key = $_val;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$params"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/HtmlImage.php",
+          "line": 54
+        },
+        "start_line": 54,
+        "start_column": 5,
+        "end_line": 54,
+        "end_column": 11
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t\t$$_key = smarty_function_escape_special_chars($_val);",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$params"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/HtmlImage.php",
+          "line": 58
+        },
+        "start_line": 58,
+        "start_column": 6,
+        "end_line": 58,
+        "end_column": 12
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/smarty/src/BlockHandler/TextFormat.php": [
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t$$_key = (string)$_val;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$params"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/BlockHandler/TextFormat.php",
+          "line": 52
+        },
+        "start_line": 52,
+        "start_column": 5,
+        "end_line": 52,
+        "end_column": 11
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t$$_key = (int)$_val;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$params"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/BlockHandler/TextFormat.php",
+          "line": 57
+        },
+        "start_line": 57,
+        "start_column": 5,
+        "end_line": 57,
+        "end_column": 11
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t$$_key = (bool)$_val;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$params"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/BlockHandler/TextFormat.php",
+          "line": 60
+        },
+        "start_line": 60,
+        "start_column": 5,
+        "end_line": 60,
+        "end_column": 11
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/install/upgrade_2.2.0.php": [
+      {
+        "rule": "E0055",
+        "line": "  include(UPGRADES_PATH.'/'.$upgrade_id.'-database.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 86,
+        "start_column": 2,
+        "end_line": 86,
+        "end_column": 56
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/admin/plugin.php": [
+      {
+        "rule": "E0055",
+        "line": "  include_once($filename);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": true,
+          "source_kind": "request",
+          "origins": [
+            "$_GET['section']"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/admin/plugin.php",
+          "line": 53
+        },
+        "start_line": 53,
+        "start_column": 2,
+        "end_line": 53,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/HtmlSelectDate.php": [
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t$$_key = $_value; // we'll handle conversion below",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$params"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/HtmlSelectDate.php",
+          "line": 106
+        },
+        "start_line": 106,
+        "start_column": 5,
+        "end_line": 106,
+        "end_column": 11
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t\t$$_key = $_value;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$params"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/HtmlSelectDate.php",
+          "line": 110
+        },
+        "start_line": 110,
+        "start_column": 6,
+        "end_line": 110,
+        "end_column": 12
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t$$_key = (string)$_value;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$params"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/HtmlSelectDate.php",
+          "line": 141
+        },
+        "start_line": 141,
+        "start_column": 5,
+        "end_line": 141,
+        "end_column": 11
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t$$_key = (bool)$_value;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$params"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/HtmlSelectDate.php",
+          "line": 148
+        },
+        "start_line": 148,
+        "start_column": 5,
+        "end_line": 148,
+        "end_column": 11
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t$$_variableName =",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 171,
+        "start_column": 5,
+        "end_line": 171,
+        "end_column": 20
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t$$_variableName = $time[$field_array][$prefix . $_elementName] ?? date($_elementKey);",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 182,
+        "start_column": 5,
+        "end_line": 182,
+        "end_column": 20
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t$t = $$key;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 217,
+        "start_column": 8,
+        "end_line": 217,
+        "end_column": 13
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t$$key = (int)$_current_year;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 219,
+        "start_column": 4,
+        "end_line": 219,
+        "end_column": 9
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t$$key = (int)($_current_year + (int)trim(substr($t, 1)));",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 221,
+        "start_column": 4,
+        "end_line": 221,
+        "end_column": 9
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t$$key = (int)($_current_year - (int)trim(substr($t, 1)));",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 223,
+        "start_column": 4,
+        "end_line": 223,
+        "end_column": 9
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t$$key = (int)$$key;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 225,
+        "start_column": 4,
+        "end_line": 225,
+        "end_column": 9
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t$$key = (int)$$key;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 225,
+        "start_column": 17,
+        "end_line": 225,
+        "end_column": 22
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/install.php": [
+      {
+        "rule": "E0055",
+        "line": "  include($config_file);",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 113,
+        "start_column": 2,
+        "end_line": 113,
+        "end_column": 23
+      },
+      {
+        "rule": "E0055",
+        "line": "include(PHPWG_ROOT_PATH .'include/dblayer/functions_'.$dblayer.'.inc.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 208,
+        "start_column": 0,
+        "end_line": 208,
+        "end_column": 74
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/admin/plugins.php": [
+      {
+        "rule": "E0055",
+        "line": "  include(PHPWG_ROOT_PATH.'admin/plugins_'.$page['tab'].'.php');",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 34,
+        "start_column": 2,
+        "end_line": 34,
+        "end_column": 63
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/admin/maintenance_env.php": [
+      {
+        "rule": "E0053",
+        "line": "    'cache_sizes' => (isset($conf['cache_sizes'])) ? unserialize($conf['cache_sizes']) : null,",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 306,
+        "start_column": 53,
+        "end_line": 306,
+        "end_column": 86
+      },
+      {
+        "rule": "E0053",
+        "line": "    'time_elapsed_since_last_calc' => (isset($conf['cache_sizes'])) ? time_since(unserialize($conf['cache_sizes'])[3]['value'], 'year') : null,",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 307,
+        "start_column": 81,
+        "end_line": 307,
+        "end_column": 114
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/admin/maintenance_sys.php": [
+      {
+        "rule": "E0053",
+        "line": "      $details = unserialize($rows['details']);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 53,
+        "start_column": 17,
+        "end_line": 53,
+        "end_column": 46
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/picture.php": [
+      {
+        "rule": "E0053",
+        "line": "$display_info = unserialize($conf['picture_informations']);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 895,
+        "start_column": 16,
+        "end_line": 895,
+        "end_column": 58
+      }
+    ],
+    "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/HtmlOptions.php": [
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t$$_key = (string)$_val;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$params"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/HtmlOptions.php",
+          "line": 49
+        },
+        "start_line": 49,
+        "start_column": 5,
+        "end_line": 49,
+        "end_column": 11
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t$$_key = array_values((array)$_val);",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$params"
+          ],
+          "file": "/tmp/phanalist-scan2/piwigo/include/smarty/src/FunctionHandler/HtmlOptions.php",
+          "line": 56
+        },
+        "start_line": 56,
+        "start_column": 5,
+        "end_line": 56,
+        "end_column": 11
+      }
+    ]
+  },
+  "codes_count": {
+    "E0055": 64,
+    "E0053": 38,
+    "E0054": 45,
+    "E0059": 12
+  },
+  "total_files_count": 950,
+  "duration": {
+    "secs": 0,
+    "nanos": 41994387
+  }
+}

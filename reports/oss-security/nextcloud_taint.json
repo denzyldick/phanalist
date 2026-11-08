@@ -1,0 +1,2229 @@
+{
+  "files": {
+    "/tmp/phanalist-scan2/nextcloud/apps/sharebymail/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/testing/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/files_reminders/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/contactsinteraction/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/lib/private/legacy/OC_Defaults.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\t\trequire_once $themePath;",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 59,
+        "start_column": 3,
+        "end_line": 59,
+        "end_column": 26
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/lib/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/lib/private/App/AppManager.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\t\trequire_once $path . '/composer/autoload.php';",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$path"
+          ],
+          "file": "/tmp/phanalist-scan2/nextcloud/lib/private/App/AppManager.php",
+          "line": 614
+        },
+        "start_line": 614,
+        "start_column": 3,
+        "end_line": 614,
+        "end_column": 48
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/lookup_server_connector/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/workflowengine/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/dav/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/webhook_listeners/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/weather_status/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/lib/composer/composer/autoload_real.php": [
+      {
+        "rule": "E0055",
+        "line": "                require $file;",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 41,
+        "start_column": 16,
+        "end_line": 41,
+        "end_column": 29
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/sharing/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/files_sharing/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/files_sharing/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/dashboard/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/federation/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/comments/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/admin_audit/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/lookup_server_connector/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/user_ldap/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/lib/private/Installer.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\t\tinclude $script;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$script"
+          ],
+          "file": "/tmp/phanalist-scan2/nextcloud/lib/private/Installer.php",
+          "line": 615
+        },
+        "start_line": 615,
+        "start_column": 3,
+        "end_line": 615,
+        "end_column": 18
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/files_external/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/dav/lib/Comments/EntityCollection.php": [
+      {
+        "rule": "E0054",
+        "line": "\t\t\t$$property = trim($$property);",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 48,
+        "start_column": 3,
+        "end_line": 48,
+        "end_column": 13
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t$$property = trim($$property);",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 48,
+        "start_column": 21,
+        "end_line": 48,
+        "end_column": 31
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\tif (empty($$property) || !is_string($$property)) {",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 49,
+        "start_column": 13,
+        "end_line": 49,
+        "end_column": 23
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\tif (empty($$property) || !is_string($$property)) {",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:nested",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 49,
+        "start_column": 39,
+        "end_line": 49,
+        "end_column": 49
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/dav/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/public.php": [
+      {
+        "rule": "E0055",
+        "line": "\trequire_once $file;",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 92,
+        "start_column": 1,
+        "end_line": 92,
+        "end_column": 19
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/files/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/testing/lib/Controller/RoutesController.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\t$routes = include $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$app"
+          ],
+          "file": "/tmp/phanalist-scan2/nextcloud/apps/testing/lib/Controller/RoutesController.php",
+          "line": 39
+        },
+        "start_line": 39,
+        "start_column": 12,
+        "end_line": 39,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/provisioning_api/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/settings/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/files/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/profile/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/admin_audit/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/settings/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/theming/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/lib/OC.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\tself::$composerAutoloader = require_once OC::$SERVERROOT . '/lib/composer/autoload.php';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 694,
+        "start_column": 30,
+        "end_line": 694,
+        "end_column": 89
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\trequire_once $vendorAutoLoad;",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 702,
+        "start_column": 2,
+        "end_line": 702,
+        "end_column": 30
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/oauth2/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/files_versions/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/updatenotification/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/workflowengine/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/files_trashbin/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/twofactor_backupcodes/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/core/Controller/SetupController.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\t\tinclude $this->autoConfigFile;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 149,
+        "start_column": 3,
+        "end_line": 149,
+        "end_column": 32
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/lib/private/Updater.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\trequire \\OC::$SERVERROOT . '/version.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 141,
+        "start_column": 2,
+        "end_line": 141,
+        "end_column": 43
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\trequire \\OC::$SERVERROOT . '/version.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 153,
+        "start_column": 2,
+        "end_line": 153,
+        "end_column": 43
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/sharebymail/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/encryption/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/federation/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/lib/private/Config.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\t\t\tinclude $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 241,
+        "start_column": 4,
+        "end_line": 241,
+        "end_column": 17
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/files_external/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/comments/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/contactsinteraction/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/appstore/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/federatedfilesharing/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/provisioning_api/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/files_trashbin/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/files_versions/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/viewer/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/dashboard/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/cloud_federation_api/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/lib/private/Setup.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\trequire \\OC::$SERVERROOT . '/version.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 688,
+        "start_column": 2,
+        "end_line": 688,
+        "end_column": 43
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/systemtags/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/oauth2/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/encryption/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/tests/lib/TemplateFunctionsTest.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\trequire_once \\OC::$SERVERROOT . '/lib/private/Template/functions.php';",
+        "suggestion": "require_once uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require_once"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 16,
+        "start_column": 2,
+        "end_line": 16,
+        "end_column": 71
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/lib/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/systemtags/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/webhook_listeners/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/lib/private/Route/Router.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\trequire $parameters['file'];",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$parameters"
+          ],
+          "file": "/tmp/phanalist-scan2/nextcloud/lib/private/Route/Router.php",
+          "line": 345
+        },
+        "start_line": 345,
+        "start_column": 2,
+        "end_line": 345,
+        "end_column": 29
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\t$this->setupRoutes(include $file, $appName);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$file"
+          ],
+          "file": "/tmp/phanalist-scan2/nextcloud/lib/private/Route/Router.php",
+          "line": 527
+        },
+        "start_line": 527,
+        "start_column": 21,
+        "end_line": 527,
+        "end_column": 34
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/lib/private/DB/SchemaChecker.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\t\t\trequire_once $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require_once",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$app"
+          ],
+          "file": "/tmp/phanalist-scan2/nextcloud/lib/private/DB/SchemaChecker.php",
+          "line": 180
+        },
+        "start_line": 180,
+        "start_column": 4,
+        "end_line": 180,
+        "end_column": 22
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/user_ldap/lib/Migration/Version1190Date20230706134108.php": [
+      {
+        "rule": "E0053",
+        "line": "\t\t\t$knownUsers = unserialize($row['owncloudusers']);",
+        "suggestion": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+        "message": {
+          "id": "E0053:unserialize-allowed-classes:missing",
+          "template": "unserialize() is called without an allowed_classes option, so every class can be instantiated. Set allowed_classes to false or to a list of trusted classes.",
+          "args": []
+        },
+        "taint_source": null,
+        "start_line": 87,
+        "start_column": 17,
+        "end_line": 87,
+        "end_column": 51
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/sharing/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/user_status/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/core/Command/L10n/CreateJs.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\trequire $phpFile;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$lang",
+            "$path"
+          ],
+          "file": "/tmp/phanalist-scan2/nextcloud/core/Command/L10n/CreateJs.php",
+          "line": 128
+        },
+        "start_line": 128,
+        "start_column": 2,
+        "end_line": 128,
+        "end_column": 18
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/theming/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/profile/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/files_external/tests/config.php": [
+      {
+        "rule": "E0055",
+        "line": "\t$config = include($privateConfigFile);",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 13,
+        "start_column": 11,
+        "end_line": 13,
+        "end_column": 38
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/user_ldap/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/files_reminders/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/cloud_federation_api/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/testing/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/lib/private/Console/Application.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\t\t\t\t\t\t\trequire $file;",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 132,
+        "start_column": 8,
+        "end_line": 132,
+        "end_column": 21
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/remote.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\trequire $file;",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 158,
+        "start_column": 2,
+        "end_line": 158,
+        "end_column": 15
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/updatenotification/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/viewer/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/weather_status/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/twofactor_backupcodes/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/lib/private/Template/Base.php": [
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\tif (!isset(${$var})) {",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:indirect",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$additionalParams"
+          ],
+          "file": "/tmp/phanalist-scan2/nextcloud/lib/private/Template/Base.php",
+          "line": 123
+        },
+        "start_line": 123,
+        "start_column": 15,
+        "end_line": 123,
+        "end_column": 22
+      },
+      {
+        "rule": "E0054",
+        "line": "\t\t\t\t\t${$var} = $value;",
+        "suggestion": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+        "message": {
+          "id": "E0054:dynamic-variable-creation:indirect",
+          "template": "A variable variable creates a local name from runtime data. Use an explicit map or an allowlist instead.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$additionalParams"
+          ],
+          "file": "/tmp/phanalist-scan2/nextcloud/lib/private/Template/Base.php",
+          "line": 124
+        },
+        "start_line": 124,
+        "start_column": 5,
+        "end_line": 124,
+        "end_column": 12
+      },
+      {
+        "rule": "E0055",
+        "line": "\t\t\tinclude $file;",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$file"
+          ],
+          "file": "/tmp/phanalist-scan2/nextcloud/lib/private/Template/Base.php",
+          "line": 133
+        },
+        "start_line": 133,
+        "start_column": 3,
+        "end_line": 133,
+        "end_column": 16
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/user_status/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/files_external/tests/Storage/ConfigurableStorageTrait.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\t\t$this->config = include($path);",
+        "suggestion": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": []
+        },
+        "taint_source": {
+          "request_rooted": false,
+          "source_kind": "parameter",
+          "origins": [
+            "$path"
+          ],
+          "file": "/tmp/phanalist-scan2/nextcloud/apps/files_external/tests/Storage/ConfigurableStorageTrait.php",
+          "line": 18
+        },
+        "start_line": 18,
+        "start_column": 19,
+        "end_line": 18,
+        "end_column": 33
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/federatedfilesharing/composer/composer/InstalledVersions.php": [
+      {
+        "rule": "E0055",
+        "line": "                    $required = require $vendorDir.'/composer/installed.php';",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 364,
+        "start_column": 32,
+        "end_line": 364,
+        "end_column": 76
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/lib/public/ServerVersion.php": [
+      {
+        "rule": "E0055",
+        "line": "\t\trequire $versionFile;",
+        "suggestion": "require uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:require",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "require"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 32,
+        "start_column": 2,
+        "end_line": 32,
+        "end_column": 22
+      }
+    ],
+    "/tmp/phanalist-scan2/nextcloud/apps/appstore/composer/composer/ClassLoader.php": [
+      {
+        "rule": "E0055",
+        "line": "            include $file;",
+        "suggestion": "include uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+        "message": {
+          "id": "E0055:dynamic-include:include",
+          "template": "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.",
+          "args": [
+            [
+              "kind",
+              "include"
+            ]
+          ]
+        },
+        "taint_source": null,
+        "start_line": 576,
+        "start_column": 12,
+        "end_line": 576,
+        "end_column": 25
+      }
+    ]
+  },
+  "codes_count": {
+    "E0054": 6,
+    "E0053": 1,
+    "E0055": 94
+  },
+  "total_files_count": 5959,
+  "duration": {
+    "secs": 0,
+    "nanos": 102503175
+  }
+}
