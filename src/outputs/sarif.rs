@@ -70,23 +70,6 @@ fn artifact_uri(path: &str) -> String {
     encode_uri_path(&normalize_relative(Path::new(path)))
 }
 
-fn fnv1a64(bytes: &[u8]) -> u64 {
-    let mut hash = 0xcbf29ce484222325u64;
-    for byte in bytes {
-        hash ^= *byte as u64;
-        hash = hash.wrapping_mul(0x100000001b3);
-    }
-    hash
-}
-
-fn fingerprint(violation: &Violation, uri: &str) -> String {
-    let input = format!(
-        "{}\0{}\0{}\0{}\0{}",
-        violation.rule, uri, violation.message.id, violation.start_line, violation.start_column
-    );
-    format!("{:016x}", fnv1a64(input.as_bytes()))
-}
-
 fn sarif_region(violation: &Violation) -> sarif::Region {
     let start_line = violation.start_line.max(1) as i64;
     let end_line = violation.end_line.max(violation.start_line.max(1)) as i64;
@@ -139,13 +122,6 @@ impl OutputFormatter for Sarif {
         let mut sarif_rules = vec![];
         let mut rule_to_index: HashMap<String, i64> = HashMap::new();
         for (current_index, (code, rule)) in all_rules.into_iter().enumerate() {
-            let rule_number = code.trim_start_matches('E').trim_start_matches('0');
-            let rule_number = if rule_number.is_empty() {
-                "0"
-            } else {
-                rule_number
-            };
-
             let detailed = rules::render_rule_documentation(&code, settings.get(&code));
             let text = detailed
                 .as_deref()
@@ -169,10 +145,7 @@ impl OutputFormatter for Sarif {
                 guid: None,
                 help: Some(full_message.clone()),
                 full_description: Some(full_message),
-                help_uri: Some(format!(
-                    "https://github.com/denzyldick/phanalist/blob/main/src/rules/examples/e{}/e{}.md",
-                    rule_number, rule_number
-                )),
+                help_uri: Some(rules::meta::help_url(&code)),
                 id: code.clone(),
                 message_strings: None,
                 name: Some(code.clone()),
@@ -266,9 +239,18 @@ impl OutputFormatter for Sarif {
                     relationships: None,
                 };
 
+                let fingerprint = if violation.meta.fingerprint.is_empty() {
+                    crate::fingerprint::compute(
+                        &violation.rule,
+                        &uri,
+                        &violation.message.id,
+                        &violation.line,
+                    )
+                } else {
+                    violation.meta.fingerprint.clone()
+                };
                 let mut partial_fingerprints = BTreeMap::new();
-                partial_fingerprints
-                    .insert("phanalist/v1".to_string(), fingerprint(violation, &uri));
+                partial_fingerprints.insert("phanalist/v1".to_string(), fingerprint);
 
                 t.push(serde_sarif::sarif::Result {
                     analysis_target: Some(analysis_target),
@@ -283,7 +265,9 @@ impl OutputFormatter for Sarif {
                     guid: None,
                     hosted_viewer_uri: None,
                     kind: Some(serde_json::Value::String(String::from("fail"))),
-                    level: Some(serde_json::Value::String(String::from("warning"))),
+                    level: Some(serde_json::Value::String(
+                        violation.meta.severity.sarif_level().to_string(),
+                    )),
                     locations: Some(vec![location]),
                     message,
                     occurrence_count: None,
@@ -391,6 +375,7 @@ mod tests {
             end_line: start_line,
             end_column,
             taint_source: None,
+            meta: Default::default(),
         }
     }
 
@@ -428,15 +413,27 @@ mod tests {
     }
 
     #[test]
-    fn fingerprint_is_stable_for_same_location() {
+    fn fingerprint_is_stable_for_same_content() {
         let violation = violation(7, 11, 29);
-        assert_eq!(
-            fingerprint(&violation, "src/Foo.php"),
-            fingerprint(&violation, "src/Foo.php")
+        let one = crate::fingerprint::compute(
+            &violation.rule,
+            "src/Foo.php",
+            &violation.message.id,
+            &violation.line,
         );
-        assert_ne!(
-            fingerprint(&violation, "src/Foo.php"),
-            fingerprint(&violation, "src/Bar.php")
+        let two = crate::fingerprint::compute(
+            &violation.rule,
+            "src/Foo.php",
+            &violation.message.id,
+            &violation.line,
         );
+        let other = crate::fingerprint::compute(
+            &violation.rule,
+            "src/Bar.php",
+            &violation.message.id,
+            &violation.line,
+        );
+        assert_eq!(one, two);
+        assert_ne!(one, other);
     }
 }

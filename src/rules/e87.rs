@@ -1,15 +1,18 @@
-use mago_span::HasSpan;
 use mago_syntax::cst::*;
+use serde_json::Value;
+
 use crate::file::File;
 use crate::results::{Message, Violation};
-use crate::rules::Rule as _;
-use crate::rules::ast_support::walk_statement_expressions;
+use crate::rules::taint_support::{self, Settings};
+use crate::security::{FileTaint, TaintMode};
 
 pub(crate) static CODE: &str = "E0087";
 static DESCRIPTION: &str = "Command execution with backticks";
 
 #[derive(Default)]
-pub struct Rule {}
+pub struct Rule {
+    settings: Settings,
+}
 
 impl crate::rules::Rule for Rule {
     fn get_code(&self) -> String {
@@ -28,30 +31,31 @@ impl crate::rules::Rule for Rule {
         Vec::new()
     }
 
-    fn validate_file(&self, file: &File<'_>) -> Option<Vec<Violation>> {
-        let program = file.ast?;
-        let mut violations = Vec::new();
+    fn taint_mode(&self) -> Option<TaintMode> {
+        Some(self.settings.taint_mode)
+    }
 
-        for statement in program.statements.iter() {
-            walk_statement_expressions(statement, &mut |expression| {
-                match expression {
-                    Expression::CompositeString(CompositeString::ShellExecute(shell)) => {
-                        if shell.parts.iter().any(|part| {
-                            matches!(part, StringPart::Expression(_) | StringPart::BracedExpression(_))
-                        }) {
-                            let message = Message::new(
-                                "E0087:backtick-command",
-                                "Backtick command execution with interpolated input can lead to command injection. Use escapeshellarg() on user input.",
-                            );
-                            violations.push(self.new_violation(file, message, expression.span()));
-                        }
-                    }
-                    _ => {}
-                }
-            });
+    fn settings_json(&self) -> Option<Value> {
+        serde_json::to_value(&self.settings).ok()
+    }
+
+    fn set_config(&mut self, json: &Value) {
+        if let Ok(settings) = serde_json::from_value::<Settings>(json.clone()) {
+            self.settings = settings;
         }
+    }
 
-        Some(violations)
+    fn validate_file_with_taint(
+        &self,
+        file: &File<'_>,
+        taint: &FileTaint,
+    ) -> Option<Vec<Violation>> {
+        taint_support::scan_backticks(self, &self.settings, file, taint, || {
+            Message::new(
+                "E0087:backtick-command",
+                "Backtick command execution with interpolated input can lead to command injection. Use escapeshellarg() on user input.",
+            )
+        })
     }
 }
 
@@ -71,5 +75,21 @@ mod tests {
     #[test]
     fn accepts_safe() {
         assert!(analyze_file_for_rule("e87/safe.php", CODE).is_empty());
+    }
+
+    #[test]
+    fn accepts_a_literal_backtick_command() {
+        assert!(analyze_file("<?php\n$output = `ls -la`;\n").is_empty());
+    }
+
+    #[test]
+    fn reports_request_interpolation() {
+        let violations = analyze_file("<?php\n$dir = $_GET['dir'];\n$output = `ls $dir`;\n");
+        assert_eq!(violations.len(), 1);
+        assert!(violations[0].taint_source.is_some());
+    }
+
+    fn analyze_file(source: &str) -> Vec<Violation> {
+        crate::rules::tests::analyze_source_for_rule(source, "inline.php", CODE)
     }
 }

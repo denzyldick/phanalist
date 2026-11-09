@@ -19,6 +19,7 @@ mod config;
 mod debug_stats;
 mod engineer;
 mod file;
+mod fingerprint;
 mod lsp;
 mod outputs;
 mod paths;

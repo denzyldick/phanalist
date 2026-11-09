@@ -19,6 +19,8 @@ pub struct CallGraph {
     pub reverse: HashMap<String, BTreeSet<String>>,
     /// Functions that are defined but never called (potential entry points).
     pub entry_points: BTreeSet<String>,
+    /// callee -> parameter indexes that received request-derived arguments.
+    pub request_args: HashMap<String, BTreeSet<usize>>,
 }
 
 impl CallGraph {
@@ -27,12 +29,20 @@ impl CallGraph {
             edges: HashMap::new(),
             reverse: HashMap::new(),
             entry_points: BTreeSet::new(),
+            request_args: HashMap::new(),
         }
     }
 
     pub fn add_edge(&mut self, caller: &str, callee: &str) {
         self.edges.entry(caller.to_string()).or_default().insert(callee.to_string());
         self.reverse.entry(callee.to_string()).or_default().insert(caller.to_string());
+    }
+
+    pub fn add_request_arg(&mut self, callee: &str, index: usize) {
+        self.request_args
+            .entry(callee.to_string())
+            .or_default()
+            .insert(index);
     }
 
     pub fn callees(&self, caller: &str) -> Option<&BTreeSet<String>> {
@@ -100,9 +110,16 @@ pub struct SinkSourceInfo {
     pub source_file: Option<String>,
     /// Line where the tainted data originates (if known).
     pub source_line: Option<usize>,
+    /// Name of the function containing the sink.
+    pub enclosing_function: Option<String>,
 }
 
 /// A dangerous operation that the taint pass understands.
+///
+/// Every security rule that reasons about attacker-controlled data should query
+/// one of these kinds instead of guessing from the shape of an expression. The
+/// sink registry below decides which argument of a call feeds which kind, so a
+/// rule only has to find the call and ask whether tainted data reaches it.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum SinkKind {
     Eval,
@@ -111,6 +128,25 @@ pub enum SinkKind {
     Include,
     Extract,
     VariableVariable,
+    Sql,
+    Html,
+    Shell,
+    Header,
+    Mail,
+    Ldap,
+    XPath,
+    Nosql,
+    Xml,
+    FilePath,
+    Ssrf,
+    Log,
+    /// A tainted callable, class name or method receiver. Covers variable
+    /// functions, dynamic instantiation and dynamic method calls.
+    Callable,
+    /// A tainted reflection member name or argument.
+    Reflection,
+    /// A tainted template source passed to a template engine.
+    Template,
 }
 
 /// One source-to-sink flow discovered in a file.
@@ -166,8 +202,13 @@ impl FileTaint {
         file: &File<'_>,
     ) -> Option<SinkSourceInfo> {
         self.find(kind, span).map(|sink| {
-            let mut origins: Vec<String> = sink.origins.iter().cloned().collect();
-            origins.sort();
+            let mut displayed: BTreeSet<String> = sink
+                .origins
+                .iter()
+                .map(|origin| base_origin(origin).to_string())
+                .collect();
+            displayed.retain(|origin| !origin.is_empty());
+            let origins: Vec<String> = displayed.into_iter().collect();
             let source_kind = sink.source_kind;
             let source_line = file.line_number(sink.span.start.offset);
             let source_file = Some(file.path.to_string_lossy().to_string());
@@ -177,6 +218,7 @@ impl FileTaint {
                 origins,
                 source_file,
                 source_line: Some(source_line),
+                enclosing_function: sink.enclosing_function.clone(),
             }
         })
     }
@@ -194,8 +236,8 @@ pub(crate) struct TaintSummary {
     pub return_from: Vec<usize>,
     /// The return value is tainted by a source created inside the callee.
     pub returns_source: bool,
-    /// Parameter indexes whose taint reaches a sink inside the callee.
-    pub param_sinks: Vec<(usize, SinkKind)>,
+    /// Parameter indexes whose taint reaches a sink inside the callee, with the sink's span.
+    pub param_sinks: Vec<(usize, SinkKind, Span)>,
 }
 
 struct FunctionDef<'arena> {
@@ -305,12 +347,32 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
             }
             Statement::Echo(statement) => {
                 for value in statement.values.iter() {
-                    self.eval(value, state);
+                    let origins = self.eval(value, state);
+                    if !origins.is_empty() {
+                        self.record(
+                            SinkKind::Html,
+                            value.span(),
+                            value.span(),
+                            origins,
+                            None,
+                            &state.sanitized_origins,
+                        );
+                    }
                 }
             }
             Statement::EchoTag(statement) => {
                 for value in statement.values.iter() {
-                    self.eval(value, state);
+                    let origins = self.eval(value, state);
+                    if !origins.is_empty() {
+                        self.record(
+                            SinkKind::Html,
+                            value.span(),
+                            value.span(),
+                            origins,
+                            None,
+                            &state.sanitized_origins,
+                        );
+                    }
                 }
             }
             Statement::If(statement) => {
@@ -514,6 +576,17 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
                         }
                     }
                 }
+                // Backticks are shell execution, not string interpolation.
+                if matches!(string, CompositeString::ShellExecute(_)) && !origins.is_empty() {
+                    self.record(
+                        SinkKind::Shell,
+                        string.span(),
+                        string.span(),
+                        origins.clone(),
+                        None,
+                        &state.sanitized_origins,
+                    );
+                }
                 origins
             }
             Expression::Array(array) => self.eval_array_elements(&array.elements, state),
@@ -527,6 +600,19 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
                 Access::StaticProperty(_) | Access::ClassConstant(_) => Origins::new(),
             },
             Expression::Instantiation(instantiation) => {
+                // `new $class(...)` is a callable sink when the class name is
+                // attacker-controlled.
+                let class_origins = self.eval(instantiation.class, state);
+                if !class_origins.is_empty() {
+                    self.record(
+                        SinkKind::Callable,
+                        instantiation.span(),
+                        instantiation.span(),
+                        class_origins,
+                        None,
+                        &state.sanitized_origins,
+                    );
+                }
                 let mut origins = Origins::new();
                 if let Some(arguments) = &instantiation.argument_list {
                     for argument in arguments.arguments.iter() {
@@ -792,9 +878,53 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
             .map(|argument| self.eval(argument, state))
             .collect::<Vec<_>>();
 
+        let call_span = call_span(call);
+
+        // A tainted callee is a sink of its own: variable functions, dynamic
+        // method receivers, dynamic method names and dynamic class names let
+        // an attacker choose what code runs. This must happen before the name
+        // lookup because a dynamic method has no static name.
+        let mut callee_taint = match call {
+            Call::Function(call) => self.eval(call.function, state),
+            Call::Method(call) => self.eval(call.object, state),
+            Call::NullSafeMethod(call) => self.eval(call.object, state),
+            Call::StaticMethod(call) => self.eval(call.class, state),
+        };
+        match call {
+            Call::Method(call) => {
+                callee_taint.extend(self.selector_taint(&call.method, state));
+            }
+            Call::NullSafeMethod(call) => {
+                callee_taint.extend(self.selector_taint(&call.method, state));
+            }
+            Call::StaticMethod(call) => {
+                callee_taint.extend(self.selector_taint(&call.method, state));
+            }
+            Call::Function(_) => {}
+        }
+        if !callee_taint.is_empty() {
+            self.record(
+                SinkKind::Callable,
+                call_span,
+                call_span,
+                callee_taint,
+                None,
+                &state.sanitized_origins,
+            );
+        }
+
         let Some(name) = call_name(call) else {
             return union(&argument_taints);
         };
+        let is_method = !matches!(call, Call::Function(_));
+
+        // Remember when a request-derived value is passed to a function, so
+        // cross-file analysis can recognise the callee's sinks as request-rooted.
+        for (index, taint) in argument_taints.iter().enumerate() {
+            if taint.iter().any(|origin| is_request_origin(origin)) {
+                self.call_graph.add_request_arg(&name, index);
+            }
+        }
 
         // Record call graph edge: current function -> callee
         if let Some(caller) = &self.current_function {
@@ -804,26 +934,54 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
         match call {
             Call::Function(call) => {
                 if let Some(origins) = self.function_source(&name, &arguments) {
-                    self.record_argument_sinks(&name, call.span(), &arguments, &argument_taints, &state.sanitized_origins);
+                    self.record_argument_sinks(
+                        &name,
+                        is_method,
+                        call.span(),
+                        &arguments,
+                        &argument_taints,
+                        &state.sanitized_origins,
+                    );
                     return origins;
                 }
             }
             Call::Method(call) => {
                 if is_request_method(&name) && is_request_object(call.object) {
-                    self.record_argument_sinks(&name, call.span(), &arguments, &argument_taints, &state.sanitized_origins);
+                    self.record_argument_sinks(
+                        &name,
+                        is_method,
+                        call.span(),
+                        &arguments,
+                        &argument_taints,
+                        &state.sanitized_origins,
+                    );
                     return single_origin(format!("request->{name}()"));
                 }
             }
             Call::NullSafeMethod(call) => {
                 if is_request_method(&name) && is_request_object(call.object) {
-                    self.record_argument_sinks(&name, call.span(), &arguments, &argument_taints, &state.sanitized_origins);
+                    self.record_argument_sinks(
+                        &name,
+                        is_method,
+                        call.span(),
+                        &arguments,
+                        &argument_taints,
+                        &state.sanitized_origins,
+                    );
                     return single_origin(format!("request->{name}()"));
                 }
             }
             Call::StaticMethod(_) => {}
         }
 
-        self.record_argument_sinks(&name, call.span(), &arguments, &argument_taints, &state.sanitized_origins);
+        self.record_argument_sinks(
+            &name,
+            is_method,
+            call_span,
+            &arguments,
+            &argument_taints,
+            &state.sanitized_origins,
+        );
 
         if let Some(summary) = self.summary(&name) {
             let mut origins = Origins::new();
@@ -835,82 +993,113 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
             if summary.returns_source {
                 origins.insert(format!("{name}()"));
             }
-            let param_sinks = summary.param_sinks.clone();
-            for (index, kind) in &param_sinks {
-                if let Some(taint) = argument_taints.get(*index) {
-                    if !taint.is_empty() {
-                        self.record(
-                            *kind,
-                            call.span(),
-                            call.span(),
-                            taint.clone(),
-                            Some(name.clone()),
-                            &state.sanitized_origins,
-                        );
+            if let Some(param_sinks) = self.summary(&name).map(|s| s.param_sinks.clone()) {
+                for (index, kind, span) in &param_sinks {
+                    if let Some(taint) = argument_taints.get(*index) {
+                        if !taint.is_empty() {
+                            // Record at the sink's span (inside the callee body) so it
+                            // merges with the sink already found during callee analysis,
+                            // updating request_rooted based on the caller's argument taint.
+                            self.record(
+                                *kind,
+                                *span,
+                                *span,
+                                taint.clone(),
+                                Some(name.clone()),
+                                &state.sanitized_origins,
+                            );
+                        }
                     }
                 }
             }
             origins
-        } else if is_sanitizer(&name) {
-            Origins::new()
+        } else if let Some(scope) = sanitizer_scope(&name) {
+            // Keep the origin so it is still tainted for sinks the sanitizer
+            // does not cover, but mark it as neutralized for its own context.
+            mark_sanitized(&union(&argument_taints), scope)
         } else {
             union(&argument_taints)
         }
     }
 
+    /// Taint carried by a dynamic method selector such as `$object->{$name}()`.
+    fn selector_taint(
+        &mut self,
+        selector: &'arena ClassLikeMemberSelector<'arena>,
+        state: &mut State,
+    ) -> Origins {
+        match selector {
+            ClassLikeMemberSelector::Variable(variable) => self.eval_variable(variable, state),
+            ClassLikeMemberSelector::Expression(selector) => self.eval(selector.expression, state),
+            ClassLikeMemberSelector::Identifier(_) | ClassLikeMemberSelector::Missing(_) => {
+                Origins::new()
+            }
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
     fn record_argument_sinks(
         &mut self,
         name: &str,
+        is_method: bool,
         call_span: Span,
         arguments: &[&'arena Expression<'arena>],
         argument_taints: &[Origins],
         sanitized_origins: &BTreeSet<String>,
     ) {
-        match name {
-            "assert" => {
-                if let Some(taint) = argument_taints.first() {
-                    if !taint.is_empty() && arguments.first().is_some_and(|arg| is_code_string(arg))
-                    {
-                        self.record(
-                            SinkKind::AssertString,
-                            arguments[0].span(),
-                            call_span,
-                            taint.clone(),
-                            None,
-                            sanitized_origins,
-                        );
-                    }
+        // `assert()` evaluates its argument as code when given a string. The
+        // taint engine does not track types, so any tainted argument is
+        // reported; an untainted boolean expression stays clean.
+        if !is_method && name == "assert" {
+            if let Some(taint) = argument_taints.first() {
+                if !taint.is_empty() {
+                    self.record(
+                        SinkKind::AssertString,
+                        arguments[0].span(),
+                        call_span,
+                        taint.clone(),
+                        None,
+                        sanitized_origins,
+                    );
                 }
             }
-            "unserialize" => {
-                if let Some(taint) = argument_taints.first() {
+        }
+
+        for spec in call_sink_args(name, is_method) {
+            let mut origins = Origins::new();
+            let mut anchor: Option<Span> = None;
+            if spec.all {
+                for (index, taint) in argument_taints.iter().enumerate() {
                     if !taint.is_empty() {
-                        self.record(
-                            SinkKind::Unserialize,
-                            arguments[0].span(),
-                            call_span,
-                            taint.clone(),
-                            None,
-                            sanitized_origins,
-                        );
+                        origins.extend(taint.iter().cloned());
+                        if anchor.is_none() {
+                            anchor = arguments.get(index).map(|argument| argument.span());
+                        }
+                    }
+                }
+            } else {
+                for index in spec.indexes {
+                    if let Some(taint) = argument_taints.get(*index) {
+                        if !taint.is_empty() {
+                            origins.extend(taint.iter().cloned());
+                            if anchor.is_none() {
+                                anchor = arguments.get(*index).map(|argument| argument.span());
+                            }
+                        }
                     }
                 }
             }
-            "extract" => {
-                if let Some(taint) = argument_taints.first() {
-                    if !taint.is_empty() {
-                        self.record(
-                            SinkKind::Extract,
-                            arguments[0].span(),
-                            call_span,
-                            taint.clone(),
-                            None,
-                            sanitized_origins,
-                        );
-                    }
-                }
+            if origins.is_empty() {
+                continue;
             }
-            _ => {}
+            self.record(
+                spec.kind,
+                anchor.unwrap_or(call_span),
+                call_span,
+                origins,
+                None,
+                sanitized_origins,
+            );
         }
     }
 
@@ -994,7 +1183,17 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
                 self.eval(construct.value, state);
             }
             Construct::Print(construct) => {
-                self.eval(construct.value, state);
+                let origins = self.eval(construct.value, state);
+                if !origins.is_empty() {
+                    self.record(
+                        SinkKind::Html,
+                        construct.value.span(),
+                        construct.value.span(),
+                        origins,
+                        None,
+                        &state.sanitized_origins,
+                    );
+                }
             }
             Construct::Exit(construct) => {
                 if let Some(arguments) = &construct.arguments {
@@ -1047,16 +1246,47 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
         via: Option<String>,
         sanitized_origins: &BTreeSet<String>,
     ) {
+        // Drop origins that a sanitizer has already neutralized for this sink's
+        // context. An HTML escape still leaves SQL/command data dangerous, so
+        // the marker is scoped rather than removing the origin outright.
+        let origins: Origins = origins
+            .into_iter()
+            .filter(|origin| !origin_sanitized_for(origin, kind))
+            .collect();
+        if origins.is_empty() {
+            return;
+        }
+
         let already = self.sinks.iter().any(|sink| {
-            sink.kind == kind && same_span(sink.span, span) && same_span(sink.call_span, call_span)
+            sink.kind == kind && same_span(sink.span, span)
         });
         if already {
+            // Merge origins instead of skipping - this handles interprocedural
+            // taint where the same sink is reached from multiple call sites
+            if let Some(existing) = self.sinks.iter_mut().find(|sink| {
+                sink.kind == kind && same_span(sink.span, span)
+            }) {
+                existing.origins.extend(origins);
+                existing.via = existing.via.clone().or(via.clone());
+                existing.request_rooted = existing.origins.iter().any(|o| is_request_origin(o));
+                existing.source_kind = if existing.request_rooted {
+                    SourceKind::Request
+                } else if existing
+                    .origins
+                    .iter()
+                    .any(|o| base_origin(o).starts_with('$'))
+                {
+                    SourceKind::Parameter
+                } else {
+                    SourceKind::Internal
+                };
+            }
             return;
         }
         let request_rooted = origins.iter().any(|o| is_request_origin(o));
         let source_kind = if request_rooted {
             SourceKind::Request
-        } else if origins.iter().any(|o| o.starts_with('$')) {
+        } else if origins.iter().any(|o| base_origin(o).starts_with('$')) {
             SourceKind::Parameter
         } else {
             SourceKind::Internal
@@ -1101,6 +1331,225 @@ fn single_origin(origin: String) -> Origins {
     origins
 }
 
+/// A sink fed by one or more arguments of a call.
+///
+/// `all` marks functions where every argument can reach the sink (`printf`,
+/// `mail` and friends); otherwise `indexes` lists the arguments that matter.
+#[derive(Clone, Copy)]
+struct SinkArg {
+    kind: SinkKind,
+    all: bool,
+    indexes: &'static [usize],
+}
+
+const fn sink(kind: SinkKind, indexes: &'static [usize]) -> SinkArg {
+    SinkArg {
+        kind,
+        all: false,
+        indexes,
+    }
+}
+
+const fn sink_all(kind: SinkKind) -> SinkArg {
+    SinkArg {
+        kind,
+        all: true,
+        indexes: &[],
+    }
+}
+
+/// Sinks reached through a plain function call.
+fn function_sink_args(name: &str) -> Vec<SinkArg> {
+    match name {
+        // SQL. `mysqli_query($link, $query)` and `sqlite_query($link, $query)`
+        // put the query second; the older helpers put it first.
+        "mysqli_query" | "mysqli_real_query" | "mysqli_multi_query" | "sqlite_query"
+        | "sqlite_exec" => vec![sink(SinkKind::Sql, &[1])],
+        "mysql_query" => vec![sink(SinkKind::Sql, &[0])],
+        "pg_query" | "pg_exec" | "pg_send_query" => vec![sink(SinkKind::Sql, &[0, 1])],
+
+        // Command execution.
+        "system" | "exec" | "shell_exec" | "passthru" | "popen" | "proc_open"
+        | "pcntl_exec" => vec![sink(SinkKind::Shell, &[0])],
+
+        // Deserialization.
+        "unserialize" | "wddx_deserialize" | "session_decode" => {
+            vec![sink(SinkKind::Unserialize, &[0])]
+        }
+
+        "extract" => vec![sink(SinkKind::Extract, &[0])],
+
+        // Direct output.
+        "printf" | "vprintf" => vec![sink_all(SinkKind::Html)],
+
+        // Response headers and cookies.
+        "header" | "header_remove" | "setcookie" | "setrawcookie" => {
+            vec![sink_all(SinkKind::Header)]
+        }
+
+        // Mail headers/recipients.
+        "mail" | "mb_send_mail" => vec![sink_all(SinkKind::Mail)],
+
+        // LDAP search filters are the third argument.
+        "ldap_search" | "ldap_list" | "ldap_read" => {
+            vec![sink(SinkKind::Ldap, &[2])]
+        }
+
+        // XML/XPath parsing.
+        "simplexml_load_string" | "simplexml_load_file" => {
+            vec![sink(SinkKind::Xml, &[0]), sink(SinkKind::FilePath, &[0])]
+        }
+
+        // Filesystem. These are also potential SSRF vectors when the path is a
+        // URL, so record both kinds and let each rule ask for its own.
+        "file_get_contents" | "file" | "readfile" | "fopen" | "file_put_contents" | "unlink"
+        | "file_exists" | "is_file" | "is_dir" | "scandir" | "opendir" => {
+            vec![sink(SinkKind::FilePath, &[0]), sink(SinkKind::Ssrf, &[0])]
+        }
+        "curl_init" | "fsockopen" => vec![sink(SinkKind::Ssrf, &[0])],
+        "curl_exec" => vec![sink(SinkKind::Ssrf, &[0])],
+
+        // Logs.
+        "error_log" => vec![sink(SinkKind::Log, &[0, 2])],
+        "syslog" => vec![sink(SinkKind::Log, &[1])],
+
+        // NoSQL drivers.
+        "mongo_insert" | "mongo_update" | "mongo_find" => vec![sink_all(SinkKind::Nosql)],
+
+        // Template engines exposed as functions. The rule treats the whole
+        // call as the sink, so every argument is considered.
+        "str_replace" | "preg_replace" => vec![sink_all(SinkKind::Template)],
+
+        // Upload destinations.
+        "move_uploaded_file" => vec![sink(SinkKind::FilePath, &[1])],
+
+        _ => vec![],
+    }
+}
+
+/// Sinks reached through `$object->method()`, `$object?->method()` or
+/// `Class::method()`. The class name is not available here (see `call_name`),
+/// so this table only includes method names whose sink is unambiguous.
+fn method_sink_args(name: &str) -> Vec<SinkArg> {
+    match name {
+        "query" | "exec" | "real_query" | "multi_query" => vec![sink(SinkKind::Sql, &[0, 1])],
+        "load" => vec![sink(SinkKind::Xml, &[0]), sink(SinkKind::FilePath, &[0])],
+        "loadxml" => vec![sink(SinkKind::Xml, &[0])],
+        "xpath" => vec![sink(SinkKind::XPath, &[0])],
+        "search" => vec![sink(SinkKind::Ldap, &[1])],
+        // Reflection.
+        "invoke" | "invokeargs" | "setaccessible" | "getvalue" | "setvalue" => {
+            vec![sink_all(SinkKind::Reflection)]
+        }
+        // Template engines.
+        "render" | "renderblock" | "createtemplate" => vec![sink_all(SinkKind::Template)],
+        // NoSQL manager.
+        "createclient" => vec![sink_all(SinkKind::Nosql)],
+        // NoSQL collection operations.
+        "insertone" | "insertmany" | "updateone" | "updatemany" | "replaceone" | "deleteone"
+        | "deletemany" | "findone" | "find" | "aggregate" | "countdocuments" | "distinct" => {
+            vec![sink_all(SinkKind::Nosql)]
+        }
+        _ => vec![],
+    }
+}
+
+fn call_sink_args(name: &str, is_method: bool) -> Vec<SinkArg> {
+    if is_method {
+        method_sink_args(name)
+    } else {
+        function_sink_args(name)
+    }
+}
+
+/// Marker wrapped around an origin that has passed through a sanitizer. The
+/// scope says which sink kind the sanitizer neutralizes; the underlying origin
+/// is kept so the value still counts as tainted for other sinks.
+const SANITIZE_MARK: char = '\u{1}';
+const SANITIZE_SEP: char = '\u{2}';
+
+fn mark_sanitized(origins: &Origins, scope: &str) -> Origins {
+    origins
+        .iter()
+        .map(|origin| {
+            if origin_has_scope(origin, scope) {
+                origin.clone()
+            } else {
+                format!("{SANITIZE_MARK}{scope}{SANITIZE_SEP}{origin}")
+            }
+        })
+        .collect()
+}
+
+/// The sanitizer scope for a function name, if it is a sanitizer.
+///
+/// `all` means the output is safe in any context (numeric casts, hashes).
+/// The other scopes only neutralize their own sink kind, so escaping a value
+/// for HTML does not hide a SQL injection.
+fn sanitizer_scope(name: &str) -> Option<&'static str> {
+    match name {
+        "intval" | "floatval" | "boolval" | "abs" | "strlen" | "count" | "sizeof" | "ord"
+        | "bin2hex" | "dechex" | "md5" | "sha1" | "hash" | "hash_hmac" | "crc32" => {
+            Some("all")
+        }
+        "htmlspecialchars" | "htmlentities" | "strip_tags" | "esc_html" | "esc_attr" => {
+            Some("html")
+        }
+        "escapeshellarg" | "escapeshellcmd" => Some("shell"),
+        "addslashes" | "mysqli_real_escape_string" | "pg_escape_string" | "sqlite_escape_string" => {
+            Some("sql")
+        }
+        "basename" => Some("path"),
+        _ => None,
+    }
+}
+
+fn split_sanitized(origin: &str) -> Option<(&str, &str)> {
+    let rest = origin.strip_prefix(SANITIZE_MARK)?;
+    rest.split_once(SANITIZE_SEP)
+}
+
+/// Strip every sanitizer marker and return the underlying origin.
+fn base_origin(origin: &str) -> &str {
+    let mut current = origin;
+    while let Some((_, inner)) = split_sanitized(current) {
+        current = inner;
+    }
+    current
+}
+
+fn origin_has_scope(origin: &str, scope: &str) -> bool {
+    let mut current = origin;
+    while let Some((found, inner)) = split_sanitized(current) {
+        if found == scope {
+            return true;
+        }
+        current = inner;
+    }
+    false
+}
+
+fn origin_sanitized_for(origin: &str, kind: SinkKind) -> bool {
+    let mut current = origin;
+    while let Some((scope, inner)) = split_sanitized(current) {
+        if scope == "all" || scope_neutralizes(scope, kind) {
+            return true;
+        }
+        current = inner;
+    }
+    false
+}
+
+fn scope_neutralizes(scope: &str, kind: SinkKind) -> bool {
+    match scope {
+        "html" => kind == SinkKind::Html,
+        "shell" => kind == SinkKind::Shell,
+        "sql" => kind == SinkKind::Sql,
+        "path" => kind == SinkKind::FilePath,
+        _ => false,
+    }
+}
+
 fn variable_name(name: &[u8]) -> String {
     let name = String::from_utf8_lossy(name);
     name.strip_prefix('$').unwrap_or(&name).to_string()
@@ -1112,6 +1561,16 @@ fn call_name(call: &Call<'_>) -> Option<String> {
         Call::Method(call) => method_name(&call.method),
         Call::NullSafeMethod(call) => method_name(&call.method),
         Call::StaticMethod(call) => method_name(&call.method),
+    }
+}
+
+/// The span of any call form.
+fn call_span(call: &Call<'_>) -> Span {
+    match call {
+        Call::Function(call) => call.span(),
+        Call::Method(call) => call.span(),
+        Call::NullSafeMethod(call) => call.span(),
+        Call::StaticMethod(call) => call.span(),
     }
 }
 
@@ -1171,39 +1630,9 @@ fn is_request_object(expression: &Expression<'_>) -> bool {
     }
 }
 
-fn is_code_string(expression: &Expression<'_>) -> bool {
-    match expression.unparenthesized() {
-        Expression::Literal(Literal::String(_)) => true,
-        Expression::Binary(binary) => matches!(binary.operator, BinaryOperator::StringConcat(_)),
-        _ => false,
-    }
-}
-
-fn is_sanitizer(name: &str) -> bool {
-    matches!(
-        name,
-        "intval"
-            | "floatval"
-            | "boolval"
-            | "abs"
-            | "strlen"
-            | "count"
-            | "sizeof"
-            | "ord"
-            | "bin2hex"
-            | "dechex"
-            | "md5"
-            | "sha1"
-            | "hash"
-            | "hash_hmac"
-            | "crc32"
-    )
-}
-
-
 /// Returns true if an origin string represents request-controlled data.
 fn is_request_origin(origin: &str) -> bool {
-    let o = origin.trim();
+    let o = base_origin(origin).trim();
     // Superglobals
     o.starts_with("$_GET")
         || o.starts_with("$_POST")
@@ -1261,31 +1690,94 @@ pub(crate) fn analyze_file<'arena>(
     file: &File<'arena>,
     summaries: &HashMap<String, TaintSummary>,
     source_filter: SourceFilter,
-) -> (FileTaint, CallGraph) {
+) -> (FileTaint, CallGraph, HashMap<String, TaintSummary>) {
     let Some(program) = file.ast else {
-        return (FileTaint::default(), CallGraph::new());
+        return (FileTaint::default(), CallGraph::new(), HashMap::new());
     };
 
-    let mut sinks = Vec::new();
-    let mut call_graph = CallGraph::new();
-
-    let mut top_level = Analyzer::new(summaries, false, source_filter);
-    let mut state = State::default();
-    top_level.analyze_statements(program.statements.as_slice(), &mut state);
-    sinks.append(&mut top_level.sinks);
-    call_graph = top_level.call_graph;
-
+    // Phase 1: Analyze all function bodies first so their summaries are available
+    // when analyzing top-level code that calls them.
     let functions = collect_function_bodies(program.statements.as_slice());
-    for function in functions {
-        let function_name = function.names.first().map(|s| s.as_str());
+    let (phase1_graph, function_summaries, phase1_sinks) = {
         let mut analyzer = Analyzer::new(summaries, true, source_filter);
-        let (_, mut function_sinks) = analyzer.analyze_function(function_name, &function.params, function.body);
-        sinks.append(&mut function_sinks);
-        call_graph.edges.extend(analyzer.call_graph.edges);
-        call_graph.reverse.extend(analyzer.call_graph.reverse);
-    }
+        let mut function_summaries = HashMap::new();
+        let mut phase1_sinks = Vec::new();
 
-    (FileTaint::new(sinks), call_graph)
+        for function in &functions {
+            let function_name = function.names.first().map(|s| s.as_str());
+            let (return_taint, mut function_sinks) = analyzer.analyze_function(
+                function_name,
+                &function.params,
+                function.body,
+            );
+
+            // Compute the summary from the sinks before moving them out.
+            let mut return_from = Vec::new();
+            let mut returns_source = false;
+            for origin in &return_taint {
+                if let Some(index) = parameter_index(origin, &function.params) {
+                    if !return_from.contains(&index) {
+                        return_from.push(index);
+                    }
+                } else {
+                    returns_source = true;
+                }
+            }
+
+            let mut param_sinks = Vec::new();
+            for sink in &function_sinks {
+                for origin in &sink.origins {
+                    if let Some(index) = parameter_index(origin, &function.params) {
+                        let entry = (index, sink.kind, sink.span);
+                        if !param_sinks.contains(&entry) {
+                            param_sinks.push(entry);
+                        }
+                    }
+                }
+            }
+
+            phase1_sinks.append(&mut function_sinks);
+
+            if let Some(name) = function_name {
+                function_summaries.insert(
+                    name.to_string().to_ascii_lowercase(),
+                    TaintSummary {
+                        params: function.params.clone(),
+                        return_from,
+                        returns_source,
+                        param_sinks,
+                    },
+                );
+            }
+        }
+
+        (
+            std::mem::take(&mut analyzer.call_graph),
+            function_summaries,
+            phase1_sinks,
+        )
+    };
+
+    // Phase 2: Analyze top-level code with summaries from both other files and
+    // this file, seeded with the sinks found inside function bodies so that
+    // interprocedural propagation can merge into them.
+    let mut all_summaries = summaries.clone();
+    all_summaries.extend(
+        function_summaries
+            .iter()
+            .map(|(name, summary)| (name.clone(), summary.clone())),
+    );
+
+    let mut analyzer = Analyzer::new(&all_summaries, true, source_filter);
+    analyzer.sinks = phase1_sinks;
+    analyzer.call_graph = phase1_graph;
+
+    let mut state = State::default();
+    analyzer.analyze_statements(program.statements.as_slice(), &mut state);
+
+    let sinks = std::mem::take(&mut analyzer.sinks);
+    let call_graph = analyzer.call_graph;
+    (FileTaint::new(sinks), call_graph, function_summaries)
 }
 
 pub(crate) fn summarize_file<'arena>(
@@ -1299,14 +1791,19 @@ pub(crate) fn summarize_file<'arena>(
     let functions = collect_function_bodies(program.statements.as_slice());
     let mut summaries: HashMap<String, TaintSummary> = HashMap::new();
 
-    // Two passes let helpers call each other with a useful local summary.
-    for _ in 0..2 {
+    // Iterate to a fixpoint so helpers that call other helpers propagate
+    // taint transitively (bounded to keep pathological chains cheap).
+    let max_passes = functions.len().clamp(1, 8);
+    for _ in 0..max_passes {
         let mut next = HashMap::new();
         for function in &functions {
             let summary = summarize_function(function, &summaries);
             for name in &function.names {
-                next.entry(name.clone()).or_insert_with(|| summary.clone());
+                next.entry(name.clone().to_ascii_lowercase()).or_insert_with(|| summary.clone());
             }
+        }
+        if next == summaries {
+            break;
         }
         summaries = next;
     }
@@ -1314,8 +1811,8 @@ pub(crate) fn summarize_file<'arena>(
     let mut entries = Vec::new();
     for function in &functions {
         for name in &function.names {
-            if let Some(summary) = summaries.get(name) {
-                entries.push((name.clone(), summary.clone()));
+            if let Some(summary) = summaries.get(&name.to_ascii_lowercase()) {
+                entries.push((name.to_ascii_lowercase(), summary.clone()));
             }
         }
     }
@@ -1346,8 +1843,9 @@ fn summarize_function(
     for sink in sinks {
         for origin in &sink.origins {
             if let Some(index) = parameter_index(origin, &function.params) {
-                if !param_sinks.contains(&(index, sink.kind)) {
-                    param_sinks.push((index, sink.kind));
+                let entry = (index, sink.kind, sink.span);
+                if !param_sinks.contains(&entry) {
+                    param_sinks.push(entry);
                 }
             }
         }
@@ -1362,8 +1860,9 @@ fn summarize_function(
 }
 
 fn parameter_index(origin: &str, params: &[String]) -> Option<usize> {
+    let origin = base_origin(origin);
     let origin = origin.strip_prefix('$').unwrap_or(origin);
-    params.iter().position(|param| param == origin)
+    params.iter().position(|param| param.strip_prefix('$').unwrap_or(param) == origin)
 }
 
 fn collect_function_bodies<'arena>(

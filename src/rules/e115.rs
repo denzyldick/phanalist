@@ -3,13 +3,17 @@ use mago_syntax::cst::*;
 use crate::file::File;
 use crate::results::{Message, Violation};
 use crate::rules::Rule as _;
-use crate::rules::ast_support::{call_arguments, function_name, walk_statement_expressions};
+use crate::rules::ast_support::{call_arguments, walk_statement_expressions};
+use crate::rules::taint_support::{self, Settings};
+use crate::security::{FileTaint, SinkKind, TaintMode};
 
 pub(crate) static CODE: &str = "E0115";
 static DESCRIPTION: &str = "XXE via libxml";
 
 #[derive(Default)]
-pub struct Rule {}
+pub struct Rule {
+    settings: Settings,
+}
 
 impl crate::rules::Rule for Rule {
     fn get_code(&self) -> String {
@@ -28,94 +32,54 @@ impl crate::rules::Rule for Rule {
         Vec::new()
     }
 
-    fn validate_file(&self, file: &File<'_>) -> Option<Vec<Violation>> {
-        let program = file.ast?;
-        let mut violations = Vec::new();
+    fn taint_mode(&self) -> Option<TaintMode> {
+        Some(self.settings.taint_mode)
+    }
 
-        for statement in program.statements.iter() {
-            walk_statement_expressions(statement, &mut |expression| {
-                match expression {
-                    Expression::Call(Call::Function(call)) => {
-                        let Some(name) = function_name(call.function) else {
-                            return;
-                        };
-                        if !is_libxml_function(&name) {
-                            return;
-                        }
-                        let call = Call::Function(call.clone());
-                        let arguments = call_arguments(&call);
-                        if arguments.is_empty() {
-                            return;
-                        }
-                        if arguments.iter().any(|arg| has_user_input(arg)) {
-                            let message = Message::new(
-                                format!("E0115:xxe-libxml:{name}"),
-                                "{}() parses XML from user-controlled input. Disable external entity loading to prevent XXE.",
-                            )
-                            .arg("name", name);
-                            violations.push(self.new_violation(file, message, call.span()));
-                        }
-                    }
-                    Expression::Call(Call::StaticMethod(call)) => {
-                        let Some(name) = crate::rules::ast_support::method_name(&call.method) else {
-                            return;
-                        };
-                        if !is_libxml_function(&name) {
-                            return;
-                        }
-                        let call = Call::StaticMethod(call.clone());
-                        let arguments = call_arguments(&call);
-                        if arguments.is_empty() {
-                            return;
-                        }
-                        if arguments.iter().any(|arg| has_user_input(arg)) {
-                            let message = Message::new(
-                                format!("E0115:xxe-libxml:{name}"),
-                                "{}() parses XML from user-controlled input. Disable external entity loading to prevent XXE.",
-                            )
-                            .arg("name", name);
-                            violations.push(self.new_violation(file, message, call.span()));
-                        }
-                    }
-                    _ => {}
-                }
-            });
+    fn settings_json(&self) -> Option<serde_json::Value> {
+        serde_json::to_value(&self.settings).ok()
+    }
+
+    fn set_config(&mut self, json: &serde_json::Value) {
+        if let Ok(settings) = serde_json::from_value::<Settings>(json.clone()) {
+            self.settings = settings;
         }
+    }
 
-        Some(violations)
+    fn validate_file_with_taint(
+        &self,
+        file: &File<'_>,
+        taint: &FileTaint,
+    ) -> Option<Vec<Violation>> {
+        taint_support::scan_call_sinks(
+            self,
+            &self.settings,
+            file,
+            taint,
+            SinkKind::Xml,
+            |name, _is_method| is_libxml_function(name),
+            |name| {
+                Message::new(
+                    format!("E0115:xxe-libxml:{name}"),
+                    "{}() parses XML from user-controlled input. Disable external entity loading to prevent XXE.",
+                )
+                .arg("name", name)
+            },
+        )
     }
 }
+
 
 fn is_libxml_function(name: &str) -> bool {
-    matches!(
-        name,
-        "simplexml_load_file" | "simplexml_load_string" | "domdocument::load" | "domdocument::loadxml" | "loadxml" | "load"
-    )
-}
-
-fn has_user_input(expression: &Expression<'_>) -> bool {
-    match expression.unparenthesized() {
-        Expression::ArrayAccess(access) => {
-            if let Expression::Variable(Variable::Direct(variable)) = access.array.unparenthesized() {
-                true
-            } else {
-                false
-            }
-        }
-        Expression::Variable(Variable::Direct(variable)) => {
-            true
-        }
-        Expression::Binary(binary) if matches!(binary.operator, BinaryOperator::StringConcat(_)) => {
-            has_user_input(binary.lhs) || has_user_input(binary.rhs)
-        }
-        Expression::CompositeString(string) => {
-            string
-                .parts()
-                .iter()
-                .any(|part| matches!(part, StringPart::Expression(_) | StringPart::BracedExpression(_)))
-        }
-        _ => false,
-    }
+        matches!(
+            name,
+            "simplexml_load_file"
+                | "simplexml_load_string"
+                | "domdocument::load"
+                | "domdocument::loadxml"
+                | "loadxml"
+                | "load"
+        )
 }
 
 #[cfg(test)]
@@ -125,7 +89,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn reports_xxe_libxml() {
+    fn reports_xxe() {
         let violations = analyze_file_for_rule("e115/bad.php", CODE);
         assert!(!violations.is_empty());
         assert!(violations.iter().all(|v| v.rule == CODE));
@@ -134,5 +98,25 @@ mod tests {
     #[test]
     fn accepts_safe() {
         assert!(analyze_file_for_rule("e115/safe.php", CODE).is_empty());
+    }
+
+    #[test]
+    fn accepts_literal_xml() {
+        assert!(analyze_file(
+            "<?php\nsimplexml_load_string('<root><item>value</item></root>');\n"
+        )
+        .is_empty());
+    }
+
+    #[test]
+    fn reports_request_xml() {
+        let violations = analyze_file("<?php\nsimplexml_load_string($_POST['xml']);\n");
+        assert_eq!(violations.len(), 1);
+        assert!(violations[0].taint_source.is_some());
+    }
+
+
+    fn analyze_file(source: &str) -> Vec<Violation> {
+        crate::rules::tests::analyze_source_for_rule(source, "inline.php", CODE)
     }
 }

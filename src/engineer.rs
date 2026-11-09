@@ -819,6 +819,7 @@ mod tests {
             end_line: 12,
             end_column: 5,
             taint_source: None,
+            meta: Default::default(),
         };
         let key = violation_key(&v);
         assert_eq!(key, "E001:10:Something wrong at 5");

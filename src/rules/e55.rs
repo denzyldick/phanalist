@@ -108,6 +108,7 @@ impl crate::rules::Rule for Rule {
                         origins: info.origins,
                         file: info.source_file,
                         line: info.source_line,
+                        enclosing_function: info.enclosing_function,
                     });
                 }
                 violations.push(violation);

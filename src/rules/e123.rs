@@ -3,7 +3,8 @@ use mago_syntax::cst::*;
 use crate::file::File;
 use crate::results::{Message, Violation};
 use crate::rules::Rule as _;
-use crate::rules::ast_support::{call_arguments, function_name, walk_statement_expressions};
+use crate::rules::taint_support::{self, Settings};
+use crate::security::{FileTaint, TaintMode};
 
 pub(crate) static CODE: &str = "E0123";
 static DESCRIPTION: &str = "XSS via echo";
@@ -28,72 +29,27 @@ impl crate::rules::Rule for Rule {
         Vec::new()
     }
 
-    fn validate_file(&self, file: &File<'_>) -> Option<Vec<Violation>> {
-        let program = file.ast?;
-        let mut violations = Vec::new();
-
-        for statement in program.statements.iter() {
-            for nested in self.flatten_statements_to_validate(statement) {
-                if let Statement::Echo(echo) = nested {
-                    for value in echo.values.iter() {
-                        if has_user_input(value) {
-                            let message = Message::new(
-                                "E0123:xss-echo",
-                                "echo() outputs user-controlled input without HTML escaping, leading to cross-site scripting.",
-                            );
-                            violations.push(self.new_violation(file, message, value.span()));
-                        }
-                    }
-                }
-            }
-
-            walk_statement_expressions(statement, &mut |expression| {
-                if let Expression::Call(Call::Function(call)) = expression {
-                    let Some(name) = function_name(call.function) else {
-                        return;
-                    };
-                    if name != "echo" {
-                        return;
-                    }
-                    let call = Call::Function(call.clone());
-                    let arguments = call_arguments(&call);
-                    if arguments.iter().any(|arg| has_user_input(arg)) {
-                        let message = Message::new(
-                            "E0123:xss-echo",
-                            "echo() outputs user-controlled input without HTML escaping, leading to cross-site scripting.",
-                        );
-                        violations.push(self.new_violation(file, message, call.span()));
-                    }
-                }
-            });
-        }
-
-        Some(violations)
+    fn taint_mode(&self) -> Option<crate::security::TaintMode> {
+        Some(TaintMode::Only)
     }
-}
 
-fn has_user_input(expression: &Expression<'_>) -> bool {
-    match expression.unparenthesized() {
-        Expression::ArrayAccess(access) => {
-            if let Expression::Variable(Variable::Direct(variable)) = access.array.unparenthesized() {
-                true
-            } else {
-                false
-            }
-        }
-        Expression::Variable(Variable::Direct(variable)) => {
-            true
-        }
-        Expression::Binary(binary) if matches!(binary.operator, BinaryOperator::StringConcat(_)) => {
-            has_user_input(binary.lhs) || has_user_input(binary.rhs)
-        }
-        Expression::CompositeString(string) => {
-            string
-                .parts()
-                .iter()
-                .any(|part| matches!(part, StringPart::Expression(_) | StringPart::BracedExpression(_)))
-        }
-        _ => false,
+    fn settings_json(&self) -> Option<serde_json::Value> {
+        None
+    }
+
+    fn set_config(&mut self, _json: &serde_json::Value) {}
+
+    fn validate_file_with_taint(
+        &self,
+        file: &File<'_>,
+        taint: &crate::security::FileTaint,
+    ) -> Option<Vec<Violation>> {
+        taint_support::scan_output(self, &Settings::default(), file, taint, |_| {
+            Message::new(
+                "E0123:xss-echo",
+                "echo() outputs user-controlled input without HTML escaping, leading to cross-site scripting.",
+            )
+        })
     }
 }
 
@@ -113,5 +69,20 @@ mod tests {
     #[test]
     fn accepts_safe() {
         assert!(analyze_file_for_rule("e123/safe.php", CODE).is_empty());
+    }
+
+    #[test]
+    fn accepts_literal_echo() {
+        assert!(analyze_file("<?php\necho 'Hello';\\n").is_empty());
+    }
+
+    #[test]
+    fn reports_request_echo() {
+        let violations = analyze_file("<?php\necho $_GET['name'];\\n");
+        assert_eq!(violations.len(), 1);
+    }
+
+    fn analyze_file(source: &str) -> Vec<Violation> {
+        crate::rules::tests::analyze_source_for_rule(source, "inline.php", CODE)
     }
 }

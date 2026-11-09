@@ -1,15 +1,18 @@
-use mago_span::HasSpan;
 use mago_syntax::cst::*;
+use serde_json::Value;
+
 use crate::file::File;
 use crate::results::{Message, Violation};
-use crate::rules::Rule as _;
-use crate::rules::ast_support::{call_arguments, function_name, walk_statement_expressions};
+use crate::rules::taint_support::{self, Settings};
+use crate::security::{FileTaint, SinkKind, TaintMode};
 
 pub(crate) static CODE: &str = "E0072";
 static DESCRIPTION: &str = "Path traversal";
 
 #[derive(Default)]
-pub struct Rule {}
+pub struct Rule {
+    settings: Settings,
+}
 
 impl crate::rules::Rule for Rule {
     fn get_code(&self) -> String {
@@ -28,83 +31,58 @@ impl crate::rules::Rule for Rule {
         Vec::new()
     }
 
-    fn validate_file(&self, file: &File<'_>) -> Option<Vec<Violation>> {
-        let program = file.ast?;
-        let mut violations = Vec::new();
+    fn taint_mode(&self) -> Option<TaintMode> {
+        Some(self.settings.taint_mode)
+    }
 
-        for statement in program.statements.iter() {
-            walk_statement_expressions(statement, &mut |expression| {
-                let Expression::Call(Call::Function(call)) = expression else {
-                    return;
-                };
-                let Some(name) = function_name(call.function) else {
-                    return;
-                };
-                if !is_file_function(&name) {
-                    return;
-                }
+    fn settings_json(&self) -> Option<Value> {
+        serde_json::to_value(&self.settings).ok()
+    }
 
-                let call = Call::Function(call.clone());
-                let arguments = call_arguments(&call);
-                if arguments.is_empty() {
-                    return;
-                }
-
-                if arguments.iter().any(|arg| has_user_input(arg)) {
-                    let message = Message::new(
-                        format!("E0072:path-traversal:{name}"),
-                        "{}() opens a file from user-controlled input. Validate the path to prevent directory traversal.",
-                    )
-                    .arg("name", name);
-
-                    violations.push(self.new_violation(file, message, call.span()));
-                }
-            });
+    fn set_config(&mut self, json: &Value) {
+        if let Ok(settings) = serde_json::from_value::<Settings>(json.clone()) {
+            self.settings = settings;
         }
+    }
 
-        Some(violations)
+    fn validate_file_with_taint(
+        &self,
+        file: &File<'_>,
+        taint: &FileTaint,
+    ) -> Option<Vec<Violation>> {
+        taint_support::scan_call_sinks(
+            self,
+            &self.settings,
+            file,
+            taint,
+            SinkKind::FilePath,
+            |name, is_method| !is_method && is_file_function(name),
+            |name| {
+                Message::new(
+                    format!("E0072:path-traversal:{name}"),
+                    "{}() opens a file from user-controlled input. Validate the path to prevent directory traversal.",
+                )
+                .arg("name", name)
+            },
+        )
     }
 }
 
 fn is_file_function(name: &str) -> bool {
     matches!(
         name,
-        "file_get_contents" | "file" | "readfile" | "fopen" | "file_put_contents"
+        "file_get_contents"
+            | "file"
+            | "readfile"
+            | "fopen"
+            | "file_put_contents"
+            | "unlink"
+            | "file_exists"
+            | "is_file"
+            | "is_dir"
+            | "scandir"
+            | "opendir"
     )
-}
-
-fn has_user_input(expression: &Expression<'_>) -> bool {
-    match expression.unparenthesized() {
-        Expression::ArrayAccess(access) => {
-            if let Expression::Variable(Variable::Direct(variable)) = access.array.unparenthesized() {
-                true
-            } else {
-                false
-            }
-        }
-        Expression::Variable(Variable::Direct(variable)) => {
-            true
-        }
-        Expression::Binary(binary) if matches!(binary.operator, BinaryOperator::StringConcat(_)) => {
-            has_user_input(binary.lhs) || has_user_input(binary.rhs)
-        }
-        Expression::CompositeString(string) => {
-            string
-                .parts()
-                .iter()
-                .any(|part| matches!(part, StringPart::Expression(_) | StringPart::BracedExpression(_)))
-        }
-        _ => false,
-    }
-}
-
-fn variable_name(name: &[u8]) -> String {
-    let name = String::from_utf8_lossy(name);
-    name.strip_prefix('$').unwrap_or(&name).to_string()
-}
-
-fn is_superglobal(name: &str) -> bool {
-    matches!(name, "_GET" | "_POST" | "_REQUEST" | "_COOKIE" | "_FILES" | "_SERVER")
 }
 
 #[cfg(test)]
@@ -123,5 +101,22 @@ mod tests {
     #[test]
     fn accepts_safe() {
         assert!(analyze_file_for_rule("e72/safe.php", CODE).is_empty());
+    }
+
+    #[test]
+    fn accepts_a_local_path() {
+        assert!(analyze_file("<?php\n$path = __DIR__ . '/config.txt';\nreadfile($path);\n")
+            .is_empty());
+    }
+
+    #[test]
+    fn reports_request_data_reaching_a_file_helper() {
+        let violations = analyze_file("<?php\nreadfile($_POST['path']);\n");
+        assert_eq!(violations.len(), 1);
+        assert!(violations[0].taint_source.is_some());
+    }
+
+    fn analyze_file(source: &str) -> Vec<Violation> {
+        crate::rules::tests::analyze_source_for_rule(source, "inline.php", CODE)
     }
 }

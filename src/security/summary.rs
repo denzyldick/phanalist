@@ -46,6 +46,24 @@ impl TaintSummaryIndex {
         }
     }
 
+    /// Add a single function summary to the index. This is used during analysis
+    /// to make a function's summary available for interprocedural analysis of
+    /// subsequently analyzed files.
+    pub fn add_function_summary(&mut self, file_path: &Path, name: &str, summary: TaintSummary) {
+        let entries = self.files.entry(file_path.to_path_buf()).or_default();
+        if let Some(existing) = entries
+            .iter_mut()
+            .find(|(existing, _)| existing.eq_ignore_ascii_case(name))
+        {
+            // Re-analysis refreshes the same function rather than indexing it
+            // twice (which would make the name look ambiguous in snapshots).
+            *existing = (name.to_string(), summary);
+        } else {
+            entries.push((name.to_string(), summary));
+        }
+        self.invalidate();
+    }
+
     pub fn snapshot(&self) -> Arc<HashMap<String, TaintSummary>> {
         if let Some(snapshot) = self
             .snapshot_cache

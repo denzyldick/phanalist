@@ -63,8 +63,15 @@ impl SecurityService {
             .map(|summaries| summaries.snapshot());
         let empty = HashMap::<String, TaintSummary>::new();
         let summaries = snapshot.as_deref().unwrap_or(&empty);
-        let (taint, cg) = analyze_file(file, summaries, self.source_filter);
+        let (taint, cg, func_summaries) = analyze_file(file, summaries, self.source_filter);
         self.merge_call_graph(cg.clone());
+        // Add this file's function summaries to the global summaries so
+        // subsequent files can use them for interprocedural analysis.
+        if let Ok(mut s) = self.summaries.lock() {
+            for (name, summary) in func_summaries {
+                s.add_function_summary(&file.path, &name, summary);
+            }
+        }
         (taint, cg)
     }
 
@@ -79,6 +86,11 @@ impl SecurityService {
             for (caller, callees) in cg.edges {
                 for callee in callees {
                     cg_lock.add_edge(&caller, &callee);
+                }
+            }
+            for (callee, indexes) in cg.request_args {
+                for index in indexes {
+                    cg_lock.add_request_arg(&callee, index);
                 }
             }
         }
@@ -106,7 +118,7 @@ impl SecurityService {
 
         let mut results = Vec::new();
         for (name, summary) in snap.iter() {
-            for (param_idx, sink_kind) in &summary.param_sinks {
+            for (param_idx, sink_kind, _span) in &summary.param_sinks {
                 results.push((name.clone(), *param_idx, *sink_kind));
             }
         }
@@ -168,6 +180,22 @@ impl SecurityService {
         // and function A calls B, then A is also tainted
         let mut request_rooted = std::collections::HashSet::new();
         let mut stack: Vec<String> = source_functions.clone();
+
+        // Functions that are handed request data at a parameter which reaches a
+        // sink are request-rooted even though they do not return the data.
+        for (callee, indexes) in &cg.request_args {
+            if let Some(summary) = snap.get(callee) {
+                let reaches_sink = indexes.iter().any(|index| {
+                    summary
+                        .param_sinks
+                        .iter()
+                        .any(|(param_index, _, _)| param_index == index)
+                });
+                if reaches_sink {
+                    stack.push(callee.clone());
+                }
+            }
+        }
 
         while let Some(current) = stack.pop() {
             if request_rooted.insert(current.clone()) {

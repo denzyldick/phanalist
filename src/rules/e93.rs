@@ -1,15 +1,18 @@
-use mago_span::HasSpan;
 use mago_syntax::cst::*;
+use serde_json::Value;
+
 use crate::file::File;
 use crate::results::{Message, Violation};
-use crate::rules::Rule as _;
-use crate::rules::ast_support::{call_arguments, function_name, walk_statement_expressions};
+use crate::rules::taint_support::{self, Settings};
+use crate::security::{FileTaint, SinkKind, TaintMode};
 
 pub(crate) static CODE: &str = "E0093";
 static DESCRIPTION: &str = "Template injection";
 
 #[derive(Default)]
-pub struct Rule {}
+pub struct Rule {
+    settings: Settings,
+}
 
 impl crate::rules::Rule for Rule {
     fn get_code(&self) -> String {
@@ -28,78 +31,60 @@ impl crate::rules::Rule for Rule {
         Vec::new()
     }
 
-    fn validate_file(&self, file: &File<'_>) -> Option<Vec<Violation>> {
-        let program = file.ast?;
-        let mut violations = Vec::new();
+    fn taint_mode(&self) -> Option<TaintMode> {
+        Some(self.settings.taint_mode)
+    }
 
-        for statement in program.statements.iter() {
-            walk_statement_expressions(statement, &mut |expression| {
-                match expression {
-                    Expression::Construct(Construct::Eval(eval_)) => {
-                        if has_user_input(&eval_.value) {
-                            let message = Message::new(
-                                "E0093:template-injection:eval",
-                                "eval() renders a template from user-controlled input. Never render untrusted strings as templates.",
-                            );
-                            violations.push(self.new_violation(file, message, eval_.value.span()));
-                        }
-                    }
-                    Expression::Call(Call::Function(call)) => {
-                        let Some(name) = function_name(call.function) else {
-                            return;
-                        };
-                        if !is_template_function(&name) {
-                            return;
-                        }
-                        let call = Call::Function(call.clone());
-                        let arguments = call_arguments(&call);
-                        if arguments.is_empty() {
-                            return;
-                        }
-                        if arguments.iter().any(|arg| has_user_input(arg)) {
-                            let message = Message::new(
-                                format!("E0093:template-injection:{name}"),
-                                "{}() renders a template from user-controlled input. Use a template engine with auto-escaping and never render untrusted strings as templates.",
-                            )
-                            .arg("name", name);
-                            violations.push(self.new_violation(file, message, call.span()));
-                        }
-                    }
-                    _ => {}
-                }
-            });
+    fn settings_json(&self) -> Option<Value> {
+        serde_json::to_value(&self.settings).ok()
+    }
+
+    fn set_config(&mut self, json: &Value) {
+        if let Ok(settings) = serde_json::from_value::<Settings>(json.clone()) {
+            self.settings = settings;
         }
+    }
 
+    fn validate_file_with_taint(
+        &self,
+        file: &File<'_>,
+        taint: &FileTaint,
+    ) -> Option<Vec<Violation>> {
+        let mut violations = taint_support::scan_eval(self, &self.settings, file, taint, |name| {
+            Message::new(
+                format!("E0093:template-injection:{name}"),
+                "eval() renders a template from user-controlled input. Never render untrusted strings as templates.",
+            )
+        })
+        .unwrap_or_default();
+
+        let rendered = taint_support::scan_call_sinks(
+            self,
+            &self.settings,
+            file,
+            taint,
+            SinkKind::Template,
+            |name, is_method| is_template_sink(name, is_method),
+            |name| {
+                Message::new(
+                    format!("E0093:template-injection:{name}"),
+                    "{}() renders a template from user-controlled input. Use a template engine with auto-escaping and never render untrusted strings as templates.",
+                )
+                .arg("name", name)
+            },
+        )
+        .unwrap_or_default();
+
+        violations.extend(rendered);
         Some(violations)
     }
 }
 
-fn is_template_function(name: &str) -> bool {
-    matches!(name, "str_replace" | "preg_replace")
-}
-
-fn has_user_input(expression: &Expression<'_>) -> bool {
-    match expression.unparenthesized() {
-        Expression::ArrayAccess(access) => {
-            if let Expression::Variable(Variable::Direct(variable)) = access.array.unparenthesized() {
-                true
-            } else {
-                false
-            }
-        }
-        Expression::Variable(Variable::Direct(variable)) => {
-            true
-        }
-        Expression::Binary(binary) if matches!(binary.operator, BinaryOperator::StringConcat(_)) => {
-            has_user_input(binary.lhs) || has_user_input(binary.rhs)
-        }
-        Expression::CompositeString(string) => {
-            string
-                .parts()
-                .iter()
-                .any(|part| matches!(part, StringPart::Expression(_) | StringPart::BracedExpression(_)))
-        }
-        _ => false,
+fn is_template_sink(name: &str, is_method: bool) -> bool {
+    if is_method {
+        matches!(name, "render" | "renderblock" | "createtemplate")
+    } else {
+        matches!(name, "str_replace" | "preg_replace")
     }
 }
 
@@ -119,5 +104,22 @@ mod tests {
     #[test]
     fn accepts_safe() {
         assert!(analyze_file_for_rule("e93/safe.php", CODE).is_empty());
+    }
+
+    #[test]
+    fn accepts_a_static_template() {
+        assert!(analyze_file("<?php\n$tpl = 'Hello {name}';\n").is_empty());
+    }
+
+    #[test]
+    fn reports_eval_of_a_request_template() {
+        let violations =
+            analyze_file("<?php\n$template = $_GET['template'];\neval('echo \"' . $template . '\";');\n");
+        assert_eq!(violations.len(), 1);
+        assert!(violations[0].taint_source.is_some());
+    }
+
+    fn analyze_file(source: &str) -> Vec<Violation> {
+        crate::rules::tests::analyze_source_for_rule(source, "inline.php", CODE)
     }
 }

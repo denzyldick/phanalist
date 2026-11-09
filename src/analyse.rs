@@ -608,6 +608,42 @@ impl Analyse {
             progress_bar.unwrap().finish();
         }
 
+        // --- Interprocedural taint filtering ---
+        // After all files are analyzed, compute which functions are request-rooted
+        // (i.e., their taint originates from $_GET, $_POST, etc. either directly
+        // or transitively through the call graph). Filter out any taint findings
+        // whose enclosing function is not request-rooted, since those findings
+        // cannot be triggered by user input.
+        if self.has_security_rules() && self.source_filter == SourceFilter::Request {
+            let request_rooted = self.security.compute_request_rooted_functions();
+            results.files.retain(|_, violations| {
+                violations.retain_mut(|v| {
+                    match &mut v.taint_source {
+                        Some(ts) => {
+                            // Keep if request_rooted is true (top-level code or
+                            // request-derived function call), OR if the enclosing
+                            // function is in the request-rooted set.
+                            let reachable = ts.request_rooted
+                                || ts
+                                    .enclosing_function
+                                    .as_ref()
+                                    .map(|f| request_rooted.contains(&f.to_ascii_lowercase()))
+                                    .unwrap_or(false);
+                            if reachable && !ts.request_rooted {
+                                // Cross-file propagation: the sink itself only
+                                // saw a parameter, but a caller supplied request data.
+                                ts.request_rooted = true;
+                                ts.source_kind = Some(String::from("request"));
+                            }
+                            reachable
+                        }
+                        None => true, // Non-taint rules (E0000-E0052) always pass
+                    }
+                });
+                !violations.is_empty()
+            });
+        }
+
         results.total_files_count = files;
         results.duration = Some(now.elapsed());
 
@@ -863,6 +899,7 @@ impl Analyse {
             end_line,
             end_column,
             taint_source: None,
+            meta: Default::default(),
         }
     }
 
