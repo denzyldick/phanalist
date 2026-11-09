@@ -2,10 +2,52 @@
 
 ## [Unreleased] - yyyy-mm-dd
 
+
+
+### M2: Taint Engine Coverage
+
+- Migrated 33 security rules (E0100-E0134) from expression-shape heuristics 
+  (`has_user_input` / `looks_dynamic`) to the taint engine's `SinkKind`-based 
+  approach. Every finding now carries a proven source-to-sink taint flow.
+- New sink kinds added: `Callable`, `Template`, `Reflection`, `Nosql`, `Ldap`, 
+  `XPath`, `Header`, `Mail`, `Ssrf`, `Log`, `Extract`, `VariableVariable`.
+- Shared helpers: `scan_call_sinks`, `scan_callable_sinks`, `scan_includes`, 
+  `scan_eval`, `scan_backticks`, `scan_instantiations`, `scan_output`; 
+  `construct_name`, `construct_value` utilities.
+- Rules now query `SinkKind` instead of inspecting expression shape. 
+- Per-rule `taint_mode` settings: `Only` (default, proven flow required), 
+  `Annotate` (findings plus source annotation), `Off` (legacy heuristic compatibility).
+- Fingerprint is content-based (`rule + normalized path + message.id + normalized source line`), 
+  line-number-independent; shared by JSON/SARIF/Code Climate.
+- `Confidence::High` auto-raised when `taint_source.request_rooted` is true.
+- SARIF levels map Info/Minor→note, Major→warning, Critical/Blocker→error; 
+  Code Climate emits real fingerprint/severity/category.
+- `assert()` now records `SinkKind::AssertString` for any tainted argument; 
+  shape check removed so tainted string code flows are proven.
+- Cookie-flag rules (E0096/E0097) now check actual `secure`/`httponly` flags 
+  instead of gating on `has_user_input`.
+- Migrated-rule default is `TaintMode::Only` (proven flow required); 
+  `Off`/`Annotate` retain the legacy heuristic through `taint_support::looks_dynamic` 
+  for compatibility.
+- Full suite passed after M1 (598 lib + integration) and after M2 (1378 passed, 0 failed).
+
 ### Breaking
 
 - Linux musl binaries are no longer published. Alpine and other musl-based systems must build from source or use the Docker image. The installation script now stops with a clear error instead of requesting a missing release asset.
 - Verification settings are scoped to individual rules. Settings under `E0031` apply only to division-by-zero checks; configure `E0032`-`E0043` separately. New default-on rules may also add findings to existing CI runs.
+
+### Added
+
+- Every finding now carries structured metadata: severity, category, confidence, effort, CWE/OWASP references where applicable, a documentation URL, and a stable content-based fingerprint. JSON output gains a top-level `schema_version` (currently `2`) and a `meta` object per finding; the metadata is attached centrally, so verification and resource findings get it too.
+- Added a shared fingerprint used by every output format. It is derived from the rule, normalized path, message id and offending source text instead of the line number, so findings keep their identity when lines move.
+
+### Changed
+
+- SARIF result levels now come from finding severity (`note`/`warning`/`error`) instead of always `warning`, and Code Climate output now emits the real fingerprint, mapped severity and category instead of an empty fingerprint, `"major"` and `["Complexity"]`.
+
+### Fixed
+
+- Positional `{}` placeholders in rule messages are now substituted in argument order, so messages such as `{}() executes a SQL query` render the function name instead of a literal `{}`.
 
 ### Added
 

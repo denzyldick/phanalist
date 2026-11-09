@@ -1,3 +1,4 @@
+use mago_span::{HasSpan, Span};
 use mago_syntax::cst::*;
 
 pub(crate) fn function_name(expression: &Expression<'_>) -> Option<String> {
@@ -19,6 +20,32 @@ pub(crate) fn method_name(selector: &ClassLikeMemberSelector<'_>) -> Option<Stri
         }
         _ => None,
     }
+}
+
+/// Normalized name of any call form. Method and static calls return only the
+/// method name, matching the taint sink registry.
+pub(crate) fn call_name(call: &Call<'_>) -> Option<String> {
+    match call {
+        Call::Function(call) => function_name(call.function),
+        Call::Method(call) => method_name(&call.method),
+        Call::NullSafeMethod(call) => method_name(&call.method),
+        Call::StaticMethod(call) => method_name(&call.method),
+    }
+}
+
+/// Span covering the whole call in any form.
+pub(crate) fn call_span(call: &Call<'_>) -> Span {
+    match call {
+        Call::Function(call) => call.span(),
+        Call::Method(call) => call.span(),
+        Call::NullSafeMethod(call) => call.span(),
+        Call::StaticMethod(call) => call.span(),
+    }
+}
+
+/// True for `$object->method()`, `$object?->method()` and `Class::method()`.
+pub(crate) fn is_method_call(call: &Call<'_>) -> bool {
+    !matches!(call, Call::Function(_))
 }
 
 pub(crate) fn direct_variable_name<'a>(expression: &'a Expression<'a>) -> Option<&'a str> {
@@ -56,6 +83,36 @@ pub(crate) fn literal_string(expression: &Expression<'_>) -> Option<String> {
         Expression::Parenthesized(parenthesized) => literal_string(parenthesized.expression),
         _ => None,
     }
+}
+
+pub(crate) fn literal_bool(expression: &Expression<'_>) -> Option<bool> {
+    match expression.unparenthesized() {
+        Expression::Literal(Literal::True(_)) => Some(true),
+        Expression::Literal(Literal::False(_)) => Some(false),
+        _ => None,
+    }
+}
+
+/// Whether a literal array sets `key` to the literal boolean `true`.
+///
+/// Returns `None` when the expression is not a literal array, so callers can
+/// fall back to positional arguments.
+pub(crate) fn literal_array_flag(expression: &Expression<'_>, key: &str) -> Option<bool> {
+    let elements = match expression.unparenthesized() {
+        Expression::Array(array) => &array.elements,
+        Expression::LegacyArray(array) => &array.elements,
+        _ => return None,
+    };
+
+    for element in elements.iter() {
+        if let ArrayElement::KeyValue(pair) = element {
+            if literal_string(pair.key).as_deref() == Some(key) {
+                return Some(literal_bool(pair.value) == Some(true));
+            }
+        }
+    }
+
+    Some(false)
 }
 
 pub(crate) fn literal_array_len(expression: &Expression<'_>) -> Option<usize> {

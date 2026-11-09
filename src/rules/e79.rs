@@ -1,15 +1,18 @@
-use mago_span::HasSpan;
 use mago_syntax::cst::*;
+use serde_json::Value;
+
 use crate::file::File;
 use crate::results::{Message, Violation};
-use crate::rules::Rule as _;
-use crate::rules::ast_support::{call_arguments, walk_statement_expressions};
+use crate::rules::taint_support::{self, Settings};
+use crate::security::{FileTaint, TaintMode};
 
 pub(crate) static CODE: &str = "E0079";
 static DESCRIPTION: &str = "Dynamic method call";
 
 #[derive(Default)]
-pub struct Rule {}
+pub struct Rule {
+    settings: Settings,
+}
 
 impl crate::rules::Rule for Rule {
     fn get_code(&self) -> String {
@@ -28,59 +31,48 @@ impl crate::rules::Rule for Rule {
         Vec::new()
     }
 
-    fn validate_file(&self, file: &File<'_>) -> Option<Vec<Violation>> {
-        let program = file.ast?;
-        let mut violations = Vec::new();
+    fn taint_mode(&self) -> Option<TaintMode> {
+        Some(self.settings.taint_mode)
+    }
 
-        for statement in program.statements.iter() {
-            walk_statement_expressions(statement, &mut |expression| {
-                let Expression::Call(Call::Method(call)) = expression else {
-                    return;
-                };
+    fn settings_json(&self) -> Option<Value> {
+        serde_json::to_value(&self.settings).ok()
+    }
 
-                if !has_user_input(&call.object) {
-                    return;
-                }
-
-                let method_call = Call::Method(call.clone());
-                let arguments = call_arguments(&method_call);
-                if arguments.iter().any(|arg| has_user_input(arg)) {
-                    let message = Message::new(
-                        "E0079:dynamic-method-call",
-                        "Dynamic method call on a user-controlled object with user-controlled arguments can lead to arbitrary code execution.",
-                    );
-                    violations.push(self.new_violation(file, message, call.span()));
-                }
-            });
+    fn set_config(&mut self, json: &Value) {
+        if let Ok(settings) = serde_json::from_value::<Settings>(json.clone()) {
+            self.settings = settings;
         }
+    }
 
-        Some(violations)
+    fn validate_file_with_taint(
+        &self,
+        file: &File<'_>,
+        taint: &FileTaint,
+    ) -> Option<Vec<Violation>> {
+        taint_support::scan_callable_sinks(
+            self,
+            &self.settings,
+            file,
+            taint,
+            |call| matches!(call, Call::Method(_) | Call::NullSafeMethod(_)),
+            |call| match call {
+                Call::Method(call) => receiver_is_dynamic(call.object),
+                Call::NullSafeMethod(call) => receiver_is_dynamic(call.object),
+                _ => false,
+            },
+            || {
+                Message::new(
+                    "E0079:dynamic-method-call",
+                    "Dynamic method call on a user-controlled object with user-controlled arguments can lead to arbitrary code execution.",
+                )
+            },
+        )
     }
 }
 
-fn has_user_input(expression: &Expression<'_>) -> bool {
-    match expression.unparenthesized() {
-        Expression::ArrayAccess(access) => {
-            if let Expression::Variable(Variable::Direct(variable)) = access.array.unparenthesized() {
-                true
-            } else {
-                false
-            }
-        }
-        Expression::Variable(Variable::Direct(variable)) => {
-            true
-        }
-        Expression::Binary(binary) if matches!(binary.operator, BinaryOperator::StringConcat(_)) => {
-            has_user_input(binary.lhs) || has_user_input(binary.rhs)
-        }
-        Expression::CompositeString(string) => {
-            string
-                .parts()
-                .iter()
-                .any(|part| matches!(part, StringPart::Expression(_) | StringPart::BracedExpression(_)))
-        }
-        _ => false,
-    }
+fn receiver_is_dynamic(expression: &Expression<'_>) -> bool {
+    taint_support::looks_dynamic(expression)
 }
 
 #[cfg(test)]
@@ -99,5 +91,21 @@ mod tests {
     #[test]
     fn accepts_safe() {
         assert!(analyze_file_for_rule("e79/safe.php", CODE).is_empty());
+    }
+
+    #[test]
+    fn accepts_a_method_call_on_a_local_object() {
+        assert!(analyze_file("<?php\n$obj = new Service();\n$obj->run();\n").is_empty());
+    }
+
+    #[test]
+    fn reports_a_request_receiver() {
+        let violations = analyze_file("<?php\n$obj = $_GET['obj'];\n$obj->{$method}($_GET['arg']);\n");
+        assert_eq!(violations.len(), 1);
+        assert!(violations[0].taint_source.is_some());
+    }
+
+    fn analyze_file(source: &str) -> Vec<Violation> {
+        crate::rules::tests::analyze_source_for_rule(source, "inline.php", CODE)
     }
 }

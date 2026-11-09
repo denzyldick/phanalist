@@ -3,13 +3,17 @@ use mago_syntax::cst::*;
 use crate::file::File;
 use crate::results::{Message, Violation};
 use crate::rules::Rule as _;
-use crate::rules::ast_support::{call_arguments, function_name, walk_statement_expressions};
+use crate::rules::ast_support::{call_arguments, walk_statement_expressions};
+use crate::rules::taint_support::{self, Settings};
+use crate::security::{FileTaint, SinkKind, TaintMode};
 
 pub(crate) static CODE: &str = "E0121";
 static DESCRIPTION: &str = "Assert with user-controlled string";
 
 #[derive(Default)]
-pub struct Rule {}
+pub struct Rule {
+    settings: Settings,
+}
 
 impl crate::rules::Rule for Rule {
     fn get_code(&self) -> String {
@@ -28,74 +32,40 @@ impl crate::rules::Rule for Rule {
         Vec::new()
     }
 
-    fn validate_file(&self, file: &File<'_>) -> Option<Vec<Violation>> {
-        let program = file.ast?;
-        let mut violations = Vec::new();
-
-        for statement in program.statements.iter() {
-            walk_statement_expressions(statement, &mut |expression| {
-                let Expression::Call(Call::Function(call)) = expression else {
-                    return;
-                };
-                let Some(name) = function_name(call.function) else {
-                    return;
-                };
-                if name != "assert" {
-                    return;
-                }
-
-                let call = Call::Function(call.clone());
-                let arguments = call_arguments(&call);
-                if arguments.is_empty() {
-                    return;
-                }
-
-                if arguments.iter().any(|arg| has_user_input(arg)) {
-                    let message = Message::new(
-                        "E0121:assert-user-controlled",
-                        "assert() with a user-controlled string evaluates it as PHP code, leading to remote code execution.",
-                    );
-                    violations.push(self.new_violation(file, message, call.span()));
-                }
-            });
-        }
-
-        Some(violations)
+    fn taint_mode(&self) -> Option<TaintMode> {
+        Some(self.settings.taint_mode)
     }
-}
 
-fn has_user_input(expression: &Expression<'_>) -> bool {
-    match expression.unparenthesized() {
-        Expression::ArrayAccess(access) => {
-            if let Expression::Variable(Variable::Direct(variable)) = access.array.unparenthesized() {
-                true
-            } else {
-                false
-            }
-        }
-        Expression::Variable(Variable::Direct(variable)) => {
-            true
-        }
-        Expression::Binary(binary) if matches!(binary.operator, BinaryOperator::StringConcat(_)) => {
-            has_user_input(binary.lhs) || has_user_input(binary.rhs)
-        }
-        Expression::CompositeString(string) => {
-            string
-                .parts()
-                .iter()
-                .any(|part| matches!(part, StringPart::Expression(_) | StringPart::BracedExpression(_)))
-        }
-        _ => false,
+    fn settings_json(&self) -> Option<serde_json::Value> {
+        serde_json::to_value(&self.settings).ok()
     }
-}
 
-fn variable_name(name: &[u8]) -> String {
-    let name = String::from_utf8_lossy(name);
-    name.strip_prefix('$').unwrap_or(&name).to_string()
-}
+    fn set_config(&mut self, json: &serde_json::Value) {
+        if let Ok(settings) = serde_json::from_value::<Settings>(json.clone()) {
+            self.settings = settings;
+        }
+    }
 
-fn is_superglobal(name: &str) -> bool {
-    matches!(name, "_GET" | "_POST" | "_REQUEST" | "_COOKIE" | "_FILES" | "_SERVER")
+    fn validate_file_with_taint(
+        &self,
+        file: &File<'_>,
+        taint: &FileTaint,
+    ) -> Option<Vec<Violation>> {
+        taint_support::scan_call_sinks(
+            self,
+            &self.settings,
+            file,
+            taint,
+            SinkKind::AssertString,
+            |name, _is_method| name == "assert",
+            |name| {
+                Message::new(
+                    "E0121:assert-user-controlled",
+                    "assert() with a user-controlled string evaluates it as PHP code, leading to remote code execution.",
+                )
+            },
+        )
+    }
 }
 
 #[cfg(test)]
@@ -114,5 +84,21 @@ mod tests {
     #[test]
     fn accepts_safe() {
         assert!(analyze_file_for_rule("e121/safe.php", CODE).is_empty());
+    }
+
+    #[test]
+    fn accepts_assert_of_literal() {
+        assert!(analyze_file("<?php\nassert('1 + 2 > 0');\n").is_empty());
+    }
+
+    #[test]
+    fn reports_assert_of_request() {
+        let violations = analyze_file("<?php\nassert($_GET['code']);\n");
+        assert_eq!(violations.len(), 1);
+        assert!(violations[0].taint_source.is_some());
+    }
+
+    fn analyze_file(source: &str) -> Vec<Violation> {
+        crate::rules::tests::analyze_source_for_rule(source, "inline.php", CODE)
     }
 }

@@ -35,6 +35,17 @@ impl OutputFormatter for CodeClimate {
                     None => String::from("Unknown rule"),
                 };
 
+                let fingerprint = if violation.meta.fingerprint.is_empty() {
+                    crate::fingerprint::compute(
+                        &violation.rule,
+                        key,
+                        &violation.message.id,
+                        &violation.line,
+                    )
+                } else {
+                    violation.meta.fingerprint.clone()
+                };
+
                 res.push(json!({
                     "type": "issue",
                     "check_name": &violation.rule,
@@ -42,9 +53,9 @@ impl OutputFormatter for CodeClimate {
                     "content": {
                         "body": &rule_markdown
                     },
-                    "categories": ["Complexity"],
-                    "fingerprint": "",
-                    "severity": "major",
+                    "categories": violation.meta.category.code_climate(),
+                    "fingerprint": fingerprint,
+                    "severity": violation.meta.severity.code_climate(),
                     "location": {
                         "path": &key,
                         "positions": {

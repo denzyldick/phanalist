@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize, Serializer};
 
 use crate::debug_stats::RuleTimings;
 use crate::file::File;
+use crate::rules::meta::FindingMeta;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct EngineerEntry {
@@ -50,11 +51,20 @@ impl Message {
         self
     }
 
-    /// Substitute `args` into the `{name}` placeholders of the template.
+    /// Substitute `args` into the `{name}` placeholders of the template, then
+    /// fill any positional `{}` placeholders in argument order. Both styles
+    /// exist in the rule catalogue, and a finding must always render readable
+    /// text for humans and for the JSON `suggestion` field.
     pub fn render(&self) -> String {
         let mut out = self.template.clone();
         for (name, value) in &self.args {
             out = out.replace(&format!("{{{name}}}"), value);
+        }
+        for (_, value) in &self.args {
+            match out.find("{}") {
+                Some(position) => out.replace_range(position..position + 2, value),
+                None => break,
+            }
         }
         out
     }
@@ -74,6 +84,8 @@ pub struct TaintSource {
     pub file: Option<String>,
     /// Line where the tainted data originates.
     pub line: Option<usize>,
+    /// Name of the function containing the sink.
+    pub enclosing_function: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, PartialEq)]
@@ -88,6 +100,9 @@ pub struct Violation {
     /// Structured taint source info (only populated for security taint rules).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub taint_source: Option<TaintSource>,
+    /// Severity, category, confidence, effort and stable identity.
+    #[serde(default)]
+    pub meta: FindingMeta,
 }
 
 // Custom serialization: emit the structured `message` and also a flat, rendered
@@ -98,12 +113,13 @@ impl Serialize for Violation {
     where
         S: Serializer,
     {
-        let mut state = serializer.serialize_struct("Violation", 9)?;
+        let mut state = serializer.serialize_struct("Violation", 10)?;
         state.serialize_field("rule", &self.rule)?;
         state.serialize_field("line", &self.line)?;
         state.serialize_field("suggestion", &self.message.render())?;
         state.serialize_field("message", &self.message)?;
         state.serialize_field("taint_source", &self.taint_source)?;
+        state.serialize_field("meta", &self.meta)?;
         state.serialize_field("start_line", &self.start_line)?;
         state.serialize_field("start_column", &self.start_column)?;
         state.serialize_field("end_line", &self.end_line)?;
@@ -112,8 +128,16 @@ impl Serialize for Violation {
     }
 }
 
-#[derive(Serialize, Debug, Deserialize, Clone, Default)]
+fn default_schema_version() -> u32 {
+    2
+}
+
+#[derive(Serialize, Debug, Deserialize, Clone)]
 pub struct Results {
+    /// Version of the serialized report contract. Bumped when a consumer would
+    /// need to change how it reads the JSON output.
+    #[serde(default = "default_schema_version")]
+    pub schema_version: u32,
     pub files: HashMap<String, Vec<Violation>>,
     pub codes_count: HashMap<String, i64>,
     pub total_files_count: i64,
@@ -122,6 +146,20 @@ pub struct Results {
     pub rule_timings: Option<RuleTimings>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub engineer_report: Option<EngineerReport>,
+}
+
+impl Default for Results {
+    fn default() -> Self {
+        Self {
+            schema_version: default_schema_version(),
+            files: HashMap::new(),
+            codes_count: HashMap::new(),
+            total_files_count: 0,
+            duration: None,
+            rule_timings: None,
+            engineer_report: None,
+        }
+    }
 }
 
 impl Results {
@@ -147,6 +185,31 @@ impl Results {
         }
 
         let path = crate::paths::normalize_relative(&path);
+        let mut violations = violations;
+
+        // Attach metadata and a stable identity here rather than in every rule
+        // or output format. This is the one place every finding passes through,
+        // including verification and resource findings that bypass
+        // `Rule::new_violation`.
+        for violation in &mut violations {
+            let fingerprint = crate::fingerprint::compute(
+                &violation.rule,
+                &path,
+                &violation.message.id,
+                &violation.line,
+            );
+            let meta = FindingMeta::from_rule(&violation.rule, fingerprint);
+            violation.meta = if violation
+                .taint_source
+                .as_ref()
+                .is_some_and(|source| source.request_rooted)
+            {
+                meta.with_proven_taint()
+            } else {
+                meta
+            };
+        }
+
         // `violations` is owned, so entries are moved in rather than cloned.
         // Every violation carries several `String`s, so cloning them all was
         // doubling the allocation churn on the scan's hottest path.
@@ -168,6 +231,7 @@ mod tests {
 
     fn get_results() -> Results {
         Results {
+            schema_version: default_schema_version(),
             files: Default::default(),
             codes_count: Default::default(),
             total_files_count: 0,
@@ -189,6 +253,7 @@ mod tests {
             end_line: 0,
             end_column: 0,
             taint_source: None,
+            meta: Default::default(),
         }
     }
 
@@ -210,6 +275,14 @@ mod tests {
             .arg("a", "first")
             .arg("b", "second");
         assert_eq!(m.render(), "first then second");
+    }
+
+    #[test]
+    fn message_render_fills_positional_placeholders() {
+        let m = Message::new("e", "{}() executes a query.")
+            .arg("name", "mysqli_query")
+            .arg("kind", "unused");
+        assert_eq!(m.render(), "mysqli_query() executes a query.");
     }
 
     #[test]
@@ -245,16 +318,63 @@ mod tests {
         results.add_file_violations(&file2, vec![violation3.clone()]);
         results.add_file_violations(&file1, vec![violation4.clone()]);
 
-        let expected_file1_violations = vec![violation1, violation2, violation4];
-        let expected_file2_violations = vec![violation3];
+        let expected_file1 = vec![violation1.rule, violation2.rule, violation4.rule];
+        let expected_file2 = vec![violation3.rule];
+
+        let rules_for = |path: &str| {
+            results
+                .files
+                .get(path)
+                .unwrap()
+                .iter()
+                .map(|v| v.rule.clone())
+                .collect::<Vec<_>>()
+        };
+
+        assert_eq!(rules_for("class1.php"), expected_file1);
+        assert_eq!(rules_for("class2.php"), expected_file2);
+    }
+
+    #[test]
+    fn findings_are_decorated_with_metadata_and_identity() {
+        use crate::rules::meta::{Category, Confidence, Severity};
+
+        let mut results = get_results();
+        let arena = LocalArena::new();
+        let file = get_file(&arena, "./app/Repo.php");
+
+        let mut violation = get_violation("E0060");
+        violation.line = "mysqli_query($db, $sql);".to_string();
+        results.add_file_violations(&file, vec![violation]);
+
+        let stored = &results.files["app/Repo.php"][0];
+        assert_eq!(stored.meta.severity, Severity::Critical);
+        assert_eq!(stored.meta.category, Category::Security);
+        assert_eq!(stored.meta.confidence, Confidence::Medium);
+        assert!(!stored.meta.fingerprint.is_empty());
+        assert_eq!(stored.meta.cwe.as_deref(), Some("CWE-89"));
+        assert_eq!(stored.meta.owasp.as_deref(), Some("A03:2021"));
+        assert_eq!(results.schema_version, 2);
+    }
+
+    #[test]
+    fn proven_taint_raises_confidence() {
+        use crate::rules::meta::Confidence;
+
+        let mut results = get_results();
+        let arena = LocalArena::new();
+        let file = get_file(&arena, "./app/Repo.php");
+
+        let mut violation = get_violation("E0060");
+        violation.taint_source = Some(TaintSource {
+            request_rooted: true,
+            ..Default::default()
+        });
+        results.add_file_violations(&file, vec![violation]);
 
         assert_eq!(
-            results.files.get("class1.php").unwrap(),
-            &expected_file1_violations
-        );
-        assert_eq!(
-            results.files.get("class2.php").unwrap(),
-            &expected_file2_violations
+            results.files["app/Repo.php"][0].meta.confidence,
+            Confidence::High
         );
     }
 

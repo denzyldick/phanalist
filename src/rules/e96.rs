@@ -1,9 +1,10 @@
-use mago_span::HasSpan;
 use mago_syntax::cst::*;
+
 use crate::file::File;
 use crate::results::{Message, Violation};
-use crate::rules::Rule as _;
-use crate::rules::ast_support::{call_arguments, function_name, walk_statement_expressions};
+use crate::rules::ast_support::{
+    call_arguments, function_name, literal_array_flag, literal_bool, walk_statement_expressions,
+};
 
 pub(crate) static CODE: &str = "E0096";
 static DESCRIPTION: &str = "Cookie without secure flag";
@@ -34,28 +35,32 @@ impl crate::rules::Rule for Rule {
 
         for statement in program.statements.iter() {
             walk_statement_expressions(statement, &mut |expression| {
-                let Expression::Call(Call::Function(call)) = expression else {
+                let Expression::Call(call) = expression else {
                     return;
                 };
-                let Some(name) = function_name(call.function) else {
+                let Some(name) = function_name(match call {
+                    Call::Function(call) => call.function,
+                    _ => return,
+                }) else {
                     return;
                 };
+
                 if !is_cookie_function(&name) {
                     return;
                 }
 
-                let call = Call::Function(call.clone());
-                let arguments = call_arguments(&call);
-                if !arguments.iter().any(|arg| has_user_input(arg)) {
+                let arguments = call_arguments(call);
+                if has_flag(&name, &arguments, "secure") {
                     return;
                 }
+
                 let message = Message::new(
                     format!("E0096:cookie-no-secure:{name}"),
                     "{}() sets a cookie without the Secure flag. Add the Secure flag so cookies are only sent over HTTPS.",
                 )
                 .arg("name", name);
 
-                violations.push(self.new_violation(file, message, call.span()));
+                violations.push(self.new_violation(file, message, crate::rules::ast_support::call_span(call)));
             });
         }
 
@@ -64,32 +69,29 @@ impl crate::rules::Rule for Rule {
 }
 
 fn is_cookie_function(name: &str) -> bool {
-    matches!(name, "setcookie" | "setrawcookie")
+    matches!(
+        name,
+        "setcookie" | "setrawcookie" | "session_set_cookie_params"
+    )
 }
 
-fn has_user_input(expression: &Expression<'_>) -> bool {
-    match expression.unparenthesized() {
-        Expression::ArrayAccess(access) => {
-            if let Expression::Variable(Variable::Direct(variable)) = access.array.unparenthesized() {
-                true
-            } else {
-                false
-            }
+/// Whether the call explicitly sets `flag` to `true`.
+fn has_flag(name: &str, arguments: &[&Expression<'_>], flag: &str) -> bool {
+    let (options_index, positional_index) = if name == "session_set_cookie_params" {
+        (0, 3)
+    } else {
+        (2, 5)
+    };
+
+    if let Some(options) = arguments.get(options_index) {
+        if let Some(flag_is_true) = literal_array_flag(options, flag) {
+            return flag_is_true;
         }
-        Expression::Variable(Variable::Direct(variable)) => {
-            true
-        }
-        Expression::Binary(binary) if matches!(binary.operator, BinaryOperator::StringConcat(_)) => {
-            has_user_input(binary.lhs) || has_user_input(binary.rhs)
-        }
-        Expression::CompositeString(string) => {
-            string
-                .parts()
-                .iter()
-                .any(|part| matches!(part, StringPart::Expression(_) | StringPart::BracedExpression(_)))
-        }
-        _ => false,
     }
+
+    arguments
+        .get(positional_index)
+        .is_some_and(|argument| literal_bool(argument) == Some(true))
 }
 
 #[cfg(test)]
@@ -99,7 +101,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn reports_cookie_no_secure() {
+    fn reports_cookie_without_secure_flag() {
         let violations = analyze_file_for_rule("e96/bad.php", CODE);
         assert!(!violations.is_empty());
         assert!(violations.iter().all(|v| v.rule == CODE));
@@ -108,5 +110,25 @@ mod tests {
     #[test]
     fn accepts_safe() {
         assert!(analyze_file_for_rule("e96/safe.php", CODE).is_empty());
+    }
+
+    #[test]
+    fn accepts_an_options_array_with_secure_true() {
+        assert!(analyze_file(
+            "<?php\nsetcookie('session', 'v', ['secure' => true, 'httponly' => true]);\n"
+        )
+        .is_empty());
+    }
+
+    #[test]
+    fn reports_an_options_array_with_secure_false() {
+        let violations = analyze_file(
+            "<?php\nsetcookie('session', 'v', ['secure' => false, 'httponly' => true]);\n",
+        );
+        assert_eq!(violations.len(), 1);
+    }
+
+    fn analyze_file(source: &str) -> Vec<Violation> {
+        crate::rules::tests::analyze_source_for_rule(source, "inline.php", CODE)
     }
 }

@@ -1,15 +1,21 @@
-use mago_span::HasSpan;
 use mago_syntax::cst::*;
+use serde_json::Value;
+
 use crate::file::File;
 use crate::results::{Message, Violation};
-use crate::rules::Rule as _;
-use crate::rules::ast_support::{call_arguments, function_name, walk_statement_expressions};
+use crate::rules::ast_support::{
+    call_arguments, call_name, call_span, is_method_call, walk_statement_expressions,
+};
+use crate::rules::taint_support::{self, Settings};
+use crate::security::{FileTaint, SinkKind, TaintMode};
 
 pub(crate) static CODE: &str = "E0060";
 static DESCRIPTION: &str = "SQL injection";
 
 #[derive(Default)]
-pub struct Rule {}
+pub struct Rule {
+    settings: Settings,
+}
 
 impl crate::rules::Rule for Rule {
     fn get_code(&self) -> String {
@@ -28,37 +34,75 @@ impl crate::rules::Rule for Rule {
         Vec::new()
     }
 
-    fn validate_file(&self, file: &File<'_>) -> Option<Vec<Violation>> {
+    fn taint_mode(&self) -> Option<TaintMode> {
+        Some(self.settings.taint_mode)
+    }
+
+    fn settings_json(&self) -> Option<Value> {
+        serde_json::to_value(&self.settings).ok()
+    }
+
+    fn set_config(&mut self, json: &Value) {
+        if let Ok(settings) = serde_json::from_value::<Settings>(json.clone()) {
+            self.settings = settings;
+        }
+    }
+
+    fn validate_file_with_taint(
+        &self,
+        file: &File<'_>,
+        taint: &FileTaint,
+    ) -> Option<Vec<Violation>> {
         let program = file.ast?;
         let mut violations = Vec::new();
 
         for statement in program.statements.iter() {
             walk_statement_expressions(statement, &mut |expression| {
-                let Expression::Call(Call::Function(call)) = expression else {
+                let Expression::Call(call) = expression else {
                     return;
                 };
-                let Some(name) = function_name(call.function) else {
+                let Some(name) = call_name(call) else {
                     return;
                 };
-                if !is_sql_function(&name) {
+                if !is_sql_call(&name, is_method_call(call)) {
                     return;
                 }
 
-                let call = Call::Function(call.clone());
-                let arguments = call_arguments(&call);
+                let arguments = call_arguments(call);
                 if arguments.is_empty() {
                     return;
                 }
 
-                if arguments.iter().any(|arg| has_user_input(arg)) {
-                    let message = Message::new(
-                        format!("E0060:sql-injection:{name}"),
-                        "{}() executes a SQL query built from user-controlled input. Use prepared statements with bound parameters instead.",
-                    )
-                    .arg("name", name);
-
-                    violations.push(self.new_violation(file, message, call.span()));
+                let span = call_span(call);
+                let legacy = arguments
+                    .iter()
+                    .any(|argument| taint_support::looks_dynamic(argument));
+                if !taint_support::should_report(
+                    &self.settings,
+                    taint,
+                    SinkKind::Sql,
+                    span,
+                    legacy,
+                ) {
+                    return;
                 }
+
+                let message = Message::new(
+                    format!("E0060:sql-injection:{name}"),
+                    "{}() executes a SQL query built from user-controlled input. Use prepared statements with bound parameters instead.",
+                )
+                .arg("name", name);
+
+                let mut violation = self.new_violation(file, message, span);
+                taint_support::annotate(
+                    &self.settings,
+                    &mut violation,
+                    taint,
+                    SinkKind::Sql,
+                    span,
+                    file,
+                );
+                violations.push(violation);
             });
         }
 
@@ -66,45 +110,23 @@ impl crate::rules::Rule for Rule {
     }
 }
 
-fn is_sql_function(name: &str) -> bool {
-    matches!(
-        name,
-        "mysqli_query" | "mysqli::query" | "pg_query" | "pg_exec" | "pdo::query" | "pdo::exec" | "mysql_query"
-    )
-}
-
-fn has_user_input(expression: &Expression<'_>) -> bool {
-    match expression.unparenthesized() {
-        Expression::ArrayAccess(access) => {
-            if let Expression::Variable(Variable::Direct(variable)) = access.array.unparenthesized() {
-                true
-            } else {
-                false
-            }
-        }
-        Expression::Variable(Variable::Direct(variable)) => {
-            true
-        }
-        Expression::Binary(binary) if matches!(binary.operator, BinaryOperator::StringConcat(_)) => {
-            has_user_input(binary.lhs) || has_user_input(binary.rhs)
-        }
-        Expression::CompositeString(string) => {
-            string
-                .parts()
-                .iter()
-                .any(|part| matches!(part, StringPart::Expression(_) | StringPart::BracedExpression(_)))
-        }
-        _ => false,
+fn is_sql_call(name: &str, is_method: bool) -> bool {
+    if is_method {
+        matches!(name, "query" | "exec" | "real_query" | "multi_query")
+    } else {
+        matches!(
+            name,
+            "mysqli_query"
+                | "mysqli_real_query"
+                | "mysqli_multi_query"
+                | "mysql_query"
+                | "pg_query"
+                | "pg_exec"
+                | "pg_send_query"
+                | "sqlite_query"
+                | "sqlite_exec"
+        )
     }
-}
-
-fn variable_name(name: &[u8]) -> String {
-    let name = String::from_utf8_lossy(name);
-    name.strip_prefix('$').unwrap_or(&name).to_string()
-}
-
-fn is_superglobal(name: &str) -> bool {
-    matches!(name, "_GET" | "_POST" | "_REQUEST" | "_COOKIE" | "_FILES" | "_SERVER")
 }
 
 #[cfg(test)]
@@ -123,5 +145,24 @@ mod tests {
     #[test]
     fn accepts_safe() {
         assert!(analyze_file_for_rule("e60/safe.php", CODE).is_empty());
+    }
+
+    #[test]
+    fn accepts_a_query_built_from_a_local_literal() {
+        assert!(analyze_file("<?php\n$sql = \"SELECT * FROM users\";\nmysqli_query($db, $sql);\n")
+            .is_empty());
+    }
+
+    #[test]
+    fn reports_a_query_built_from_an_interpolated_request_value() {
+        let violations = analyze_file(
+            "<?php\n$id = $_GET['id'];\nmysqli_query($db, \"SELECT * FROM users WHERE id = $id\");\n",
+        );
+        assert_eq!(violations.len(), 1);
+        assert!(violations[0].taint_source.is_some());
+    }
+
+    fn analyze_file(source: &str) -> Vec<Violation> {
+        crate::rules::tests::analyze_source_for_rule(source, "inline.php", CODE)
     }
 }

@@ -16,6 +16,8 @@ use crate::security::{FileTaint, TaintMode};
 use crate::verification::{FindingClass, Settings};
 include!(concat!(env!("OUT_DIR"), "/embedded_docs.rs"));
 pub mod ast_support;
+pub mod meta;
+pub mod taint_support;
 pub mod e0;
 pub mod e1;
 pub mod e10;
@@ -295,6 +297,7 @@ pub trait Rule: Sync {
             end_line,
             end_column,
             taint_source: None,
+            meta: Default::default(),
         }
     }
 
@@ -739,6 +742,32 @@ mod tests {
         };
         let config = Config {
             enabled_rules,
+            ..Default::default()
+        };
+        let analyse = Analyse::new(&config);
+
+        analyse.begin_index();
+        analyse.index_file(&file);
+        analyse.finalize_index();
+
+        analyse.analyse_file(&mut file, false).0
+    }
+
+    pub(crate) fn analyze_source_for_rule(
+        source: &str,
+        file_name: &str,
+        rule_code: &str,
+    ) -> Vec<Violation> {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("src")
+            .join("rules")
+            .join("examples")
+            .join(file_name);
+        let arena = LocalArena::new();
+        let mut file = File::new(&arena, path, source.to_string());
+
+        let config = Config {
+            enabled_rules: vec![rule_code.to_string()],
             ..Default::default()
         };
         let analyse = Analyse::new(&config);
