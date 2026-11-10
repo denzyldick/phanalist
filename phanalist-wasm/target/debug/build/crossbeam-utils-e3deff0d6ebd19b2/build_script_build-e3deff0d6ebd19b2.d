@@ -1,0 +1,9 @@
+/home/denzyl/Projects/phanalist/phanalist-wasm/target/debug/build/crossbeam-utils-e3deff0d6ebd19b2/build_script_build-e3deff0d6ebd19b2.d: /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crossbeam-utils-0.8.23/build.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crossbeam-utils-0.8.23/no_atomic.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crossbeam-utils-0.8.23/build-common.rs
+
+/home/denzyl/Projects/phanalist/phanalist-wasm/target/debug/build/crossbeam-utils-e3deff0d6ebd19b2/build_script_build-e3deff0d6ebd19b2: /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crossbeam-utils-0.8.23/build.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crossbeam-utils-0.8.23/no_atomic.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crossbeam-utils-0.8.23/build-common.rs
+
+/home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crossbeam-utils-0.8.23/build.rs:
+/home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crossbeam-utils-0.8.23/no_atomic.rs:
+/home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/crossbeam-utils-0.8.23/build-common.rs:
+
+# env-dep:CARGO_PKG_NAME=crossbeam-utils

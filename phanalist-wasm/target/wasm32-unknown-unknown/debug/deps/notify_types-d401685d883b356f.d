@@ -1,0 +1,10 @@
+/home/denzyl/Projects/phanalist/phanalist-wasm/target/wasm32-unknown-unknown/debug/deps/notify_types-d401685d883b356f.d: /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-types-2.3.0/src/lib.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-types-2.3.0/src/debouncer_full.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-types-2.3.0/src/debouncer_mini.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-types-2.3.0/src/event.rs
+
+/home/denzyl/Projects/phanalist/phanalist-wasm/target/wasm32-unknown-unknown/debug/deps/libnotify_types-d401685d883b356f.rlib: /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-types-2.3.0/src/lib.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-types-2.3.0/src/debouncer_full.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-types-2.3.0/src/debouncer_mini.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-types-2.3.0/src/event.rs
+
+/home/denzyl/Projects/phanalist/phanalist-wasm/target/wasm32-unknown-unknown/debug/deps/libnotify_types-d401685d883b356f.rmeta: /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-types-2.3.0/src/lib.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-types-2.3.0/src/debouncer_full.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-types-2.3.0/src/debouncer_mini.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-types-2.3.0/src/event.rs
+
+/home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-types-2.3.0/src/lib.rs:
+/home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-types-2.3.0/src/debouncer_full.rs:
+/home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-types-2.3.0/src/debouncer_mini.rs:
+/home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/notify-types-2.3.0/src/event.rs:

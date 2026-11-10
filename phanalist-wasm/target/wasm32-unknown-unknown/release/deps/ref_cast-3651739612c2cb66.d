@@ -1,0 +1,14 @@
+/home/denzyl/Projects/phanalist/phanalist-wasm/target/wasm32-unknown-unknown/release/deps/ref_cast-3651739612c2cb66.d: /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.27/src/lib.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.27/src/custom.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.27/src/layout.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.27/src/trivial.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.27/src/private.rs /home/denzyl/Projects/phanalist/phanalist-wasm/target/wasm32-unknown-unknown/release/build/ref-cast-23484b913af99b31/out/private.rs
+
+/home/denzyl/Projects/phanalist/phanalist-wasm/target/wasm32-unknown-unknown/release/deps/libref_cast-3651739612c2cb66.rlib: /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.27/src/lib.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.27/src/custom.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.27/src/layout.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.27/src/trivial.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.27/src/private.rs /home/denzyl/Projects/phanalist/phanalist-wasm/target/wasm32-unknown-unknown/release/build/ref-cast-23484b913af99b31/out/private.rs
+
+/home/denzyl/Projects/phanalist/phanalist-wasm/target/wasm32-unknown-unknown/release/deps/libref_cast-3651739612c2cb66.rmeta: /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.27/src/lib.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.27/src/custom.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.27/src/layout.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.27/src/trivial.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.27/src/private.rs /home/denzyl/Projects/phanalist/phanalist-wasm/target/wasm32-unknown-unknown/release/build/ref-cast-23484b913af99b31/out/private.rs
+
+/home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.27/src/lib.rs:
+/home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.27/src/custom.rs:
+/home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.27/src/layout.rs:
+/home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.27/src/trivial.rs:
+/home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ref-cast-1.0.27/src/private.rs:
+/home/denzyl/Projects/phanalist/phanalist-wasm/target/wasm32-unknown-unknown/release/build/ref-cast-23484b913af99b31/out/private.rs:
+
+# env-dep:OUT_DIR=/home/denzyl/Projects/phanalist/phanalist-wasm/target/wasm32-unknown-unknown/release/build/ref-cast-23484b913af99b31/out
