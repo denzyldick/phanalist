@@ -1,0 +1,15 @@
+{
+  "rule_code": "E0079",
+  "title": "E0079: Dynamic method call",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$method = $_GET['method'] ?? '';\n$obj->$method();",
+  "good_example": "$method = $_GET['method'] ?? '';\n$allowed = ['getData', 'save', 'view'];\nif (!in_array($method, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\n$obj->$method();",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`$obj->$method()` where `$method` is a variable from user input",
+    "`$obj->{$method}()` with a tainted method name",
+    "`call_user_func([$obj, $method])` with tainted method name"
+  ]
+}

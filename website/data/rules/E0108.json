@@ -1,0 +1,15 @@
+{
+  "rule_code": "E0108",
+  "title": "E0108: Dynamic instantiation",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$class = $_GET['class'] ?? '';\n$obj = new $class();",
+  "good_example": "$class = $_GET['class'] ?? '';\n$allowed = ['User', 'Product', 'Order'];\nif (!in_array($class, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\n$obj = new $class();",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`new $class()` where `$class` comes from superglobal array access",
+    "`ReflectionClass::newInstanceArgs()` with tainted class name",
+    "`class_exists()` followed by instantiation of user-controlled class names"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0103",
+  "title": "E0103: Server-side request forgery",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$url = $_GET['url'] ?? '';\n$result = file_get_contents($url);\n// or\n$ch = curl_init($url);\ncurl_exec($ch);",
+  "good_example": "$url = $_GET['url'] ?? '';\n$parsed = parse_url($url);\nif (!in_array($parsed['scheme'] ?? '', ['http', 'https'], true)) {\n    http_response_code(400);\n    exit;\n}\n$allowedHosts = ['api.example.com', 'cdn.example.com'];\nif (!in_array($parsed['host'] ?? '', $allowedHosts, true)) {\n    http_response_code(400);\n    exit;\n}\n$result = file_get_contents($url);",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`file_get_contents()`, `curl_init()`, `curl_exec()`, `fopen()`, `fsockopen()` with tainted URLs",
+    "HTTP client libraries (Guzzle, Symfony HttpClient) with user-controlled URLs"
+  ]
+}

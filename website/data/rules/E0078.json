@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0078",
+  "title": "E0078: Variable variables",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "extract($_GET); // attacker sends ?is_admin=1\nif ($is_admin) {\n    grantAdminAccess();\n}",
+  "good_example": "// Access request data explicitly through superglobals\n$username = $_GET['username'] ?? null;\n$is_admin = checkUserRole($username); // server-side check, never from request",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`extract()` with `$_GET`, `$_POST`, `$_REQUEST`, `$_COOKIE`, or other tainted arrays",
+    "`$$var` variable variables where `$var` originates from user input"
+  ]
+}

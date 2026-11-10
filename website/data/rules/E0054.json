@@ -1,0 +1,15 @@
+{
+  "rule_code": "E0054",
+  "title": "E0054: Dynamic variable creation",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "extract($_POST);\n\n$$name = 'value';\n${$key} = 'value';",
+  "good_example": "$name = $input['name'] ?? '';\n$email = $input['email'] ?? '';\n\nreturn compact('name', 'email');",
+  "severity": "major",
+  "category": "taint",
+  "what_it_checks": [
+    "`extract($data)` calls",
+    "Indirect variables such as `${$name}`",
+    "Nested variables such as `$$name` and `$$$name`"
+  ]
+}

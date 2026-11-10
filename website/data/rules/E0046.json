@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0046",
+  "title": "E0046: Input-Controlled Cardinality",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "",
+  "good_example": "",
+  "severity": "major",
+  "category": "resource",
+  "what_it_checks": [
+    "Checks for E0046 violations"
+  ]
+}

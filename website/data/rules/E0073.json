@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0073",
+  "title": "E0073: Weak cryptographic hash",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$hash = md5($password);   // weak and fast\n$hash = sha1($password);  // weak and fast",
+  "good_example": "$hash = password_hash($password, PASSWORD_DEFAULT);\n// Uses bcrypt or argon2 with automatic salting and cost factor\nif (password_verify($password, $hash)) {\n    // valid\n}",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`md5()`, `sha1()`, `hash('md5', ...)`, `hash('sha1', ...)` applied to password-like variables",
+    "`crypt()` without a proper salt or cost parameter"
+  ]
+}

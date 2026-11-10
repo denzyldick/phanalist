@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0097",
+  "title": "E0097: Cookie without HttpOnly flag",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "setcookie('session_id', $value, [\n    'secure' => true,\n    'httponly' => false,   // accessible via JavaScript\n]);",
+  "good_example": "setcookie('session_id', $value, [\n    'secure' => true,\n    'httponly' => true,    // not accessible via JavaScript\n    'samesite' => 'Lax',\n]);",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`setcookie()` or `setrawcookie()` calls where `httponly` is not set to `true`",
+    "`session_set_cookie_params()` with `httponly => false`"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0095",
+  "title": "E0095: Insecure comparison",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "if ($provided_api_key == $expected_key) {\n    grantAccess();\n}\nif ($signature == $expected) {\n    // VULNERABLE to timing attack\n}",
+  "good_example": "if (hash_equals($provided_api_key, $expected_key)) {\n    grantAccess();\n}\nif (hash_equals($signature, $expected)) {\n    // Constant-time comparison\n}",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`==` or `===` comparisons where one operand is a secret-like variable (`token`, `secret`, `key`, `password`, `hash`, `signature`, `mac`, `hmac`)",
+    "Both operands must be strings for the timing issue to apply"
+  ]
+}

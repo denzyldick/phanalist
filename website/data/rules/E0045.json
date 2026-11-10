@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0045",
+  "title": "E0045: Input-Dependent Live-Heap Growth",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "",
+  "good_example": "",
+  "severity": "major",
+  "category": "resource",
+  "what_it_checks": [
+    "Checks for E0045 violations"
+  ]
+}

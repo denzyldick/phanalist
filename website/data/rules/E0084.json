@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0084",
+  "title": "E0084: SQL query string concatenation",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$id = $_GET['id'] ?? '';\n$result = mysqli_query($conn, \"SELECT * FROM users WHERE id = $id\");",
+  "good_example": "$id = $_GET['id'] ?? '';\n$stmt = $pdo->prepare(\"SELECT * FROM users WHERE id = ?\");\n$stmt->execute([$id]);\n$user = $stmt->fetch();",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`mysqli_query()`, `mysqli::query()`, `pg_query()`, `pg_exec()`, `PDO::query()`, `PDO::exec()` calls",
+    "Where user input (`$_GET`, `$_POST`, `$_REQUEST`, `$_COOKIE`, etc.) is concatenated directly into the SQL string"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0074",
+  "title": "E0074: Weak random number generator",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$token = bin2hex(mt_rand(100000, 999999)); // predictable\n$key = rand(1000, 9999);                    // easily brute-forced",
+  "good_example": "$token = bin2hex(random_bytes(16));  // cryptographically secure\n$key = random_int(1000, 9999);       // cryptographically secure",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`rand()`, `mt_rand()`, `uniqid()` used for security-sensitive purposes (tokens, keys, salts)",
+    "`mt_rand()` without seeding from a secure source"
+  ]
+}

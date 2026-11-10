@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0038",
+  "title": "E0038: Method Call on Null",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "",
+  "good_example": "",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "Checks for E0038 violations"
+  ]
+}

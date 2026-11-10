@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0065",
+  "title": "E0065: NoSQL injection",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$username = $_GET['user'] ?? '';\n$collection->findOne(['username' => $username]);",
+  "good_example": "$username = (string)($_GET['user'] ?? '');\n$collection->findOne(['username' => $username]);",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "MongoDB/PHPLIB `find()`, `findOne()`, `aggregate()` calls with tainted superglobals passed directly as query filters",
+    "`$where` clauses with string interpolation of user input"
+  ]
+}

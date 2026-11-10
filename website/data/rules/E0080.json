@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0080",
+  "title": "E0080: Weak cryptographic function",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$hash = crypt($password, '$1$saltsalt$'); // MD5-based crypt, weak\n$hash = crypt($password);                   // uses system default, may be weak",
+  "good_example": "$hash = password_hash($password, PASSWORD_DEFAULT);\n// Uses bcrypt or argon2 with automatic salt and cost factor\nif (password_verify($password, $hash)) {\n    // valid\n}",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`crypt()` calls used for password hashing",
+    "`crypt()` without a proper salt parameter"
+  ]
+}

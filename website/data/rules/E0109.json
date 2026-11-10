@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0109",
+  "title": "E0109: Directory listing exposure",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$dir = $_GET['dir'] ?? '';\n$files = scandir($dir);\n// ?dir=../../../etc/ or ?dir=../../../var/www/config/",
+  "good_example": "$dir = $_GET['dir'] ?? '';\n$allowedDirs = ['/var/www/uploads/', '/var/www/assets/'];\n$realDir = realpath($dir);\nif (!$realDir || !in_array($realDir, $allowedDirs, true)) {\n    http_response_code(400);\n    exit;\n}\n$files = scandir($realDir);",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`opendir()`, `readdir()`, `scandir()`, `glob()` with user-controlled directory paths",
+    "Directory traversal patterns (`../`) in directory arguments"
+  ]
+}

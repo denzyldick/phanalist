@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0120",
+  "title": "E0120: Eval with user-controlled string",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$code = $_GET['code'] ?? '';\neval(\"return $code;\");",
+  "good_example": "// Never eval user input. Use a whitelist-based dispatch instead.\n$action = $_GET['action'] ?? '';\n$allowed = ['list', 'view', 'search'];\nif (!in_array($action, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\n// Handle each allowed action explicitly\nswitch ($action) {\n    case 'list':\n        listItems();\n        break;\n}",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`eval()` calls where the string argument contains tainted input",
+    "String concatenation inside `eval()` with user-controlled variables"
+  ]
+}

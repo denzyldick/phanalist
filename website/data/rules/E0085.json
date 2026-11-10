@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0085",
+  "title": "E0085: Inline PHP execution short tags",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "<?= $userInput ?>\n<?= $variable ?>",
+  "good_example": "<?php echo $userInput; ?>\n<?php echo htmlspecialchars($variable, ENT_QUOTES, 'UTF-8'); ?>",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`<?= ... ?>` short echo tags in PHP files",
+    "`<?` short open tags (without `php`)"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "rule_code": "E0001",
+  "title": "E0001: Opening tag position",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "<?php\n// There is an empty blank line before the opening tag!\necho \"Hello World\";",
+  "good_example": "<?php\ndeclare(strict_types=1);\n\nnamespace App;\n\necho \"Hello World\";",
+  "severity": "major",
+  "category": "configuration",
+  "what_it_checks": [
+    "Ensures `<?php` or `<?=` is on line 1 of the file.",
+    "Ensures the opening tag starts at column 1 (no leading indentation/spaces).",
+    "Automatically allows Unix shebang (`#!...`) lines in CLI scripts on line 1."
+  ]
+}

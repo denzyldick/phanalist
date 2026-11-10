@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0005",
+  "title": "E0005: Capitalized class name",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "class paymentProcessor {\n    // ...\n}",
+  "good_example": "class PaymentProcessor {\n    // ...\n}",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "Inspects the declaration of every PHP class.",
+    "Verifies that the first letter of the class name is uppercase (`is_uppercase()`)."
+  ]
+}

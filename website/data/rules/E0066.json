@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0066",
+  "title": "E0066: Header injection",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$url = $_GET['url'] ?? '';\nheader(\"Location: $url\");",
+  "good_example": "$url = $_GET['url'] ?? '';\n$url = str_replace([\"\\r\", \"\\n\"], \"\", $url);\nheader(\"Location: $url\");",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`header()`, `header_remove()` with tainted input",
+    "`setcookie()`, `setrawcookie()` with tainted name/value"
+  ]
+}

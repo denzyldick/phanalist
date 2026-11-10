@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0044",
+  "title": "E0044: Input-Dependent Runtime Growth",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "",
+  "good_example": "",
+  "severity": "major",
+  "category": "resource",
+  "what_it_checks": [
+    "Checks for E0044 violations"
+  ]
+}

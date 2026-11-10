@@ -1,0 +1,15 @@
+{
+  "rule_code": "E0094",
+  "title": "E0094: Denial of service via regular expression",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$pattern = '/^(a+)+$/'; // catastrophic backtracking on \"aaaaaaaaaaaaaaaaaaaa!\"\npreg_match($pattern, $_GET['input']);\n\n// or user-supplied pattern:\n$pattern = $_GET['regex'] ?? '';\npreg_match($pattern, $text);",
+  "good_example": "// Use simple, bounded patterns\n$pattern = '/^[a-z0-9]{1,32}$/';\npreg_match($pattern, $_GET['input']);\n\n// Use time-limited regex evaluation if user-supplied patterns are unavoidable",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "Nested quantifiers in regex patterns: `(a+)+`, `(a*)*`, `(a|b)+` etc.",
+    "User-supplied regex patterns passed to `preg_match()`, `preg_replace()`, `preg_split()`",
+    "`preg_match()` on very long user input without timeout"
+  ]
+}

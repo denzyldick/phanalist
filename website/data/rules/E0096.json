@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0096",
+  "title": "E0096: Cookie without secure flag",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "setcookie('session_id', $value, [\n    'secure' => false,   // sent over HTTP\n    'httponly' => true,\n]);",
+  "good_example": "setcookie('session_id', $value, [\n    'secure' => true,    // HTTPS only\n    'httponly' => true,  // not accessible via JavaScript\n    'samesite' => 'Lax',\n]);",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`setcookie()` or `setrawcookie()` calls where `secure` is not set to `true`",
+    "`session_set_cookie_params()` with `secure => false`"
+  ]
+}

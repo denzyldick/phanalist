@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0025",
+  "title": "E0025: Lines of Code (LOC) per File",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "",
+  "good_example": "",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "Checks for E0025 violations"
+  ]
+}

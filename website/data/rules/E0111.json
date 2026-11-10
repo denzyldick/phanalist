@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0111",
+  "title": "E0111: Deprecated mysql extension",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$conn = mysql_connect('localhost', 'user', 'pass');\nmysql_select_db('mydb', $conn);\n$result = mysql_query(\"SELECT * FROM users WHERE id = $id\");\nmysql_fetch_assoc($result);",
+  "good_example": "// Use PDO or MySQLi with prepared statements\n$pdo = new PDO('mysql:host=localhost;dbname=mydb', 'user', 'pass');\n$stmt = $pdo->prepare(\"SELECT * FROM users WHERE id = ?\");\n$stmt->execute([$id]);\n$user = $stmt->fetch();",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`mysql_connect()`, `mysql_pconnect()`, `mysql_select_db()`, `mysql_query()`, `mysql_fetch_assoc()`, `mysql_fetch_array()`, `mysql_num_rows()`, `mysql_real_escape_string()`, `mysql_error()`, `mysql_errno()`",
+    "Any function with the `mysql_` prefix (except `mysqlnd` which is a driver, not the extension)"
+  ]
+}

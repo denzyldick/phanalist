@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0060",
+  "title": "E0060: SQL injection",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$id = $_GET['id'] ?? '';\n$result = mysqli_query($conn, \"SELECT * FROM users WHERE id = $id\");",
+  "good_example": "$id = $_GET['id'] ?? '';\n$stmt = $pdo->prepare(\"SELECT * FROM users WHERE id = ?\");\n$stmt->execute([$id]);\n$user = $stmt->fetch();",
+  "severity": "major",
+  "category": "taint",
+  "what_it_checks": [
+    "`mysqli_query()`, `mysqli::query()`, `pg_query()`, `pg_exec()`, `PDO::query()`, `PDO::exec()` calls",
+    "Where user input (`$_GET`, `$_POST`, `$_REQUEST`, `$_COOKIE`, etc.) is concatenated directly into the SQL string"
+  ]
+}

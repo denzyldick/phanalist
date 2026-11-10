@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0132",
+  "title": "E0132: Header injection via header",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$status = $_GET['status'] ?? '';\nheader(\"X-Custom-Status: $status\");\n// ?status=ok%0d%0aSet-Cookie: session=evil",
+  "good_example": "$status = $_GET['status'] ?? '';\n$status = str_replace([\"\\r\", \"\\n\"], '', $status);\n$allowed = ['ok', 'error', 'pending'];\nif (!in_array($status, $allowed, true)) {\n    $status = 'ok';\n}\nheader(\"X-Custom-Status: $status\");",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`header()` calls with tainted input that may contain CRLF sequences",
+    "`header()` calls where user input is interpolated into the header value"
+  ]
+}

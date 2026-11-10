@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0047",
+  "title": "E0047: Resource lifecycle leak",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "",
+  "good_example": "",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "Checks for E0047 violations"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0032",
+  "title": "E0032: Modulo by Zero",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "",
+  "good_example": "",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "Checks for E0032 violations"
+  ]
+}

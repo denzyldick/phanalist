@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0006",
+  "title": "E0006: Property modifiers",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "class User {\n    // Property without visibility modifier or left public\n    string $name;\n}",
+  "good_example": "class User {\n    private string $name;\n\n    public function getName(): string {\n        return $this->name;\n    }\n}",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "Scans class properties for missing visibility modifiers."
+  ]
+}

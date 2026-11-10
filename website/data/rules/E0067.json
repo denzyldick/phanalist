@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0067",
+  "title": "E0067: Mail injection",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$email = $_GET['email'] ?? '';\nmail('admin@example.com', 'Contact', $body, \"From: $email\");",
+  "good_example": "$email = filter_var($_GET['email'] ?? '', FILTER_VALIDATE_EMAIL);\nif ($email === false) {\n    http_response_code(400);\n    exit;\n}\nmail('admin@example.com', 'Contact', $body, \"From: $email\");",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`mail()` with `$additional_headers` or `$subject` built from tainted input",
+    "`mb_send_mail()` with tainted headers"
+  ]
+}

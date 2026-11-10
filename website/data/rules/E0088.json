@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0088",
+  "title": "E0088: Reflection-based injection",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$class = $_GET['class'] ?? '';\n$reflector = new ReflectionClass($class);\n$obj = $reflector->newInstance($_GET['args']);",
+  "good_example": "$class = $_GET['class'] ?? '';\n$allowed = ['User', 'Product', 'Order'];\nif (!in_array($class, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\n$reflector = new ReflectionClass($class);",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`ReflectionClass`, `ReflectionMethod`, `ReflectionProperty` constructed from tainted input",
+    "`ReflectionMethod::invoke()`, `ReflectionMethod::invokeArgs()` with tainted method names"
+  ]
+}

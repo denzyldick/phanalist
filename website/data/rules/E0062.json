@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0062",
+  "title": "E0062: Command injection",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$file = $_GET['file'] ?? '';\nsystem(\"cat $file\");",
+  "good_example": "// Avoid shell execution entirely\n$content = file_get_contents($file);\n\n// If you must use shell, validate and escape\n$allowed = ['file1.txt', 'file2.txt'];\nif (!in_array($file, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\n$file = escapeshellarg($file);\nsystem(\"cat $file\");",
+  "severity": "major",
+  "category": "taint",
+  "what_it_checks": [
+    "`system()`, `exec()`, `shell_exec()`, `passthru()`, `popen()`, `proc_exec()` calls",
+    "Where user input is passed directly or concatenated into the command string"
+  ]
+}

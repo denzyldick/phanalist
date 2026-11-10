@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0114",
+  "title": "E0114: PHP info disclosure",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "<?php phpinfo(); ?>",
+  "good_example": "// Remove phpinfo() entirely from production code\n// Use it only in local development, never commit it",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`phpinfo()` function calls anywhere in committed source code",
+    "`phpinfo(INFO_ALL)` or `phpinfo(INFO_GENERAL)` etc."
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0121",
+  "title": "E0121: Assert with user-controlled string",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$condition = $_GET['condition'] ?? '';\nassert(\"$condition\");\n// ?condition=phpinfo() would execute phpinfo()",
+  "good_example": "// Use assert() only with boolean expressions, never strings\n$condition = filter_var($_GET['condition'] ?? '', FILTER_VALIDATE_BOOLEAN);\nassert($condition === true);\n\n// Or validate and branch explicitly\n$action = $_GET['action'] ?? '';\n$allowed = ['enable', 'disable'];\nif (!in_array($action, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`assert()` calls where the argument is a string containing tainted input",
+    "String concatenation inside `assert()` with user-controlled variables"
+  ]
+}

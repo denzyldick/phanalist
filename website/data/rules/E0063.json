@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0063",
+  "title": "E0063: LDAP injection",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$username = $_GET['user'] ?? '';\n$filter = \"(uid=$username)\";\n$result = ldap_search($conn, $dn, $filter);",
+  "good_example": "$username = $_GET['user'] ?? '';\n$filter = \"(\" . ldap_escape($username, '', LDAP_ESCAPE_FILTER) . \")\";\n$result = ldap_search($conn, $dn, $filter);",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`ldap_search()`, `ldap_list()`, `ldap_read()` calls where the filter contains user input without `ldap_escape()`"
+  ]
+}

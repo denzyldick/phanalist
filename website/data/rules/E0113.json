@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0113",
+  "title": "E0113: Session regeneration missing",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "session_start();\n// Verify credentials...\n$_SESSION['user_id'] = $user->id;\n// No session_regenerate_id() after login",
+  "good_example": "session_start();\n// Verify credentials...\n$_SESSION['user_id'] = $user->id;\nsession_regenerate_id(true); // Fixation protection",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`session_start()` followed by `$_SESSION` writes without a subsequent `session_regenerate_id()`",
+    "Login/auth endpoints that set session data without regenerating the ID"
+  ]
+}

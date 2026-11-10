@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0040",
+  "title": "E0040: Return Contract Violation",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "",
+  "good_example": "",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "Checks for E0040 violations"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0048",
+  "title": "E0048: Unbounded direct recursion",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "",
+  "good_example": "",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "Checks for E0048 violations"
+  ]
+}

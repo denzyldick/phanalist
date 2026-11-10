@@ -1,0 +1,15 @@
+{
+  "rule_code": "E0051",
+  "title": "E0051: Count of a non-countable value",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "count('hello'); // TypeError\nsizeof(42);     // TypeError\ncount(null);    // TypeError",
+  "good_example": "count($items);      // $items is an array\nsizeof($collection); // $collection implements Countable\nstrlen($text);      // use strlen() for strings",
+  "severity": "major",
+  "category": "taint",
+  "what_it_checks": [
+    "`count()` or `sizeof()` with a string literal",
+    "`count()` or `sizeof()` with an integer or float literal",
+    "`count()` or `sizeof()` with a boolean or `null` literal"
+  ]
+}

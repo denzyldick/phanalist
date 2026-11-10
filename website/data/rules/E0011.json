@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0011",
+  "title": "E0011: Detect the error suppression symbol: @",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "// Suppressing errors when reading a file or calling a risky function\n$content = @file_get_contents($filename);\n@$this->connectDatabase();",
+  "good_example": "// Handle errors explicitly using conditionals, try/catch, or validation\nif (file_exists($filename)) {\n    $content = file_get_contents($filename);\n} else {\n    throw new FileNotFoundException(\"File not found: $filename\");\n}\n\ntry {\n    $this->connectDatabase();\n} catch (DatabaseException $e) {\n    Log::error(\"Database connection failed: \" . $e->getMessage());\n}",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "Scans expressions and return statements for the error control unary prefix operator (`@`)."
+  ]
+}

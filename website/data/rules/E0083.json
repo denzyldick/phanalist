@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0083",
+  "title": "E0083: Open redirect",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$url = $_GET['redirect'] ?? '';\nheader(\"Location: $url\");\nexit;",
+  "good_example": "$url = $_GET['redirect'] ?? '';\n$allowed = ['/dashboard', '/profile', '/login'];\nif (!in_array($url, $allowed, true)) {\n    $url = '/dashboard';\n}\nheader(\"Location: $url\");\nexit;",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`header(\"Location: ...\")` with tainted input",
+    "`header(\"refresh: ...;url=...\")` with tainted input"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0020",
+  "title": "E0020: Depth of Inheritance Tree (DIT)",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "",
+  "good_example": "",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "Checks for E0020 violations"
+  ]
+}

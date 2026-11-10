@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0049",
+  "title": "E0049: Invalid builtin argument",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "",
+  "good_example": "",
+  "severity": "minor",
+  "category": "syntax",
+  "what_it_checks": [
+    "Checks for E0049 violations"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0017",
+  "title": "E0017: Coupling Between Objects (CBO)",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "",
+  "good_example": "",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "Checks for E0017 violations"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "rule_code": "E0050",
+  "title": "E0050: Position check used as boolean",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "if (strpos($path, '/')) {\n    // A leading slash is at position 0, so this branch is skipped.\n}",
+  "good_example": "if (strpos($path, '/') !== false) {\n    // Found, including a match at position 0.\n}\n\nif (str_starts_with($path, '/')) {\n    // Clearer when you only care about the prefix.\n}",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`if`, `elseif`, `while`, `do`/`while`, and `for` conditions",
+    "Negated checks such as `!strpos($haystack, $needle)`",
+    "Checks combined with `&&`, `||`, `and`, `or`, or `xor`",
+    "Checks used as a ternary condition"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0000",
+  "title": "E0000: Example rule",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "",
+  "good_example": "",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "Checks for E0000 violations"
+  ]
+}

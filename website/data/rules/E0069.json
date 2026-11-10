@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0069",
+  "title": "E0069: Unsafe deserialization",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$data = $_GET['data'] ?? '';\n$result = unserialize($data);",
+  "good_example": "// Use JSON instead of PHP serialization for untrusted data\n$data = $_GET['json'] ?? '';\n$result = json_decode($data, true);\nif (json_last_error() !== JSON_ERROR_NONE) {\n    http_response_code(400);\n    exit;\n}",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`unserialize()` calls with tainted input from `$_GET`, `$_POST`, `$_REQUEST`, `$_COOKIE`, or `php://input`",
+    "`session_decode()` with user-controlled data"
+  ]
+}
