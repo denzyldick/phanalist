@@ -145,13 +145,7 @@ impl Baseline {
         }
 
         // Recompute counts from what survived.
-        let mut codes_count: HashMap<String, i64> = HashMap::new();
-        for violations in results.files.values() {
-            for violation in violations {
-                *codes_count.entry(violation.rule.clone()).or_insert(0) += 1;
-            }
-        }
-        results.codes_count = codes_count;
+        results.recount_codes();
     }
 }
 

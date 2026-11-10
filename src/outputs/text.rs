@@ -41,9 +41,17 @@ impl Text {
                 );
                 let line_symbol = "|".blue().bold();
                 for suggestion in violations {
+                    let tier = match &suggestion.taint_source {
+                        Some(source) if source.request_rooted => {
+                            format!(" {}", "[proven]".green().bold())
+                        }
+                        Some(_) => format!(" {}", "[lead]".yellow()),
+                        None => String::new(),
+                    };
                     println!(
-                        "  {}:\t{}",
+                        "  {}{}:\t{}",
                         suggestion.rule.yellow().bold(),
+                        tier,
                         suggestion.message.render().bold()
                     );
                     println!(
@@ -86,6 +94,25 @@ impl Text {
                 ])
                 .bold(true);
             println!("{}", table.display().unwrap());
+        }
+
+        let mut proven = 0usize;
+        let mut leads = 0usize;
+        for violation in results.files.values().flatten() {
+            if let Some(source) = &violation.taint_source {
+                if source.request_rooted {
+                    proven += 1;
+                } else {
+                    leads += 1;
+                }
+            }
+        }
+        if proven + leads > 0 {
+            println!(
+                "Taint findings: {} proven (request-rooted), {} leads (parameter-derived; verify callers)",
+                proven.to_string().green().bold(),
+                leads.to_string().yellow().bold()
+            );
         }
     }
 }

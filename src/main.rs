@@ -91,8 +91,9 @@ struct Args {
     /// Sort the engineer report by: total (default), net, name, fixed, introduced
     sort: String,
     #[arg(long)]
-    /// Report all tainted findings, including parameter-derived leads (default: request-only)
-    taint_source_all: bool,
+    /// Only report taint findings reachable from request input; hide
+    /// parameter-derived leads (the deeper pass is on by default)
+    taint_source_request: bool,
     #[arg(long)]
     /// Start as a Language Server (LSP) for editor integrations
     lsp: bool,
@@ -113,7 +114,9 @@ fn main() {
     };
 
     let mut config = Analyse::parse_config(args.config.clone(), &format, quiet);
-    config.taint_source_request = !args.taint_source_all;
+    if args.taint_source_request {
+        config.taint_source_all = false;
+    }
     if let Some(rules) = args.rules.clone() {
         config.enabled_rules = rules;
     }
@@ -198,6 +201,10 @@ fn main() {
             baseline.filter(&mut results);
         }
 
+        // Compute the exit status before `output()`: summary-only mode clears
+        // `results.files` after printing, which would hide taint tiers here.
+        has_violations = has_violations || results.has_blocking_violations();
+
         if !quiet && !args.blame {
             analyze.output(&mut results, format.clone(), args.summary_only);
         }
@@ -212,8 +219,6 @@ fn main() {
                 );
             }
         }
-
-        has_violations = has_violations || results.has_any_violations();
 
         aggregate.files.extend(results.files);
         for (code, count) in results.codes_count {
