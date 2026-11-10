@@ -128,6 +128,17 @@ impl Serialize for Violation {
     }
 }
 
+impl Violation {
+    /// True when this finding is a parameter-derived taint lead rather than a
+    /// proven request-rooted flow. Leads stay in the report but are tiered as
+    /// low-confidence, minor-severity findings.
+    pub fn is_taint_lead(&self) -> bool {
+        self.taint_source
+            .as_ref()
+            .is_some_and(|source| !source.request_rooted)
+    }
+}
+
 fn default_schema_version() -> u32 {
     2
 }
@@ -199,14 +210,10 @@ impl Results {
                 &violation.line,
             );
             let meta = FindingMeta::from_rule(&violation.rule, fingerprint);
-            violation.meta = if violation
-                .taint_source
-                .as_ref()
-                .is_some_and(|source| source.request_rooted)
-            {
-                meta.with_proven_taint()
-            } else {
-                meta
+            violation.meta = match violation.taint_source.as_ref() {
+                Some(source) if source.request_rooted => meta.with_proven_taint(),
+                Some(_) => meta.with_taint_lead(),
+                None => meta,
             };
         }
 
@@ -216,8 +223,30 @@ impl Results {
         self.files.entry(path).or_default().extend(violations);
     }
 
+    #[allow(dead_code)]
     pub fn has_any_violations(&self) -> bool {
         self.codes_count.values().any(|&c| c > 0)
+    }
+
+    /// Recompute per-rule counts from the violations that are still present.
+    /// Call this after filtering findings (baseline, request-only taint, etc.);
+    /// `codes_count` is accumulated as findings are added and would otherwise
+    /// keep counting findings that were subsequently removed.
+    pub fn recount_codes(&mut self) {
+        self.codes_count.clear();
+        for violation in self.files.values().flatten() {
+            *self.codes_count.entry(violation.rule.clone()).or_insert(0) += 1;
+        }
+    }
+
+    /// Violations that should fail a run. Parameter-derived taint leads are
+    /// reported but do not fail the build on their own; proven flows (and all
+    /// non-taint findings) still do.
+    pub fn has_blocking_violations(&self) -> bool {
+        self.files
+            .values()
+            .flatten()
+            .any(|violation| !violation.is_taint_lead())
     }
 }
 
@@ -376,6 +405,63 @@ mod tests {
             results.files["app/Repo.php"][0].meta.confidence,
             Confidence::High
         );
+        assert!(!results.files["app/Repo.php"][0].is_taint_lead());
+        assert!(results.has_blocking_violations());
+    }
+
+    #[test]
+    fn parameter_taint_is_tiered_as_a_lead() {
+        use crate::rules::meta::{Confidence, Severity};
+
+        let mut results = get_results();
+        let arena = LocalArena::new();
+        let file = get_file(&arena, "./app/Repo.php");
+
+        let mut violation = get_violation("E0060");
+        violation.taint_source = Some(TaintSource {
+            request_rooted: false,
+            source_kind: Some(String::from("parameter")),
+            ..Default::default()
+        });
+        results.add_file_violations(&file, vec![violation]);
+
+        let stored = &results.files["app/Repo.php"][0];
+        assert_eq!(stored.meta.confidence, Confidence::Low);
+        assert_eq!(stored.meta.severity, Severity::Minor);
+        assert!(stored.is_taint_lead());
+        assert!(
+            !results.has_blocking_violations(),
+            "leads are reported but must not fail the run on their own"
+        );
+    }
+
+    #[test]
+    fn non_taint_findings_still_block() {
+        let mut results = get_results();
+        let arena = LocalArena::new();
+        let file = get_file(&arena, "./app/Repo.php");
+
+        results.add_file_violations(&file, vec![get_violation("E001")]);
+
+        assert!(results.has_blocking_violations());
+    }
+
+    #[test]
+    fn recount_codes_matches_remaining_violations() {
+        let mut results = get_results();
+        let arena = LocalArena::new();
+        let file = get_file(&arena, "./app/Repo.php");
+
+        results.add_file_violations(&file, vec![get_violation("E001"), get_violation("E002")]);
+        results
+            .files
+            .get_mut("app/Repo.php")
+            .unwrap()
+            .retain(|v| v.rule == "E001");
+        results.recount_codes();
+
+        assert_eq!(results.codes_count.get("E001"), Some(&1));
+        assert!(!results.codes_count.contains_key("E002"));
     }
 
     #[test]

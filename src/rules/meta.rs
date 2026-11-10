@@ -211,6 +211,17 @@ impl FindingMeta {
         self.confidence = Confidence::High;
         self
     }
+
+    /// A parameter-derived taint flow is a lead, not proof: the sink is
+    /// reachable from a function argument, but nothing here shows that a
+    /// caller supplies untrusted data. Keep it visible but deprioritise it
+    /// (low confidence, minor severity) so leads do not read as confirmed
+    /// vulnerabilities.
+    pub fn with_taint_lead(mut self) -> Self {
+        self.confidence = Confidence::Low;
+        self.severity = Severity::Minor;
+        self
+    }
 }
 
 /// Metadata for a rule code. Every registered code resolves to a value; unknown

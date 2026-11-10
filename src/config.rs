@@ -18,9 +18,14 @@ pub struct Config {
     /// prefixes (`var/cache`) or globs (`**/*.generated.php`).
     #[serde(default)]
     pub exclude_paths: Vec<String>,
-    /// Only report taint findings whose source is request-controlled.
-    #[serde(default)]
-    pub taint_source_request: bool,
+    /// Report all tainted findings, including parameter-derived leads.
+    ///
+    /// Defaults to `true`: the deeper pass is always on and non-request-rooted
+    /// flows are tiered as low-confidence leads. Set this to `false` (or pass
+    /// `--taint-source-request`) to hide leads and keep only flows reachable
+    /// from request input.
+    #[serde(default = "default_taint_source_all")]
+    pub taint_source_all: bool,
 }
 
 impl Default for Config {
@@ -236,9 +241,13 @@ impl Default for Config {
             disable_rules,
             rules,
             exclude_paths: vec![],
-            taint_source_request: true,
+            taint_source_all: true,
         }
     }
+}
+
+fn default_taint_source_all() -> bool {
+    true
 }
 
 impl Config {
@@ -273,5 +282,33 @@ mod tests {
             "enabled_rules: []\ndisable_rules: []\nrules: {}\nexclude_paths:\n  - var/cache\n";
         let config: Config = serde_yaml::from_str(yaml).unwrap();
         assert_eq!(config.exclude_paths, vec!["var/cache".to_string()]);
+    }
+
+    #[test]
+    fn deeper_pass_is_on_by_default() {
+        assert!(Config::default().taint_source_all);
+    }
+
+    #[test]
+    fn taint_source_all_defaults_to_true_when_absent() {
+        let yaml = "enabled_rules: []\ndisable_rules: []\nrules: {}\n";
+        let config: Config = serde_yaml::from_str(yaml).unwrap();
+        assert!(config.taint_source_all);
+    }
+
+    #[test]
+    fn taint_source_all_can_be_turned_off_from_yaml() {
+        let yaml = "enabled_rules: []\ndisable_rules: []\nrules: {}\ntaint_source_all: false\n";
+        let config: Config = serde_yaml::from_str(yaml).unwrap();
+        assert!(!config.taint_source_all);
+    }
+
+    #[test]
+    fn legacy_taint_source_request_key_is_ignored() {
+        // Older generated configs contain `taint_source_request: true`. The
+        // deeper pass must still default on for those users after upgrading.
+        let yaml = "enabled_rules: []\ndisable_rules: []\nrules: {}\ntaint_source_request: true\n";
+        let config: Config = serde_yaml::from_str(yaml).unwrap();
+        assert!(config.taint_source_all);
     }
 }

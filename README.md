@@ -94,6 +94,19 @@ Security rules that use source-to-sink taint analysis accept a per-rule `taint_m
 - `only` reports only proven tainted flows.
 - `off` keeps the legacy heuristic-only behaviour.
 
+The taint pass runs on **all** sources by default, so library and dependency
+scans surface dangerous sinks even when the superglobal is in the calling app.
+Findings are tiered by certainty:
+
+- **Proven** — reachable from request input (`$_GET`, `$_POST`, …): high
+  confidence, original rule severity, marked `[proven]` in text output.
+- **Lead** — a function parameter reaches a sink, but no caller is shown to
+  pass untrusted data: low confidence, `minor` severity, marked `[lead]`.
+  Leads are reported but don't fail the run on their own.
+
+Pass `--taint-source-request` (or set `taint_source_all: false` in
+`phanalist.yaml`) to hide leads and keep only request-rooted flows.
+
 ---
 
 ## 📜 Rules Reference

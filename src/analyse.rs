@@ -23,6 +23,7 @@ use crate::outputs::Format;
 use crate::outputs::OutputFormatter;
 use crate::resource::{ResourceClass, ResourceFinding, ResourceService, ResourceSettings};
 use crate::results::{Results, Violation};
+use crate::rules::meta::FindingMeta;
 use crate::rules::Rule;
 use crate::rules::{self};
 use crate::security::{FileTaint, SecurityService, SourceFilter};
@@ -161,10 +162,10 @@ pub struct Analyse {
 
 impl Analyse {
     pub fn new(config: &Config) -> Self {
-        let source_filter = if config.taint_source_request {
-            SourceFilter::Request
-        } else {
+        let source_filter = if config.taint_source_all {
             SourceFilter::All
+        } else {
+            SourceFilter::Request
         };
         let mut security = SecurityService::new();
         security = security.with_source_filter(source_filter);
@@ -608,14 +609,17 @@ impl Analyse {
             progress_bar.unwrap().finish();
         }
 
-        // --- Interprocedural taint filtering ---
+        // --- Interprocedural taint tiering ---
         // After all files are analyzed, compute which functions are request-rooted
         // (i.e., their taint originates from $_GET, $_POST, etc. either directly
-        // or transitively through the call graph). Filter out any taint findings
-        // whose enclosing function is not request-rooted, since those findings
-        // cannot be triggered by user input.
-        if self.has_security_rules() && self.source_filter == SourceFilter::Request {
+        // or transitively through the call graph). A sink inside a request-rooted
+        // function is a proven flow even if the sink itself only saw a parameter,
+        // so promote it to the proven tier. With the request-only filter, findings
+        // outside that set are dropped; the default (all sources) keeps them as
+        // parameter-derived leads.
+        if self.has_security_rules() {
             let request_rooted = self.security.compute_request_rooted_functions();
+            let request_only = self.source_filter == SourceFilter::Request;
             results.files.retain(|_, violations| {
                 violations.retain_mut(|v| {
                     match &mut v.taint_source {
@@ -631,17 +635,27 @@ impl Analyse {
                                     .unwrap_or(false);
                             if reachable && !ts.request_rooted {
                                 // Cross-file propagation: the sink itself only
-                                // saw a parameter, but a caller supplied request data.
+                                // saw a parameter, but a caller supplied request
+                                // data. Promote the finding to the proven tier.
                                 ts.request_rooted = true;
                                 ts.source_kind = Some(String::from("request"));
+                                let fingerprint = v.meta.fingerprint.clone();
+                                v.meta = FindingMeta::from_rule(&v.rule, fingerprint)
+                                    .with_proven_taint();
                             }
-                            reachable
+                            !request_only || reachable
                         }
                         None => true, // Non-taint rules (E0000-E0052) always pass
                     }
                 });
                 !violations.is_empty()
             });
+
+            // Request-only mode dropped leads after their per-rule counts were
+            // accumulated; refresh the summary counts to match what is left.
+            if request_only {
+                results.recount_codes();
+            }
         }
 
         results.total_files_count = files;

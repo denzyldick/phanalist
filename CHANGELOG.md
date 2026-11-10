@@ -2,7 +2,25 @@
 
 ## [Unreleased] - yyyy-mm-dd
 
+### Deeper taint pass is on by default
 
+- Taint analysis now considers **all** sources by default, not just request
+  input. Parameter-derived flows are no longer filtered out, so library and
+  dependency scans surface dangerous sinks even when the calling app supplies
+  the untrusted data.
+- Findings are tiered by certainty:
+  - **Proven** (request-rooted): high confidence, original rule severity,
+    `[proven]` in text output.
+  - **Lead** (parameter-derived): low confidence, `minor` severity, `[lead]`
+    in text output.
+- The text summary now reports `N proven (request-rooted), M leads`.
+  SARIF/Code Climate map leads to `note`/`minor` instead of `error`.
+- Leads are reported but do not fail the run on their own; the exit code is
+  driven by proven and non-taint findings.
+- New `--taint-source-request` CLI flag and `taint_source_all: false` config
+  key restore the previous request-only behavior. The old
+  `taint_source_request` config key is ignored, so existing generated configs
+  pick up the deeper pass after upgrading.
 
 ### M2: Taint Engine Coverage
 

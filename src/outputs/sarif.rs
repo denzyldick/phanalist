@@ -264,7 +264,13 @@ impl OutputFormatter for Sarif {
                     graphs: None,
                     guid: None,
                     hosted_viewer_uri: None,
-                    kind: Some(serde_json::Value::String(String::from("fail"))),
+                    kind: Some(serde_json::Value::String(String::from(
+                        if violation.is_taint_lead() {
+                            "informational"
+                        } else {
+                            "fail"
+                        },
+                    ))),
                     level: Some(serde_json::Value::String(
                         violation.meta.severity.sarif_level().to_string(),
                     )),
