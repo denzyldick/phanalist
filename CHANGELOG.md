@@ -22,6 +22,16 @@
   `taint_source_request` config key is ignored, so existing generated configs
   pick up the deeper pass after upgrading.
 
+### Robustness
+
+- Fixed a stack overflow when analysing very deeply nested expressions (for
+  example a generated PHP file with a 25,000-term concatenation chain). The
+  shared expression walker is now iterative, and the verification, resource
+  and LoD type-checking passes bound their recursion depth instead of
+  exhausting the thread stack.
+
+
+
 ### M2: Taint Engine Coverage
 
 - Migrated 33 security rules (E0100-E0134) from expression-shape heuristics 

@@ -18,6 +18,10 @@ use super::value::{ArrayKey, ResourceState, Value};
 use super::Settings;
 
 const LOOP_BUDGET: usize = 4096;
+/// Upper bound on expression nesting the interpreter will descend into.
+/// Prevents stack exhaustion on pathological inputs such as very long
+/// concatenation chains.
+const MAX_EXPRESSION_DEPTH: usize = 512;
 
 pub struct Finding {
     pub class: FindingClass,
@@ -94,6 +98,7 @@ struct Analyzer<'a, 'arena> {
     method_domains: HashMap<String, Vec<Option<ParameterDomain>>>,
     in_generator: bool,
     loop_budget: usize,
+    expression_depth: usize,
     next_unverified_numeric: u64,
     next_fresh: u64,
     next_resource: u64,
@@ -141,6 +146,7 @@ pub fn analyze_file_with_summaries(
         method_domains: HashMap::new(),
         in_generator: false,
         loop_budget: LOOP_BUDGET,
+        expression_depth: 0,
         next_unverified_numeric: 0,
         next_fresh: 0,
         next_resource: 0,
@@ -1448,6 +1454,23 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
     }
 
     fn eval_expr(&mut self, expression: &'arena Expression<'arena>, state: &mut State) -> Value {
+        // Deeply nested expressions (e.g. a 20k-term concatenation chain) would
+        // otherwise recurse until the thread stack is exhausted. Stop descending
+        // once the limit is reached and treat the result as unknown.
+        if self.expression_depth >= MAX_EXPRESSION_DEPTH {
+            return Value::Unknown;
+        }
+        self.expression_depth += 1;
+        let value = self.eval_expr_inner(expression, state);
+        self.expression_depth -= 1;
+        value
+    }
+
+    fn eval_expr_inner(
+        &mut self,
+        expression: &'arena Expression<'arena>,
+        state: &mut State,
+    ) -> Value {
         match expression {
             Expression::Parenthesized(parenthesized) => {
                 self.eval_expr(parenthesized.expression, state)
