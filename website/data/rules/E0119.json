@@ -1,0 +1,15 @@
+{
+  "rule_code": "E0119",
+  "title": "E0119: Session cookie without Secure flag",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "session_set_cookie_params([\n    'secure' => false,    // sent over HTTP\n    'httponly' => true,\n]);\nsession_start();",
+  "good_example": "session_set_cookie_params([\n    'secure' => true,     // HTTPS only\n    'httponly' => true,   // not accessible via JavaScript\n    'samesite' => 'Lax',\n]);\nsession_start();",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`session_set_cookie_params()` with `secure => false` or not setting `secure`",
+    "`ini_set('session.cookie_secure', '0')` or not setting it at all",
+    "Session cookies created without the Secure attribute"
+  ]
+}

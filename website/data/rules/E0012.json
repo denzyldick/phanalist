@@ -1,0 +1,15 @@
+{
+  "rule_code": "E0012",
+  "title": "E0012: Service compatibility with Shared Memory Model",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "namespace App\\Service;\n\nclass UserService {\n    private string $currentUser;\n\n    public function handleRequest(Request $request): void {\n        // Mutating $this state in a long-running worker!\n        $this->currentUser = $request->get('user'); \n        $this->process();\n    }\n}",
+  "good_example": "namespace App\\Service;\n\nclass UserService {\n    // Pass state as method parameters instead of storing in $this\n    public function handleRequest(Request $request): void {\n        $user = $request->get('user');\n        $this->process($user);\n    }\n}",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "Scans classes in configured namespaces (`App\\Service\\`, `App\\Controller\\`).",
+    "Detects assignments to `$this->property` or static properties (`self::$prop`) inside methods (excluding constructors).",
+    "Allows classes that implement a reset interface (e.g., `ResetInterface`) designed to clear state between requests."
+  ]
+}

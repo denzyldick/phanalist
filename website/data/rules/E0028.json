@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0028",
+  "title": "E0028: Data Class",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "",
+  "good_example": "",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "Checks for E0028 violations"
+  ]
+}

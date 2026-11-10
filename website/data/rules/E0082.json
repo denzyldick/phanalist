@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0082",
+  "title": "E0082: Dynamic extension loading",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "dl('my_extension.so'); // loads extension at runtime\ndl('php_mysql.dll');",
+  "good_example": "// Install extensions via the system package manager or PECL\n// Enable them in php.ini instead of loading at runtime\n// extension=my_extension.so",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`dl()` function calls anywhere in the code"
+  ]
+}

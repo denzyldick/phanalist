@@ -1,0 +1,15 @@
+{
+  "rule_code": "E0077",
+  "title": "E0077: Display errors enabled",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "ini_set('display_errors', '1');\nini_set('error_reporting', 'E_ALL');",
+  "good_example": "ini_set('display_errors', '0');\nini_set('log_errors', '1');\nini_set('error_log', '/var/log/app_errors.log');\n// In production: display_errors = Off, log_errors = On",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`ini_set('display_errors', '1')` / `ini_set('display_errors', 'true')`",
+    "`error_reporting(E_ALL)` without `display_errors = Off`",
+    "`.htaccess` / `.user.ini` directives enabling `display_errors`"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0129",
+  "title": "E0129: Command execution via shell_exec",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$cmd = $_GET['cmd'] ?? '';\n$output = shell_exec($cmd);\necho $output;",
+  "good_example": "// Avoid shell_exec() entirely. Use PHP-native functions instead.\n// If you must run a command, validate strictly and escape:\n$cmd = $_GET['cmd'] ?? '';\n$allowed = ['whoami', 'date', 'uptime'];\n$base = explode(' ', $cmd)[0] ?? '';\nif (!in_array($base, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\n$output = shell_exec(escapeshellcmd($cmd));",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`shell_exec()` calls where the command string contains tainted input",
+    "`shell_exec()` with user-controlled command arguments without escaping"
+  ]
+}

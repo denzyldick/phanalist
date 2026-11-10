@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0039",
+  "title": "E0039: Property Access on Null",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "",
+  "good_example": "",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "Checks for E0039 violations"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0059",
+  "title": "E0059: Dynamic eval or assert",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "return eval($code);\n\nassert('$value > 0');",
+  "good_example": "$callback = $handlers[$name] ?? null;\n\nif ($callback !== null) {\n    return $callback();\n}\n\nassert($value > 0);",
+  "severity": "major",
+  "category": "taint",
+  "what_it_checks": [
+    "Any `eval()` call",
+    "`assert()` with a string literal or string concatenation"
+  ]
+}

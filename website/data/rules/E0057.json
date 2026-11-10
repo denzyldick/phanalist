@@ -1,0 +1,15 @@
+{
+  "rule_code": "E0057",
+  "title": "E0057: MD5 or SHA1 used for a password",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "return md5($password);\nreturn sha1($user->password);\nreturn hash('md5', $password);",
+  "good_example": "$hash = password_hash($password, PASSWORD_DEFAULT);\n\nif (password_verify($password, $hash)) {\n    // Password is correct.\n}",
+  "severity": "major",
+  "category": "taint",
+  "what_it_checks": [
+    "`md5($password)` and `sha1($password)`",
+    "`hash('md5', $password)` and `hash('sha1', $password)`",
+    "Password-like variables or properties used as the hashed value"
+  ]
+}

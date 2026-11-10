@@ -1,0 +1,15 @@
+{
+  "rule_code": "E0100",
+  "title": "E0100: Variable function call",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$func = $_GET['func'] ?? '';\n$func();\ncall_user_func($func, $arg);",
+  "good_example": "$func = $_GET['func'] ?? '';\n$allowed = ['strlen', 'md5', 'sha1'];\nif (!in_array($func, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\n$func($input);",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`$func()` where `$func` is assigned from tainted superglobals",
+    "`call_user_func($func, ...)` where `$func` is tainted",
+    "`call_user_func_array($func, ...)` where `$func` is tainted"
+  ]
+}

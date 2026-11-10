@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0115",
+  "title": "E0115: XXE via libxml",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$xml = $_GET['xml'] ?? '';\n$doc = new DOMDocument();\n$doc->loadXML($xml, LIBXML_NOENT); // resolves external entities\n// or\n$xml = simplexml_load_string($xml); // external entities resolved by default",
+  "good_example": "libxml_disable_entity_loader(true); // PHP < 8.0\n$doc = new DOMDocument();\n$doc->loadXML($xml, LIBXML_NONET | LIBXML_NOWARNING);\n// PHP 8.0+: use XMLReader which doesn't resolve external entities by default\n$reader = new XMLReader();\n$reader->xml($xml);",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`simplexml_load_string()`, `DOMDocument::loadXML()`, `DOMDocument::load()` with tainted input and `LIBXML_NOENT` or without `LIBXML_NONET`",
+    "`xml_parser_create()` / `xml_parse()` with default entity handling"
+  ]
+}

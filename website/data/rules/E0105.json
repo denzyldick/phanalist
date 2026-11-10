@@ -1,0 +1,15 @@
+{
+  "rule_code": "E0105",
+  "title": "E0105: Local file inclusion",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$page = $_GET['page'] ?? '';\ninclude __DIR__ . '/pages/' . $page . '.php';",
+  "good_example": "$page = $_GET['page'] ?? '';\n$allowed = ['home', 'about', 'contact'];\nif (!in_array($page, $allowed, true)) {\n    $page = 'home';\n}\ninclude __DIR__ . '/pages/' . $page . '.php';",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`include`, `require`, `include_once`, `require_once` with paths built from tainted input",
+    "`file_get_contents()`, `file()`, `readfile()`, `fopen()` with tainted paths",
+    "`../` or null byte (`%00`) sequences in user-controlled paths"
+  ]
+}

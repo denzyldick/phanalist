@@ -1,0 +1,15 @@
+{
+  "rule_code": "E0055",
+  "title": "E0055: Dynamic include or require",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "include $_GET['page'];\ninclude $base . '/bootstrap.php';",
+  "good_example": "switch ($page) {\n    case 'home':\n        include __DIR__ . '/pages/home.php';\n        break;\n\n    case 'about':\n        include __DIR__ . '/pages/about.php';\n        break;\n\n    default:\n        http_response_code(404);\n}",
+  "severity": "major",
+  "category": "taint",
+  "what_it_checks": [
+    "A path that is a variable, property access, array access, or function call",
+    "A concatenation where any part is dynamic",
+    "A conditional or other computed path expression"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "rule_code": "E0004",
+  "title": "E0004: Uppercase constants",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "define('max_retries', 3);\n\nclass Config {\n    public const timeoutSeconds = 30;\n}",
+  "good_example": "define('MAX_RETRIES', 3);\n\nclass Config {\n    public const TIMEOUT_SECONDS = 30;\n}",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "Global constants defined via `define()`.",
+    "Constants defined inside classes, interfaces, traits, and enums (`const FOO = ...`).",
+    "Verifies that constant names match their uppercase equivalent (`name == name.to_uppercase()`)."
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "rule_code": "E0071",
+  "title": "E0071: Unsafe file upload",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "move_uploaded_file($_FILES['file']['tmp_name'], '/uploads/' . $_FILES['file']['name']);",
+  "good_example": "$allowed = ['jpg', 'jpeg', 'png', 'gif', 'pdf'];\n$ext = strtolower(pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION));\nif (!in_array($ext, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\n$finfo = new finfo(FILEINFO_MIME_TYPE);\n$mime = $finfo->file($_FILES['file']['tmp_name']);\nif (!in_array($mime, ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'], true)) {\n    http_response_code(400);\n    exit;\n}\n$filename = bin2hex(random_bytes(16)) . '.' . $ext;\nmove_uploaded_file($_FILES['file']['tmp_name'], '/var/www/protected_uploads/' . $filename);",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`move_uploaded_file()` without prior extension/MIME validation",
+    "`file_put_contents()` with `$_FILES` data",
+    "`$_FILES['name']` used directly in file paths without sanitization"
+  ]
+}

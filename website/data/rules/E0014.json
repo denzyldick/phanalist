@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0014",
+  "title": "E0014: Law of Demeter violation. Method chaining should be avoided unless returning the same object type.",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "",
+  "good_example": "",
+  "severity": "major",
+  "category": "law-of-demeter",
+  "what_it_checks": [
+    "Checks for E0014 violations"
+  ]
+}

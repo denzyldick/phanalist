@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0099",
+  "title": "E0099: Disable functions bypass",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "// php.ini: disable_functions not set (empty)\n// All functions remain available",
+  "good_example": "// php.ini: disable_functions = exec,system,passthru,shell_exec,popen,proc_open,eval,create_function",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "Cannot read php.ini directly — documents the risk",
+    "`ini_set('disable_functions', ...)` is PHP_INI_SYSTEM and cannot be changed at runtime"
+  ]
+}

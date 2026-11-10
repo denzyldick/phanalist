@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0126",
+  "title": "E0126: Path traversal via file_get_contents",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$file = $_GET['file'] ?? '';\necho file_get_contents(__DIR__ . '/uploads/' . $file);\n// ?file=../../../etc/passwd",
+  "good_example": "$file = $_GET['file'] ?? '';\n$allowed = ['avatar.jpg', 'profile.png'];\nif (!in_array($file, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\necho file_get_contents(__DIR__ . '/uploads/' . $file);",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`file_get_contents()`, `file()`, `readfile()`, `fopen()` with paths built from tainted input",
+    "`../` or null byte (`%00`) sequences in user-controlled paths"
+  ]
+}

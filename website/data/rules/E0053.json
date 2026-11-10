@@ -1,0 +1,16 @@
+{
+  "rule_code": "E0053",
+  "title": "E0053: Unserialize without allowed_classes",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$cart = unserialize($_COOKIE['cart']);\n$cart = unserialize($payload, []);\n$cart = unserialize($payload, ['allowed_classes' => true]);",
+  "good_example": "$cart = unserialize($payload, ['allowed_classes' => false]);\n\n$dto = unserialize($payload, [\n    'allowed_classes' => [Cart::class, CartItem::class],\n]);",
+  "severity": "major",
+  "category": "taint",
+  "what_it_checks": [
+    "`unserialize($payload)` with no options argument",
+    "A literal options array without an `allowed_classes` key",
+    "`allowed_classes => true`, which explicitly allows every class",
+    "Named arguments such as `unserialize(data: $payload, options: [...])`"
+  ]
+}

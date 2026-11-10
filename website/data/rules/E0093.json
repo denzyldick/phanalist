@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0093",
+  "title": "E0093: Template injection",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$template = $_GET['template'] ?? '';\necho $twig->render($template, ['name' => $user->name]);",
+  "good_example": "$template = $_GET['template'] ?? '';\n$allowed = ['welcome', 'goodbye', 'reminder'];\nif (!in_array($template, $allowed, true)) {\n    $template = 'welcome';\n}\necho $twig->render($template, ['name' => $user->name]);",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`Twig::render()`, `$twig->render()`, `$smarty->display()`, `$blade->render()` with tainted template names/sources",
+    "Template engines rendering user-controlled strings as template source"
+  ]
+}

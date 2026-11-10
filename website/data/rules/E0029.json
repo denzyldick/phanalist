@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0029",
+  "title": "E0029: Class-level Fan-in / Fan-out",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "",
+  "good_example": "",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "Checks for E0029 violations"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0127",
+  "title": "E0127: Command execution via system",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$ip = $_GET['ip'] ?? '';\nsystem(\"ping -c 4 $ip\");",
+  "good_example": "$ip = $_GET['ip'] ?? '';\nif (!filter_var($ip, FILTER_VALIDATE_IP)) {\n    http_response_code(400);\n    exit;\n}\nsystem('ping -c 4 ' . escapeshellarg($ip));",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`system()`, `exec()`, `shell_exec()`, `passthru()` calls with tainted input",
+    "Backtick operator (`` `$cmd` ``) with tainted input (also covered by E0087)"
+  ]
+}

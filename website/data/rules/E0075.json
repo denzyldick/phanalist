@@ -1,0 +1,15 @@
+{
+  "rule_code": "E0075",
+  "title": "E0075: Session security",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "session_set_cookie_params([\n    'secure' => false,    // sent over HTTP\n    'httponly' => false,  // accessible via JavaScript\n]);\nsession_start();",
+  "good_example": "session_set_cookie_params([\n    'lifetime' => 3600,\n    'path' => '/',\n    'secure' => true,      // HTTPS only\n    'httponly' => true,    // not accessible via JavaScript\n    'samesite' => 'Lax',   // prevent cross-site leakage\n]);\nini_set('session.use_strict_mode', '1');\nsession_start();",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`session_start()` without prior `session_set_cookie_params()` setting `secure => true` and `httponly => true`",
+    "`ini_set('session.cookie_secure', '0')` or `ini_set('session.cookie_httponly', '0')`",
+    "`session.use_trans_sid = 1` (session ID in URL)"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0118",
+  "title": "E0118: Log forging via user input",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "error_log(\"User {$_GET['username']} logged in\");\n// ?username=admin%0d%0aInjection: fake admin login",
+  "good_example": "$username = str_replace([\"\\r\", \"\\n\"], '', $_GET['username'] ?? '');\nerror_log(\"User $username logged in\");",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`error_log()`, `syslog()`, `trigger_error()` with tainted superglobals directly interpolated",
+    "Custom log writers (`file_put_contents($log, $user_input)`) with user input"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0107",
+  "title": "E0107: Weak random for security tokens",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$token = bin2hex(mt_rand(100000, 999999)); // predictable\n$resetToken = uniqid();                    // guessable",
+  "good_example": "$token = bin2hex(random_bytes(16));   // cryptographically secure\n$resetToken = random_int(100000, 999999); // cryptographically secure",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`rand()`, `mt_rand()`, `uniqid()` used for security-sensitive purposes (tokens, keys, salts)",
+    "`mt_rand()` or `rand()` assigned to variables named `token`, `key`, `secret`, `salt`, `nonce`, `csrf`"
+  ]
+}

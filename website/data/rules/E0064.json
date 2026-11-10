@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0064",
+  "title": "E0064: XPath injection",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$user = $_GET['user'] ?? '';\n$query = \"//user[login='$user']\";\n$result = $xpath->query($query);",
+  "good_example": "$user = $_GET['user'] ?? '';\n$escaped = str_replace(\"'\", \"\\\\'\", $user);\n$query = \"//user[login='$escaped']\";\n$result = $xpath->query($query);",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`DOMXPath::query()`, `DOMXPath::evaluate()`, `SimpleXMLElement::xpath()` with tainted string concatenation in the XPath expression"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0008",
+  "title": "E0008: Return type signature",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "class UserService {\n    // Missing return type signature\n    public function getUser($id) {\n        return $this->repository->find($id);\n    }\n}",
+  "good_example": "class UserService {\n    // Explicit return type signature\n    public function getUser(int $id): ?User {\n        return $this->repository->find($id);\n    }\n}",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "Scans method declarations for missing return type signatures."
+  ]
+}

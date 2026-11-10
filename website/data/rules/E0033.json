@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0033",
+  "title": "E0033: intdiv() by Zero",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "",
+  "good_example": "",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "Checks for E0033 violations"
+  ]
+}

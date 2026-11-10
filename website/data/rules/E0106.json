@@ -1,0 +1,15 @@
+{
+  "rule_code": "E0106",
+  "title": "E0106: Deserialization of untrusted data",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$data = $_GET['data'] ?? '';\n$result = unserialize($data);\n// or\n$result = wddx_deserialize($data);",
+  "good_example": "// Use JSON instead of PHP serialization or WDDX for untrusted data\n$data = $_GET['json'] ?? '';\n$result = json_decode($data, true);\nif (json_last_error() !== JSON_ERROR_NONE) {\n    http_response_code(400);\n    exit;\n}",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`unserialize()` calls with tainted input from superglobals",
+    "`wddx_deserialize()` calls with any argument (inherently dangerous)",
+    "`session_decode()` with user-controlled data"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0104",
+  "title": "E0104: HTTP response splitting",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$redirect = $_GET['redirect'] ?? '';\nheader(\"Location: $redirect\");\n// ?redirect=http://evil.com%0d%0aSet-Cookie: session=evil",
+  "good_example": "$redirect = $_GET['redirect'] ?? '';\n$redirect = str_replace([\"\\r\", \"\\n\"], '', $redirect);\n$allowed = ['/dashboard', '/profile'];\nif (!in_array($redirect, $allowed, true)) {\n    $redirect = '/dashboard';\n}\nheader(\"Location: $redirect\");",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`header()` calls with tainted input that may contain CRLF sequences",
+    "`setcookie()` with tainted values that may contain newlines"
+  ]
+}

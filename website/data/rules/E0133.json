@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0133",
+  "title": "E0133: Header injection via setcookie",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$name = $_GET['name'] ?? '';\nsetcookie($name, 'value');\n// ?name=session_id%0d%0aSet-Cookie: admin=true",
+  "good_example": "$name = $_GET['name'] ?? '';\n$name = str_replace([\"\\r\", \"\\n\"], '', $name);\n$allowed = ['theme', 'lang'];\nif (!in_array($name, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\nsetcookie($name, 'value', [\n    'secure' => true,\n    'httponly' => true,\n]);",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`setcookie()` or `setrawcookie()` calls where the cookie name or value contains tainted input",
+    "Cookie names or values that may contain CRLF sequences"
+  ]
+}

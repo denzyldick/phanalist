@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0009",
+  "title": "E0009: Cyclomatic complexity",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "",
+  "good_example": "",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "Checks for E0009 violations"
+  ]
+}

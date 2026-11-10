@@ -1,0 +1,15 @@
+{
+  "rule_code": "E0134",
+  "title": "E0134: Mail injection via mail",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$email = $_GET['email'] ?? '';\nmail('admin@example.com', 'Contact Form', $message, \"From: $email\");\n// ?email=attacker@example.com%0d%0aBCC: victim@example.com",
+  "good_example": "$email = $_GET['email'] ?? '';\nif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {\n    http_response_code(400);\n    exit;\n}\n$headers = [\"From: webform@example.com\", \"Reply-To: $email\"];\nmail('admin@example.com', 'Contact Form', $message, implode(\"\\r\\n\", $headers));",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`mail()` calls where user input is passed to the `$additional_headers` parameter",
+    "`mail()` calls where user input is passed to the `$subject` parameter",
+    "CRLF sequences (`\\r\\n`) in mail headers or subject"
+  ]
+}

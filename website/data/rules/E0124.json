@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0124",
+  "title": "E0124: Weak hash for passwords",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$hash = md5($password);       // weak, fast, unsalted\n$hash = sha1($password);      // weak, fast, unsalted\n$hash = crypt($password);     // weak, may use DES-based crypt",
+  "good_example": "$hash = password_hash($password, PASSWORD_DEFAULT);\n// Uses bcrypt or argon2 with automatic salting and cost factor\nif (password_verify($password, $hash)) {\n    // valid\n}",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`md5()`, `sha1()`, `hash('md5', ...)`, `hash('sha1', ...)` applied to password-like variables",
+    "`crypt()` used for password hashing"
+  ]
+}

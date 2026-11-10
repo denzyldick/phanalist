@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0031",
+  "title": "E0031: Division by Zero",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "",
+  "good_example": "",
+  "severity": "critical",
+  "category": "verification",
+  "what_it_checks": [
+    "Checks for E0031 violations"
+  ]
+}

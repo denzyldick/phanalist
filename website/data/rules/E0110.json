@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0110",
+  "title": "E0110: Raw SQL query execution",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$id = $_GET['id'] ?? '';\n$result = $pdo->query(\"SELECT * FROM users WHERE id = $id\");",
+  "good_example": "$id = $_GET['id'] ?? '';\n$stmt = $pdo->prepare(\"SELECT * FROM users WHERE id = ?\");\n$stmt->execute([$id]);\n$user = $stmt->fetch();",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`PDO::query()`, `mysqli_query()`, `pg_query()` with SQL strings containing interpolated variables",
+    "SQL queries built by string concatenation with user input"
+  ]
+}

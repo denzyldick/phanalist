@@ -1,0 +1,15 @@
+{
+  "rule_code": "E0056",
+  "title": "E0056: Weak randomness for security-sensitive value",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$token = uniqid();\n$password = password_hash(mt_rand(), PASSWORD_DEFAULT);\n$nonce = (string) rand();",
+  "good_example": "$token = bin2hex(random_bytes(32));\n$code = random_int(100000, 999999);\n$passwordHash = password_hash($password, PASSWORD_DEFAULT);",
+  "severity": "major",
+  "category": "taint",
+  "what_it_checks": [
+    "Weak generators: `rand()`, `mt_rand()`, `uniqid()`, `lcg_value()`,",
+    "Assignments to variables whose names look security-sensitive, such as",
+    "Values passed to `password_hash()`, `hash_hmac()`, `hash()`,"
+  ]
+}

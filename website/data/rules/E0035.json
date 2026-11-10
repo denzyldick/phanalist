@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0035",
+  "title": "E0035: Missing Array Key",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "",
+  "good_example": "",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "Checks for E0035 violations"
+  ]
+}

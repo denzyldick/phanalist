@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0098",
+  "title": "E0098: Session ID in URL",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "ini_set('session.use_trans_sid', '1');\nsession_start();\n// Session ID appears in URLs: /page.php?PHPSESSID=abc123",
+  "good_example": "ini_set('session.use_only_cookies', '1');\nini_set('session.use_trans_sid', '0');\nsession_set_cookie_params([\n    'secure' => true,\n    'httponly' => true,\n]);\nsession_start();",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`session.use_trans_sid = 1` or `ini_set('session.use_trans_sid', '1')`",
+    "Links containing `PHPSESSID` or similar session ID parameters"
+  ]
+}

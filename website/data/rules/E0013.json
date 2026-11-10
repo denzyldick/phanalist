@@ -1,0 +1,15 @@
+{
+  "rule_code": "E0013",
+  "title": "E0013: Private method not being called.",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "class OrderProcessor {\n    public function process(Order $order): void {\n        $this->validateOrder($order);\n    }\n\n    private function validateOrder(Order $order): void {\n        // ...\n    }\n\n    // Unused private method left over from refactoring\n    private function oldFormattingHelper(string $data): string {\n        return strtoupper($data);\n    }\n}",
+  "good_example": "class OrderProcessor {\n    public function process(Order $order): void {\n        $this->validateOrder($order);\n    }\n\n    private function validateOrder(Order $order): void {\n        // ...\n    }\n}",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "Scans all classes for methods marked `private`.",
+    "Inspects all method calls (`$this->methodName()`) within the class.",
+    "Reports any private method that is never referenced in any method body."
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0002",
+  "title": "E0002: Empty catch",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "try {\n    $this->saveUser($data);\n} catch (Exception $e) {\n    // Empty catch block! Error is swallowed silently.\n}",
+  "good_example": "try {\n    $this->saveUser($data);\n} catch (DatabaseException $e) {\n    // Log the error and rethrow or handle it appropriately\n    Log::error(\"Failed to save user: \" . $e->getMessage());\n    throw new UserSaveFailedException(\"Could not save user.\", 0, $e);\n}",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "Scans `try...catch` blocks where the catch body contains no statements."
+  ]
+}

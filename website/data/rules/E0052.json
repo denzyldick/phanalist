@@ -1,0 +1,15 @@
+{
+  "rule_code": "E0052",
+  "title": "E0052: Unchecked json_decode result",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "return json_decode($json)->name;\nreturn json_decode($json, true)[0];",
+  "good_example": "$data = json_decode($json, true, flags: JSON_THROW_ON_ERROR);\n\nreturn $data['name'];",
+  "severity": "major",
+  "category": "taint",
+  "what_it_checks": [
+    "`json_decode($json)->property`",
+    "`json_decode($json)->method()`",
+    "`json_decode($json)[$key]`"
+  ]
+}

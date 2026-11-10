@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0091",
+  "title": "E0091: Source code exposure via highlight_file",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "if ($_GET['debug'] === '1') {\n    highlight_file(__FILE__); // exposes entire file source\n}\nshow_source('config.php'); // exposes config file including DB credentials",
+  "good_example": "// Remove entirely — never expose source code to users\n// If debugging is needed, use a local development environment only",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`highlight_file()`, `show_source()`, `highlight_string()` calls",
+    "Especially dangerous when gated by user input (`$_GET['debug']`)"
+  ]
+}

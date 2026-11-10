@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0116",
+  "title": "E0116: Remote command execution via popen",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$cmd = $_GET['cmd'] ?? '';\n$handle = popen($cmd, 'r');\necho fread($handle, 4096);\npclose($handle);",
+  "good_example": "// Avoid popen() entirely. Use PHP-native functions instead.\n// If you must run a command, validate strictly and escape:\n$cmd = $_GET['cmd'] ?? '';\n$allowed = ['whoami', 'date', 'uptime'];\n$base = explode(' ', $cmd)[0] ?? '';\nif (!in_array($base, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\n$handle = popen(escapeshellcmd($cmd), 'r');",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`popen()` calls where the command string contains tainted input from superglobals",
+    "`popen()` with user-controlled command arguments without `escapeshellcmd()` or `escapeshellarg()`"
+  ]
+}

