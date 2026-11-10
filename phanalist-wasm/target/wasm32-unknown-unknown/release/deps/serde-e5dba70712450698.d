@@ -1,0 +1,14 @@
+/home/denzyl/Projects/phanalist/phanalist-wasm/target/wasm32-unknown-unknown/release/deps/serde-e5dba70712450698.d: /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs /home/denzyl/Projects/phanalist/phanalist-wasm/target/wasm32-unknown-unknown/release/build/serde-1317fe8f1fdd7387/out/private.rs
+
+/home/denzyl/Projects/phanalist/phanalist-wasm/target/wasm32-unknown-unknown/release/deps/libserde-e5dba70712450698.rlib: /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs /home/denzyl/Projects/phanalist/phanalist-wasm/target/wasm32-unknown-unknown/release/build/serde-1317fe8f1fdd7387/out/private.rs
+
+/home/denzyl/Projects/phanalist/phanalist-wasm/target/wasm32-unknown-unknown/release/deps/libserde-e5dba70712450698.rmeta: /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs /home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs /home/denzyl/Projects/phanalist/phanalist-wasm/target/wasm32-unknown-unknown/release/build/serde-1317fe8f1fdd7387/out/private.rs
+
+/home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs:
+/home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs:
+/home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs:
+/home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs:
+/home/denzyl/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs:
+/home/denzyl/Projects/phanalist/phanalist-wasm/target/wasm32-unknown-unknown/release/build/serde-1317fe8f1fdd7387/out/private.rs:
+
+# env-dep:OUT_DIR=/home/denzyl/Projects/phanalist/phanalist-wasm/target/wasm32-unknown-unknown/release/build/serde-1317fe8f1fdd7387/out
