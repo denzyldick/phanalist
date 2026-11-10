@@ -2611,25 +2611,31 @@ impl<'a> Analyzer<'a> {
     }
 
     fn expr_contains_variable(&self, expression: &Expression<'_>, name: &str) -> bool {
-        match expression.unparenthesized() {
-            Expression::Variable(Variable::Direct(variable)) => {
-                String::from_utf8_lossy(variable.name) == name
+        let mut stack: Vec<&Expression<'_>> = vec![expression];
+        while let Some(expression) = stack.pop() {
+            match expression.unparenthesized() {
+                Expression::Variable(Variable::Direct(variable)) => {
+                    if String::from_utf8_lossy(variable.name) == name {
+                        return true;
+                    }
+                }
+                Expression::Binary(binary) => {
+                    stack.push(binary.lhs);
+                    stack.push(binary.rhs);
+                }
+                Expression::Parenthesized(parenthesized) => {
+                    stack.push(parenthesized.expression);
+                }
+                Expression::Call(call) => {
+                    for argument in call.get_argument_list().arguments.iter() {
+                        stack.push(argument.value());
+                    }
+                }
+                Expression::ArrayAccess(access) => stack.push(access.array),
+                _ => {}
             }
-            Expression::Binary(binary) => {
-                self.expr_contains_variable(binary.lhs, name)
-                    || self.expr_contains_variable(binary.rhs, name)
-            }
-            Expression::Parenthesized(parenthesized) => {
-                self.expr_contains_variable(parenthesized.expression, name)
-            }
-            Expression::Call(call) => call
-                .get_argument_list()
-                .arguments
-                .iter()
-                .any(|argument| self.expr_contains_variable(argument.value(), name)),
-            Expression::ArrayAccess(access) => self.expr_contains_variable(access.array, name),
-            _ => false,
         }
+        false
     }
 
     fn eval_call(&mut self, call: &Call<'_>, state: &mut State) -> Eval {

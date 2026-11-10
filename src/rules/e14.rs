@@ -82,6 +82,13 @@ impl TypeRegistry {
 type VarTypes = HashMap<String, String>;
 
 thread_local! {
+    /// Tracks nesting of `check_expression` so pathological inputs (e.g. a
+    /// concatenation chain with tens of thousands of terms) cannot exhaust the
+    /// thread stack.
+    static CHECK_DEPTH: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+thread_local! {
     /// Memoizes `resolve_object_type` by expression span for the duration of a
     /// single file. Without it, the chain-fluency check re-resolves the receiver
     /// of every chain link, making a chain of N calls cost `O(phi^N)` and
@@ -825,6 +832,37 @@ impl Rule {
 
     #[allow(clippy::too_many_arguments)]
     fn check_expression(
+        &self,
+        file: &File<'_>,
+        expression: &Expression<'_>,
+        method_map: &HashMap<String, String>,
+        current_class: &str,
+        registry: &TypeRegistry,
+        var_types: &VarTypes,
+        violations: &mut Vec<Violation>,
+    ) -> Option<String> {
+        const MAX_CHECK_DEPTH: usize = 256;
+
+        let depth = CHECK_DEPTH.with(std::cell::Cell::get);
+        if depth >= MAX_CHECK_DEPTH {
+            return None;
+        }
+        CHECK_DEPTH.with(|current| current.set(depth + 1));
+        let result = self.check_expression_inner(
+            file,
+            expression,
+            method_map,
+            current_class,
+            registry,
+            var_types,
+            violations,
+        );
+        CHECK_DEPTH.with(|current| current.set(depth));
+        result
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn check_expression_inner(
         &self,
         file: &File<'_>,
         expression: &Expression<'_>,

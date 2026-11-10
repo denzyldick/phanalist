@@ -779,6 +779,21 @@ mod tests {
         analyse.analyse_file(&mut file, false).0
     }
 
+    #[test]
+    fn deeply_nested_expression_does_not_overflow_the_stack() {
+        let terms = vec!["\"a\""; 5_000].join(" . ");
+        let source = format!("<?php\n$value = {terms};\n");
+
+        // Shared expression walker (security rules).
+        let _ = analyze_source_for_rule(&source, "deep-concat.php", "E0060");
+        // Rule-specific expression checker.
+        let _ = analyze_source_for_rule(&source, "deep-concat.php", "E0014");
+        // Resource analyzer.
+        let _ = analyze_source_for_rule(&source, "deep-concat.php", "E0044");
+        // Verification engine.
+        let _ = analyze_source_for_rule(&source, "deep-concat.php", "E0031");
+    }
+
     fn get_ns() -> String {
         "App\\Service\\Search".to_string()
     }

@@ -152,95 +152,117 @@ pub(crate) fn walk_expression<'a>(
     expression: &'a Expression<'a>,
     visit: &mut impl FnMut(&'a Expression<'a>),
 ) {
-    visit(expression);
+    // Iterative pre-order traversal. Recursing here would exhaust the thread
+    // stack on deeply nested expressions (for example a concatenation chain
+    // with tens of thousands of terms in a generated fixture).
+    let mut stack: Vec<&'a Expression<'a>> = vec![expression];
+    while let Some(expression) = stack.pop() {
+        visit(expression);
+
+        if let Expression::Closure(closure) = expression {
+            // Statement nesting is shallow in practice; expression nesting
+            // inside the body is still walked iteratively.
+            walk_statements(closure.body.statements.as_slice(), visit);
+            continue;
+        }
+
+        push_expression_children(expression, &mut stack);
+    }
+}
+
+fn push_expression_children<'a>(
+    expression: &'a Expression<'a>,
+    stack: &mut Vec<&'a Expression<'a>>,
+) {
+    let mut children: Vec<&'a Expression<'a>> = Vec::new();
 
     match expression {
         Expression::Binary(binary) => {
-            walk_expression(binary.lhs, visit);
-            walk_expression(binary.rhs, visit);
+            children.push(binary.lhs);
+            children.push(binary.rhs);
         }
-        Expression::UnaryPrefix(unary) => walk_expression(unary.operand, visit),
-        Expression::UnaryPostfix(unary) => walk_expression(unary.operand, visit),
-        Expression::Parenthesized(parenthesized) => {
-            walk_expression(parenthesized.expression, visit);
-        }
+        Expression::UnaryPrefix(unary) => children.push(unary.operand),
+        Expression::UnaryPostfix(unary) => children.push(unary.operand),
+        Expression::Parenthesized(parenthesized) => children.push(parenthesized.expression),
         Expression::CompositeString(string) => {
             for part in string.parts() {
                 match part {
-                    StringPart::Expression(expression) => walk_expression(expression, visit),
-                    StringPart::BracedExpression(braced) => {
-                        walk_expression(braced.expression, visit)
-                    }
+                    StringPart::Expression(expression) => children.push(expression),
+                    StringPart::BracedExpression(braced) => children.push(braced.expression),
                     StringPart::Literal(_) => {}
                 }
             }
         }
         Expression::Assignment(assignment) => {
-            walk_expression(assignment.lhs, visit);
-            walk_expression(assignment.rhs, visit);
+            children.push(assignment.lhs);
+            children.push(assignment.rhs);
         }
         Expression::Conditional(conditional) => {
-            walk_expression(conditional.condition, visit);
+            children.push(conditional.condition);
             if let Some(then) = conditional.then {
-                walk_expression(then, visit);
+                children.push(then);
             }
-            walk_expression(conditional.r#else, visit);
+            children.push(conditional.r#else);
         }
-        Expression::Array(array) => walk_array_elements(&array.elements, visit),
-        Expression::LegacyArray(array) => walk_array_elements(&array.elements, visit),
-        Expression::List(list) => walk_array_elements(&list.elements, visit),
+        Expression::Array(array) => push_array_element_children(&array.elements, &mut children),
+        Expression::LegacyArray(array) => {
+            push_array_element_children(&array.elements, &mut children)
+        }
+        Expression::List(list) => push_array_element_children(&list.elements, &mut children),
         Expression::ArrayAccess(access) => {
-            walk_expression(access.array, visit);
-            walk_expression(access.index, visit);
+            children.push(access.array);
+            children.push(access.index);
         }
-        Expression::ArrayAppend(append) => walk_expression(append.array, visit),
-        Expression::Closure(closure) => walk_statements(closure.body.statements.as_slice(), visit),
-        Expression::ArrowFunction(function) => walk_expression(function.expression, visit),
+        Expression::ArrayAppend(append) => children.push(append.array),
+        Expression::ArrowFunction(function) => children.push(function.expression),
         Expression::Match(r#match) => {
-            walk_expression(r#match.expression, visit);
+            children.push(r#match.expression);
             for arm in r#match.arms.iter() {
                 if let MatchArm::Expression(arm) = arm {
                     for condition in arm.conditions.iter() {
-                        walk_expression(condition, visit);
+                        children.push(condition);
                     }
                 }
-                walk_expression(arm.expression(), visit);
+                children.push(arm.expression());
             }
         }
         Expression::Yield(yield_) => match yield_ {
             Yield::Value(value) => {
                 if let Some(value) = value.value {
-                    walk_expression(value, visit);
+                    children.push(value);
                 }
             }
             Yield::Pair(pair) => {
-                walk_expression(pair.key, visit);
-                walk_expression(pair.value, visit);
+                children.push(pair.key);
+                children.push(pair.value);
             }
-            Yield::From(from) => walk_expression(from.iterator, visit),
+            Yield::From(from) => children.push(from.iterator),
         },
-        Expression::Construct(construct) => walk_construct(construct, visit),
-        Expression::Throw(throw) => walk_expression(throw.exception, visit),
-        Expression::Clone(clone) => walk_expression(clone.object, visit),
-        Expression::Call(call) => walk_call(call, visit),
+        Expression::Construct(construct) => push_construct_children(construct, &mut children),
+        Expression::Throw(throw) => children.push(throw.exception),
+        Expression::Clone(clone) => children.push(clone.object),
+        Expression::Call(call) => push_call_children(call, &mut children),
         Expression::Instantiation(instantiation) => {
-            walk_expression(instantiation.class, visit);
+            children.push(instantiation.class);
             if let Some(arguments) = &instantiation.argument_list {
-                walk_arguments(&arguments.arguments, visit);
+                push_argument_children(&arguments.arguments, &mut children);
             }
         }
         Expression::Pipe(pipe) => {
-            walk_expression(pipe.input, visit);
-            walk_expression(pipe.callable, visit);
+            children.push(pipe.input);
+            children.push(pipe.callable);
         }
         Expression::Access(access) => match access {
-            Access::Property(access) => walk_expression(access.object, visit),
-            Access::NullSafeProperty(access) => walk_expression(access.object, visit),
-            Access::StaticProperty(access) => walk_expression(access.class, visit),
-            Access::ClassConstant(access) => walk_expression(access.class, visit),
+            Access::Property(access) => children.push(access.object),
+            Access::NullSafeProperty(access) => children.push(access.object),
+            Access::StaticProperty(access) => children.push(access.class),
+            Access::ClassConstant(access) => children.push(access.class),
         },
         _ => {}
     }
+
+    // Reverse so the stack pops children in source order.
+    stack.extend(children.into_iter().rev());
 }
 
 fn walk_statements<'a>(
@@ -333,78 +355,77 @@ pub(crate) fn walk_statement_expressions<'a>(
     }
 }
 
-fn walk_array_elements<'a>(
+fn push_array_element_children<'a>(
     elements: &'a TokenSeparatedSequence<'a, ArrayElement<'a>>,
-    visit: &mut impl FnMut(&'a Expression<'a>),
+    children: &mut Vec<&'a Expression<'a>>,
 ) {
     for element in elements.iter() {
         match element {
             ArrayElement::KeyValue(element) => {
-                walk_expression(element.key, visit);
-                walk_expression(element.value, visit);
+                children.push(element.key);
+                children.push(element.value);
             }
-            ArrayElement::Value(element) => walk_expression(element.value, visit),
-            ArrayElement::Variadic(element) => walk_expression(element.value, visit),
+            ArrayElement::Value(element) => children.push(element.value),
+            ArrayElement::Variadic(element) => children.push(element.value),
             ArrayElement::Missing(_) => {}
         }
     }
 }
 
-fn walk_arguments<'a>(
+fn push_argument_children<'a>(
     arguments: &'a TokenSeparatedSequence<'a, Argument<'a>>,
-    visit: &mut impl FnMut(&'a Expression<'a>),
+    children: &mut Vec<&'a Expression<'a>>,
 ) {
     for argument in arguments.iter() {
         match argument {
-            Argument::Positional(argument) => walk_expression(argument.value, visit),
-            Argument::Named(argument) => walk_expression(argument.value, visit),
+            Argument::Positional(argument) => children.push(argument.value),
+            Argument::Named(argument) => children.push(argument.value),
         }
     }
 }
 
-fn walk_call<'a>(call: &'a Call<'a>, visit: &mut impl FnMut(&'a Expression<'a>)) {
+fn push_call_children<'a>(call: &'a Call<'a>, children: &mut Vec<&'a Expression<'a>>) {
     match call {
         Call::Function(call) => {
-            walk_expression(call.function, visit);
-            walk_arguments(&call.argument_list.arguments, visit);
+            children.push(call.function);
+            push_argument_children(&call.argument_list.arguments, children);
         }
         Call::Method(call) => {
-            walk_expression(call.object, visit);
-            walk_arguments(&call.argument_list.arguments, visit);
+            children.push(call.object);
+            push_argument_children(&call.argument_list.arguments, children);
         }
         Call::NullSafeMethod(call) => {
-            walk_expression(call.object, visit);
-            walk_arguments(&call.argument_list.arguments, visit);
+            children.push(call.object);
+            push_argument_children(&call.argument_list.arguments, children);
         }
         Call::StaticMethod(call) => {
-            walk_expression(call.class, visit);
-            walk_arguments(&call.argument_list.arguments, visit);
+            children.push(call.class);
+            push_argument_children(&call.argument_list.arguments, children);
         }
     }
 }
 
-fn walk_construct<'a>(construct: &'a Construct<'a>, visit: &mut impl FnMut(&'a Expression<'a>)) {
+fn push_construct_children<'a>(
+    construct: &'a Construct<'a>,
+    children: &mut Vec<&'a Expression<'a>>,
+) {
     match construct {
-        Construct::Isset(construct) => {
-            for value in construct.values.iter() {
-                walk_expression(value, visit);
-            }
-        }
-        Construct::Empty(construct) => walk_expression(construct.value, visit),
-        Construct::Eval(construct) => walk_expression(construct.value, visit),
-        Construct::Include(construct) => walk_expression(construct.value, visit),
-        Construct::IncludeOnce(construct) => walk_expression(construct.value, visit),
-        Construct::Require(construct) => walk_expression(construct.value, visit),
-        Construct::RequireOnce(construct) => walk_expression(construct.value, visit),
-        Construct::Print(construct) => walk_expression(construct.value, visit),
+        Construct::Isset(construct) => children.extend(construct.values.iter()),
+        Construct::Empty(construct) => children.push(construct.value),
+        Construct::Eval(construct) => children.push(construct.value),
+        Construct::Include(construct) => children.push(construct.value),
+        Construct::IncludeOnce(construct) => children.push(construct.value),
+        Construct::Require(construct) => children.push(construct.value),
+        Construct::RequireOnce(construct) => children.push(construct.value),
+        Construct::Print(construct) => children.push(construct.value),
         Construct::Exit(construct) => {
             if let Some(arguments) = &construct.arguments {
-                walk_arguments(&arguments.arguments, visit);
+                push_argument_children(&arguments.arguments, children);
             }
         }
         Construct::Die(construct) => {
             if let Some(arguments) = &construct.arguments {
-                walk_arguments(&arguments.arguments, visit);
+                push_argument_children(&arguments.arguments, children);
             }
         }
     }
