@@ -1,0 +1,16 @@
+{
+  "tagname-lowercase": true,
+  "attr-lowercase": true,
+  "attr-value-double-quotes": true,
+  "attr-no-duplication": true,
+  "doctype-first": false,
+  "doctype-html5": true,
+  "id-class-ad-disabled": false,
+  "id-class-value": "lowercase",
+  "id-class-value-style": "hyphenated",
+  "space-tab-mixed-disabled": "space",
+  "attr-unsafe-chars": true,
+  "title-require": true,
+  "alt-require": ["img"],
+  "doctype-xhtml": false
+}

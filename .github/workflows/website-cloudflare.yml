@@ -1,0 +1,56 @@
+name: Website Cloudflare Pages
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'website/**'
+      - '.github/workflows/website-cloudflare.yml'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'website/**'
+      - '.github/workflows/website-cloudflare.yml'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: website/package-lock.json
+
+      - name: Install dependencies
+        working-directory: website
+        run: npm ci
+
+      - name: Check formatting (Prettier)
+        working-directory: website
+        run: npm run format:check
+
+      - name: Lint (ESLint)
+        working-directory: website
+        run: npm run lint
+
+      - name: Build (Vite)
+        working-directory: website
+        run: npm run build
+
+      - name: Publish to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: phanalist
+          directory: website/dist/
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>phanalist Playground (Offline)</title>
+  <style>
+    body { margin: 2rem; font-family: system-ui, sans-serif; background: #0a0a0a; color: #e0e0e0; }
+    .toolbar { margin-bottom: 1rem; }
+    .editor { height: 300px; border: 1px solid #333; border-radius: 4px; padding: 1rem; background: #1a1a1a; color: #e0e0e0; font-family: monospace; }
+    .findings { border: 1px solid #500; border-radius: 4px; padding: 1rem; background: #ffe; margin-top: 1rem; display: none; }
+    .rule { margin: 0.5rem 0; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <h1 style="color: #fff; margin-bottom: 1rem;">phanalist Playground (Offline)</h1>
+  
+  <div class="toolbar">
+    <label style="margin-right: 1rem; color: #ccc;">Rule: 
+      <select id="ruleSelect" style="padding: 0.3rem;">
+        <option value="E0014">E0014 (Law of Demeter)</option>
+        <option value="E0060">E0060 (SQL injection)</option>
+      </select>
+    </label>
+    <button id="showGood" style="margin-left: 1rem; padding: 0.5rem 1rem; background: #555; color: #fff; border: none; border-radius: 4px;">Show Bad</button>
+    <button id="copyBtn" style="margin-left: 1rem; padding: 0.5rem 1rem; background: #555; color: #fff; border: none; border-radius: 4px;">Copy</button>
+  </div>
+
+  <div class="editor" id="codeEditor"><?php $a->foo->bar(); ?></div>
+
+  <div class="findings" id="findings">
+    <h4 style="color: #500; margin: 0 0 0.5rem 0;">Findings <span id="findingsCount">0</span></h4>
+    <div id="findingsList"></div>
+  </div>
+
+  <script type="module">
+    // Load the WASM module from the local pkg directory
+    const { analyze } = await import('phanalist-wasm');
+    
+    // UI elements
+    const ruleSelect = document.getElementById('ruleSelect');
+    const showGoodBtn = document.getElementById('showGood');
+    const findingsDiv = document.getElementById('findings');
+    const findingsList = document.getElementById('findingsList');
+    const findingsCount = document.getElementById('findingsCount');
+    const codeEditor = document.getElementById('codeEditor');
+    
+    let showGood = false;
+    
+    function analyzeCode() {
+      const code = codeEditor.textContent || '';
+      const rule = ruleSelect.value;
+      const result = analyze(code);
+      const findings = JSON.parse(result);
+      
+      findingsCount.textContent = findings.length;
+      findingsList.innerHTML = findings.map(f => 
+        `<div style="padding: 0.2rem 0; border-bottom: 1px solid #555; font-size: 0.8rem;">
+          <span style="font-weight: bold; color: #500;">{f.rule || 'E???'}:</span> 
+          <span style="color: #d00;">{f.message || 'No message'}</span>
+          <span style="float: right; color: #555; font-size: 0.7rem;">line {f.line}, col {f.column}</span>
+        </div>`
+      ).join('') || '<p style="margin: 0.5rem 0;">No findings. The code appears clean!</p>';
+      
+      findingsDiv.style.display = findings.length > 0 ? 'block' : 'none';
+    }
+    
+    function toggleGood() {
+      showGood = !showGood;
+      showGoodBtn.textContent = showGood ? 'Show Bad' : 'Show Good';
+      
+      if (showGood) {
+        codeEditor.textContent = '<?php $id = $_GET["id"] ?? "";\n$stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");$stmt->execute([$id]);$user = $stmt->fetch();';
+      } else {
+        codeEditor.textContent = '<?php $a->foo->bar(); ?>';
+      }
+      analyzeCode();
+    }
+    
+    function copyCode() {
+      navigator.clipboard.writeText(codeEditor.textContent).then(() => {
+        alert('Code copied!');
+      });
+    }
+    
+    // Event handlers
+    ruleSelect.addEventListener('change', analyzeCode);
+    showGoodBtn.addEventListener('click', toggleGood);
+    copyBtn.addEventListener('click', copyCode);
+    
+    // Initial analysis
+    analyzeCode();
+  </script>
+</body>
+</html>
