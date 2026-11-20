@@ -70,6 +70,50 @@ fn artifact_uri(path: &str) -> String {
     encode_uri_path(&normalize_relative(Path::new(path)))
 }
 
+fn call_chain_text(violation: &Violation) -> Option<String> {
+    if violation.call_chain.is_empty() {
+        None
+    } else {
+        Some(violation.call_chain.join(" → "))
+    }
+}
+
+fn sarif_message(violation: &Violation) -> Message {
+    let rendered = violation.message.render();
+    let Some(chain) = call_chain_text(violation) else {
+        return Message {
+            text: Some(rendered),
+            ..Default::default()
+        };
+    };
+
+    // GitHub only renders `message.text`/`message.markdown` in PR annotations.
+    // Keeping the chain there (as well as in `properties`) is what makes the
+    // evidence visible through the existing `phanalist-action@v1` upload path.
+    let message = format!("{rendered}\n\nCall chain (inferred): {chain}");
+    Message {
+        markdown: Some(message.clone()),
+        text: Some(message),
+        ..Default::default()
+    }
+}
+
+fn sarif_result_properties(violation: &Violation) -> Option<sarif::PropertyBag> {
+    if violation.call_chain.is_empty() {
+        return None;
+    }
+
+    let mut additional_properties = BTreeMap::new();
+    additional_properties.insert(
+        "phanalist/callChain".to_string(),
+        serde_json::json!(violation.call_chain),
+    );
+    Some(sarif::PropertyBag {
+        tags: None,
+        additional_properties,
+    })
+}
+
 fn sarif_region(violation: &Violation) -> sarif::Region {
     let start_line = violation.start_line.max(1) as i64;
     let end_line = violation.end_line.max(violation.start_line.max(1)) as i64;
@@ -214,10 +258,7 @@ impl OutputFormatter for Sarif {
                     ..Default::default()
                 };
 
-                let message = Message {
-                    text: Some(violation.message.render()),
-                    ..Default::default()
-                };
+                let message = sarif_message(violation);
 
                 let region = sarif_region(violation);
 
@@ -278,7 +319,7 @@ impl OutputFormatter for Sarif {
                     message,
                     occurrence_count: None,
                     partial_fingerprints: Some(partial_fingerprints),
-                    properties: None,
+                    properties: sarif_result_properties(violation),
                     provenance: None,
                     rank: None,
                     related_locations: None,
@@ -381,7 +422,9 @@ mod tests {
             end_line: start_line,
             end_column,
             taint_source: None,
+            call_chain: Vec::new(),
             meta: Default::default(),
+            generated_test: None,
         }
     }
 
@@ -441,5 +484,31 @@ mod tests {
         );
         assert_eq!(one, two);
         assert_ne!(one, other);
+    }
+
+    #[test]
+    fn call_chain_is_visible_in_sarif_messages_and_properties() {
+        let chain = vec![
+            "POST /checkout".to_string(),
+            "App\\Controller\\CheckoutController::submit()".to_string(),
+            "App\\Service\\DiscountCalculator::discountedTotal()".to_string(),
+        ];
+        let mut with_chain = violation(7, 11, 29);
+        with_chain.call_chain = chain.clone();
+
+        let message = sarif_message(&with_chain);
+        let expected = format!("Call chain (inferred): {}", chain.join(" → "));
+        assert!(message
+            .text
+            .as_deref()
+            .is_some_and(|text| text.contains(&expected)));
+        assert_eq!(message.markdown, message.text);
+
+        let properties = sarif_result_properties(&with_chain).unwrap();
+        assert_eq!(
+            properties.additional_properties.get("phanalist/callChain"),
+            Some(&serde_json::json!(chain))
+        );
+        assert!(sarif_result_properties(&violation(7, 11, 29)).is_none());
     }
 }

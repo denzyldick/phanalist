@@ -819,7 +819,9 @@ mod tests {
             end_line: 12,
             end_column: 5,
             taint_source: None,
+            call_chain: Vec::new(),
             meta: Default::default(),
+            generated_test: None,
         };
         let key = violation_key(&v);
         assert_eq!(key, "E001:10:Something wrong at 5");
