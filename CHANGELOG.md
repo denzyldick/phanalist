@@ -2,6 +2,12 @@
 
 ## [Unreleased] - yyyy-mm-dd
 
+### Taint source coverage
+
+- `filter_input_array()` is now a request source. Bare `$_SERVER` and dynamic
+  `$_SERVER` keys are also treated as request-controlled, while literal server
+  configuration keys such as `SCRIPT_FILENAME` stay untainted.
+
 ### Deeper taint pass is on by default
 
 - Taint analysis now considers **all** sources by default, not just request
