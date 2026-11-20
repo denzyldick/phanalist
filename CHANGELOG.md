@@ -2,6 +2,56 @@
 
 ## [Unreleased] - yyyy-mm-dd
 
+### Generated regression tests from solver counterexamples
+
+- Verification findings now retain the model's parameter values when test
+  generation is enabled. The witness records the values at function entry, so a
+  parameter reassigned before the failing statement still produces a call that
+  reaches the bug.
+- New `--generate-tests <DIR>` flag and `test_generation` config block write
+  PHPUnit test files that call the real function with the counterexample
+  inputs. Generated tests are red regression tests: they fail until the
+  reported path is fixed, and they convert warnings into exceptions so this
+  works on PHPUnit 10+.
+- Generated files are named after their generated `*Test` class so PHPUnit can
+  discover them from a directory or testsuite, and namespaced calls keep their
+  original class/function casing for readability.
+- Phanalist only generates code. It never executes user PHP or PHPUnit and does
+  not require `php` to be installed. When present, a `phanalist-tests` Composer
+  script and a `Phanalist Generated` PHPUnit testsuite are added idempotently.
+- Test generation now covers every verification rule that attaches a witness:
+  E0031–E0039 (division, modulo, intdiv, intdiv overflow, missing array key,
+  array index, string offset, null method call, and null property access).
+  Unmodeled strings and arrays are rendered as empty placeholders so container
+  findings stay red, and nullable parameters are called with `null`.
+- Tests are written after baseline filtering for free functions, static
+  methods, and constructible instance methods. Instance-method tests include
+  the constructor call and its rendered arguments. Closures, objects,
+  resources, abstract classes, inherited constructors, and loop-dependent
+  values are skipped. Generated test code remains out of serialized reports.
+- Added `scripts/verify-generated-tests.sh`, an optional Composer/PSR-4 e2e
+  check that runs all generated tests red, applies source-only fixes, then
+  reruns the same files green.
+- Generated tests now include a best-effort `Call chain (inferred)` docblock
+  line for resolvable route → controller → service paths. The same chain is now
+  printed in the text report and serialized in JSON, SARIF and Code Climate;
+  SARIF also puts it in the result message so PR annotations can display it.
+- Added `scripts/verify-framework-reproducer.sh`, which verifies the inferred
+  chain and runs a route-level reproducer red before a service-only fix and
+  green afterwards with unchanged generated test files.
+
+### Guided `phanalist init`
+
+- New `init` subcommand guides first-time users through scan paths, excludes,
+  rule presets, individual rules and settings, taint policy, output, test
+  generation, baseline creation, and a GitHub Actions workflow.
+- Supports `--yes` for non-interactive use and `--force` to back up and replace
+  an existing configuration.
+- The generated workflow uses `denzyldick/phanalist-action@v1` with only its
+  supported inputs: `src`, `version`, `include_rule_descriptions`, and
+  `post_pr_comment`. SARIF upload is handled by the action.
+- `Config` now accepts `paths`, `output_format`, `summary_only`, and
+  `baseline_path`. CLI flags still take precedence.
 ### Taint source coverage
 
 - `filter_input_array()` is now a request source. Bare `$_SERVER` and dynamic
