@@ -1,5 +1,15 @@
 enabled_rules: []
 disable_rules: []
+# Directories to scan when -s is not supplied.
+# paths:
+#   - ./src
+# Default output when --output-format is not supplied: text, json, sarif, codeclimate.
+# output_format: text
+# Filter against this baseline unless --use-baseline is supplied.
+# baseline_path: .phanalist-baseline.json
+# Turn Z3 counterexamples into PHPUnit regression tests:
+# test_generation:
+#   output_dir: tests/phanalist-generated
 rules:
   E0009:
     max_complexity: 10
