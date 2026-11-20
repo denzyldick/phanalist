@@ -1,11 +1,11 @@
-use mago_span::HasSpan;
-use mago_syntax::cst::*;
 use crate::file::File;
 use crate::results::{Message, Violation};
-use crate::rules::Rule as _;
 use crate::rules::ast_support::{call_arguments, walk_statement_expressions};
 use crate::rules::taint_support::{self, Settings};
+use crate::rules::Rule as _;
 use crate::security::{FileTaint, SinkKind, TaintMode};
+use mago_span::HasSpan;
+use mago_syntax::cst::*;
 
 pub(crate) static CODE: &str = "E0115";
 static DESCRIPTION: &str = "XXE via libxml";
@@ -69,17 +69,16 @@ impl crate::rules::Rule for Rule {
     }
 }
 
-
 fn is_libxml_function(name: &str) -> bool {
-        matches!(
-            name,
-            "simplexml_load_file"
-                | "simplexml_load_string"
-                | "domdocument::load"
-                | "domdocument::loadxml"
-                | "loadxml"
-                | "load"
-        )
+    matches!(
+        name,
+        "simplexml_load_file"
+            | "simplexml_load_string"
+            | "domdocument::load"
+            | "domdocument::loadxml"
+            | "loadxml"
+            | "load"
+    )
 }
 
 #[cfg(test)]
@@ -102,10 +101,10 @@ mod tests {
 
     #[test]
     fn accepts_literal_xml() {
-        assert!(analyze_file(
-            "<?php\nsimplexml_load_string('<root><item>value</item></root>');\n"
-        )
-        .is_empty());
+        assert!(
+            analyze_file("<?php\nsimplexml_load_string('<root><item>value</item></root>');\n")
+                .is_empty()
+        );
     }
 
     #[test]
@@ -114,7 +113,6 @@ mod tests {
         assert_eq!(violations.len(), 1);
         assert!(violations[0].taint_source.is_some());
     }
-
 
     fn analyze_file(source: &str) -> Vec<Violation> {
         crate::rules::tests::analyze_source_for_rule(source, "inline.php", CODE)

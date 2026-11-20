@@ -92,7 +92,8 @@ mod tests {
 
     #[test]
     fn reports_a_request_redirect() {
-        let violations = analyze_file("<?php\n$url = $_GET['url'];\nheader('Location: ' . $url);\n");
+        let violations =
+            analyze_file("<?php\n$url = $_GET['url'];\nheader('Location: ' . $url);\n");
         assert_eq!(violations.len(), 1);
         assert!(violations[0].taint_source.is_some());
     }

@@ -107,9 +107,7 @@ mod tests {
 
     #[test]
     fn accepts_a_literal_query() {
-        assert!(
-            analyze_file("<?php\nmysqli_query($conn, 'SELECT * FROM users');\n").is_empty()
-        );
+        assert!(analyze_file("<?php\nmysqli_query($conn, 'SELECT * FROM users');\n").is_empty());
     }
 
     #[test]

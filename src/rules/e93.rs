@@ -113,8 +113,9 @@ mod tests {
 
     #[test]
     fn reports_eval_of_a_request_template() {
-        let violations =
-            analyze_file("<?php\n$template = $_GET['template'];\neval('echo \"' . $template . '\";');\n");
+        let violations = analyze_file(
+            "<?php\n$template = $_GET['template'];\neval('echo \"' . $template . '\";');\n",
+        );
         assert_eq!(violations.len(), 1);
         assert!(violations[0].taint_source.is_some());
     }

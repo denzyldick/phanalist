@@ -1,11 +1,11 @@
-use mago_span::HasSpan;
-use mago_syntax::cst::*;
 use crate::file::File;
 use crate::results::{Message, Violation};
-use crate::rules::Rule as _;
 use crate::rules::ast_support::{call_arguments, walk_statement_expressions};
 use crate::rules::taint_support::{self, Settings};
+use crate::rules::Rule as _;
 use crate::security::{FileTaint, SinkKind, TaintMode};
+use mago_span::HasSpan;
+use mago_syntax::cst::*;
 
 pub(crate) static CODE: &str = "E0134";
 static DESCRIPTION: &str = "Mail injection";
@@ -93,15 +93,13 @@ mod tests {
 
     #[test]
     fn accepts_literal_mail() {
-        assert!(analyze_file(
-            "<?php\nmail('user@example.com', 'Subject', 'Body');\n"
-        )
-        .is_empty());
+        assert!(analyze_file("<?php\nmail('user@example.com', 'Subject', 'Body');\n").is_empty());
     }
 
     #[test]
     fn reports_request_mail() {
-        let violations = analyze_file("<?php\nmail('user@example.com', $_GET['subject'], 'Body');\n");
+        let violations =
+            analyze_file("<?php\nmail('user@example.com', $_GET['subject'], 'Body');\n");
         assert_eq!(violations.len(), 1);
         assert!(violations[0].taint_source.is_some());
     }

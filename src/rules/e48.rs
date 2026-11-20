@@ -343,11 +343,9 @@ fn call_function_name(call: &Call<'_>) -> Option<String> {
 
 fn root_variable<'a>(expression: &'a Expression<'a>) -> Option<&'a str> {
     match expression {
-        Expression::Variable(Variable::Direct(variable)) => {
-            std::str::from_utf8(variable.name).ok().map(|name| {
-                name.strip_prefix('$').unwrap_or(name)
-            })
-        }
+        Expression::Variable(Variable::Direct(variable)) => std::str::from_utf8(variable.name)
+            .ok()
+            .map(|name| name.strip_prefix('$').unwrap_or(name)),
         Expression::Parenthesized(parenthesized) => root_variable(parenthesized.expression),
         Expression::ArrayAccess(access) => root_variable(access.array),
         Expression::ArrayAppend(append) => root_variable(append.array),

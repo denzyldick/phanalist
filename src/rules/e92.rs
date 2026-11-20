@@ -104,7 +104,8 @@ mod tests {
 
     #[test]
     fn reports_request_xml() {
-        let violations = analyze_file("<?php\n$xml = $_GET['xml'];\nsimplexml_load_string($xml);\n");
+        let violations =
+            analyze_file("<?php\n$xml = $_GET['xml'];\nsimplexml_load_string($xml);\n");
         assert_eq!(violations.len(), 1);
         assert!(violations[0].taint_source.is_some());
     }

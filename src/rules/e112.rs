@@ -1,11 +1,11 @@
-use mago_span::HasSpan;
-use mago_syntax::cst::*;
 use crate::file::File;
 use crate::results::{Message, Violation};
-use crate::rules::Rule as _;
 use crate::rules::ast_support::{call_arguments, walk_statement_expressions};
 use crate::rules::taint_support::{self, Settings};
+use crate::rules::Rule as _;
 use crate::security::{FileTaint, SinkKind, TaintMode};
+use mago_span::HasSpan;
+use mago_syntax::cst::*;
 
 pub(crate) static CODE: &str = "E0112";
 static DESCRIPTION: &str = "File upload without validation";
@@ -96,7 +96,9 @@ mod tests {
 
     #[test]
     fn reports_request_destination() {
-        let violations = analyze_file("<?php\nmove_uploaded_file($_FILES['file']['tmp_name'], $_GET['dest']);\n");
+        let violations = analyze_file(
+            "<?php\nmove_uploaded_file($_FILES['file']['tmp_name'], $_GET['dest']);\n",
+        );
         assert_eq!(violations.len(), 1);
         assert!(violations[0].taint_source.is_some());
     }

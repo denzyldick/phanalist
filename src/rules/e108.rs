@@ -1,9 +1,9 @@
-use mago_span::HasSpan;
-use mago_syntax::cst::*;
 use crate::file::File;
 use crate::results::{Message, Violation};
-use crate::rules::Rule as _;
 use crate::rules::ast_support::walk_statement_expressions;
+use crate::rules::Rule as _;
+use mago_span::HasSpan;
+use mago_syntax::cst::*;
 
 pub(crate) static CODE: &str = "E0108";
 static DESCRIPTION: &str = "Dynamic instantiation";
@@ -33,34 +33,32 @@ impl crate::rules::Rule for Rule {
         let mut violations = Vec::new();
 
         for statement in program.statements.iter() {
-            walk_statement_expressions(statement, &mut |expression| {
-                match expression {
-                    Expression::Instantiation(instantiation) => {
-                        if has_user_input(&instantiation.class) {
-                            let arguments = instantiation
-                                .argument_list
-                                .as_ref()
-                                .map(|list| {
-                                    list.arguments
-                                        .iter()
-                                        .map(|a| match a {
-                                            Argument::Positional(arg) => arg.value,
-                                            Argument::Named(arg) => arg.value,
-                                        })
-                                        .collect::<Vec<_>>()
-                                })
-                                .unwrap_or_default();
-                            if arguments.iter().any(|arg| has_user_input(arg)) {
-                                let message = Message::new(
+            walk_statement_expressions(statement, &mut |expression| match expression {
+                Expression::Instantiation(instantiation) => {
+                    if has_user_input(&instantiation.class) {
+                        let arguments = instantiation
+                            .argument_list
+                            .as_ref()
+                            .map(|list| {
+                                list.arguments
+                                    .iter()
+                                    .map(|a| match a {
+                                        Argument::Positional(arg) => arg.value,
+                                        Argument::Named(arg) => arg.value,
+                                    })
+                                    .collect::<Vec<_>>()
+                            })
+                            .unwrap_or_default();
+                        if arguments.iter().any(|arg| has_user_input(arg)) {
+                            let message = Message::new(
                                     "E0108:dynamic-instantiation",
                                     "Dynamic class instantiation from a user-controlled name with user-controlled arguments can lead to object injection.",
                                 );
-                                violations.push(self.new_violation(file, message, expression.span()));
-                            }
+                            violations.push(self.new_violation(file, message, expression.span()));
                         }
                     }
-                    _ => {}
                 }
+                _ => {}
             });
         }
 
@@ -71,24 +69,25 @@ impl crate::rules::Rule for Rule {
 fn has_user_input(expression: &Expression<'_>) -> bool {
     match expression.unparenthesized() {
         Expression::ArrayAccess(access) => {
-            if let Expression::Variable(Variable::Direct(variable)) = access.array.unparenthesized() {
+            if let Expression::Variable(Variable::Direct(variable)) = access.array.unparenthesized()
+            {
                 true
             } else {
                 false
             }
         }
-        Expression::Variable(Variable::Direct(variable)) => {
-            true
-        }
-        Expression::Binary(binary) if matches!(binary.operator, BinaryOperator::StringConcat(_)) => {
+        Expression::Variable(Variable::Direct(variable)) => true,
+        Expression::Binary(binary)
+            if matches!(binary.operator, BinaryOperator::StringConcat(_)) =>
+        {
             has_user_input(binary.lhs) || has_user_input(binary.rhs)
         }
-        Expression::CompositeString(string) => {
-            string
-                .parts()
-                .iter()
-                .any(|part| matches!(part, StringPart::Expression(_) | StringPart::BracedExpression(_)))
-        }
+        Expression::CompositeString(string) => string.parts().iter().any(|part| {
+            matches!(
+                part,
+                StringPart::Expression(_) | StringPart::BracedExpression(_)
+            )
+        }),
         _ => false,
     }
 }

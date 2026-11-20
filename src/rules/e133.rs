@@ -1,11 +1,11 @@
-use mago_span::HasSpan;
-use mago_syntax::cst::*;
 use crate::file::File;
 use crate::results::{Message, Violation};
-use crate::rules::Rule as _;
 use crate::rules::ast_support::{call_arguments, walk_statement_expressions};
 use crate::rules::taint_support::{self, Settings};
+use crate::rules::Rule as _;
 use crate::security::{FileTaint, SinkKind, TaintMode};
+use mago_span::HasSpan;
+use mago_syntax::cst::*;
 
 pub(crate) static CODE: &str = "E0133";
 static DESCRIPTION: &str = "Header injection via setcookie()";
@@ -101,7 +101,8 @@ mod tests {
 
     #[test]
     fn reports_request_cookie() {
-        let violations = analyze_file("<?php\nsetcookie('session', $_GET['token'], ['secure' => true]);\n");
+        let violations =
+            analyze_file("<?php\nsetcookie('session', $_GET['token'], ['secure' => true]);\n");
         assert_eq!(violations.len(), 1);
         assert!(violations[0].taint_source.is_some());
     }
