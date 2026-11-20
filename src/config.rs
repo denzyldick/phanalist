@@ -5,9 +5,30 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
+use crate::outputs::Format;
 use crate::resource::{ResourceClass, ResourceSettings};
 use crate::rules;
 use crate::verification::{FindingClass, Settings};
+
+/// Where automatically generated regression tests are written. Phanalist
+/// never executes generated tests or user PHP code.
+#[derive(Serialize, Debug, Deserialize, Clone, PartialEq, Eq)]
+pub struct TestGenerationConfig {
+    #[serde(default = "default_test_output_dir")]
+    pub output_dir: String,
+}
+
+impl Default for TestGenerationConfig {
+    fn default() -> Self {
+        Self {
+            output_dir: default_test_output_dir(),
+        }
+    }
+}
+
+fn default_test_output_dir() -> String {
+    "tests/phanalist-generated".to_string()
+}
 
 #[derive(Serialize, Debug, Deserialize, Clone)]
 pub struct Config {
@@ -26,6 +47,26 @@ pub struct Config {
     /// from request input.
     #[serde(default = "default_taint_source_all")]
     pub taint_source_all: bool,
+    /// Opt-in generation of PHPUnit tests from Z3 counterexamples.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub test_generation: Option<TestGenerationConfig>,
+    /// Directories to scan when `--src` is not supplied.
+    #[serde(default = "default_paths")]
+    pub paths: Vec<String>,
+    /// Output format used when `--output-format` is not supplied.
+    #[serde(default)]
+    pub output_format: Format,
+    /// Print only the summary by default. The CLI flag can turn this on; config
+    /// users can set it back to `false`.
+    #[serde(default)]
+    pub summary_only: bool,
+    /// Baseline path used when `--use-baseline` is not supplied.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub baseline_path: Option<String>,
+}
+
+fn default_paths() -> Vec<String> {
+    vec!["./src".to_string()]
 }
 
 impl Default for Config {
@@ -242,6 +283,11 @@ impl Default for Config {
             rules,
             exclude_paths: vec![],
             taint_source_all: true,
+            test_generation: None,
+            paths: default_paths(),
+            output_format: Format::text,
+            summary_only: false,
+            baseline_path: None,
         }
     }
 }
@@ -252,17 +298,66 @@ fn default_taint_source_all() -> bool {
 
 impl Config {
     pub(crate) fn save(&self, path: &PathBuf) -> std::io::Result<()> {
-        let t = serde_yaml::to_string(&self).unwrap();
+        self.save_to(path.as_path())
+    }
 
-        let mut file = match std::fs::File::create(path) {
-            Ok(f) => f,
-            Err(e) => {
-                return Err(e);
-            }
-        };
+    /// Save configuration to `path` without CLI side effects.
+    pub fn save_to(&self, path: &std::path::Path) -> std::io::Result<()> {
+        let t = serde_yaml::to_string(self)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e.to_string()))?;
 
+        let mut file = std::fs::File::create(path)?;
         file.write_all(t.as_bytes())
     }
+
+    /// Load configuration from `path`.
+    ///
+    /// - Missing file: returns `Ok((Config::default(), ConfigLoadInfo::CreatedDefault))` and writes defaults.
+    /// - Invalid YAML: returns `Ok((Config::default(), ConfigLoadInfo::InvalidYaml(err)))` (fallback).
+    /// - IO error: returns `Err`.
+    ///
+    /// This is GUI/embedding-friendly (no printing, no process exit).
+    pub fn load_or_create(path: &std::path::Path) -> std::io::Result<(Self, ConfigLoadInfo)> {
+        let default_config = Config::default();
+
+        match std::fs::read_to_string(path) {
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                if let Err(save_err) = default_config.save_to(path) {
+                    return Err(save_err);
+                }
+                Ok((default_config, ConfigLoadInfo::CreatedDefault))
+            }
+            Err(e) => Err(e),
+            Ok(s) => match serde_yaml::from_str::<Config>(&s) {
+                Ok(mut c) => {
+                    let default = Config::default();
+                    for (code, settings) in default.rules {
+                        c.rules.entry(code).or_insert(settings);
+                    }
+                    Ok((c, ConfigLoadInfo::Loaded))
+                }
+                Err(e) => Ok((default_config, ConfigLoadInfo::InvalidYaml(e.to_string()))),
+            },
+        }
+    }
+
+    /// Parse configuration from YAML string, filling missing rule defaults.
+    pub fn from_yaml_str(s: &str) -> Result<Self, String> {
+        let mut c: Config = serde_yaml::from_str(s).map_err(|e| e.to_string())?;
+        let default = Config::default();
+        for (code, settings) in default.rules {
+            c.rules.entry(code).or_insert(settings);
+        }
+        Ok(c)
+    }
+}
+
+/// Outcome information for [`Config::load_or_create`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ConfigLoadInfo {
+    Loaded,
+    CreatedDefault,
+    InvalidYaml(String),
 }
 
 #[cfg(test)]
@@ -310,5 +405,34 @@ mod tests {
         let yaml = "enabled_rules: []\ndisable_rules: []\nrules: {}\ntaint_source_request: true\n";
         let config: Config = serde_yaml::from_str(yaml).unwrap();
         assert!(config.taint_source_all);
+    }
+
+    #[test]
+    fn test_generation_is_opt_in() {
+        assert!(Config::default().test_generation.is_none());
+
+        let yaml = "enabled_rules: []\ndisable_rules: []\nrules: {}\ntest_generation:\n  output_dir: build/tests\n";
+        let config: Config = serde_yaml::from_str(yaml).unwrap();
+        let generation = config.test_generation.unwrap();
+        assert_eq!(generation.output_dir, "build/tests");
+    }
+
+    #[test]
+    fn new_config_fields_have_backwards_compatible_defaults() {
+        let yaml = "enabled_rules: []\ndisable_rules: []\nrules: {}\n";
+        let config: Config = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(config.paths, vec!["./src".to_string()]);
+        assert_eq!(config.output_format, Format::text);
+        assert!(config.baseline_path.is_none());
+    }
+
+    #[test]
+    fn test_generation_output_dir_has_a_default() {
+        let yaml = "enabled_rules: []\ndisable_rules: []\nrules: {}\ntest_generation: {}\n";
+        let config: Config = serde_yaml::from_str(yaml).unwrap();
+        assert_eq!(
+            config.test_generation.unwrap().output_dir,
+            "tests/phanalist-generated"
+        );
     }
 }

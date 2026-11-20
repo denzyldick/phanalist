@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize, Serializer};
 use crate::debug_stats::RuleTimings;
 use crate::file::File;
 use crate::rules::meta::FindingMeta;
+use crate::verification::Witness;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct EngineerEntry {
@@ -88,6 +89,20 @@ pub struct TaintSource {
     pub enclosing_function: Option<String>,
 }
 
+/// A PHP regression test rendered from a solver counterexample.
+///
+/// Kept out of the serialized `Violation` so existing JSON/SARIF consumers are
+/// unaffected; the CLI writes these to disk after baseline filtering.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct GeneratedTest {
+    pub path: PathBuf,
+    pub source: String,
+    pub test_name: String,
+    pub rule: String,
+    pub line: usize,
+    pub witness: Witness,
+}
+
 #[derive(Debug, Clone, Deserialize, PartialEq)]
 pub struct Violation {
     pub rule: String,
@@ -100,9 +115,14 @@ pub struct Violation {
     /// Structured taint source info (only populated for security taint rules).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub taint_source: Option<TaintSource>,
+    /// Best-effort route/caller chain that reaches a verification finding.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub call_chain: Vec<String>,
     /// Severity, category, confidence, effort and stable identity.
     #[serde(default)]
     pub meta: FindingMeta,
+    #[serde(default, skip_serializing, skip_deserializing)]
+    pub generated_test: Option<GeneratedTest>,
 }
 
 // Custom serialization: emit the structured `message` and also a flat, rendered
@@ -113,12 +133,15 @@ impl Serialize for Violation {
     where
         S: Serializer,
     {
-        let mut state = serializer.serialize_struct("Violation", 10)?;
+        let mut state = serializer.serialize_struct("Violation", 11)?;
         state.serialize_field("rule", &self.rule)?;
         state.serialize_field("line", &self.line)?;
         state.serialize_field("suggestion", &self.message.render())?;
         state.serialize_field("message", &self.message)?;
         state.serialize_field("taint_source", &self.taint_source)?;
+        if !self.call_chain.is_empty() {
+            state.serialize_field("call_chain", &self.call_chain)?;
+        }
         state.serialize_field("meta", &self.meta)?;
         state.serialize_field("start_line", &self.start_line)?;
         state.serialize_field("start_column", &self.start_column)?;
@@ -282,7 +305,9 @@ mod tests {
             end_line: 0,
             end_column: 0,
             taint_source: None,
+            call_chain: Vec::new(),
             meta: Default::default(),
+            generated_test: None,
         }
     }
 
@@ -328,6 +353,58 @@ mod tests {
         // ...plus the structured message with its stable id.
         assert!(json.contains("\"message\":{"));
         assert!(json.contains("\"id\":\"test\""));
+    }
+
+    #[test]
+    fn generated_tests_are_not_part_of_serialized_output() {
+        use crate::verification::witness::Witness;
+
+        let mut violation = get_violation("E0031");
+        violation.generated_test = Some(GeneratedTest {
+            path: PathBuf::from("generated.php"),
+            source: "<?php".to_string(),
+            test_name: "testGenerated".to_string(),
+            rule: "E0031".to_string(),
+            line: 1,
+            witness: Witness {
+                code: "E0031".to_string(),
+                message: "Division by zero".to_string(),
+                source: PathBuf::from("src.php"),
+                line: 1,
+                callable: None,
+                inputs: vec![],
+                receiver: None,
+                call_chain: Vec::new(),
+            },
+        });
+
+        let json = serde_json::to_string(&violation).unwrap();
+        assert!(!json.contains("generated_test"));
+        let decoded: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert!(decoded.get("generated_test").is_none());
+    }
+
+    #[test]
+    fn inferred_call_chain_is_serialized_when_present() {
+        let mut violation = get_violation("E0031");
+        violation.call_chain = vec![
+            "POST /checkout".to_string(),
+            "CheckoutController::submit()".to_string(),
+            "DiscountCalculator::discountedTotal()".to_string(),
+        ];
+
+        let json = serde_json::to_string(&violation).unwrap();
+        let decoded: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(
+            decoded.get("call_chain"),
+            Some(&serde_json::json!([
+                "POST /checkout",
+                "CheckoutController::submit()",
+                "DiscountCalculator::discountedTotal()",
+            ]))
+        );
+        let empty = serde_json::to_value(&get_violation("E0031")).unwrap();
+        assert!(empty.get("call_chain").is_none());
     }
 
     #[test]

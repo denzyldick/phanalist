@@ -1,8 +1,9 @@
 use std::collections::BTreeSet;
 
+use serde::{Deserialize, Serialize};
 use z3::ast::{Bool, Float, Int};
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum ArrayKey {
     Int(i64),
     String(String),
