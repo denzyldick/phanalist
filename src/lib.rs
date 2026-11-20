@@ -9,6 +9,7 @@ pub mod engineer;
 pub mod file;
 pub mod fingerprint;
 pub mod generated_tests;
+pub mod init;
 pub mod lsp;
 pub mod outputs;
 pub mod paths;
