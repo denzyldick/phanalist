@@ -15,6 +15,7 @@ use super::class::FindingClass;
 use super::contracts::{self, Docblock};
 use super::summary::{self, ConstantValue, FunctionSummary};
 use super::value::{ArrayKey, ResourceState, Value};
+use super::witness::{self, CallableContext, CallableKind, Witness, WitnessInput, WitnessReceiver};
 use super::Settings;
 
 const LOOP_BUDGET: usize = 4096;
@@ -27,6 +28,9 @@ pub struct Finding {
     pub class: FindingClass,
     pub message: Message,
     pub span: Span,
+    /// Populated only when test generation is enabled and the solver produced
+    /// concrete, renderable parameter values.
+    pub witness: Option<Witness>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -91,6 +95,9 @@ struct Analyzer<'a, 'arena> {
     function_imports: HashMap<String, HashMap<String, String>>,
     namespace: Option<String>,
     class: Option<String>,
+    /// Original-case names used only for generated test call expressions.
+    display_namespace: Option<String>,
+    display_class: Option<String>,
     switch_depth: usize,
     docblocks: Vec<Trivia<'arena>>,
     doc_return: Option<String>,
@@ -102,6 +109,11 @@ struct Analyzer<'a, 'arena> {
     next_unverified_numeric: u64,
     next_fresh: u64,
     next_resource: u64,
+    current_callable: Option<CallableContext>,
+    current_param_values: Vec<(String, Value)>,
+    current_receiver: Option<(String, Vec<(String, Value)>)>,
+    current_method_is_static: bool,
+    pending_witness: Option<Witness>,
 }
 
 pub fn analyze_file_with_summaries(
@@ -133,7 +145,9 @@ pub fn analyze_file_with_summaries(
             .namespace
             .as_ref()
             .map(|namespace| namespace.to_ascii_lowercase()),
+        display_namespace: file.namespace.clone(),
         class: None,
+        display_class: None,
         switch_depth: 0,
         docblocks: program
             .trivia
@@ -150,6 +164,11 @@ pub fn analyze_file_with_summaries(
         next_unverified_numeric: 0,
         next_fresh: 0,
         next_resource: 0,
+        current_callable: None,
+        current_param_values: Vec::new(),
+        current_receiver: None,
+        current_method_is_static: false,
+        pending_witness: None,
     };
 
     let mut state = State::new();
@@ -196,13 +215,20 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             }
             Statement::Namespace(namespace) => {
                 let previous = self.namespace.take();
+                let previous_display = self.display_namespace.take();
                 self.namespace = namespace.name.as_ref().map(|name| {
                     String::from_utf8_lossy(name.value())
                         .trim_start_matches('\\')
                         .to_ascii_lowercase()
                 });
+                self.display_namespace = namespace.name.as_ref().map(|name| {
+                    String::from_utf8_lossy(name.value())
+                        .trim_start_matches('\\')
+                        .to_string()
+                });
                 self.analyze_statements(namespace.statements().as_slice(), state);
                 self.namespace = previous;
+                self.display_namespace = previous_display;
             }
             Statement::Function(function) => {
                 let previous_class = self.class.take();
@@ -215,19 +241,26 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 );
                 self.class = previous_class;
             }
-            Statement::Class(class) => {
-                self.analyze_class(&String::from_utf8_lossy(class.name.value), &class.members)
-            }
+            Statement::Class(class) => self.analyze_class(
+                &String::from_utf8_lossy(class.name.value),
+                &class.members,
+                !class.modifiers.iter().any(Modifier::is_abstract) && class.extends.is_none(),
+            ),
             Statement::Interface(interface) => self.analyze_class(
                 &String::from_utf8_lossy(interface.name.value),
                 &interface.members,
+                false,
             ),
-            Statement::Trait(trait_) => {
-                self.analyze_class(&String::from_utf8_lossy(trait_.name.value), &trait_.members)
-            }
-            Statement::Enum(enum_) => {
-                self.analyze_class(&String::from_utf8_lossy(enum_.name.value), &enum_.members)
-            }
+            Statement::Trait(trait_) => self.analyze_class(
+                &String::from_utf8_lossy(trait_.name.value),
+                &trait_.members,
+                false,
+            ),
+            Statement::Enum(enum_) => self.analyze_class(
+                &String::from_utf8_lossy(enum_.name.value),
+                &enum_.members,
+                false,
+            ),
             Statement::If(if_statement) => self.analyze_if(if_statement, state),
             Statement::While(while_statement) => {
                 let body = while_statement.body.statements();
@@ -351,15 +384,82 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         &mut self,
         name: &str,
         members: &'arena Sequence<'arena, ClassLikeMember<'arena>>,
+        instantiable: bool,
     ) {
         let previous = self.class.take();
+        let previous_display = self.display_class.take();
         let previous_domains = std::mem::take(&mut self.method_domains);
+        let previous_receiver = self.current_receiver.take();
         let class = self.qualified_name(&name.to_ascii_lowercase());
+        let display_class = self.qualified_display_name(name);
         self.method_domains = self.static_method_domains(&class, members);
         self.class = Some(class);
+        self.display_class = Some(display_class.clone());
+        if self.settings.generate_tests && instantiable {
+            self.current_receiver = self
+                .constructor_values(members)
+                .map(|values| (display_class.clone(), values));
+        }
         self.analyze_members(members);
         self.class = previous;
+        self.display_class = previous_display;
         self.method_domains = previous_domains;
+        self.current_receiver = previous_receiver;
+    }
+
+    /// Collect constructor inputs so instance-method findings can be called on
+    /// a real object. Classes we cannot safely rebuild return `None`, which
+    /// makes `has_unsupported_input` skip their tests.
+    fn constructor_values(
+        &mut self,
+        members: &'arena Sequence<'arena, ClassLikeMember<'arena>>,
+    ) -> Option<Vec<(String, Value)>> {
+        let Some(method) = members.iter().find_map(|member| match member {
+            ClassLikeMember::Method(method)
+                if String::from_utf8_lossy(method.name.value)
+                    .eq_ignore_ascii_case("__construct") =>
+            {
+                Some(method)
+            }
+            _ => None,
+        }) else {
+            return Some(Vec::new());
+        };
+
+        if !matches!(method.body, MethodBody::Concrete(_))
+            || method.modifiers.iter().any(|modifier| {
+                modifier.is_private() || modifier.is_protected() || modifier.is_static()
+            })
+            || method
+                .parameter_list
+                .parameters
+                .iter()
+                .any(|parameter| parameter.ellipsis.is_some() || parameter.ampersand.is_some())
+        {
+            return None;
+        }
+
+        let docblock = self.docblock_before(method.span()).unwrap_or_default();
+        Some(
+            method
+                .parameter_list
+                .parameters
+                .iter()
+                .map(|parameter| {
+                    let name = String::from_utf8_lossy(parameter.variable.name).to_string();
+                    let doc_type = docblock
+                        .params
+                        .get(name.strip_prefix('$').unwrap_or(&name))
+                        .map(String::as_str);
+                    let mut value =
+                        parameter_value(parameter.hint.as_ref(), doc_type, "__construct", &name);
+                    if self.settings.generate_tests && value == Value::Unknown {
+                        value = nullable_witness_value(value, parameter.hint.as_ref(), doc_type);
+                    }
+                    (name, value)
+                })
+                .collect::<Vec<_>>(),
+        )
     }
 
     fn static_method_domains(
@@ -506,6 +606,11 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         for member in members.iter() {
             if let ClassLikeMember::Method(method) = member {
                 if let MethodBody::Concrete(block) = &method.body {
+                    let previous_static = self.current_method_is_static;
+                    self.current_method_is_static = method
+                        .modifiers
+                        .iter()
+                        .any(|modifier| matches!(modifier, Modifier::Static(_)));
                     self.analyze_function(
                         &String::from_utf8_lossy(method.name.value),
                         &method.parameter_list,
@@ -513,6 +618,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                         block,
                         method.span(),
                     );
+                    self.current_method_is_static = previous_static;
                 }
             }
         }
@@ -520,6 +626,13 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
 
     fn qualified_name(&self, name: &str) -> String {
         match &self.namespace {
+            Some(namespace) if !namespace.is_empty() => format!("{namespace}\\{name}"),
+            _ => name.to_string(),
+        }
+    }
+
+    fn qualified_display_name(&self, name: &str) -> String {
+        match &self.display_namespace {
             Some(namespace) if !namespace.is_empty() => format!("{namespace}\\{name}"),
             _ => name.to_string(),
         }
@@ -539,6 +652,8 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         let previous_doc_templates = std::mem::take(&mut self.doc_templates);
         let previous_limit = self.finding_limit_start;
         let previous_generator = self.in_generator;
+        let previous_callable = self.current_callable.take();
+        let previous_param_values = std::mem::take(&mut self.current_param_values);
         self.return_hint = return_hint.map(|hint| &hint.hint);
         self.in_generator = body_contains_yield(body);
         self.finding_limit_start = self.findings.len();
@@ -546,6 +661,25 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         let docblock = self.docblock_before(span).unwrap_or_default();
         self.doc_return = docblock.return_type.clone();
         self.doc_templates = docblock.templates.clone();
+
+        if self.settings.generate_tests {
+            let line = self.file.line_number(span.start.offset);
+            self.current_callable = Some(CallableContext {
+                name: match &self.class {
+                    Some(class) => {
+                        format!("{}::{name}", self.display_class.as_deref().unwrap_or(class))
+                    }
+                    None => self.qualified_display_name(name),
+                },
+                kind: match &self.class {
+                    Some(_) if self.current_method_is_static => CallableKind::StaticMethod,
+                    Some(_) => CallableKind::InstanceMethod,
+                    None => CallableKind::Function,
+                },
+                file: self.file.path.clone(),
+                line,
+            });
+        }
 
         let mut state = State::new();
         let method_domains = self.method_domains.get(&name.to_ascii_lowercase());
@@ -569,12 +703,15 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     None,
                 )
             });
-            let value = if matches!(value, Value::Unknown) {
+            let mut value = if matches!(value, Value::Unknown) {
                 self.parameter_object_value(parameter.hint.as_ref())
                     .unwrap_or(value)
             } else {
                 value
             };
+            if self.settings.generate_tests && matches!(value, Value::Unknown) {
+                value = nullable_witness_value(value, parameter.hint.as_ref(), doc_type);
+            }
             if let Some(constraint) = constant_constraint {
                 state.path = path_and(&state.path, &constraint);
             }
@@ -583,11 +720,22 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     state.path = path_and(&state.path, &constraint);
                 }
             }
+            if self.settings.generate_tests {
+                // These are the values the generated test passes as arguments.
+                // Do not refresh them from `state.env` later: a parameter that
+                // is reassigned before the failure must still be shown with its
+                // entry value, otherwise calling the function with the witness
+                // would take a different path.
+                self.current_param_values
+                    .push((parameter_name.clone(), value.clone()));
+            }
             state.env.insert(parameter_name, value);
         }
 
         self.analyze_statements(body.statements.as_slice(), &mut state);
 
+        self.current_callable = previous_callable;
+        self.current_param_values = previous_param_values;
         self.return_hint = previous_hint;
         self.doc_return = previous_doc_return;
         self.doc_templates = previous_doc_templates;
@@ -611,6 +759,8 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         self.return_hint = closure.return_type_hint.as_ref().map(|hint| &hint.hint);
         self.in_generator = body_contains_yield(&closure.body);
         self.finding_limit_start = self.findings.len();
+        let previous_callable = self.current_callable.take();
+        let previous_param_values = std::mem::take(&mut self.current_param_values);
 
         let mut body_state = state.clone();
         if let Some(use_clause) = &closure.use_clause {
@@ -646,6 +796,8 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         self.doc_templates = previous_doc_templates;
         self.finding_limit_start = previous_limit;
         self.in_generator = previous_generator;
+        self.current_callable = previous_callable;
+        self.current_param_values = previous_param_values;
 
         modified
     }
@@ -662,6 +814,8 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         self.return_hint = arrow.return_type_hint.as_ref().map(|hint| &hint.hint);
         self.in_generator = false;
         self.finding_limit_start = self.findings.len();
+        let previous_callable = self.current_callable.take();
+        let previous_param_values = std::mem::take(&mut self.current_param_values);
 
         let mut body_state = state.clone();
         for parameter in arrow.parameter_list.parameters.iter() {
@@ -688,6 +842,8 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         self.doc_templates = previous_doc_templates;
         self.finding_limit_start = previous_limit;
         self.in_generator = previous_generator;
+        self.current_callable = previous_callable;
+        self.current_param_values = previous_param_values;
     }
 
     fn apply_docblock_vars(
@@ -1562,6 +1718,18 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                         && !self.suppress_access_checks
                         && matches!(object, Value::Null)
                     {
+                        let rendered = Message::new(
+                            FindingClass::NullProperty.message_id("null-property-access"),
+                            "Property access on null.",
+                        )
+                        .arg("value", "null")
+                        .render();
+                        self.set_pending_witness_from_path(
+                            &state.path,
+                            access.span(),
+                            FindingClass::NullProperty,
+                            &rendered,
+                        );
                         self.push_finding(
                             FindingClass::NullProperty,
                             "null-property-access",
@@ -2427,6 +2595,18 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                     && !self.suppress_access_checks
                     && matches!(object, Value::Null)
                 {
+                    let rendered = Message::new(
+                        FindingClass::NullMethod.message_id("null-method-call"),
+                        "Method call on null.",
+                    )
+                    .arg("value", "null")
+                    .render();
+                    self.set_pending_witness_from_path(
+                        &state.path,
+                        method.object.span(),
+                        FindingClass::NullMethod,
+                        &rendered,
+                    );
                     self.push_finding(
                         FindingClass::NullMethod,
                         "null-method-call",
@@ -3460,6 +3640,12 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                                 )
                                 .arg("value", index_value)
                                 .arg("length", length_value);
+                                self.set_pending_witness(
+                                    &solver,
+                                    span,
+                                    FindingClass::ArrayIndex,
+                                    &message.render(),
+                                );
                                 self.push_message(
                                     FindingClass::ArrayIndex,
                                     "array-index",
@@ -3479,6 +3665,12 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                                 )
                                 .arg("value", index_value)
                                 .arg("length", length_value);
+                                self.set_pending_witness(
+                                    &solver,
+                                    span,
+                                    FindingClass::ArrayIndex,
+                                    &message.render(),
+                                );
                                 self.push_message(
                                     FindingClass::ArrayIndex,
                                     "array-index",
@@ -4169,6 +4361,10 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
                 let rendered = value
                     .and_then(|value| model_value(&solver, value))
                     .unwrap_or_else(|| "?".to_string());
+                let full_message = Message::new(class.message_id(id), template)
+                    .arg("value", &rendered)
+                    .render();
+                self.set_pending_witness(&solver, span, class, &full_message);
                 self.push_finding(class, id, template, span, &rendered);
             }
             SatResult::Unknown => {
@@ -4200,6 +4396,84 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         self.push_finding(class, "unverified", template, span, "?");
     }
 
+    /// Capture the parameter values behind a satisfiable solver result. The
+    /// witness is consumed by the next `push_message`, which keeps the solver
+    /// call sites free of extra arguments.
+    fn set_pending_witness(
+        &mut self,
+        solver: &Solver,
+        span: Span,
+        class: FindingClass,
+        rendered: &str,
+    ) {
+        self.pending_witness = None;
+        if !self.settings.generate_tests {
+            return;
+        }
+        let Some(model) = solver.get_model() else {
+            return;
+        };
+        let Some(callable) = self.current_callable.clone() else {
+            return;
+        };
+        let inputs = self
+            .current_param_values
+            .iter()
+            .map(|(name, value)| WitnessInput {
+                name: name.clone(),
+                value: witness::concrete_value(&model, value),
+            })
+            .collect();
+        let receiver = if callable.kind == CallableKind::InstanceMethod {
+            self.current_receiver
+                .as_ref()
+                .map(|(class, values)| WitnessReceiver {
+                    class: class.clone(),
+                    arguments: values
+                        .iter()
+                        .map(|(name, value)| WitnessInput {
+                            name: name.clone(),
+                            value: witness::concrete_value(&model, value),
+                        })
+                        .collect(),
+                })
+        } else {
+            None
+        };
+        let witness = Witness {
+            code: String::from(class.code()),
+            message: rendered.to_string(),
+            source: self.file.path.clone(),
+            line: self.file.line_number(span.start.offset),
+            callable: Some(callable),
+            inputs,
+            receiver,
+            call_chain: Vec::new(),
+        };
+        if !witness.has_unsupported_input() {
+            self.pending_witness = Some(witness);
+        }
+    }
+
+    fn set_pending_witness_from_path(
+        &mut self,
+        path: &Bool,
+        span: Span,
+        class: FindingClass,
+        rendered: &str,
+    ) {
+        self.pending_witness = None;
+        if !self.settings.generate_tests {
+            return;
+        }
+        let solver = Solver::new();
+        solver.assert(path);
+        if !matches!(solver.check(), SatResult::Sat) {
+            return;
+        }
+        self.set_pending_witness(&solver, span, class, rendered);
+    }
+
     fn push_message(
         &mut self,
         class: FindingClass,
@@ -4207,6 +4481,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
         message: Message,
         span: Span,
     ) {
+        let witness = self.pending_witness.take();
         if !self.classes.is_empty() && !self.classes.contains(&class) {
             return;
         }
@@ -4243,6 +4518,7 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             class,
             message,
             span,
+            witness,
         });
     }
 }
@@ -4727,6 +5003,26 @@ impl<'a, 'arena> Analyzer<'a, 'arena> {
             _ => return None,
         };
         (!self.parents.values().any(|parent| parent == &class)).then_some(Value::Object(class))
+    }
+}
+
+/// For test generation, a nullable parameter can be called with `null`. Normal
+/// analysis keeps treating it as unknown so we do not invent nullability findings.
+fn nullable_witness_value(value: Value, hint: Option<&Hint<'_>>, doc_type: Option<&str>) -> Value {
+    if !matches!(value, Value::Unknown) {
+        return value;
+    }
+    let hint_is_nullable = hint.is_some_and(|hint| hint.contains_null());
+    let doc_is_nullable = doc_type.is_some_and(|doc_type| {
+        doc_type.trim().starts_with('?')
+            || doc_type
+                .split('|')
+                .any(|part| part.trim().eq_ignore_ascii_case("null"))
+    });
+    if hint_is_nullable || doc_is_nullable {
+        Value::Null
+    } else {
+        value
     }
 }
 
