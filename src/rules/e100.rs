@@ -1,11 +1,11 @@
-use mago_span::HasSpan;
-use mago_syntax::cst::*;
 use crate::file::File;
 use crate::results::{Message, Violation};
-use crate::rules::Rule as _;
 use crate::rules::ast_support::{call_arguments, walk_statement_expressions};
 use crate::rules::taint_support::{self, Settings};
+use crate::rules::Rule as _;
 use crate::security::{FileTaint, SinkKind, TaintMode};
+use mago_span::HasSpan;
+use mago_syntax::cst::*;
 
 pub(crate) static CODE: &str = "E0100";
 static DESCRIPTION: &str = "Variable function call";
@@ -62,7 +62,9 @@ impl crate::rules::Rule for Rule {
                 // In `Only` mode this requires proven taint; in `Off`/`Annotate`
                 // the legacy heuristic still applies via `should_report`.
                 let arguments = call_arguments(call);
-                arguments.iter().any(|arg| crate::rules::taint_support::looks_dynamic(arg))
+                arguments
+                    .iter()
+                    .any(|arg| crate::rules::taint_support::looks_dynamic(arg))
             },
             || {
                 Message::new(
@@ -94,17 +96,12 @@ mod tests {
 
     #[test]
     fn accepts_literal_function_name() {
-        assert!(analyze_file(
-            "<?php\nstatic function foo() {}\nfoo();\n"
-        )
-        .is_empty());
+        assert!(analyze_file("<?php\nstatic function foo() {}\nfoo();\n").is_empty());
     }
 
     #[test]
     fn reports_request_function_and_args() {
-        let violations = analyze_file(
-            "<?php\n$func = $_GET['func'];\\n$func($_GET['arg']);\\n",
-        );
+        let violations = analyze_file("<?php\n$func = $_GET['func'];\\n$func($_GET['arg']);\\n");
         assert_eq!(violations.len(), 1);
         assert!(violations[0].taint_source.is_some());
     }

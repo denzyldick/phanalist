@@ -60,7 +60,11 @@ impl crate::rules::Rule for Rule {
                 )
                 .arg("name", name);
 
-                violations.push(self.new_violation(file, message, crate::rules::ast_support::call_span(call)));
+                violations.push(self.new_violation(
+                    file,
+                    message,
+                    crate::rules::ast_support::call_span(call),
+                ));
             });
         }
 

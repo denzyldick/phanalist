@@ -103,8 +103,7 @@ mod tests {
 
     #[test]
     fn reports_request_data_reaching_a_url_helper() {
-        let violations =
-            analyze_file("<?php\n$url = $_GET['url'];\ncurl_init($url);\n");
+        let violations = analyze_file("<?php\n$url = $_GET['url'];\ncurl_init($url);\n");
         assert_eq!(violations.len(), 1);
     }
 

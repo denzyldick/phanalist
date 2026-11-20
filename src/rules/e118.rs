@@ -1,11 +1,11 @@
-use mago_span::HasSpan;
-use mago_syntax::cst::*;
 use crate::file::File;
 use crate::results::{Message, Violation};
-use crate::rules::Rule as _;
 use crate::rules::ast_support::{call_arguments, walk_statement_expressions};
 use crate::rules::taint_support::{self, Settings};
+use crate::rules::Rule as _;
 use crate::security::{FileTaint, SinkKind, TaintMode};
+use mago_span::HasSpan;
+use mago_syntax::cst::*;
 
 pub(crate) static CODE: &str = "E0118";
 static DESCRIPTION: &str = "Log forging via user input";
@@ -69,9 +69,8 @@ impl crate::rules::Rule for Rule {
     }
 }
 
-
 fn is_log_function(name: &str) -> bool {
-        matches!(name, "error_log" | "syslog")
+    matches!(name, "error_log" | "syslog")
 }
 
 #[cfg(test)]
@@ -94,10 +93,7 @@ mod tests {
 
     #[test]
     fn accepts_literal_log() {
-        assert!(analyze_file(
-            "<?php\nerror_log('User login');\n"
-        )
-        .is_empty());
+        assert!(analyze_file("<?php\nerror_log('User login');\n").is_empty());
     }
 
     #[test]
@@ -106,7 +102,6 @@ mod tests {
         assert_eq!(violations.len(), 1);
         assert!(violations[0].taint_source.is_some());
     }
-
 
     fn analyze_file(source: &str) -> Vec<Violation> {
         crate::rules::tests::analyze_source_for_rule(source, "inline.php", CODE)

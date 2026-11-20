@@ -7,8 +7,8 @@ use crate::results::{Message, Violation};
 use crate::rules::ast_support::{
     call_arguments, call_name, call_span, is_method_call, walk_statement_expressions,
 };
-use crate::rules::Rule as _;
 use crate::rules::taint_support::{self, Settings};
+use crate::rules::Rule as _;
 use crate::security::{FileTaint, SinkKind, TaintMode};
 
 pub(crate) static CODE: &str = "E0061";
@@ -91,10 +91,9 @@ impl crate::rules::Rule for Rule {
                 }
             }
 
-            walk_statement_expressions(statement, &mut |expression| {
-                match expression {
-                    Expression::Construct(Construct::Print(print_)) => {
-                        self.check_output(
+            walk_statement_expressions(statement, &mut |expression| match expression {
+                Expression::Construct(Construct::Print(print_)) => {
+                    self.check_output(
                             file,
                             taint,
                             &print_.value,
@@ -103,49 +102,48 @@ impl crate::rules::Rule for Rule {
                             "print() outputs user-controlled input without HTML escaping. Use htmlspecialchars() or a template engine with auto-escaping.",
                             &mut violations,
                         );
+                }
+                Expression::Call(call) => {
+                    let Some(name) = call_name(call) else {
+                        return;
+                    };
+                    if is_method_call(call) || !is_output_function(&name) {
+                        return;
                     }
-                    Expression::Call(call) => {
-                        let Some(name) = call_name(call) else {
-                            return;
-                        };
-                        if is_method_call(call) || !is_output_function(&name) {
-                            return;
-                        }
-                        let arguments = call_arguments(call);
-                        if arguments.is_empty() {
-                            return;
-                        }
-                        let span = call_span(call);
-                        let legacy = arguments
-                            .iter()
-                            .any(|argument| taint_support::looks_dynamic(argument));
-                        if !taint_support::should_report(
-                            &self.settings,
-                            taint,
-                            SinkKind::Html,
-                            span,
-                            legacy,
-                        ) {
-                            return;
-                        }
-                        let message = Message::new(
+                    let arguments = call_arguments(call);
+                    if arguments.is_empty() {
+                        return;
+                    }
+                    let span = call_span(call);
+                    let legacy = arguments
+                        .iter()
+                        .any(|argument| taint_support::looks_dynamic(argument));
+                    if !taint_support::should_report(
+                        &self.settings,
+                        taint,
+                        SinkKind::Html,
+                        span,
+                        legacy,
+                    ) {
+                        return;
+                    }
+                    let message = Message::new(
                             format!("E0061:xss:{name}"),
                             "{}() outputs user-controlled input without HTML escaping. Use htmlspecialchars() or a template engine with auto-escaping.",
                         )
                         .arg("name", name);
-                        let mut violation = self.new_violation(file, message, span);
-                        taint_support::annotate(
-                            &self.settings,
-                            &mut violation,
-                            taint,
-                            SinkKind::Html,
-                            span,
-                            file,
-                        );
-                        violations.push(violation);
-                    }
-                    _ => {}
+                    let mut violation = self.new_violation(file, message, span);
+                    taint_support::annotate(
+                        &self.settings,
+                        &mut violation,
+                        taint,
+                        SinkKind::Html,
+                        span,
+                        file,
+                    );
+                    violations.push(violation);
                 }
+                _ => {}
             });
         }
 

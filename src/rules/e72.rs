@@ -105,8 +105,9 @@ mod tests {
 
     #[test]
     fn accepts_a_local_path() {
-        assert!(analyze_file("<?php\n$path = __DIR__ . '/config.txt';\nreadfile($path);\n")
-            .is_empty());
+        assert!(
+            analyze_file("<?php\n$path = __DIR__ . '/config.txt';\nreadfile($path);\n").is_empty()
+        );
     }
 
     #[test]

@@ -5,7 +5,7 @@ use std::sync::Mutex;
 use crate::file::File;
 
 use super::summary::TaintSummaryIndex;
-use super::taint::{analyze_file, FileTaint, CallGraph, SourceFilter, SinkKind, TaintSummary};
+use super::taint::{analyze_file, CallGraph, FileTaint, SinkKind, SourceFilter, TaintSummary};
 
 pub(crate) struct SecurityService {
     summaries: Mutex<TaintSummaryIndex>,

@@ -94,13 +94,17 @@ pub(crate) fn looks_dynamic(expression: &Expression<'_>) -> bool {
             )
         }
         Expression::Variable(Variable::Direct(_)) => true,
-        Expression::Binary(binary) if matches!(binary.operator, BinaryOperator::StringConcat(_)) => {
+        Expression::Binary(binary)
+            if matches!(binary.operator, BinaryOperator::StringConcat(_)) =>
+        {
             looks_dynamic(binary.lhs) || looks_dynamic(binary.rhs)
         }
-        Expression::CompositeString(string) => string
-            .parts()
-            .iter()
-            .any(|part| matches!(part, StringPart::Expression(_) | StringPart::BracedExpression(_))),
+        Expression::CompositeString(string) => string.parts().iter().any(|part| {
+            matches!(
+                part,
+                StringPart::Expression(_) | StringPart::BracedExpression(_)
+            )
+        }),
         _ => false,
     }
 }
@@ -187,7 +191,14 @@ pub(crate) fn scan_callable_sinks(
             }
 
             let mut violation = rule.new_violation(file, message(), span);
-            annotate(settings, &mut violation, taint, SinkKind::Callable, span, file);
+            annotate(
+                settings,
+                &mut violation,
+                taint,
+                SinkKind::Callable,
+                span,
+                file,
+            );
             violations.push(violation);
         });
     }
@@ -228,14 +239,7 @@ pub(crate) fn scan_includes(
     taint: &FileTaint,
     message: impl Fn(&str) -> Message,
 ) -> Option<Vec<Violation>> {
-    scan_constructs(
-        rule,
-        settings,
-        file,
-        taint,
-        SinkKind::Include,
-        message,
-    )
+    scan_constructs(rule, settings, file, taint, SinkKind::Include, message)
 }
 
 /// Walk every `eval` construct and report tainted code strings.
@@ -315,10 +319,12 @@ pub(crate) fn scan_backticks(
                 return;
             }
             let span = expression.span();
-            let legacy = string
-                .parts()
-                .iter()
-                .any(|part| matches!(part, StringPart::Expression(_) | StringPart::BracedExpression(_)));
+            let legacy = string.parts().iter().any(|part| {
+                matches!(
+                    part,
+                    StringPart::Expression(_) | StringPart::BracedExpression(_)
+                )
+            });
             if !should_report(settings, taint, SinkKind::Shell, span, legacy) {
                 return;
             }
@@ -355,7 +361,14 @@ pub(crate) fn scan_instantiations(
             }
 
             let mut violation = rule.new_violation(file, message(), span);
-            annotate(settings, &mut violation, taint, SinkKind::Callable, span, file);
+            annotate(
+                settings,
+                &mut violation,
+                taint,
+                SinkKind::Callable,
+                span,
+                file,
+            );
             violations.push(violation);
         });
     }

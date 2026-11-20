@@ -34,8 +34,14 @@ impl CallGraph {
     }
 
     pub fn add_edge(&mut self, caller: &str, callee: &str) {
-        self.edges.entry(caller.to_string()).or_default().insert(callee.to_string());
-        self.reverse.entry(callee.to_string()).or_default().insert(caller.to_string());
+        self.edges
+            .entry(caller.to_string())
+            .or_default()
+            .insert(callee.to_string());
+        self.reverse
+            .entry(callee.to_string())
+            .or_default()
+            .insert(caller.to_string());
     }
 
     pub fn add_request_arg(&mut self, callee: &str, index: usize) {
@@ -73,7 +79,19 @@ pub enum TaintMode {
 
 /// The kind of a taint origin. Used to distinguish request-controlled data
 /// (potentially exploitable) from parameter-derived data (a lead only).
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Default,
+    PartialEq,
+    Eq,
+    Hash,
+    PartialOrd,
+    Ord,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 #[serde(rename_all = "lowercase")]
 pub enum SourceKind {
     #[default]
@@ -379,7 +397,8 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
                 self.eval(statement.condition, state);
                 // Check if the if-condition is a regex guard (preg_match) — if so,
                 // mark the checked variable as sanitized in the then-branch.
-                if let Some(guard_var) = is_regex_guard_call(statement.condition.unparenthesized()) {
+                if let Some(guard_var) = is_regex_guard_call(statement.condition.unparenthesized())
+                {
                     let mut then_state = clone_state(state);
                     // Look up the variable's taint origins and mark them as sanitized
                     if let Some(origins) = state.env.get(&guard_var) {
@@ -795,7 +814,9 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
         assignment: &'arena Assignment<'arena>,
         state: &mut State,
     ) -> Origins {
-        let lhs_name = direct_variable_name(assignment.lhs).unwrap_or_default().to_string();
+        let lhs_name = direct_variable_name(assignment.lhs)
+            .unwrap_or_default()
+            .to_string();
         let _ = self.eval(assignment.lhs, state);
         let rhs = self.eval(assignment.rhs, state);
 
@@ -1262,15 +1283,18 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
             return;
         }
 
-        let already = self.sinks.iter().any(|sink| {
-            sink.kind == kind && same_span(sink.span, span)
-        });
+        let already = self
+            .sinks
+            .iter()
+            .any(|sink| sink.kind == kind && same_span(sink.span, span));
         if already {
             // Merge origins instead of skipping - this handles interprocedural
             // taint where the same sink is reached from multiple call sites
-            if let Some(existing) = self.sinks.iter_mut().find(|sink| {
-                sink.kind == kind && same_span(sink.span, span)
-            }) {
+            if let Some(existing) = self
+                .sinks
+                .iter_mut()
+                .find(|sink| sink.kind == kind && same_span(sink.span, span))
+            {
                 existing.origins.extend(origins);
                 existing.via = existing.via.clone().or(via.clone());
                 existing.request_rooted = existing.origins.iter().any(|o| is_request_origin(o));
@@ -1374,8 +1398,9 @@ fn function_sink_args(name: &str) -> Vec<SinkArg> {
         "pg_query" | "pg_exec" | "pg_send_query" => vec![sink(SinkKind::Sql, &[0, 1])],
 
         // Command execution.
-        "system" | "exec" | "shell_exec" | "passthru" | "popen" | "proc_open"
-        | "pcntl_exec" => vec![sink(SinkKind::Shell, &[0])],
+        "system" | "exec" | "shell_exec" | "passthru" | "popen" | "proc_open" | "pcntl_exec" => {
+            vec![sink(SinkKind::Shell, &[0])]
+        }
 
         // Deserialization.
         "unserialize" | "wddx_deserialize" | "session_decode" => {
@@ -1494,16 +1519,15 @@ fn mark_sanitized(origins: &Origins, scope: &str) -> Origins {
 fn sanitizer_scope(name: &str) -> Option<&'static str> {
     match name {
         "intval" | "floatval" | "boolval" | "abs" | "strlen" | "count" | "sizeof" | "ord"
-        | "bin2hex" | "dechex" | "md5" | "sha1" | "hash" | "hash_hmac" | "crc32" => {
-            Some("all")
-        }
+        | "bin2hex" | "dechex" | "md5" | "sha1" | "hash" | "hash_hmac" | "crc32" => Some("all"),
         "htmlspecialchars" | "htmlentities" | "strip_tags" | "esc_html" | "esc_attr" => {
             Some("html")
         }
         "escapeshellarg" | "escapeshellcmd" => Some("shell"),
-        "addslashes" | "mysqli_real_escape_string" | "pg_escape_string" | "sqlite_escape_string" => {
-            Some("sql")
-        }
+        "addslashes"
+        | "mysqli_real_escape_string"
+        | "pg_escape_string"
+        | "sqlite_escape_string" => Some("sql"),
         "basename" => Some("path"),
         _ => None,
     }
@@ -1670,7 +1694,12 @@ fn is_regex_guard_call(expression: &Expression<'_>) -> Option<String> {
     if name != "preg_match" && name != "preg_match_all" {
         return None;
     }
-    let arguments: Vec<&Expression<'_>> = call.argument_list.arguments.iter().map(|arg| arg.value()).collect();
+    let arguments: Vec<&Expression<'_>> = call
+        .argument_list
+        .arguments
+        .iter()
+        .map(|arg| arg.value())
+        .collect();
     // preg_match(pattern, $subject) — the subject is the 2nd argument
     let subject = arguments.get(1)?;
     match subject.unparenthesized() {
@@ -1711,11 +1740,8 @@ pub(crate) fn analyze_file<'arena>(
 
         for function in &functions {
             let function_name = function.names.first().map(|s| s.as_str());
-            let (return_taint, mut function_sinks) = analyzer.analyze_function(
-                function_name,
-                &function.params,
-                function.body,
-            );
+            let (return_taint, mut function_sinks) =
+                analyzer.analyze_function(function_name, &function.params, function.body);
 
             // Compute the summary from the sinks before moving them out.
             let mut return_from = Vec::new();
@@ -1805,7 +1831,8 @@ pub(crate) fn summarize_file<'arena>(
         for function in &functions {
             let summary = summarize_function(function, &summaries);
             for name in &function.names {
-                next.entry(name.clone().to_ascii_lowercase()).or_insert_with(|| summary.clone());
+                next.entry(name.clone().to_ascii_lowercase())
+                    .or_insert_with(|| summary.clone());
             }
         }
         if next == summaries {
@@ -1831,7 +1858,8 @@ fn summarize_function(
 ) -> TaintSummary {
     let function_name = function.names.first().map(|s| s.as_str());
     let mut analyzer = Analyzer::new(summaries, true, SourceFilter::All);
-    let (return_taint, sinks) = analyzer.analyze_function(function_name, &function.params, function.body);
+    let (return_taint, sinks) =
+        analyzer.analyze_function(function_name, &function.params, function.body);
 
     let mut return_from = Vec::new();
     let mut returns_source = false;
@@ -1868,7 +1896,9 @@ fn summarize_function(
 fn parameter_index(origin: &str, params: &[String]) -> Option<usize> {
     let origin = base_origin(origin);
     let origin = origin.strip_prefix('$').unwrap_or(origin);
-    params.iter().position(|param| param.strip_prefix('$').unwrap_or(param) == origin)
+    params
+        .iter()
+        .position(|param| param.strip_prefix('$').unwrap_or(param) == origin)
 }
 
 fn collect_function_bodies<'arena>(

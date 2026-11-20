@@ -78,7 +78,8 @@ impl crate::rules::Rule for Rule {
 
                     let base_id = "E0059:dynamic-eval:construct";
                     let template = "eval() executes code built at runtime. Replace it with a fixed parser, dispatch table, or explicit callback.";
-                    let source_info = taint.sink_source_info(SinkKind::Eval, construct.span(), file);
+                    let source_info =
+                        taint.sink_source_info(SinkKind::Eval, construct.span(), file);
                     let message = match origin {
                         Some(_) => Message::new(base_id.to_string(), template.to_string()),
                         None => Message::new(base_id, template),

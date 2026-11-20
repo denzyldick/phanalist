@@ -1,9 +1,9 @@
-use mago_span::HasSpan;
-use mago_syntax::cst::*;
 use crate::file::File;
 use crate::results::{Message, Violation};
-use crate::rules::Rule as _;
 use crate::rules::ast_support::{call_arguments, function_name, walk_statement_expressions};
+use crate::rules::Rule as _;
+use mago_span::HasSpan;
+use mago_syntax::cst::*;
 
 pub(crate) static CODE: &str = "E0094";
 static DESCRIPTION: &str = "Denial of service via regular expression";
@@ -76,24 +76,25 @@ fn is_regex_function(name: &str) -> bool {
 fn has_user_input(expression: &Expression<'_>) -> bool {
     match expression.unparenthesized() {
         Expression::ArrayAccess(access) => {
-            if let Expression::Variable(Variable::Direct(variable)) = access.array.unparenthesized() {
+            if let Expression::Variable(Variable::Direct(variable)) = access.array.unparenthesized()
+            {
                 true
             } else {
                 false
             }
         }
-        Expression::Variable(Variable::Direct(variable)) => {
-            true
-        }
-        Expression::Binary(binary) if matches!(binary.operator, BinaryOperator::StringConcat(_)) => {
+        Expression::Variable(Variable::Direct(variable)) => true,
+        Expression::Binary(binary)
+            if matches!(binary.operator, BinaryOperator::StringConcat(_)) =>
+        {
             has_user_input(binary.lhs) || has_user_input(binary.rhs)
         }
-        Expression::CompositeString(string) => {
-            string
-                .parts()
-                .iter()
-                .any(|part| matches!(part, StringPart::Expression(_) | StringPart::BracedExpression(_)))
-        }
+        Expression::CompositeString(string) => string.parts().iter().any(|part| {
+            matches!(
+                part,
+                StringPart::Expression(_) | StringPart::BracedExpression(_)
+            )
+        }),
         _ => false,
     }
 }
@@ -104,7 +105,10 @@ fn variable_name(name: &[u8]) -> String {
 }
 
 fn is_superglobal(name: &str) -> bool {
-    matches!(name, "_GET" | "_POST" | "_REQUEST" | "_COOKIE" | "_FILES" | "_SERVER")
+    matches!(
+        name,
+        "_GET" | "_POST" | "_REQUEST" | "_COOKIE" | "_FILES" | "_SERVER"
+    )
 }
 
 #[cfg(test)]

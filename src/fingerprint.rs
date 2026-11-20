@@ -32,8 +32,18 @@ mod tests {
 
     #[test]
     fn is_stable_for_the_same_content() {
-        let a = compute("E0060", "src/Foo.php", "E0060:sql", "  mysqli_query($db, $sql);  ");
-        let b = compute("E0060", "src/Foo.php", "E0060:sql", "mysqli_query($db, $sql);");
+        let a = compute(
+            "E0060",
+            "src/Foo.php",
+            "E0060:sql",
+            "  mysqli_query($db, $sql);  ",
+        );
+        let b = compute(
+            "E0060",
+            "src/Foo.php",
+            "E0060:sql",
+            "mysqli_query($db, $sql);",
+        );
         assert_eq!(a, b);
     }
 

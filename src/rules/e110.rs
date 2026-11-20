@@ -1,9 +1,9 @@
-use mago_span::HasSpan;
-use mago_syntax::cst::*;
 use crate::file::File;
 use crate::results::{Message, Violation};
-use crate::rules::Rule as _;
 use crate::rules::ast_support::{function_name, walk_statement_expressions};
+use crate::rules::Rule as _;
+use mago_span::HasSpan;
+use mago_syntax::cst::*;
 
 pub(crate) static CODE: &str = "E0110";
 static DESCRIPTION: &str = "Raw SQL query execution";
@@ -60,7 +60,10 @@ impl crate::rules::Rule for Rule {
 }
 
 fn is_raw_query(name: &str) -> bool {
-    matches!(name, "mysqli_query" | "pg_query" | "mysql_query" | "pdo::exec")
+    matches!(
+        name,
+        "mysqli_query" | "pg_query" | "mysql_query" | "pdo::exec"
+    )
 }
 
 #[cfg(test)]
