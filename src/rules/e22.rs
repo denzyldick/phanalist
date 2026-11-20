@@ -42,49 +42,54 @@ struct NamespaceIndex {
 }
 
 impl NamespaceIndex {
-    fn compute_metrics(&self, namespace: &str) -> (usize, usize) {
-        let our_classes = match self.namespace_classes.get(namespace) {
-            Some(classes) => classes,
-            None => return (0, 0),
-        };
+    fn compute_all_metrics(&mut self) {
+        let mut ce_sets: HashMap<String, HashSet<String>> = HashMap::new();
+        let mut ca_sets: HashMap<String, HashSet<String>> = HashMap::new();
 
-        // Ce: count distinct external classes that OUR classes depend on
-        let mut ce_types: HashSet<String> = HashSet::new();
-        for class_name in our_classes {
-            if let Some(deps) = self.class_dependencies.get(class_name) {
-                for dep in deps {
-                    // Only count if the dependency is NOT in our namespace
-                    let dep_ns = self.class_to_namespace.get(dep);
-                    if dep_ns.is_none_or(|ns| ns != namespace) {
-                        ce_types.insert(dep.clone());
+        for ns in self.namespace_classes.keys() {
+            ce_sets.insert(ns.clone(), HashSet::new());
+            ca_sets.insert(ns.clone(), HashSet::new());
+        }
+
+        // Ce: for each class in a namespace, count distinct external dependency type names.
+        for (namespace, classes) in &self.namespace_classes {
+            let ce = ce_sets.entry(namespace.clone()).or_default();
+            for class_name in classes {
+                if let Some(deps) = self.class_dependencies.get(class_name) {
+                    for dep in deps {
+                        let dep_ns = self.class_to_namespace.get(dep);
+                        if dep_ns.is_none_or(|ns| ns != namespace) {
+                            ce.insert(dep.clone());
+                        }
                     }
                 }
             }
         }
 
-        // Ca: count distinct external classes that depend on OUR classes
-        let mut ca_types: HashSet<String> = HashSet::new();
-        for (class_name, deps) in &self.class_dependencies {
-            // Skip classes in our own namespace
-            let class_ns = self.class_to_namespace.get(class_name);
-            if class_ns.is_some_and(|ns| ns == namespace) {
-                continue;
-            }
+        // Ca: for each source class dependency on a class in another namespace,
+        // count distinct external source classes depending on that namespace.
+        for (src_class, deps) in &self.class_dependencies {
+            let src_ns = self.class_to_namespace.get(src_class).cloned();
             for dep in deps {
-                if our_classes.contains(dep) {
-                    ca_types.insert(class_name.clone());
+                if let Some(dep_ns) = self.class_to_namespace.get(dep) {
+                    if src_ns.as_deref() != Some(dep_ns.as_str()) {
+                        ca_sets
+                            .entry(dep_ns.clone())
+                            .or_default()
+                            .insert(src_class.clone());
+                    }
                 }
             }
         }
 
-        (ca_types.len(), ce_types.len())
-    }
-
-    fn compute_all_metrics(&mut self) {
         self.metrics = self
             .namespace_classes
             .keys()
-            .map(|namespace| (namespace.clone(), self.compute_metrics(namespace)))
+            .map(|namespace| {
+                let ca = ca_sets.get(namespace).map(|s| s.len()).unwrap_or(0);
+                let ce = ce_sets.get(namespace).map(|s| s.len()).unwrap_or(0);
+                (namespace.clone(), (ca, ce))
+            })
             .collect();
     }
 }
