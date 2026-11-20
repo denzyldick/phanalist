@@ -1,9 +1,11 @@
-use mago_span::HasSpan;
-use mago_syntax::cst::*;
 use crate::file::File;
 use crate::results::{Message, Violation};
+use crate::rules::ast_support::{
+    call_arguments, function_name, literal_array_flag, literal_bool, walk_statement_expressions,
+};
 use crate::rules::Rule as _;
-use crate::rules::ast_support::{call_arguments, function_name, literal_array_flag, literal_bool, walk_statement_expressions};
+use mago_span::HasSpan;
+use mago_syntax::cst::*;
 
 pub(crate) static CODE: &str = "E0119";
 static DESCRIPTION: &str = "Session cookie without Secure flag";

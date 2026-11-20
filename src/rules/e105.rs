@@ -1,11 +1,11 @@
-use mago_span::HasSpan;
-use mago_syntax::cst::*;
 use crate::file::File;
 use crate::results::{Message, Violation};
-use crate::rules::Rule as _;
 use crate::rules::ast_support::walk_statement_expressions;
 use crate::rules::taint_support::{self, Settings};
+use crate::rules::Rule as _;
 use crate::security::{FileTaint, SinkKind, TaintMode};
+use mago_span::HasSpan;
+use mago_syntax::cst::*;
 
 pub(crate) static CODE: &str = "E0105";
 static DESCRIPTION: &str = "Local file inclusion";
@@ -80,10 +80,7 @@ mod tests {
 
     #[test]
     fn accepts_literal_path() {
-        assert!(analyze_file(
-            "<?php\ninclude __DIR__ . '/config.php';\n"
-        )
-        .is_empty());
+        assert!(analyze_file("<?php\ninclude __DIR__ . '/config.php';\n").is_empty());
     }
 
     #[test]

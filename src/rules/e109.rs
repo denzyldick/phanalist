@@ -1,11 +1,11 @@
-use mago_span::HasSpan;
-use mago_syntax::cst::*;
 use crate::file::File;
 use crate::results::{Message, Violation};
-use crate::rules::Rule as _;
 use crate::rules::ast_support::{call_arguments, walk_statement_expressions};
 use crate::rules::taint_support::{self, Settings};
+use crate::rules::Rule as _;
 use crate::security::{FileTaint, SinkKind, TaintMode};
+use mago_span::HasSpan;
+use mago_syntax::cst::*;
 
 pub(crate) static CODE: &str = "E0109";
 static DESCRIPTION: &str = "Directory listing exposure";
@@ -88,10 +88,7 @@ mod tests {
 
     #[test]
     fn accepts_literal_path() {
-        assert!(analyze_file(
-            "<?php\nopendir('/var/www');\n"
-        )
-        .is_empty());
+        assert!(analyze_file("<?php\nopendir('/var/www');\n").is_empty());
     }
 
     #[test]

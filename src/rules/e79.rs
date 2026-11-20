@@ -100,7 +100,8 @@ mod tests {
 
     #[test]
     fn reports_a_request_receiver() {
-        let violations = analyze_file("<?php\n$obj = $_GET['obj'];\n$obj->{$method}($_GET['arg']);\n");
+        let violations =
+            analyze_file("<?php\n$obj = $_GET['obj'];\n$obj->{$method}($_GET['arg']);\n");
         assert_eq!(violations.len(), 1);
         assert!(violations[0].taint_source.is_some());
     }

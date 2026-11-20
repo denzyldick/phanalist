@@ -1,9 +1,9 @@
-use mago_span::HasSpan;
-use mago_syntax::cst::*;
 use crate::file::File;
 use crate::results::{Message, Violation};
-use crate::rules::Rule as _;
 use crate::rules::ast_support::{call_arguments, function_name, walk_statement_expressions};
+use crate::rules::Rule as _;
+use mago_span::HasSpan;
+use mago_syntax::cst::*;
 
 pub(crate) static CODE: &str = "E0098";
 static DESCRIPTION: &str = "Session ID in URL";
@@ -68,9 +68,14 @@ fn has_session_in_url(expression: &Expression<'_>) -> bool {
     match expression.unparenthesized() {
         Expression::Variable(_) => true,
         Expression::CompositeString(string) => string.parts().iter().any(|part| {
-            matches!(part, StringPart::Expression(_) | StringPart::BracedExpression(_))
+            matches!(
+                part,
+                StringPart::Expression(_) | StringPart::BracedExpression(_)
+            )
         }),
-        Expression::Binary(binary) if matches!(binary.operator, BinaryOperator::StringConcat(_)) => {
+        Expression::Binary(binary)
+            if matches!(binary.operator, BinaryOperator::StringConcat(_)) =>
+        {
             has_session_in_url(binary.lhs) || has_session_in_url(binary.rhs)
         }
         _ => false,

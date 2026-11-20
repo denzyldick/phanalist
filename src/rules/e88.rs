@@ -100,9 +100,8 @@ mod tests {
 
     #[test]
     fn reports_a_request_member_name() {
-        let violations = analyze_file(
-            "<?php\n$method = $_GET['method'];\n$reflection->invoke($method);\n",
-        );
+        let violations =
+            analyze_file("<?php\n$method = $_GET['method'];\n$reflection->invoke($method);\n");
         assert_eq!(violations.len(), 1);
         assert!(violations[0].taint_source.is_some());
     }

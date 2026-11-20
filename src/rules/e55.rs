@@ -93,8 +93,7 @@ impl crate::rules::Rule for Rule {
                 let base_id = format!("E0055:dynamic-include:{kind}");
                 let template = "{kind} uses a path built from runtime data. Use a literal path, a project-root constant, or choose from a fixed list of literal paths.";
 
-                let source_info =
-                    taint.sink_source_info(SinkKind::Include, construct.span(), file);
+                let source_info = taint.sink_source_info(SinkKind::Include, construct.span(), file);
                 let message = match origin {
                     Some(_) => Message::new(base_id, template),
                     None => Message::new(base_id, template).arg("kind", kind),
