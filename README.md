@@ -29,14 +29,32 @@ Install:
 curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/denzyldick/phanalist/main/bin/init.sh | sh
 ```
 
-Scan your project:
+Set up the project interactively:
 
 ```bash
 cd your-php-project
+~/phanalist init
+```
+
+`init` guides you through scan paths, rules and their settings, taint policy,
+output, test generation, a baseline, and a GitHub Actions workflow. For scripts
+and CI, use `init --yes` with flags:
+
+```bash
+~/phanalist init --yes --src src --generate-tests tests/phanalist-generated --ci
+```
+
+The generated workflow uses `denzyldick/phanalist-action@v1` and its supported
+inputs (`src`, `version`, `include_rule_descriptions`, `post_pr_comment`); the
+action uploads SARIF itself.
+
+Then scan your project:
+
+```bash
 ~/phanalist
 ```
 
-On first run a `phanalist.yaml` is created with sensible defaults. Review findings, then integrate into CI:
+On first run without `init`, a `phanalist.yaml` is created with sensible defaults. Review findings, then integrate into CI:
 
 ```yaml
 name: Phanalist
@@ -53,6 +71,11 @@ jobs:
 
 See [Installation](./docs/installation.md) for Composer, Docker, and source-build options.
 
+Config files may also set `paths`, `output_format`, `summary_only`, and
+`baseline_path`. CLI flags override them when supplied: `-s` overrides `paths`,
+`--output-format` overrides `output_format`, `--summary-only` turns on summary
+output, and `--use-baseline` overrides `baseline_path`.
+
 ## Features
 
 - **Fast** — built in Rust, analyzes large codebases in seconds
@@ -62,6 +85,7 @@ See [Installation](./docs/installation.md) for Composer, Docker, and source-buil
 - **Editor integration** — built-in Language Server (`phanalist --lsp`)
 - **Engineer quality report** — attribute violations to authors via `git blame` (`--blame`)
 - **Baseline** — adopt on legacy codebases without fixing everything at once (`--use-baseline`)
+- **Generated regression tests** — turn Z3 counterexamples into PHPUnit tests (`--generate-tests`)
 
 ## Configuration
 
@@ -106,6 +130,82 @@ Findings are tiered by certainty:
 
 Pass `--taint-source-request` (or set `taint_source_all: false` in
 `phanalist.yaml`) to hide leads and keep only request-rooted flows.
+
+## Generated regression tests
+
+For verification rules E0031–E0039, a finding carries the concrete solver
+values that make the failing path reachable. Phanalist can turn those values
+into PHPUnit tests that call the real function or method with the counterexample
+inputs:
+
+```sh
+phanalist --generate-tests tests/phanalist-generated
+```
+
+Generated tests are **red regression tests**: they assert that the call
+completes without a PHP error, so they fail while the reported bug exists and
+pass after it is fixed. A local error handler converts warnings into
+exceptions because PHPUnit 10+ does not fail tests on warnings by default.
+
+Phanalist only generates code; it never executes your PHP or PHPUnit tests and
+does not require `php` to be installed. When a `composer.json` is present it
+adds a `phanalist-tests` script, and when `phpunit.xml` or `phpunit.xml.dist` is
+present it adds a `Phanalist Generated` testsuite. Existing scripts and
+testsuites are left alone. Tests are written after baseline filtering, so
+baselined violations do not produce new files.
+
+To verify the full flow locally, run the optional end-to-end script. It builds
+a throwaway Composer/PSR-4 project, generates tests for E0031–E0039, runs them
+red on buggy code, fixes only the source, and reruns the same files green:
+
+```sh
+cargo build --bin phanalist
+scripts/verify-generated-tests.sh
+```
+
+It requires `php`, `composer`, and a PHPUnit installation. Set `PHPUNIT_PHAR`
+or `PHPUNIT` if `phpunit` is not on `PATH`.
+
+For framework-shaped projects, phanalist also records a best-effort call chain
+in the generated test docblock. It follows direct, resolvable calls between
+declared functions/methods and route attributes such as
+`#[Route('/checkout', methods: ['POST'])]`:
+
+```php
+ * Call chain (inferred): POST /checkout → App\Controller\CheckoutController::submit() → App\Service\DiscountCalculator::discountedTotal()
+```
+
+The chain is explanatory evidence only; it does not change what the analyzer
+concludes. It is printed in the text report, serialized as `call_chain` in JSON,
+as `call_chain` plus a human-readable content body in Code Climate, and in SARIF
+both as
+`properties.phanalist/callChain` and in the result message. Putting it in the
+SARIF message means the existing `denzyldick/phanalist-action@v1` SARIF upload
+(and its PR annotations) can display the same evidence. Unresolved dynamic
+calls are omitted rather than guessed. The generated test source itself remains
+out of all serialized reports. To verify a route → controller → service
+reproducer end to end, run:
+
+```sh
+scripts/verify-framework-reproducer.sh
+```
+
+The same behaviour can be configured in `phanalist.yaml`:
+
+```yaml
+test_generation:
+  output_dir: tests/phanalist-generated
+```
+
+Tests are generated for free functions, static methods, and instance methods.
+Instance methods are generated when the class is directly constructible and its
+constructor arguments are renderable; the test includes `new Class(...)` and
+the required source file. Inputs may be integers, floats, booleans, `null`,
+known strings, bounded-length strings, or arrays with bounded length/tracked
+keys. Unmodeled strings and arrays are rendered as empty placeholders so
+out-of-bounds and missing-key paths stay reachable. Closures, objects,
+resources, abstract classes, inherited constructors, and loop-dependent values
+are skipped rather than rendered as misleading tests.
 
 ---
 

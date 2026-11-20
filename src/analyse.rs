@@ -12,7 +12,8 @@ use jwalk::WalkDir;
 use mago_allocator::prelude::LocalArena;
 use mago_syntax::cst::Statement;
 
-use crate::config::Config;
+use crate::callchain::CallChainIndex;
+use crate::config::{Config, TestGenerationConfig};
 use crate::debug_stats::{FileTimings, RuleTimings};
 use crate::file::File;
 use crate::outputs::codeclimate::CodeClimate;
@@ -27,7 +28,7 @@ use crate::rules::meta::FindingMeta;
 use crate::rules::Rule;
 use crate::rules::{self};
 use crate::security::{FileTaint, SecurityService, SourceFilter};
-use crate::verification::{Finding, FindingClass, Settings, VerificationService};
+use crate::verification::{testgen, Finding, FindingClass, Settings, VerificationService};
 
 struct FileOutcome {
     path: PathBuf,
@@ -48,7 +49,7 @@ fn log_line(bar: Option<&ProgressBar>, msg: String) {
     }
 }
 
-fn scan_worker_count(file_count: usize) -> usize {
+pub(crate) fn scan_worker_count(file_count: usize) -> usize {
     if file_count <= 1 {
         return file_count;
     }
@@ -157,7 +158,9 @@ pub struct Analyse {
     verification: VerificationService,
     resource: ResourceService,
     security: SecurityService,
+    callchain: CallChainIndex,
     source_filter: SourceFilter,
+    test_generation: Option<TestGenerationConfig>,
 }
 
 impl Analyse {
@@ -174,7 +177,9 @@ impl Analyse {
             verification: VerificationService::new(),
             resource: ResourceService::new(),
             security,
+            callchain: CallChainIndex::default(),
             source_filter,
+            test_generation: config.test_generation.clone(),
         }
     }
 
@@ -322,9 +327,10 @@ impl Analyse {
         if self.has_security_rules() {
             self.security.begin_index();
         }
+        self.callchain.reset();
     }
 
-    fn index_rule_file(&self, file: &File<'_>) {
+    pub(crate) fn index_rule_file(&self, file: &File<'_>) {
         for rule in self.rules.values() {
             if rule.verification_class().is_none() {
                 rule.index_file(file);
@@ -332,7 +338,8 @@ impl Analyse {
         }
     }
 
-    fn index_service_file(&self, file: &File<'_>) {
+    pub(crate) fn index_service_file(&self, file: &File<'_>) {
+        self.callchain.index_file(file);
         if self.has_verification_rules() {
             self.verification.index_file(file);
         }
@@ -350,20 +357,41 @@ impl Analyse {
     }
 
     pub(crate) fn finalize_index(&self) {
+        self.finalize_index_with_progress(|_| {});
+    }
+
+    pub(crate) fn finalize_index_with_progress<F: FnMut(&str)>(&self, mut on_step: F) {
+        let rule_count = self
+            .rules
+            .values()
+            .filter(|rule| rule.verification_class().is_none())
+            .count();
+        let mut idx = 0usize;
         for rule in self.rules.values() {
             if rule.verification_class().is_none() {
+                idx += 1;
+                on_step(&format!(
+                    "Finalizing rule index {}/{} ({})...",
+                    idx,
+                    rule_count,
+                    rule.get_code()
+                ));
                 rule.finalize_index();
             }
         }
         if self.has_verification_rules() {
+            on_step("Finalizing verification index...");
             self.verification.finalize_index();
         }
         if self.has_resource_rules() {
+            on_step("Finalizing resource index...");
             self.resource.finalize_index();
         }
         if self.has_security_rules() {
+            on_step("Finalizing security/taint index (cross-file taint graph)... this can take a long time on large projects");
             self.security.finalize_index();
         }
+        on_step("Index finalization complete");
     }
 
     /// Drop cross-file rule state for a file removed by the editor.
@@ -384,17 +412,17 @@ impl Analyse {
         }
     }
 
-    fn has_security_rules(&self) -> bool {
+    pub(crate) fn has_security_rules(&self) -> bool {
         self.rules.values().any(|rule| rule.taint_mode().is_some())
     }
 
-    fn has_verification_rules(&self) -> bool {
+    pub(crate) fn has_verification_rules(&self) -> bool {
         self.rules
             .values()
             .any(|rule| rule.verification_class().is_some())
     }
 
-    fn has_resource_rules(&self) -> bool {
+    pub(crate) fn has_resource_rules(&self) -> bool {
         self.rules
             .values()
             .any(|rule| rule.resource_class().is_some())
@@ -609,54 +637,7 @@ impl Analyse {
             progress_bar.unwrap().finish();
         }
 
-        // --- Interprocedural taint tiering ---
-        // After all files are analyzed, compute which functions are request-rooted
-        // (i.e., their taint originates from $_GET, $_POST, etc. either directly
-        // or transitively through the call graph). A sink inside a request-rooted
-        // function is a proven flow even if the sink itself only saw a parameter,
-        // so promote it to the proven tier. With the request-only filter, findings
-        // outside that set are dropped; the default (all sources) keeps them as
-        // parameter-derived leads.
-        if self.has_security_rules() {
-            let request_rooted = self.security.compute_request_rooted_functions();
-            let request_only = self.source_filter == SourceFilter::Request;
-            results.files.retain(|_, violations| {
-                violations.retain_mut(|v| {
-                    match &mut v.taint_source {
-                        Some(ts) => {
-                            // Keep if request_rooted is true (top-level code or
-                            // request-derived function call), OR if the enclosing
-                            // function is in the request-rooted set.
-                            let reachable = ts.request_rooted
-                                || ts
-                                    .enclosing_function
-                                    .as_ref()
-                                    .map(|f| request_rooted.contains(&f.to_ascii_lowercase()))
-                                    .unwrap_or(false);
-                            if reachable && !ts.request_rooted {
-                                // Cross-file propagation: the sink itself only
-                                // saw a parameter, but a caller supplied request
-                                // data. Promote the finding to the proven tier.
-                                ts.request_rooted = true;
-                                ts.source_kind = Some(String::from("request"));
-                                let fingerprint = v.meta.fingerprint.clone();
-                                v.meta = FindingMeta::from_rule(&v.rule, fingerprint)
-                                    .with_proven_taint();
-                            }
-                            !request_only || reachable
-                        }
-                        None => true, // Non-taint rules (E0000-E0052) always pass
-                    }
-                });
-                !violations.is_empty()
-            });
-
-            // Request-only mode dropped leads after their per-rule counts were
-            // accumulated; refresh the summary counts to match what is left.
-            if request_only {
-                results.recount_codes();
-            }
-        }
+        self.apply_taint_tiering(&mut results);
 
         results.total_files_count = files;
         results.duration = Some(now.elapsed());
@@ -757,6 +738,55 @@ impl Analyse {
         effective
     }
 
+    /// Apply interprocedural taint tiering and request-only filtering to results.
+    ///
+    /// This mirrors the post-processing performed at the end of `scan_prepared`
+    /// and is exposed for alternative/progress-aware scan drivers.
+    pub(crate) fn apply_taint_tiering(&self, results: &mut Results) {
+        if !self.has_security_rules() {
+            return;
+        }
+
+        let request_rooted = self.security.compute_request_rooted_functions();
+        let request_only = self.source_filter == SourceFilter::Request;
+        results.files.retain(|_, violations| {
+            violations.retain_mut(|v| {
+                match &mut v.taint_source {
+                    Some(ts) => {
+                        // Keep if request_rooted is true (top-level code or
+                        // request-derived function call), OR if the enclosing
+                        // function is in the request-rooted set.
+                        let reachable = ts.request_rooted
+                            || ts
+                                .enclosing_function
+                                .as_ref()
+                                .map(|f| request_rooted.contains(&f.to_ascii_lowercase()))
+                                .unwrap_or(false);
+                        if reachable && !ts.request_rooted {
+                            // Cross-file propagation: the sink itself only
+                            // saw a parameter, but a caller supplied request
+                            // data. Promote the finding to the proven tier.
+                            ts.request_rooted = true;
+                            ts.source_kind = Some(String::from("request"));
+                            let fingerprint = v.meta.fingerprint.clone();
+                            v.meta =
+                                FindingMeta::from_rule(&v.rule, fingerprint).with_proven_taint();
+                        }
+                        !request_only || reachable
+                    }
+                    None => true, // Non-taint rules (E0000-E0052) always pass
+                }
+            });
+            !violations.is_empty()
+        });
+
+        // Request-only mode dropped leads after their per-rule counts were
+        // accumulated; refresh the summary counts to match what is left.
+        if request_only {
+            results.recount_codes();
+        }
+    }
+
     pub(crate) fn analyse_file(
         &self,
         file: &mut File<'_>,
@@ -832,11 +862,9 @@ impl Analyse {
             for (settings, classes) in verification_groups {
                 let rule_start = timings.as_ref().map(|_| Instant::now());
                 let findings = self.verification.analyze(file, &settings, &classes);
-                violations.extend(
-                    findings
-                        .into_iter()
-                        .map(|finding| Self::violation_from_finding(file, finding)),
-                );
+                violations.extend(findings.into_iter().map(|finding| {
+                    self.violation_from_finding(file, finding, self.test_generation.as_ref())
+                }));
 
                 if let Some(t) = timings.as_mut() {
                     let elapsed = rule_start.unwrap().elapsed();
@@ -880,8 +908,38 @@ impl Analyse {
         (violations, timings)
     }
 
-    fn violation_from_finding(file: &File<'_>, finding: Finding) -> Violation {
-        Self::violation_from_parts(file, finding.class.code(), finding.span, finding.message)
+    fn violation_from_finding(
+        &self,
+        file: &File<'_>,
+        mut finding: Finding,
+        test_generation: Option<&TestGenerationConfig>,
+    ) -> Violation {
+        let mut call_chain = Vec::new();
+        if let Some(witness) = finding.witness.as_mut() {
+            if witness.call_chain.is_empty() {
+                if let Some(callable) = &witness.callable {
+                    let source = witness.source.to_string_lossy();
+                    let target = format!("{}() at {}:{}", callable.name, source, witness.line);
+                    witness.call_chain = self.callchain.chain_for(&callable.name, &target);
+                }
+            }
+            call_chain = witness.call_chain.clone();
+        }
+        if call_chain.is_empty() {
+            call_chain = self
+                .callchain
+                .chain_for_location(&file.path, file.line_number(finding.span.start.offset));
+        }
+        let generated_test = test_generation.and_then(|config| {
+            finding.witness.as_ref().and_then(|witness| {
+                testgen::generate_test(witness, Some(Path::new(&config.output_dir)))
+            })
+        });
+        let mut violation =
+            Self::violation_from_parts(file, finding.class.code(), finding.span, finding.message);
+        violation.call_chain = call_chain;
+        violation.generated_test = generated_test;
+        violation
     }
 
     fn violation_from_resource_finding(file: &File<'_>, finding: ResourceFinding) -> Violation {
@@ -913,7 +971,9 @@ impl Analyse {
             end_line,
             end_column,
             taint_source: None,
+            call_chain: Vec::new(),
             meta: Default::default(),
+            generated_test: None,
         }
     }
 

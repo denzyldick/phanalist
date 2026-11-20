@@ -97,8 +97,7 @@ mod tests {
 
     #[test]
     fn reports_a_request_log_message() {
-        let violations =
-            analyze_file("<?php\n$msg = $_GET['msg'];\nerror_log('User: ' . $msg);\n");
+        let violations = analyze_file("<?php\n$msg = $_GET['msg'];\nerror_log('User: ' . $msg);\n");
         assert_eq!(violations.len(), 1);
         assert!(violations[0].taint_source.is_some());
     }

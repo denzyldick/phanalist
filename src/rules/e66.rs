@@ -69,7 +69,10 @@ impl crate::rules::Rule for Rule {
 }
 
 fn is_header_function(name: &str) -> bool {
-    matches!(name, "header" | "header_remove" | "setcookie" | "setrawcookie")
+    matches!(
+        name,
+        "header" | "header_remove" | "setcookie" | "setrawcookie"
+    )
 }
 
 #[cfg(test)]

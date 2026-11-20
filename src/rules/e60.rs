@@ -77,13 +77,8 @@ impl crate::rules::Rule for Rule {
                 let legacy = arguments
                     .iter()
                     .any(|argument| taint_support::looks_dynamic(argument));
-                if !taint_support::should_report(
-                    &self.settings,
-                    taint,
-                    SinkKind::Sql,
-                    span,
-                    legacy,
-                ) {
+                if !taint_support::should_report(&self.settings, taint, SinkKind::Sql, span, legacy)
+                {
                     return;
                 }
 
@@ -149,8 +144,10 @@ mod tests {
 
     #[test]
     fn accepts_a_query_built_from_a_local_literal() {
-        assert!(analyze_file("<?php\n$sql = \"SELECT * FROM users\";\nmysqli_query($db, $sql);\n")
-            .is_empty());
+        assert!(
+            analyze_file("<?php\n$sql = \"SELECT * FROM users\";\nmysqli_query($db, $sql);\n")
+                .is_empty()
+        );
     }
 
     #[test]
