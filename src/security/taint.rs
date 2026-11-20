@@ -696,11 +696,16 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
         };
         let name = variable_name(variable.name);
         if name == "_SERVER" {
-            let key = literal_string(access.index)?;
+            let Some(key) = literal_string(access.index) else {
+                // A dynamic key may reach a request field; stay conservative.
+                return Some(single_origin(String::from("$_SERVER")));
+            };
             if is_request_server_key(&key) {
                 return Some(single_origin(format!("$_SERVER[{key}]")));
             }
-            return None;
+            // Literal server-configuration keys are not request data. Returning
+            // an empty origin set also stops the bare `$_SERVER` fallback.
+            return Some(Origins::new());
         }
         if !is_superglobal(&name) {
             return None;
@@ -719,7 +724,7 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
         match expression.unparenthesized() {
             Expression::Variable(Variable::Direct(variable)) => {
                 let name = variable_name(variable.name);
-                if is_superglobal(&name) {
+                if is_superglobal(&name) || name == "_SERVER" {
                     Some(single_origin(format!("${name}")))
                 } else {
                     None
@@ -1220,7 +1225,7 @@ impl<'summaries, 'arena> Analyzer<'summaries, 'arena> {
     ) -> Option<Origins> {
         match name {
             "getallheaders" | "apache_request_headers" => Some(single_origin(format!("{name}()"))),
-            "filter_input" => Some(single_origin(String::from("filter_input()"))),
+            "filter_input" | "filter_input_array" => Some(single_origin(format!("{name}()"))),
             "file_get_contents"
                 if arguments
                     .first()
@@ -1642,6 +1647,7 @@ fn is_request_origin(origin: &str) -> bool {
         || o.starts_with("$_SERVER")
         // Request helper functions
         || o == "filter_input()"
+        || o == "filter_input_array()"
         || o == "getallheaders()"
         || o == "apache_request_headers()"
         || o == "php://input"
@@ -1966,4 +1972,82 @@ fn parameter_names(parameters: &FunctionLikeParameterList<'_>) -> Vec<String> {
         .iter()
         .map(|parameter| String::from_utf8_lossy(parameter.variable.name).to_string())
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::file::File;
+    use mago_allocator::prelude::LocalArena;
+    use std::collections::HashMap;
+    use std::path::PathBuf;
+
+    fn analyze_single(source: &str) -> FileTaint {
+        let arena = LocalArena::new();
+        let file = File::new(&arena, PathBuf::from("s.php"), source.to_string());
+        let (taint, _, _) = analyze_file(&file, &HashMap::new(), SourceFilter::All);
+        taint
+    }
+
+    fn eval_sink(taint: &FileTaint) -> Option<&TaintSink> {
+        taint.sinks.iter().find(|sink| sink.kind == SinkKind::Eval)
+    }
+
+    #[test]
+    fn treats_filter_input_array_as_a_request_source() {
+        let taint = analyze_single("<?php eval(filter_input_array(INPUT_GET));");
+        let sink = eval_sink(&taint).expect("expected an eval sink");
+
+        assert!(
+            sink.origins.contains("filter_input_array()"),
+            "got {:?}",
+            sink.origins
+        );
+        assert!(
+            sink.request_rooted,
+            "filter_input_array() must count as request-controlled"
+        );
+    }
+
+    #[test]
+    fn treats_bare_server_superglobal_as_a_request_source() {
+        let taint = analyze_single("<?php eval(implode($_SERVER));");
+        let sink = eval_sink(&taint).expect("expected an eval sink");
+
+        assert!(sink.origins.contains("$_SERVER"), "got {:?}", sink.origins);
+        assert!(sink.request_rooted);
+    }
+
+    #[test]
+    fn keeps_dynamic_server_keys_tainted() {
+        let taint = analyze_single("<?php eval($_SERVER[$key]);");
+        let sink = eval_sink(&taint).expect("expected an eval sink");
+
+        assert!(sink.origins.contains("$_SERVER"), "got {:?}", sink.origins);
+        assert!(sink.request_rooted);
+    }
+
+    #[test]
+    fn ignores_non_request_literal_server_keys() {
+        let taint = analyze_single("<?php eval(base64_decode($_SERVER['SCRIPT_FILENAME']));");
+
+        assert!(
+            eval_sink(&taint).is_none(),
+            "server configuration is not request data: {:?}",
+            taint.sinks
+        );
+    }
+
+    #[test]
+    fn keeps_request_literal_server_keys_tainted() {
+        let taint = analyze_single("<?php eval($_SERVER['HTTP_X_TEST']);");
+        let sink = eval_sink(&taint).expect("expected an eval sink");
+
+        assert!(
+            sink.origins.contains("$_SERVER[HTTP_X_TEST]"),
+            "got {:?}",
+            sink.origins
+        );
+        assert!(sink.request_rooted);
+    }
 }
