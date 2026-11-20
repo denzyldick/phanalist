@@ -1,0 +1,2610 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Phanalist — Static PHP Analyzer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@codemirror/view@6.20.1/dist/codemirror-view.css"
+    />
+    <script type="importmap">
+      {
+        "imports": {
+          "@codemirror/view": "https://cdn.jsdelivr.net/npm/@codemirror/view@6.20.1/dist/index.js",
+          "@codemirror/state": "https://cdn.jsdelivr.net/npm/@codemirror/state@6.20.4/dist/index.js",
+          "@codemirror/lang-php": "https://cdn.jsdelivr.net/npm/@codemirror/lang-php@6.20.4/dist/index.js"
+        }
+      }
+    </script>
+    <style>
+      .cm-editor {
+        height: 320px;
+        background: #0d0d15;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 13px;
+      }
+      .cm-editor.cm-focused {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.2);
+      }
+      .cm-gutters {
+        background: #0d0d15;
+        border-right: 1px solid var(--border);
+      }
+      .cm-lineNumbers .cm-gutterElement {
+        color: var(--muted);
+        padding: 0 8px;
+      }
+      .cm-content {
+        caret-color: var(--accent);
+        color: var(--fg);
+        padding: 14px;
+      }
+      .cm-cursor {
+        border-left-color: var(--accent);
+      }
+      .cm-selectionBackground {
+        background: rgba(0, 212, 170, 0.2);
+      }
+    </style>
+    <style>
+      :root {
+        --bg: #0a0a0f;
+        --bg-subtle: #12121a;
+        --fg: #e8e8f0;
+        --muted: #6b6b80;
+        --accent: #00d4aa;
+        --accent2: #0066ff;
+        --card: #161620;
+        --border: #2a2a3a;
+        --error: #ff5f57;
+        --warning: #ffa502;
+        --info: #48dbfb;
+        --radius: 12px;
+        --max: 1100px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        font-family:
+          'Outfit',
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          sans-serif;
+        background: var(--bg);
+        color: var(--fg);
+        margin: 0;
+        min-height: 100vh;
+        line-height: 1.55;
+        cursor: none;
+      }
+      body:not(.touch-device) .cursor-dot,
+      body:not(.touch-device) .cursor-ring {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 8px;
+        height: 8px;
+        background: var(--accent);
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 9999;
+        transform: translate(-50%, -50%);
+        animation: cursorPulse 2s infinite;
+      }
+      body:not(.touch-device) .cursor-ring {
+        width: 30px;
+        height: 30px;
+        border: 1px solid var(--accent2);
+        background: transparent;
+        animation: cursorRing 3s infinite alternate;
+        mix-blend-mode: difference;
+      }
+      @keyframes cursorPulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.6;
+        }
+      }
+      @keyframes cursorRing {
+        0% {
+          transform: translate(-50%, -50%) scale(1);
+        }
+        100% {
+          transform: translate(-50%, -50%) scale(1.4);
+        }
+      }
+      .bg-pattern {
+        position: fixed;
+        inset: 0;
+        background-image:
+          linear-gradient(var(--border) 1px, transparent 1px),
+          linear-gradient(90deg, var(--border) 1px, transparent 1px);
+        background-size: 60px 60px;
+        opacity: 0.15;
+        pointer-events: none;
+        z-index: 0;
+      }
+      .scan-line {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--accent), transparent);
+        opacity: 0.5;
+        animation: scan 10s linear infinite;
+        z-index: 1;
+        pointer-events: none;
+      }
+      @keyframes scan {
+        0% {
+          top: -1px;
+        }
+        100% {
+          top: 100%;
+        }
+      }
+      .skip {
+        position: absolute;
+        left: -9999px;
+        top: -9999px;
+        z-index: 300;
+        background: var(--ink);
+        color: var(--on-ink);
+        padding: 12px 18px;
+        border-radius: 10px;
+        font-weight: 700;
+      }
+      .skip:focus-visible {
+        left: 14px;
+        top: 14px;
+      }
+      header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 50;
+        background: color-mix(in srgb, var(--bg-subtle) 90%, transparent);
+        backdrop-filter: blur(14px);
+        border-bottom: 1px solid var(--border);
+      }
+      header .container {
+        max-width: var(--max);
+        margin: 0 auto;
+        padding: 0 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 64px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 800;
+        font-size: 1.25rem;
+        letter-spacing: 0.3px;
+        color: var(--fg);
+        text-decoration: none;
+      }
+      .brand span {
+        color: var(--accent);
+      }
+      nav {
+        display: none;
+        align-items: center;
+        gap: 26px;
+      }
+      @media (min-width: 820px) {
+        nav {
+          display: flex;
+        }
+      }
+      nav a {
+        font-size: 14.5px;
+        font-weight: 600;
+        color: var(--muted);
+        text-decoration: none;
+      }
+      nav a:hover {
+        color: var(--accent);
+      }
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-family: var(--font, 'Outfit', sans-serif);
+        font-size: 14px;
+        font-weight: 700;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .btn-primary {
+        background: linear-gradient(135deg, var(--accent), var(--accent2));
+        color: var(--bg);
+      }
+      .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 30px rgba(0, 212, 170, 0.4);
+      }
+      .btn-secondary {
+        background: var(--bg-subtle);
+        color: var(--fg);
+        border: 1px solid var(--border);
+      }
+      .btn-secondary:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .menu-btn {
+        display: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg-subtle);
+        color: var(--fg);
+        cursor: pointer;
+      }
+      @media (max-width: 820px) {
+        .menu-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+      }
+      section {
+        padding: 100px 24px;
+        position: relative;
+        z-index: 2;
+      }
+      .container {
+        max-width: var(--max);
+        margin: 0 auto;
+      }
+      .hero {
+        text-align: center;
+        padding: 140px 24px 80px;
+      }
+      .hero-eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-size: 12.5px;
+        font-weight: 800;
+        color: var(--accent);
+        margin: 0 0 16px;
+      }
+      .hero h1 {
+        font-size: clamp(2.6rem, 7vw, 5rem);
+        font-weight: 900;
+        line-height: 1.02;
+        letter-spacing: -0.02em;
+        margin: 0 0 22px;
+      }
+      .hero h1 .grad {
+        background: linear-gradient(135deg, var(--accent), var(--accent2));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .hero p.sub {
+        font-size: clamp(1.1rem, 2vw, 1.35rem);
+        color: var(--muted);
+        max-width: 640px;
+        margin: 0 auto 36px;
+      }
+      .hero-cta {
+        display: flex;
+        gap: 14px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-bottom: 56px;
+      }
+      .hero-stats {
+        display: flex;
+        justify-content: center;
+        gap: 24px;
+        flex-wrap: wrap;
+        opacity: 0.6;
+      }
+      .hero-stat b {
+        display: block;
+        font-size: 1.5rem;
+        color: var(--accent);
+        font-weight: 800;
+      }
+      .hero-stat span {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .trust-bar {
+        background: var(--bg-subtle);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 20px 24px;
+        margin-bottom: 40px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        justify-content: center;
+        align-items: center;
+      }
+      .trust-item {
+        font-size: 13px;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+      }
+      .trust-item .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 10px var(--accent);
+      }
+      .section-header {
+        text-align: center;
+        max-width: 620px;
+        margin: 0 auto 56px;
+      }
+      .section-header .eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        font-size: 12.5px;
+        font-weight: 800;
+        color: var(--accent);
+        margin: 0 0 16px;
+      }
+      .section-header h2 {
+        font-size: clamp(2rem, 4.5vw, 3rem);
+        font-weight: 800;
+        line-height: 1.1;
+        margin: 0 0 18px;
+        letter-spacing: -0.02em;
+      }
+      .section-header p {
+        color: var(--muted);
+        font-size: 1.1rem;
+        margin: 0;
+      }
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 18px;
+      }
+      .feature-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 24px 26px;
+        transition: all 0.2s;
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+      }
+      .feature-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 24px 50px rgba(0, 0, 0, 0.25);
+        border-color: var(--accent);
+      }
+      .feature-icon {
+        width: 44px;
+        height: 44px;
+        flex: none;
+        border-radius: 10px;
+        background: var(--bg-subtle);
+        border: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--accent);
+      }
+      .feature-icon svg {
+        width: 20px;
+        height: 20px;
+      }
+      .feature-text h3 {
+        margin: 0 0 8px;
+        font-size: 1.1rem;
+        font-weight: 750;
+      }
+      .feature-text p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.55;
+      }
+      .rules-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 16px;
+        margin-top: 32px;
+      }
+      .rule-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .rule-card:hover {
+        border-color: var(--accent);
+        transform: translateY(-2px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+      }
+      .rule-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+      }
+      .rule-code {
+        font-family: ui-monospace, monospace;
+        font-weight: 800;
+        font-size: 14px;
+        color: var(--accent);
+      }
+      .rule-sev {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        padding: 2px 6px;
+        border-radius: 4px;
+        background: var(--bg-subtle);
+        border: 1px solid var(--border);
+      }
+      .rule-card h4 {
+        margin: 0 0 6px;
+        font-size: 1rem;
+        font-weight: 700;
+      }
+      .rule-card p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .rule-card small {
+        margin-top: 8px;
+        font-size: 11.5px;
+        color: var(--muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .playground {
+        background: var(--bg-subtle);
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        padding: 60px 24px;
+      }
+      .playground-layout {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+      @media (min-width: 900px) {
+        .playground-layout {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      .play-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 24px;
+      }
+      .play-header {
+        margin-bottom: 16px;
+      }
+      .play-header h3 {
+        margin: 0 0 8px;
+        font-size: 1.25rem;
+        font-weight: 800;
+      }
+      .play-header p {
+        color: var(--muted);
+        font-size: 14px;
+        margin: 0;
+      }
+      .toolbar {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+      .select-field {
+        background: var(--bg-subtle);
+        color: var(--fg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-family: 'Outfit', sans-serif;
+        cursor: pointer;
+        appearance: none;
+        font-size: 14px;
+        min-width: 170px;
+      }
+      .select-field:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.2);
+      }
+      textarea.code-input {
+        width: 100%;
+        height: 320px;
+        background: #0d0d15;
+        color: var(--fg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 14px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 13px;
+        resize: vertical;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+      textarea.code-input:focus {
+        border-color: var(--accent);
+      }
+      .btn-analyze {
+        background: linear-gradient(135deg, var(--accent), var(--accent2));
+        color: var(--bg);
+        font-weight: 800;
+        padding: 12px 24px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      .btn-analyze:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 30px rgba(0, 212, 170, 0.4);
+      }
+      .btn-analyze:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .results-area {
+        margin-top: 16px;
+        border-top: 1px solid var(--border);
+        padding-top: 16px;
+      }
+      .results-empty {
+        color: var(--muted);
+        text-align: center;
+        padding: 40px 20px;
+      }
+      .result-item {
+        padding: 12px 16px;
+        margin: 8px 0;
+        background: var(--bg-subtle);
+        border-radius: 8px;
+        border-left: 3px solid;
+        animation: slideIn 0.35s ease forwards;
+      }
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(12px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+      .result-item.error {
+        border-left-color: var(--error);
+      }
+      .result-item.warning {
+        border-left-color: var(--warning);
+      }
+      .result-item.info {
+        border-left-color: var(--info);
+      }
+      .result-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 6px;
+      }
+      .result-rule {
+        font-family: ui-monospace, monospace;
+        font-weight: 800;
+        font-size: 12px;
+        color: var(--accent);
+      }
+      .result-sev {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        padding: 1px 6px;
+        border-radius: 4px;
+      }
+      .result-sev.error {
+        color: var(--error);
+        border: 1px solid var(--error);
+      }
+      .result-sev.warning {
+        color: var(--warning);
+        border: 1px solid var(--warning);
+      }
+      .result-sev.info {
+        color: var(--info);
+        border: 1px solid var(--info);
+      }
+      .result-msg {
+        font-size: 13.5px;
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+      .result-snippet {
+        font-family: ui-monospace, monospace;
+        font-size: 11.5px;
+        color: var(--muted);
+        background: #0d0d15;
+        padding: 6px 10px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+      }
+      .result-count {
+        font-size: 13px;
+        color: var(--muted);
+        font-weight: 600;
+        margin-bottom: 12px;
+      }
+      .cta-band {
+        background: linear-gradient(135deg, var(--accent), var(--accent2));
+        color: var(--bg);
+        text-align: center;
+        border-radius: var(--radius);
+        padding: 56px 24px;
+        margin-top: 40px;
+      }
+      .cta-band h2 {
+        font-size: clamp(2rem, 5vw, 2.8rem);
+        font-weight: 900;
+        margin: 0 0 16px;
+        letter-spacing: -0.02em;
+      }
+      .cta-band p {
+        color: rgba(0, 0, 0, 0.6);
+        font-size: 1.15rem;
+        margin: 0 0 28px;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .install-code {
+        background: #0d0d15;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 14px 16px;
+        font-family: ui-monospace, monospace;
+        font-size: 12.5px;
+        color: var(--accent);
+        overflow-x: auto;
+        margin-bottom: 24px;
+        max-width: 640px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .cta-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      footer {
+        border-top: 1px solid var(--border);
+        padding: 40px 24px;
+      }
+      footer .container {
+        max-width: var(--max);
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+      @media (min-width: 820px) {
+        footer .container {
+          flex-direction: row;
+          justify-content: space-between;
+          align-items: center;
+        }
+      }
+      .footer-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 800;
+        font-size: 1.25rem;
+        text-decoration: none;
+        color: var(--fg);
+      }
+      .footer-brand span {
+        color: var(--accent);
+      }
+      .footer-links {
+        display: flex;
+        gap: 24px;
+        flex-wrap: wrap;
+      }
+      .footer-links a {
+        color: var(--muted);
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 500;
+      }
+      .footer-links a:hover {
+        color: var(--accent);
+      }
+      .footer-copy {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 8px;
+      }
+      @media (max-width: 640px) {
+        section {
+          padding: 60px 16px;
+        }
+        .hero {
+          padding: 100px 16px 60px;
+        }
+        .hero-cta {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .hero-cta .btn {
+          width: 100%;
+          justify-content: center;
+        }
+        .toolbar {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .select-field {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="cursor-dot"></div>
+    <div class="cursor-ring"></div>
+    <a href="#main" class="skip">Skip to content</a>
+    <header>
+      <div class="container">
+        <a href="#" class="brand">Phanalist<span>.</span></a>
+        <nav id="nav">
+          <a href="#features">Features</a>
+          <a href="#rules">Rules</a>
+          <a href="#playground">Playground</a>
+          <a href="#install">Install</a>
+          <a href="https://github.com/denzyldick/phanalist" target="_blank" rel="noopener"
+            >GitHub</a
+          >
+        </nav>
+        <div class="header-actions">
+          <button class="menu-btn" id="menuBtn" aria-label="Open menu">☰</button>
+          <a href="#playground" class="btn btn-primary">Try Playground</a>
+        </div>
+      </div>
+    </header>
+    <main id="main">
+      <section class="hero">
+        <div class="container">
+          <p class="hero-eyebrow">Static PHP Analyzer</p>
+          <h1>
+            Find bugs before they ship.<br /><span class="grad">Analyze PHP code</span> with zero
+            config.
+          </h1>
+          <p class="sub">
+            Phanalist is a fast static analyzer for PHP that catches maintainability issues and
+            runtime risks — built in Rust, runs in seconds, works out of the box.
+          </p>
+          <div class="hero-cta">
+            <a href="#install" class="btn btn-primary">Install Phanalist</a>
+            <a href="#playground" class="btn btn-secondary">Try the Playground</a>
+          </div>
+          <div class="hero-stats">
+            <div class="hero-stat"><b>136+</b><span>built-in rules</span></div>
+            <div class="hero-stat"><b>Zero</b><span>configuration</span></div>
+            <div class="hero-stat"><b>Rust</b><span>powered</span></div>
+          </div>
+        </div>
+      </section>
+      <div class="container">
+        <div class="trust-bar">
+          <div class="trust-item"><span class="dot"></span>136+ Rules</div>
+          <div class="trust-item"><span class="dot"></span>Zero Config</div>
+          <div class="trust-item"><span class="dot"></span>Rust Powered</div>
+          <div class="trust-item"><span class="dot"></span>MIT Licensed</div>
+        </div>
+      </div>
+      <section id="features">
+        <div class="container">
+          <div class="section-header">
+            <p class="eyebrow">What it catches</p>
+            <h2>Everything your PHP code deserves</h2>
+            <p>
+              From method chaining violations to SQL injection, Phanalist finds it automatically.
+            </p>
+          </div>
+          <div class="features-grid">
+            <div class="feature-card">
+              <div class="feature-icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M9 9.5a2.5 2.5 0 1 1 5 0v2.5" />
+                </svg>
+              </div>
+              <div class="feature-text">
+                <h3>Code Health</h3>
+                <p>God classes, Law of Demeter, coupling, cohesion, method complexity, naming.</p>
+              </div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 2v20M2 12h20" />
+                </svg>
+              </div>
+              <div class="feature-text">
+                <h3>Runtime Safety</h3>
+                <p>Division by zero, null dereferences, array bounds, unreachable code.</p>
+              </div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M12 2L2 7l10 5 10-5L12 2zM4 12l8 6 8-6" />
+                </svg>
+              </div>
+              <div class="feature-text">
+                <h3>Security</h3>
+                <p>SQL injection, XSS, command injection, unsafe unserialize, weak crypto.</p>
+              </div>
+            </div>
+            <div class="feature-card">
+              <div class="feature-icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 2v20M2 12h20" />
+                </svg>
+              </div>
+              <div class="feature-text">
+                <h3>Resource Analysis</h3>
+                <p>Input-dependent runtime growth, unbounded recursion, live-heap growth.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section id="rules">
+        <div class="container">
+          <div class="section-header">
+            <p class="eyebrow">Rules Explorer</p>
+            <h2>Understand the rules</h2>
+            <p>Click any rule to try it with example code in the playground below.</p>
+          </div>
+          <div id="rulesContainer"></div>
+        </div>
+      </section>
+      <section id="playground" class="playground">
+        <div class="container">
+          <div class="section-header">
+            <p class="eyebrow">Try it now</p>
+            <h2>Analyze PHP instantly</h2>
+            <p>Paste PHP code, pick a rule, and see findings immediately — no install required.</p>
+          </div>
+          <div class="playground-layout">
+            <div class="play-card">
+              <div class="play-header">
+                <h3>PHP Code Editor</h3>
+                <p>Write or paste PHP code to analyze.</p>
+              </div>
+              <div class="toolbar">
+                <select id="ruleSelect" class="select-field">
+                  <option value="">Select a rule...</option>
+                </select>
+                <button id="btnAnalyze" class="btn btn-analyze">Analyze</button>
+              </div>
+              <div id="codeEditor" class="cm-editor">
+                &lt;?php // Your PHP code here $a->foo->bar(); ?&gt;
+              </div>
+              <div style="margin-top: 10px; display: flex; gap: 8px">
+                <button id="btnExample" class="btn btn-secondary" style="flex: 1">
+                  Show Bad Example
+                </button>
+                <button id="btnCopy" class="btn btn-secondary" style="flex: 1">Copy</button>
+              </div>
+            </div>
+            <div class="play-card">
+              <div class="play-header">
+                <h3>Results</h3>
+                <p>Findings appear here after you press Analyze.</p>
+              </div>
+              <div class="results-area" id="resultsArea">
+                <div class="result-count" id="resultCount">0 findings</div>
+                <div id="resultsList"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section id="install" class="cta-band">
+        <div class="container">
+          <h2>Ready to clean up your PHP?</h2>
+          <p>
+            Install Phanalist in seconds and start finding issues locally — zero configuration
+            required.
+          </p>
+          <div class="install-code">
+            curl --proto '=https' --tlsv1.2 -sSf
+            https://raw.githubusercontent.com/denzyldick/phanalist/main/bin/init.sh | sh
+          </div>
+          <div class="cta-actions">
+            <a
+              href="https://github.com/denzyldick/phanalist"
+              target="_blank"
+              rel="noopener"
+              class="btn btn-primary"
+              >View on GitHub</a
+            >
+            <a
+              href="https://github.com/denzyldick/phanalist/releases"
+              target="_blank"
+              rel="noopener"
+              class="btn btn-secondary"
+              >Download</a
+            >
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <div class="container">
+        <a href="#" class="footer-brand">Phanalist<span>.</span></a>
+        <div class="footer-links">
+          <a href="https://github.com/denzyldick/phanalist" target="_blank" rel="noopener"
+            >GitHub</a
+          >
+          <a href="https://x.com/denzyldick" target="_blank" rel="noopener">Twitter</a>
+          <a href="#features">Features</a>
+          <a href="#rules">Rules</a>
+        </div>
+        <div class="footer-copy">2024 Phanalist. MIT Licensed.</div>
+      </div>
+    </footer>
+    <script type="module">
+      // ===== CodeMirror =====
+      const cmView = await import('@codemirror/view');
+      const cmState = await import('@codemirror/state');
+      const cmLangPhp = await import('@codemirror/lang-php');
+
+      let editor;
+      try {
+        const extensions = [];
+        if (cmView.basicSetup) extensions.push(cmView.basicSetup);
+        if (cmLangPhp.php) extensions.push(cmLangPhp.php());
+
+        editor = new cmView.EditorView({
+          state: cmState.EditorState.create({
+            doc: '<?php\n// Your PHP code here\n$a->foo->bar(); ?>',
+            extensions: extensions,
+            parent: document.getElementById('codeEditor'),
+          }),
+        });
+      } catch (e) {
+        console.error('CodeMirror init error:', e);
+        const el = document.getElementById('codeEditor');
+        if (el) {
+          el.innerHTML =
+            '<textarea style="width:100%;height:320px;background:#0d0d15;color:#e8e8f0;border:1px solid #2a2a3a;font-family:monospace;font-size:13px;padding:14px;resize:vertical;"><?php\n// Your PHP code here\n$a->foo->bar(); ?></textarea>';
+        }
+      }
+      function getEditorCode() {
+        try {
+          if (editor && editor.state) return editor.state.doc.toString();
+        } catch (e) {}
+        const el = document.getElementById('codeEditor');
+        if (el) {
+          const ta = el.querySelector('textarea');
+          if (ta) return ta.value;
+          return el.textContent || el.innerText || '';
+        }
+        return '';
+      }
+      function setEditorCode(code) {
+        try {
+          if (editor && editor.dispatch && editor.state) {
+            editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: code } });
+            return;
+          }
+        } catch (e) {}
+        // Fallback
+        const el = document.getElementById('codeEditor');
+        if (el) {
+          const ta = el.querySelector('textarea');
+          if (ta) {
+            ta.value = code;
+            return;
+          }
+          el.textContent = code;
+        }
+      }
+
+      // ===== WASM loading =====
+      let analyze = null;
+      let wasmLoaded = false;
+      async function loadWasm() {
+        try {
+          const mod = await import('/wasm/phanalist-wasm.js');
+          analyze = mod.analyze || mod.default?.analyze;
+          wasmLoaded = true;
+        } catch (e) {
+          console.error('WASM load failed:', e);
+        }
+      }
+      loadWasm();
+      const RULES = [
+        // Code Health — E0000–E0030
+        {
+          code: 'E0000',
+          name: 'Example Rule',
+          category: 'Code Health',
+          severity: 'info',
+          desc: 'Template rule for adding new rules.',
+          example: '<?php // example rule does nothing ?>',
+        },
+        {
+          code: 'E0001',
+          name: 'Opening Tag Position',
+          category: 'Code Health',
+          severity: 'info',
+          desc: 'PHP opening tag must be at the start of the file.',
+          example: '<?php echo "no space before tag"; ?>',
+        },
+        {
+          code: 'E0002',
+          name: 'Empty Catch Block',
+          category: 'Code Health',
+          severity: 'warning',
+          desc: 'Catch block should not be empty.',
+          example: '<?php try { } catch (Exception $e) { } ?>',
+        },
+        {
+          code: 'E0003',
+          name: 'Method Modifiers',
+          category: 'Code Health',
+          severity: 'info',
+          desc: 'Methods should have visibility modifiers.',
+          example: '<?php class Foo { function bar() {} } ?>',
+        },
+        {
+          code: 'E0004',
+          name: 'Uppercase Constants',
+          category: 'Code Health',
+          severity: 'info',
+          desc: 'Constants should be uppercase.',
+          example: '<?php define("my_const", 1); ?>',
+        },
+        {
+          code: 'E0005',
+          name: 'Capitalized Class Name',
+          category: 'Code Health',
+          severity: 'info',
+          desc: 'Class names should be capitalized.',
+          example: '<?php class myClass {} ?>',
+        },
+        {
+          code: 'E0006',
+          name: 'Property Modifiers',
+          category: 'Code Health',
+          severity: 'info',
+          desc: 'Properties should have visibility modifiers.',
+          example: '<?php class Foo { public $bar; } ?>',
+        },
+        {
+          code: 'E0007',
+          name: 'Method Parameters Count',
+          category: 'Code Health',
+          severity: 'warning',
+          desc: 'Method has too many parameters.',
+          example: '<?php function foo($a,$b,$c,$d,$e,$f,$g,$h,$i,$j,$k) {} ?>',
+        },
+        {
+          code: 'E0008',
+          name: 'Return Type Signature',
+          category: 'Code Health',
+          severity: 'info',
+          desc: 'Methods should have return type declarations.',
+          example: '<?php function foo() { return 1; } ?>',
+        },
+        {
+          code: 'E0009',
+          name: 'Cyclomatic Complexity',
+          category: 'Code Health',
+          severity: 'warning',
+          desc: 'Method has too many decision points.',
+          example:
+            '<?php function foo($a) { if ($a > 0) { if ($a < 10) { if ($a === 5) { return true; } return false; } } return null; } ?>',
+        },
+        {
+          code: 'E0010',
+          name: 'NPath Complexity',
+          category: 'Code Health',
+          severity: 'warning',
+          desc: 'Method has too many execution paths.',
+          example:
+            '<?php function foo($a,$b) { if ($a) { if ($b) { return 1; } } if ($a || $b) { return 2; } return 3; } ?>',
+        },
+        {
+          code: 'E0011',
+          name: 'Error Suppression @',
+          category: 'Code Health',
+          severity: 'warning',
+          desc: 'Detects the error suppression symbol: @.',
+          example: '<?php @$result = file_get_contents("file.txt"); ?>',
+        },
+        {
+          code: 'E0012',
+          name: 'Service Compatibility',
+          category: 'Code Health',
+          severity: 'info',
+          desc: 'Service compatibility with Shared Memory Model.',
+          example: '<?php interface IService {} class Service implements IService {} ?>',
+        },
+        {
+          code: 'E0013',
+          name: 'Private Method Not Called',
+          category: 'Code Health',
+          severity: 'info',
+          desc: 'Private method not being called.',
+          example: '<?php class Foo { private function unused() {} } ?>',
+        },
+        {
+          code: 'E0014',
+          name: 'Law of Demeter',
+          category: 'Code Health',
+          severity: 'warning',
+          desc: 'Method chaining should be avoided unless returning the same object type.',
+          example: '<?php $a->foo->bar(); ?>',
+        },
+        {
+          code: 'E0015',
+          name: 'Lack of Cohesion (LCOM4)',
+          category: 'Code Health',
+          severity: 'info',
+          desc: 'Class methods do not share fields.',
+          example:
+            '<?php class Foo { public $a; public $b; public function m1() { $this->a = 1; } public function m2() { $this->b = 2; } } ?>',
+        },
+        {
+          code: 'E0016',
+          name: 'Cognitive Complexity',
+          category: 'Code Health',
+          severity: 'warning',
+          desc: 'Method has high cognitive complexity.',
+          example:
+            '<?php function foo($a) { if ($a > 0) { if ($a < 10) { if ($a === 5) { return true; } return false; } } return null; } ?>',
+        },
+        {
+          code: 'E0017',
+          name: 'Coupling Between Objects (CBO)',
+          category: 'Code Health',
+          severity: 'warning',
+          desc: 'Class couples with too many other classes.',
+          example:
+            '<?php class Foo { public function bar(Baz $b, Qux $q, Cor $c, Wal $w, Tz $t) {} } ?>',
+        },
+        {
+          code: 'E0018',
+          name: 'Weighted Methods per Class (WMC)',
+          category: 'Code Health',
+          severity: 'warning',
+          desc: 'Class has too many weighted methods.',
+          example:
+            '<?php class Foo { public function m1(){} public function m2(){} public function m3(){} public function m4(){} public function m5(){} public function m6(){} public function m7(){} public function m8(){} public function m9(){} public function m10(){} public function m11(){} public function m12(){} public function m13(){} public function m14(){} public function m15(){} public function m16(){} public function m17(){} public function m18(){} public function m19(){} public function m20(){} } ?>',
+        },
+        {
+          code: 'E0019',
+          name: 'Response For a Class (RFC)',
+          category: 'Code Health',
+          severity: 'warning',
+          desc: 'Class responds to too many methods.',
+          example:
+            '<?php class Foo { public function m1(){} public function m2(){} public function m3(){} public function m4(){} public function m5(){} public function m6(){} public function m7(){} public function m8(){} public function m9(){} public function m10(){} public function m11(){} public function m12(){} public function m13(){} public function m14(){} public function m15(){} public function m16(){} public function m17(){} public function m18(){} public function m19(){} public function m20(){} public function m21(){} public function m22(){} public function m23(){} public function m24(){} public function m25(){} } ?>',
+        },
+        {
+          code: 'E0020',
+          name: 'Depth of Inheritance Tree (DIT)',
+          category: 'Code Health',
+          severity: 'warning',
+          desc: 'Class inheritance tree is too deep.',
+          example:
+            '<?php class A {} class B extends A {} class C extends B {} class D extends C {} class E extends D {} class F extends E {} class G extends F {} class H extends G {} class I extends H {} class J extends I {} ?>',
+        },
+        {
+          code: 'E0021',
+          name: 'Number of Children (NOC)',
+          category: 'Code Health',
+          severity: 'info',
+          desc: 'Class has too many subclasses.',
+          example:
+            '<?php class A {} class B extends A {} class C extends A {} class D extends A {} class E extends A {} class F extends A {} class G extends A {} class H extends A {} class I extends A {} class J extends A {} ?>',
+        },
+        {
+          code: 'E0022',
+          name: 'Afferent and Efferent Coupling (Ca/Ce)',
+          category: 'Code Health',
+          severity: 'warning',
+          desc: 'Class has high Ca/Ce coupling.',
+          example:
+            '<?php class Foo { public function bar(Baz $b) {} public function baz(Qux $q) {} public function qux(Cor $c) {} } ?>',
+        },
+        {
+          code: 'E0023',
+          name: 'Instability / Distance from Main Sequence',
+          category: 'Code Health',
+          severity: 'info',
+          desc: 'Class is too unstable or too far from main sequence.',
+          example:
+            '<?php class Foo { public function bar() {} } class Baz { public function foo(Foo $f) {} } ?>',
+        },
+        {
+          code: 'E0024',
+          name: 'Lines of Code per Method',
+          category: 'Code Health',
+          severity: 'warning',
+          desc: 'Method exceeds recommended line count.',
+          example:
+            '<?php function longMethod() { $a=1; $b=2; $c=3; $d=4; $e=5; $f=6; $g=7; $h=8; $i=9; $j=10; $k=11; $l=12; $m=13; $n=14; $o=15; $p=16; $q=17; $r=18; $s=19; $t=20; return $t; } ?>',
+        },
+        {
+          code: 'E0025',
+          name: 'Lines of Code per File',
+          category: 'Code Health',
+          severity: 'warning',
+          desc: 'File exceeds recommended line count.',
+          example: '<?php // 500+ lines of code in one file ?>',
+        },
+        {
+          code: 'E0026',
+          name: 'Comment Ratio',
+          category: 'Code Health',
+          severity: 'info',
+          desc: 'Comment ratio is outside acceptable range.',
+          example: '<?php // no comments at all function foo() {} ?>',
+        },
+        {
+          code: 'E0027',
+          name: 'God Class',
+          category: 'Code Health',
+          severity: 'warning',
+          desc: 'Class with too many methods and fields.',
+          example:
+            '<?php class BigClass { public function m1(){} public function m2(){} public function m3(){} public function m4(){} public function m5(){} public function m6(){} public function m7(){} public function m8(){} public function m9(){} public function m10(){} public function m11(){} public function m12(){} public function m13(){} public function m14(){} public function m15(){} } ?>',
+        },
+        {
+          code: 'E0028',
+          name: 'Data Class',
+          category: 'Code Health',
+          severity: 'info',
+          desc: 'Class has few methods, mostly data fields.',
+          example: '<?php class Data { public $a; public $b; public $c; public $d; public $e; } ?>',
+        },
+        {
+          code: 'E0029',
+          name: 'Class-level Fan-in / Fan-out',
+          category: 'Code Health',
+          severity: 'warning',
+          desc: 'Class has high fan-in or fan-out.',
+          example:
+            '<?php class Foo { public function bar(Baz $b) {} public function baz(Qux $q) {} public function qux(Cor $c) {} } ?>',
+        },
+        {
+          code: 'E0030',
+          name: 'Cyclomatic Complexity Density',
+          category: 'Code Health',
+          severity: 'warning',
+          desc: 'Cyclomatic complexity density is too high.',
+          example:
+            '<?php function foo($a) { if ($a > 0) { if ($a < 10) { if ($a === 5) { return true; } return false; } } return null; } ?>',
+        },
+        {
+          code: 'E0031',
+          name: 'Division by Zero',
+          category: 'Formal Verification',
+          severity: 'error',
+          desc: 'Proves that divisors are never zero.',
+          example: '<?php function divide($a, $b) { return $a / $b; } ?>',
+        },
+        {
+          code: 'E0032',
+          name: 'Modulo by Zero',
+          category: 'Formal Verification',
+          severity: 'error',
+          desc: 'Proves that modulo divisors are never zero.',
+          example: '<?php $result = $a % $b; ?>',
+        },
+        {
+          code: 'E0033',
+          name: 'intdiv() by Zero',
+          category: 'Formal Verification',
+          severity: 'error',
+          desc: 'Proves integer division divisors are valid.',
+          example: '<?php intdiv($a, $b); ?>',
+        },
+        {
+          code: 'E0034',
+          name: 'intdiv() Overflow',
+          category: 'Formal Verification',
+          severity: 'error',
+          desc: 'Prevents integer overflow during division.',
+          example: '<?php intdiv(PHP_INT_MIN, -1); ?>',
+        },
+        {
+          code: 'E0035',
+          name: 'Missing Array Key',
+          category: 'Formal Verification',
+          severity: 'warning',
+          desc: 'Proves required array keys exist before access.',
+          example: '<?php $arr = []; echo $arr["missing_key"]; ?>',
+        },
+        {
+          code: 'E0036',
+          name: 'Array Index Out of Bounds',
+          category: 'Formal Verification',
+          severity: 'warning',
+          desc: 'Proves array index access stays within bounds.',
+          example: '<?php $arr = [1, 2]; echo $arr[5]; ?>',
+        },
+        {
+          code: 'E0037',
+          name: 'String Offset Out of Bounds',
+          category: 'Formal Verification',
+          severity: 'warning',
+          desc: 'Proves string character offsets are valid.',
+          example: '<?php $str = "hi"; echo $str[10]; ?>',
+        },
+        {
+          code: 'E0038',
+          name: 'Method Call on Null',
+          category: 'Formal Verification',
+          severity: 'error',
+          desc: 'Proves objects are not null before calling methods.',
+          example: '<?php $obj = null; $obj->doSomething(); ?>',
+        },
+        {
+          code: 'E0039',
+          name: 'Property Access on Null',
+          category: 'Formal Verification',
+          severity: 'error',
+          desc: 'Proves objects are not null before accessing properties.',
+          example: '<?php $obj = null; echo $obj->prop; ?>',
+        },
+        {
+          code: 'E0040',
+          name: 'Return Contract Violation',
+          category: 'Formal Verification',
+          severity: 'warning',
+          desc: 'Verifies return types match documented contracts.',
+          example: '<?php function foo(): string { return 123; } ?>',
+        },
+        {
+          code: 'E0041',
+          name: 'Unreachable Code',
+          category: 'Formal Verification',
+          severity: 'warning',
+          desc: 'Detects dead statements after returns or throws.',
+          example: '<?php function foo() { return true; echo "never reached"; } ?>',
+        },
+        {
+          code: 'E0042',
+          name: 'Impossible Assertion',
+          category: 'Formal Verification',
+          severity: 'info',
+          desc: 'Detects assertions that can never hold true.',
+          example: '<?php assert(1 === 2); ?>',
+        },
+        {
+          code: 'E0043',
+          name: 'Stream Resource Used After Close',
+          category: 'Formal Verification',
+          severity: 'warning',
+          desc: 'Detects reading/writing streams after closing them.',
+          example: '<?php $f = fopen("file.txt", "r"); fclose($f); fread($f, 10); ?>',
+        },
+        {
+          code: 'E0044',
+          name: 'Input-Dependent Runtime Growth',
+          category: 'Resource Analysis',
+          severity: 'warning',
+          desc: 'Loops whose time complexity scales poorly with input size.',
+          example: '<?php for ($i = 0; $i < $_GET["n"]; $i++) { doWork(); } ?>',
+        },
+        {
+          code: 'E0045',
+          name: 'Input-Dependent Live-Heap Growth',
+          category: 'Resource Analysis',
+          severity: 'warning',
+          desc: 'Memory allocation patterns that grow with input size.',
+          example:
+            '<?php $arr = []; for ($i = 0; $i < $_GET["n"]; $i++) { $arr[] = str_repeat("x", 1000); } ?>',
+        },
+        {
+          code: 'E0046',
+          name: 'Input-Controlled Cardinality',
+          category: 'Resource Analysis',
+          severity: 'error',
+          desc: 'Collections sized directly from untrusted user input.',
+          example: '<?php $arr = array_fill(0, $_GET["size"], null); ?>',
+        },
+        {
+          code: 'E0047',
+          name: 'Resource Lifecycle Leak',
+          category: 'Runtime Safety',
+          severity: 'warning',
+          desc: 'Unclosed file handles or database connections.',
+          example: '<?php $f = fopen("file.txt", "r"); fread($f, 10); ?>',
+        },
+        {
+          code: 'E0048',
+          name: 'Unbounded Direct Recursion',
+          category: 'Runtime Safety',
+          severity: 'error',
+          desc: 'Infinite recursion without base condition changes.',
+          example: '<?php function recurse($n) { return recurse($n); } ?>',
+        },
+        {
+          code: 'E0049',
+          name: 'Invalid Builtin Argument',
+          category: 'Runtime Safety',
+          severity: 'warning',
+          desc: 'Invalid literal arguments passed to built-in functions.',
+          example: '<?php array_slice($arr, -1, 0); ?>',
+        },
+        {
+          code: 'E0050',
+          name: 'Position Check Used as Boolean',
+          category: 'Runtime Safety',
+          severity: 'warning',
+          desc: 'Using strpos() without strict comparison (!== false).',
+          example: '<?php if (strpos($haystack, $needle)) { } ?>',
+        },
+        {
+          code: 'E0051',
+          name: 'Count of Non-Countable Value',
+          category: 'Runtime Safety',
+          severity: 'warning',
+          desc: 'Calling count() on non-array scalars.',
+          example: '<?php count("not an array"); ?>',
+        },
+        {
+          code: 'E0052',
+          name: 'Unchecked json_decode Result',
+          category: 'Runtime Safety',
+          severity: 'warning',
+          desc: 'Missing validation after JSON decoding.',
+          example: '<?php $data = json_decode($input); echo $data->foo; ?>',
+        },
+        // Security
+        {
+          code: 'E0060',
+          name: 'SQL Injection',
+          category: 'Security',
+          severity: 'error',
+          desc: 'User input concatenated into SQL queries.',
+          example:
+            '<?php $id = $_GET["id"] ?? ""; $result = mysqli_query($conn, "SELECT * FROM users WHERE id = $id"); ?>',
+        },
+        {
+          code: 'E0061',
+          name: 'Cross-Site Scripting (XSS)',
+          category: 'Security',
+          severity: 'error',
+          desc: 'Unescaped user input echoed to the browser.',
+          example: '<?php echo $_GET["user_input"]; ?>',
+        },
+        {
+          code: 'E0062',
+          name: 'Command Injection',
+          category: 'Security',
+          severity: 'error',
+          desc: 'User input passed to shell execution functions.',
+          example: '<?php system($_GET["cmd"]); ?>',
+        },
+        {
+          code: 'E0053',
+          name: 'Unsafe Unserialize',
+          category: 'Security',
+          severity: 'error',
+          desc: 'PHP object injection risk without allowed_classes.',
+          example: '<?php $data = unserialize($_GET["data"]); ?>',
+        },
+        {
+          code: 'E0054',
+          name: 'Dynamic Variable Creation',
+          category: 'Security',
+          severity: 'warning',
+          desc: 'Variable variables ($$x) or extract() usage.',
+          example: '<?php $$var = "value"; ?>',
+        },
+        {
+          code: 'E0055',
+          name: 'Dynamic Include or Require',
+          category: 'Security',
+          severity: 'error',
+          desc: 'Unsafe dynamic file inclusion paths.',
+          example: '<?php include $_GET["file"]; ?>',
+        },
+        {
+          code: 'E0056',
+          name: 'Weak Randomness for Security-Sensitive Value',
+          category: 'Security',
+          severity: 'warning',
+          desc: 'Using rand() or mt_rand() for security tokens.',
+          example: '<?php $token = mt_rand(); ?>',
+        },
+        {
+          code: 'E0057',
+          name: 'MD5 or SHA1 Used for Password',
+          category: 'Security',
+          severity: 'error',
+          desc: 'Insecure hashing algorithms for credentials.',
+          example: '<?php $hash = md5($password); ?>',
+        },
+        {
+          code: 'E0058',
+          name: 'Cookie Missing Secure or HttpOnly',
+          category: 'Security',
+          severity: 'warning',
+          desc: 'Cookies missing security flags.',
+          example: '<?php setcookie("name", "value"); ?>',
+        },
+        {
+          code: 'E0059',
+          name: 'Dynamic eval or assert',
+          category: 'Security',
+          severity: 'error',
+          desc: 'Dangerous code execution sinks (eval()).',
+          example: '<?php eval($_GET["code"]); ?>',
+        },
+        {
+          code: 'E0060',
+          name: 'SQL Injection',
+          category: 'Security',
+          severity: 'error',
+          desc: 'User input concatenated into SQL queries.',
+          example:
+            '<?php $id = $_GET["id"] ?? ""; $result = mysqli_query($conn, "SELECT * FROM users WHERE id = $id"); ?>',
+        },
+        {
+          code: 'E0061',
+          name: 'Cross-Site Scripting (XSS)',
+          category: 'Security',
+          severity: 'error',
+          desc: 'Unescaped user input echoed to the browser.',
+          example: '<?php echo $_GET["user_input"]; ?>',
+        },
+        {
+          code: 'E0062',
+          name: 'Command Injection',
+          category: 'Security',
+          severity: 'error',
+          desc: 'User input passed to shell execution functions.',
+          example: '<?php system($_GET["cmd"]); ?>',
+        },
+        {
+          code: 'E0063',
+          name: 'LDAP Injection',
+          category: 'Security',
+          severity: 'error',
+          desc: 'User input embedded in LDAP filters.',
+          example: '<?php ldap_search($conn, "uid=" . $_GET["uid"]); ?>',
+        },
+        {
+          code: 'E0064',
+          name: 'XPath Injection',
+          category: 'Security',
+          severity: 'error',
+          desc: 'User input embedded in XPath queries.',
+          example: '<?php $xpath->query("//user[id=\'" . $_GET["id"] . "\']"); ?>',
+        },
+        {
+          code: 'E0065',
+          name: 'NoSQL Injection',
+          category: 'Security',
+          severity: 'error',
+          desc: 'User input embedded in NoSQL queries.',
+          example: '<?php $mongo->find(["user" => $_GET["user"]]); ?>',
+        },
+        {
+          code: 'E0066',
+          name: 'Header Injection',
+          category: 'Security',
+          severity: 'error',
+          desc: 'User input written to HTTP headers (CRLF injection).',
+          example: '<?php header("X-Custom: " . $_GET["val"]); ?>',
+        },
+        {
+          code: 'E0067',
+          name: 'Mail Injection',
+          category: 'Security',
+          severity: 'error',
+          desc: 'User input written to mail headers or subject.',
+          example: '<?php mail($to, $_GET["subject"], $body); ?>',
+        },
+        {
+          code: 'E0068',
+          name: 'Eval Injection',
+          category: 'Security',
+          severity: 'error',
+          desc: 'User input evaluated as PHP code via eval().',
+          example: '<?php eval($_GET["code"]); ?>',
+        },
+        {
+          code: 'E0069',
+          name: 'Unsafe Deserialization',
+          category: 'Security',
+          severity: 'error',
+          desc: 'Untrusted data passed to unserialize().',
+          example: '<?php unserialize($_GET["data"]); ?>',
+        },
+        {
+          code: 'E0070',
+          name: 'Remote File Inclusion',
+          category: 'Security',
+          severity: 'error',
+          desc: 'User-controlled file included via include/require.',
+          example: '<?php include $_GET["page"]; ?>',
+        },
+        {
+          code: 'E0071',
+          name: 'Unsafe File Upload',
+          category: 'Security',
+          severity: 'error',
+          desc: 'Uploaded file stored to user-controlled destination.',
+          example: '<?php move_uploaded_file($_FILES["f"]["tmp_name"], $_GET["path"]); ?>',
+        },
+        {
+          code: 'E0072',
+          name: 'Path Traversal',
+          category: 'Security',
+          severity: 'error',
+          desc: 'User-controlled file path opened for read/write.',
+          example: '<?php file_get_contents($_GET["path"]); ?>',
+        },
+        {
+          code: 'E0073',
+          name: 'Weak Cryptographic Hash',
+          category: 'Security',
+          severity: 'error',
+          desc: 'MD5/SHA1 used instead of password_hash().',
+          example: '<?php $hash = sha1($password); ?>',
+        },
+        {
+          code: 'E0074',
+          name: 'Weak Random Number Generator',
+          category: 'Security',
+          severity: 'warning',
+          desc: 'mt_rand()/rand() used for security values.',
+          example: '<?php $token = rand(1000, 9999); ?>',
+        },
+        {
+          code: 'E0075',
+          name: 'Session Security',
+          category: 'Security',
+          severity: 'warning',
+          desc: 'session_start() without secure cookie settings.',
+          example: '<?php session_start(); ?>',
+        },
+        {
+          code: 'E0076',
+          name: 'Information Disclosure',
+          category: 'Security',
+          severity: 'warning',
+          desc: 'phpinfo() left in production code.',
+          example: '<?php phpinfo(); ?>',
+        },
+        {
+          code: 'E0077',
+          name: 'Display Errors Enabled',
+          category: 'Security',
+          severity: 'warning',
+          desc: 'display_errors enabled via ini_set().',
+          example: '<?php ini_set("display_errors", 1); ?>',
+        },
+        {
+          code: 'E0078',
+          name: 'Variable Variables',
+          category: 'Security',
+          severity: 'warning',
+          desc: 'extract() importing user-controlled variables.',
+          example: '<?php extract($_GET); ?>',
+        },
+        {
+          code: 'E0079',
+          name: 'Dynamic Method Call',
+          category: 'Security',
+          severity: 'warning',
+          desc: 'Dynamic method invoked on user-controlled object.',
+          example: '<?php $obj->{$_GET["method"]}(); ?>',
+        },
+        {
+          code: 'E0080',
+          name: 'Weak Cryptographic Function',
+          category: 'Security',
+          severity: 'error',
+          desc: 'crypt() used for password hashing.',
+          example: '<?php $hash = crypt($password); ?>',
+        },
+        {
+          code: 'E0081',
+          name: 'Deprecated Regex Function',
+          category: 'Security',
+          severity: 'info',
+          desc: 'ereg()/split() used instead of preg_*.',
+          example: '<?php ereg("pattern", $string); ?>',
+        },
+        {
+          code: 'E0082',
+          name: 'Dynamic Extension Loading',
+          category: 'Security',
+          severity: 'warning',
+          desc: 'dl() loading extensions at runtime.',
+          example: '<?php dl("extension.so"); ?>',
+        },
+        {
+          code: 'E0083',
+          name: 'Open Redirect',
+          category: 'Security',
+          severity: 'warning',
+          desc: 'header() redirect to user-controlled URL.',
+          example: '<?php header("Location: " . $_GET["url"]); ?>',
+        },
+        {
+          code: 'E0084',
+          name: 'SQL Query String Concatenation',
+          category: 'Security',
+          severity: 'error',
+          desc: 'SQL query built by concatenating user input.',
+          example: '<?php $sql = "SELECT * FROM users WHERE id = " . $_GET["id"]; ?>',
+        },
+        {
+          code: 'E0085',
+          name: 'Inline PHP Execution Short Tags',
+          category: 'Security',
+          severity: 'info',
+          desc: '<?= ?> short echo tag usage.',
+          example: '<?= $var ?>',
+        },
+        {
+          code: 'E0086',
+          name: 'Deprecated Session Function',
+          category: 'Security',
+          severity: 'info',
+          desc: 'session_register()/session_is_registered() usage.',
+          example: '<?php session_register("var"); ?>',
+        },
+        {
+          code: 'E0087',
+          name: 'Command Execution with Backticks',
+          category: 'Security',
+          severity: 'error',
+          desc: 'Backtick command with interpolated input.',
+          example: '<?php `echo $_GET["input"]`; ?>',
+        },
+        {
+          code: 'E0088',
+          name: 'Reflection-based Injection',
+          category: 'Security',
+          severity: 'warning',
+          desc: 'Reflection invoked on user-controlled input.',
+          example: '<?php $r = new ReflectionMethod($_GET["class"], $_GET["method"]); ?>',
+        },
+        {
+          code: 'E0089',
+          name: 'Log Injection',
+          category: 'Security',
+          severity: 'warning',
+          desc: 'User input written to log files unsanitized.',
+          example: '<?php error_log($_GET["msg"]); ?>',
+        },
+        {
+          code: 'E0090',
+          name: 'File Write to User-Controlled Path',
+          category: 'Security',
+          severity: 'error',
+          desc: 'file_put_contents() to user-controlled path.',
+          example: '<?php file_put_contents($_GET["path"], $data); ?>',
+        },
+        {
+          code: 'E0091',
+          name: 'Source Code Exposure via highlight_file',
+          category: 'Security',
+          severity: 'warning',
+          desc: 'highlight_file()/show_source() in production.',
+          example: '<?php highlight_file($_GET["file"]); ?>',
+        },
+        {
+          code: 'E0092',
+          name: 'XML External Entity (XXE)',
+          category: 'Security',
+          severity: 'error',
+          desc: 'XML parsed from user-controlled input.',
+          example: '<?php $xml = simplexml_load_string($_GET["xml"]); ?>',
+        },
+        {
+          code: 'E0093',
+          name: 'Template Injection',
+          category: 'Security',
+          severity: 'error',
+          desc: 'User input rendered as a template.',
+          example: '<?php echo $twig->render($_GET["template"]); ?>',
+        },
+        {
+          code: 'E0094',
+          name: 'Denial of Service via Regular Expression',
+          category: 'Security',
+          severity: 'warning',
+          desc: 'Regex applied to user-controlled input.',
+          example: '<?php preg_match($_GET["regex"], $input); ?>',
+        },
+        {
+          code: 'E0095',
+          name: 'Insecure Comparison',
+          category: 'Security',
+          severity: 'warning',
+          desc: 'strcmp()/strcasecmp() not constant-time.',
+          example: '<?php strcmp($hash, $expected); ?>',
+        },
+        {
+          code: 'E0096',
+          name: 'Cookie Without Secure Flag',
+          category: 'Security',
+          severity: 'warning',
+          desc: 'Cookie set without the Secure flag.',
+          example: '<?php setcookie("name", "value"); ?>',
+        },
+        {
+          code: 'E0097',
+          name: 'Cookie Without HttpOnly Flag',
+          category: 'Security',
+          severity: 'warning',
+          desc: 'Cookie set without the HttpOnly flag.',
+          example: '<?php setcookie("name", "value"); ?>',
+        },
+        {
+          code: 'E0098',
+          name: 'Session ID in URL',
+          category: 'Security',
+          severity: 'warning',
+          desc: 'Session ID embedded in redirect URL.',
+          example: '<?php header("Location: page.php?sid=" . session_id()); ?>',
+        },
+        {
+          code: 'E0099',
+          name: 'Disable Functions Bypass',
+          category: 'Security',
+          severity: 'error',
+          desc: 'ini_set() changing disable_functions.',
+          example: '<?php ini_set("disable_functions", ""); ?>',
+        },
+        {
+          code: 'E0100',
+          name: 'Variable Function Call',
+          category: 'Security',
+          severity: 'error',
+          desc: 'Variable function invoked on user-controlled name.',
+          example: '<?php $_GET["func"](); ?>',
+        },
+        {
+          code: 'E0101',
+          name: 'Object Injection via unserialize',
+          category: 'Security',
+          severity: 'error',
+          desc: 'Object injection from unserialize of user input.',
+          example: '<?php unserialize($_GET["data"]); ?>',
+        },
+        {
+          code: 'E0102',
+          name: 'Command Injection via proc_open',
+          category: 'Security',
+          severity: 'error',
+          desc: 'proc_open() with user-controlled command.',
+          example: '<?php proc_open($_GET["cmd"], [], $pipes); ?>',
+        },
+        {
+          code: 'E0103',
+          name: 'Server-side Request Forgery',
+          category: 'Security',
+          severity: 'error',
+          desc: 'Network request to user-controlled URL.',
+          example: '<?php file_get_contents($_GET["url"]); ?>',
+        },
+        {
+          code: 'E0104',
+          name: 'HTTP Response Splitting',
+          category: 'Security',
+          severity: 'error',
+          desc: 'header() with user-controlled CRLF sequences.',
+          example: '<?php header("X-Custom: " . str_replace("\r\n", "", $_GET["val"])); ?>',
+        },
+        {
+          code: 'E0105',
+          name: 'Local File Inclusion',
+          category: 'Security',
+          severity: 'error',
+          desc: 'Local file included from user-controlled input.',
+          example: '<?php include $_GET["file"]; ?>',
+        },
+        {
+          code: 'E0106',
+          name: 'Deserialization of Untrusted Data',
+          category: 'Security',
+          severity: 'error',
+          desc: 'unserialize()/wddx_deserialize() of user input.',
+          example: '<?php wddx_deserialize($_GET["data"]); ?>',
+        },
+        {
+          code: 'E0107',
+          name: 'Weak Random for Security Tokens',
+          category: 'Security',
+          severity: 'warning',
+          desc: 'Weak random used for security-sensitive tokens.',
+          example: '<?php $token = mt_rand(); ?>',
+        },
+        {
+          code: 'E0108',
+          name: 'Dynamic Instantiation',
+          category: 'Security',
+          severity: 'warning',
+          desc: 'Class instantiated from user-controlled name.',
+          example: '<?php $obj = new $_GET["class"](); ?>',
+        },
+        {
+          code: 'E0109',
+          name: 'Directory Listing Exposure',
+          category: 'Security',
+          severity: 'warning',
+          desc: 'opendir() on user-controlled directory.',
+          example: '<?php $dir = opendir($_GET["path"]); ?>',
+        },
+        {
+          code: 'E0110',
+          name: 'Raw SQL Query Execution',
+          category: 'Security',
+          severity: 'error',
+          desc: 'Raw SQL query executed without parameters.',
+          example: '<?php $db->query("SELECT * FROM users WHERE id = " . $_GET["id"]); ?>',
+        },
+        {
+          code: 'E0111',
+          name: 'Deprecated mysql Extension',
+          category: 'Security',
+          severity: 'info',
+          desc: 'Removed ext/mysql extension functions used.',
+          example: '<?php mysql_query($conn, $sql); ?>',
+        },
+        {
+          code: 'E0112',
+          name: 'File Upload Without Validation',
+          category: 'Security',
+          severity: 'error',
+          desc: 'move_uploaded_file() without destination validation.',
+          example: '<?php move_uploaded_file($_FILES["f"]["tmp_name"], $dest); ?>',
+        },
+        {
+          code: 'E0113',
+          name: 'Session Regeneration Missing',
+          category: 'Security',
+          severity: 'warning',
+          desc: 'Session ID not regenerated after authentication.',
+          example: '<?php session_start(); $_SESSION["user"] = $id; ?>',
+        },
+        {
+          code: 'E0114',
+          name: 'PHP Info Disclosure',
+          category: 'Security',
+          severity: 'warning',
+          desc: 'phpinfo() exposing server configuration.',
+          example: '<?php phpinfo(); ?>',
+        },
+        {
+          code: 'E0115',
+          name: 'XXE via libxml',
+          category: 'Security',
+          severity: 'error',
+          desc: 'XML parsed by libxml from user-controlled input.',
+          example: '<?php $xml = new SimpleXMLElement($_GET["xml"]); ?>',
+        },
+        {
+          code: 'E0116',
+          name: 'Remote Command Execution via popen',
+          category: 'Security',
+          severity: 'error',
+          desc: 'popen() with user-controlled command.',
+          example: '<?php $p = popen($_GET["cmd"], "r"); ?>',
+        },
+        {
+          code: 'E0117',
+          name: 'SQL Injection via Query String',
+          category: 'Security',
+          severity: 'error',
+          desc: 'SQL query string built from user input.',
+          example: '<?php $sql = "SELECT * FROM t WHERE c = \'" . $_GET["c"] . "\'"; ?>',
+        },
+        {
+          code: 'E0118',
+          name: 'Log Forging via User Input',
+          category: 'Security',
+          severity: 'warning',
+          desc: 'User input written to logs without sanitization.',
+          example: '<?php error_log("User: " . $_GET["user"]); ?>',
+        },
+        {
+          code: 'E0119',
+          name: 'Session Cookie Without Secure Flag',
+          category: 'Security',
+          severity: 'warning',
+          desc: 'Session cookie set without Secure flag.',
+          example: '<?php session_start(); ?>',
+        },
+        {
+          code: 'E0120',
+          name: 'Eval with User-Controlled String',
+          category: 'Security',
+          severity: 'error',
+          desc: 'eval() executed on user-controlled string.',
+          example: '<?php eval($_GET["code"]); ?>',
+        },
+        {
+          code: 'E0121',
+          name: 'Assert with User-Controlled String',
+          category: 'Security',
+          severity: 'error',
+          desc: 'assert() with user-controlled string argument.',
+          example: '<?php assert($_GET["code"]); ?>',
+        },
+        {
+          code: 'E0122',
+          name: 'File Inclusion with User Input',
+          category: 'Security',
+          severity: 'error',
+          desc: 'include/require with user-controlled path.',
+          example: '<?php include $_GET["page"] . ".php"; ?>',
+        },
+        {
+          code: 'E0123',
+          name: 'XSS via echo',
+          category: 'Security',
+          severity: 'error',
+          desc: 'echo() outputs user-controlled input unescaped.',
+          example: '<?php echo $_GET["input"]; ?>',
+        },
+        {
+          code: 'E0124',
+          name: 'Weak Hash for Passwords',
+          category: 'Security',
+          severity: 'error',
+          desc: 'Weak hash (MD5/SHA1/crypt) used for passwords.',
+          example: '<?php $hash = crypt($password); ?>',
+        },
+        {
+          code: 'E0125',
+          name: 'Open Redirect via header',
+          category: 'Security',
+          severity: 'warning',
+          desc: 'header() redirects to user-controlled URL.',
+          example: '<?php header("Location: " . $_GET["url"]); ?>',
+        },
+        {
+          code: 'E0126',
+          name: 'Path Traversal via file_get_contents',
+          category: 'Security',
+          severity: 'error',
+          desc: 'file_get_contents() reads user-controlled path.',
+          example: '<?php file_get_contents($_GET["path"]); ?>',
+        },
+        {
+          code: 'E0127',
+          name: 'Command Execution via system',
+          category: 'Security',
+          severity: 'error',
+          desc: 'system() with user-controlled command.',
+          example: '<?php system($_GET["cmd"]); ?>',
+        },
+        {
+          code: 'E0128',
+          name: 'Command Execution via exec',
+          category: 'Security',
+          severity: 'error',
+          desc: 'exec() with user-controlled command.',
+          example: '<?php exec($_GET["cmd"], $output); ?>',
+        },
+        {
+          code: 'E0129',
+          name: 'Command Execution via shell_exec',
+          category: 'Security',
+          severity: 'error',
+          desc: 'shell_exec() with user-controlled command.',
+          example: '<?php $output = shell_exec($_GET["cmd"]); ?>',
+        },
+        {
+          code: 'E0130',
+          name: 'Command Execution via passthru',
+          category: 'Security',
+          severity: 'error',
+          desc: 'passthru() with user-controlled command.',
+          example: '<?php passthru($_GET["cmd"]); ?>',
+        },
+        {
+          code: 'E0131',
+          name: 'Command Execution via proc_open',
+          category: 'Security',
+          severity: 'error',
+          desc: 'proc_open() with user-controlled command.',
+          example: '<?php proc_open($_GET["cmd"], [], $pipes); ?>',
+        },
+        {
+          code: 'E0132',
+          name: 'Header Injection via header',
+          category: 'Security',
+          severity: 'error',
+          desc: 'header() writes user input to HTTP headers.',
+          example: '<?php header("Location: " . $_GET["url"]); ?>',
+        },
+        {
+          code: 'E0133',
+          name: 'Header Injection via setcookie',
+          category: 'Security',
+          severity: 'error',
+          desc: 'setcookie() writes user input to cookie header.',
+          example: '<?php setcookie("name", $_GET["val"]); ?>',
+        },
+        {
+          code: 'E0134',
+          name: 'Mail Injection via mail',
+          category: 'Security',
+          severity: 'error',
+          desc: 'mail() writes user input to mail headers/subject.',
+          example: '<?php mail($to, $_GET["subject"], $body); ?>',
+        },
+        {
+          code: 'E0135',
+          name: 'PHP Info Disclosure',
+          category: 'Security',
+          severity: 'warning',
+          desc: 'phpinfo() exposing configuration details.',
+          example: '<?php phpinfo(); ?>',
+        },
+      ];
+      const ruleSelect = document.getElementById('ruleSelect');
+      const codeEditor = document.getElementById('codeEditor');
+      const btnAnalyze = document.getElementById('btnAnalyze');
+      const btnExample = document.getElementById('btnExample');
+      const btnCopy = document.getElementById('btnCopy');
+      const resultsList = document.getElementById('resultsList');
+      const resultCount = document.getElementById('resultCount');
+      const rulesContainer = document.getElementById('rulesContainer');
+      RULES.forEach((r) => {
+        const opt = document.createElement('option');
+        opt.value = r.code;
+        opt.textContent = r.code + ' — ' + r.name;
+        ruleSelect.appendChild(opt);
+      });
+
+      // Group rules by category
+      const categories = [
+        'Code Health',
+        'Formal Verification',
+        'Resource Analysis',
+        'Security',
+        'Runtime Safety',
+      ];
+      categories.forEach((cat) => {
+        const catRules = RULES.filter((r) => r.category === cat);
+        if (catRules.length === 0) return;
+
+        const section = document.createElement('div');
+        section.style.marginBottom = '32px';
+
+        const header = document.createElement('div');
+        header.style.display = 'flex';
+        header.style.alignItems = 'center';
+        header.style.justifyContent = 'space-between';
+        header.style.padding = '12px 16px';
+        header.style.background = 'var(--bg-subtle)';
+        header.style.border = '1px solid var(--border)';
+        header.style.borderRadius = '8px';
+        header.style.cursor = 'pointer';
+        header.style.marginBottom = '12px';
+        header.innerHTML =
+          '<h3 style="margin: 0; font-size: 1.1rem; font-weight: 700;">' +
+          cat +
+          ' (' +
+          catRules.length +
+          ')</h3><span style="color: var(--accent);">▼</span>';
+
+        const grid = document.createElement('div');
+        grid.className = 'rules-grid';
+        grid.style.display = 'none';
+
+        catRules.forEach((r) => {
+          const card = document.createElement('div');
+          card.className = 'rule-card';
+          card.innerHTML =
+            '<div class="rule-header"><span class="rule-code">' +
+            r.code +
+            '</span><span class="rule-sev">' +
+            r.severity +
+            '</span></div><h4>' +
+            r.name +
+            '</h4><p>' +
+            r.desc +
+            '</p><small>Try this rule →</small>';
+          card.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            ruleSelect.value = r.code;
+            setEditorCode(r.example);
+            setTimeout(() => {
+              document
+                .getElementById('playground')
+                .scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+          });
+          grid.appendChild(card);
+        });
+
+        header.innerHTML =
+          '<h3 style="margin: 0; font-size: 1.1rem; font-weight: 700;">' +
+          cat +
+          ' (' +
+          catRules.length +
+          ')</h3><span style="color: var(--accent);">▶</span>';
+
+        header.addEventListener('click', () => {
+          if (grid.style.display === 'none') {
+            grid.style.display = 'grid';
+            header.querySelector('span').textContent = '▼';
+          } else {
+            grid.style.display = 'none';
+            header.querySelector('span').textContent = '▶';
+          }
+        });
+
+        section.appendChild(header);
+        section.appendChild(grid);
+        rulesContainer.appendChild(section);
+      });
+      let showingBad = true;
+      btnExample.addEventListener('click', () => {
+        showingBad = !showingBad;
+        if (showingBad) {
+          setEditorCode('<?php $a->foo->bar(); ?>');
+          btnExample.textContent = 'Show Bad Example';
+        } else {
+          setEditorCode(
+            '<?php $id = $_GET["id"] ?? ""; $result = mysqli_query($conn, "SELECT * FROM users WHERE id = " . $id); ?>'
+          );
+          btnExample.textContent = 'Show Good Example';
+        }
+      });
+      btnCopy.addEventListener('click', () => {
+        navigator.clipboard.writeText(getEditorCode());
+      });
+      function renderResults(findings) {
+        resultCount.textContent = findings.length + ' finding' + (findings.length !== 1 ? 's' : '');
+        if (findings.length === 0) {
+          resultsList.innerHTML =
+            '<div class="results-empty">No findings. The code appears clean!</div>';
+          return;
+        }
+        resultsList.innerHTML = findings
+          .map(
+            (f, i) =>
+              '<div class="result-item ' +
+              (f.severity || 'info') +
+              '"><div class="result-head"><span class="result-rule">' +
+              f.rule +
+              '</span><span class="result-sev ' +
+              (f.severity || 'info') +
+              '">' +
+              (f.severity || 'info') +
+              '</span></div><div class="result-msg">' +
+              (f.message || 'No message') +
+              '</div><div class="result-snippet">' +
+              (f.snippet || '') +
+              '</div></div>'
+          )
+          .join('');
+      }
+      btnAnalyze.addEventListener('click', () => {
+        const code = getEditorCode();
+        const rule = ruleSelect.value;
+        if (!code.trim()) return;
+        btnAnalyze.disabled = true;
+        btnAnalyze.textContent = 'Analyzing…';
+        setTimeout(() => {
+          let findings = [];
+          if (analyze && wasmLoaded) {
+            try {
+              findings = JSON.parse(analyze(code));
+            } catch (e) {
+              console.error('WASM analyze error:', e);
+              findings = [
+                {
+                  rule: rule || 'E???',
+                  message: 'Analysis failed. Check console.',
+                  severity: 'error',
+                  snippet: code.substring(0, 60) + '...',
+                },
+              ];
+            }
+          } else {
+            const lc = code.toLowerCase();
+            if (rule === 'E0014' && code.includes('->') && !code.includes('?->'))
+              findings.push({
+                rule: 'E0014',
+                message: 'Law of Demeter violation: method chaining on foreign object',
+                severity: 'warning',
+                snippet: code.split('\n')[0].substring(0, 60) + '...',
+              });
+            if (
+              rule === 'E0060' &&
+              lc.includes('query') &&
+              (lc.includes('$_') || lc.includes('$id'))
+            )
+              findings.push({
+                rule: 'E0060',
+                message: 'Potential SQL injection: user input in query',
+                severity: 'error',
+                snippet: code.split('\n')[0].substring(0, 60) + '...',
+              });
+            if (rule === 'E0031' && (lc.includes('/ 0') || lc.includes('$a / $b')))
+              findings.push({
+                rule: 'E0031',
+                message: 'Division by zero detected',
+                severity: 'error',
+                snippet: code.split('\n')[0].substring(0, 60) + '...',
+              });
+            if (rule === 'E0053' && lc.includes('unserialize'))
+              findings.push({
+                rule: 'E0053',
+                message: 'unserialize() without allowed_classes: PHP object injection risk',
+                severity: 'error',
+                snippet: code.split('\n')[0].substring(0, 60) + '...',
+              });
+            if (rule === 'E0080' && (lc.includes('crypt(') || lc.includes('mt_rand(')))
+              findings.push({
+                rule: 'E0080',
+                message: 'Weak cryptographic function detected',
+                severity: 'error',
+                snippet: code.split('\n')[0].substring(0, 60) + '...',
+              });
+            if (rule === 'E0027' && code.split('function ').length - 1 > 10)
+              findings.push({
+                rule: 'E0027',
+                message: 'God Class: too many methods',
+                severity: 'warning',
+                snippet: code.split('\n')[0].substring(0, 60) + '...',
+              });
+            if (rule === 'E0044' && lc.includes('for') && lc.includes('$_get'))
+              findings.push({
+                rule: 'E0044',
+                message: 'Input-dependent runtime growth',
+                severity: 'warning',
+                snippet: code.split('\n')[0].substring(0, 60) + '...',
+              });
+            if (rule === 'E0015')
+              findings.push({
+                rule: 'E0015',
+                message: 'Lack of Cohesion (LCOM4) detected',
+                severity: 'info',
+                snippet: code.split('\n')[0].substring(0, 60) + '...',
+              });
+            if (rule === 'E0009' && (code.match(/\bif\b/g) || []).length >= 2)
+              findings.push({
+                rule: 'E0009',
+                message: 'High cyclomatic complexity detected',
+                severity: 'warning',
+                snippet: code.split('\n')[0].substring(0, 60) + '...',
+              });
+            if (rule === 'E0024' && code.split('\n').length > 25)
+              findings.push({
+                rule: 'E0024',
+                message: 'Method exceeds recommended line count',
+                severity: 'warning',
+                snippet: code.split('\n')[0].substring(0, 60) + '...',
+              });
+            if (
+              rule === 'E0038' &&
+              lc.includes('->') &&
+              (lc.includes('= null') || lc.includes('=null'))
+            )
+              findings.push({
+                rule: 'E0038',
+                message: 'Method call on possibly null object',
+                severity: 'error',
+                snippet: code.split('\n')[0].substring(0, 60) + '...',
+              });
+            if (rule === 'E0035' && lc.includes('[') && lc.includes('"'))
+              findings.push({
+                rule: 'E0035',
+                message: 'Missing array key: key may not exist',
+                severity: 'warning',
+                snippet: code.split('\n')[0].substring(0, 60) + '...',
+              });
+            if (rule === 'E0041' && (lc.includes('return') || lc.includes('throw')))
+              findings.push({
+                rule: 'E0041',
+                message: 'Unreachable code after return or throw',
+                severity: 'warning',
+                snippet: code.split('\n')[0].substring(0, 60) + '...',
+              });
+            if (rule === 'E0061' && lc.includes('echo') && lc.includes('$_'))
+              findings.push({
+                rule: 'E0061',
+                message: 'XSS: unescaped user input echoed to browser',
+                severity: 'error',
+                snippet: code.split('\n')[0].substring(0, 60) + '...',
+              });
+            if (
+              rule === 'E0062' &&
+              (lc.includes('system(') || lc.includes('exec(') || lc.includes('shell_exec('))
+            )
+              findings.push({
+                rule: 'E0062',
+                message: 'Command injection: user input in shell execution',
+                severity: 'error',
+                snippet: code.split('\n')[0].substring(0, 60) + '...',
+              });
+            if (rule === 'E0059' && lc.includes('eval('))
+              findings.push({
+                rule: 'E0059',
+                message: 'Dynamic eval: dangerous code execution sink',
+                severity: 'error',
+                snippet: code.split('\n')[0].substring(0, 60) + '...',
+              });
+            if (rule === 'E0057' && (lc.includes('md5(') || lc.includes('sha1(')))
+              findings.push({
+                rule: 'E0057',
+                message: 'Weak hash for passwords: MD5 or SHA1 detected',
+                severity: 'error',
+                snippet: code.split('\n')[0].substring(0, 60) + '...',
+              });
+            if (rule === 'E0083' && lc.includes('header(') && lc.includes('$_'))
+              findings.push({
+                rule: 'E0083',
+                message: 'Open redirect: user-controlled URL in header',
+                severity: 'warning',
+                snippet: code.split('\n')[0].substring(0, 60) + '...',
+              });
+            if (rule === 'E0045' && lc.includes('array_fill') && lc.includes('$_get'))
+              findings.push({
+                rule: 'E0045',
+                message: 'Input-dependent heap growth',
+                severity: 'warning',
+                snippet: code.split('\n')[0].substring(0, 60) + '...',
+              });
+            if (rule === 'E0046' && lc.includes('array_fill') && lc.includes('$_get'))
+              findings.push({
+                rule: 'E0046',
+                message: 'Input-controlled collection cardinality',
+                severity: 'error',
+                snippet: code.split('\n')[0].substring(0, 60) + '...',
+              });
+            if (rule === 'E0048' && lc.includes('function ') && lc.includes('recurse'))
+              findings.push({
+                rule: 'E0048',
+                message: 'Unbounded direct recursion detected',
+                severity: 'error',
+                snippet: code.split('\n')[0].substring(0, 60) + '...',
+              });
+            if (findings.length === 0)
+              findings.push({
+                rule: rule || 'E???',
+                message: 'No specific issues found with this rule.',
+                severity: 'info',
+                snippet: code.substring(0, 60) + '...',
+              });
+          }
+          renderResults(findings);
+          btnAnalyze.disabled = false;
+          btnAnalyze.textContent = 'Analyze';
+        }, 400);
+      });
+      const cursorDot = document.querySelector('.cursor-dot');
+      const cursorRing = document.querySelector('.cursor-ring');
+      if (!('ontouchstart' in window) && cursorDot && cursorRing) {
+        document.body.classList.remove('touch-device');
+        window.addEventListener('mousemove', (e) => {
+          cursorDot.style.left = e.clientX + 'px';
+          cursorDot.style.top = e.clientY + 'px';
+          cursorRing.style.left = e.clientX + 'px';
+          cursorRing.style.top = e.clientY + 'px';
+        });
+        document.querySelectorAll('a, button, select, textarea').forEach((el) => {
+          el.addEventListener('mouseenter', () => {
+            cursorRing.style.transform = 'translate(-50%, -50%) scale(2)';
+            cursorRing.style.background = 'rgba(0, 212, 170, 0.2)';
+          });
+          el.addEventListener('mouseleave', () => {
+            cursorRing.style.transform = 'translate(-50%, -50%) scale(1)';
+            cursorRing.style.background = 'transparent';
+          });
+        });
+      } else {
+        document.body.classList.add('touch-device');
+        if (cursorDot) cursorDot.remove();
+        if (cursorRing) cursorRing.remove();
+      }
+    </script>
+  </body>
+</html>

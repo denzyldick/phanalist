@@ -1,0 +1,15 @@
+{
+  "name": "phanalist-wasm",
+  "type": "module",
+  "version": "1.3.0",
+  "files": [
+    "phanalist-wasm_bg.wasm",
+    "phanalist-wasm.js",
+    "phanalist-wasm.d.ts"
+  ],
+  "main": "phanalist-wasm.js",
+  "types": "phanalist-wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
