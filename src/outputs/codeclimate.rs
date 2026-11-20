@@ -46,12 +46,20 @@ impl OutputFormatter for CodeClimate {
                     violation.meta.fingerprint.clone()
                 };
 
-                res.push(json!({
+                let mut content_body = rule_markdown;
+                if !violation.call_chain.is_empty() {
+                    content_body.push_str(&format!(
+                        "\n\nCall chain (inferred): {}",
+                        violation.call_chain.join(" → ")
+                    ));
+                }
+
+                let mut issue = json!({
                     "type": "issue",
                     "check_name": &violation.rule,
                     "description": violation.message.render(),
                     "content": {
-                        "body": &rule_markdown
+                        "body": content_body
                     },
                     "categories": violation.meta.category.code_climate(),
                     "fingerprint": fingerprint,
@@ -69,7 +77,11 @@ impl OutputFormatter for CodeClimate {
                             },
                         }
                     }
-                }));
+                });
+                if !violation.call_chain.is_empty() {
+                    issue["call_chain"] = serde_json::json!(violation.call_chain);
+                }
+                res.push(issue);
             }
         }
 
