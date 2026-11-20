@@ -1,6 +1,7 @@
 use analyse::Analyse;
 use outputs::Format;
 pub mod analyse;
+pub mod api;
 pub mod baseline;
 pub mod callchain;
 pub mod config;
