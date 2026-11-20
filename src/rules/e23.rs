@@ -48,51 +48,48 @@ struct PackageIndex {
 }
 
 impl PackageIndex {
-    /// Returns (Ca, Ce, abstract_count, total_count) for a namespace.
-    fn compute_metrics(&self, namespace: &str) -> (usize, usize, usize, usize) {
-        let our_classes = match self.namespace_classes.get(namespace) {
-            Some(classes) => classes,
-            None => return (0, 0, 0, 0),
-        };
+    fn compute_all_metrics(&mut self) {
+        let mut ce_sets: HashMap<String, HashSet<String>> = HashMap::new();
+        let mut ca_sets: HashMap<String, HashSet<String>> = HashMap::new();
 
-        let abstract_count = self.abstract_classes.get(namespace).map_or(0, |s| s.len());
-        let total_count = our_classes.len();
-
-        // Ce: distinct external classes our classes depend on
-        let mut ce_types: HashSet<String> = HashSet::new();
-        for class_name in our_classes {
-            if let Some(deps) = self.class_dependencies.get(class_name) {
-                for dep in deps {
-                    let dep_ns = self.class_to_namespace.get(dep);
-                    if dep_ns.is_none_or(|ns| ns != namespace) {
-                        ce_types.insert(dep.clone());
+        for (class_name, deps) in &self.class_dependencies {
+            let Some(class_ns) = self.class_to_namespace.get(class_name) else {
+                continue;
+            };
+            for dep in deps {
+                match self.class_to_namespace.get(dep) {
+                    Some(dep_ns) if dep_ns != class_ns => {
+                        ce_sets
+                            .entry(class_ns.clone())
+                            .or_default()
+                            .insert(dep.clone());
+                        ca_sets
+                            .entry(dep_ns.clone())
+                            .or_default()
+                            .insert(class_name.clone());
+                    }
+                    Some(_) => {}
+                    None => {
+                        // External/unknown dependency counts toward efferent coupling only.
+                        ce_sets
+                            .entry(class_ns.clone())
+                            .or_default()
+                            .insert(dep.clone());
                     }
                 }
             }
         }
 
-        // Ca: distinct external classes that depend on our classes
-        let mut ca_types: HashSet<String> = HashSet::new();
-        for (class_name, deps) in &self.class_dependencies {
-            let class_ns = self.class_to_namespace.get(class_name);
-            if class_ns.is_some_and(|ns| ns == namespace) {
-                continue;
-            }
-            for dep in deps {
-                if our_classes.contains(dep) {
-                    ca_types.insert(class_name.clone());
-                }
-            }
-        }
-
-        (ca_types.len(), ce_types.len(), abstract_count, total_count)
-    }
-
-    fn compute_all_metrics(&mut self) {
         self.metrics = self
             .namespace_classes
-            .keys()
-            .map(|namespace| (namespace.clone(), self.compute_metrics(namespace)))
+            .iter()
+            .map(|(namespace, classes)| {
+                let abstract_count = self.abstract_classes.get(namespace).map_or(0, |s| s.len());
+                let total_count = classes.len();
+                let ce = ce_sets.get(namespace).map_or(0, |s| s.len());
+                let ca = ca_sets.get(namespace).map_or(0, |s| s.len());
+                (namespace.clone(), (ca, ce, abstract_count, total_count))
+            })
             .collect();
     }
 }
