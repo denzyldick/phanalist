@@ -19,6 +19,11 @@ pub struct Settings {
     pub timeout_ms: u64,
     pub unknown_policy: String,
     pub max_findings_per_function: usize,
+    /// Capture solver counterexamples so a regression test can be generated.
+    /// Enabled automatically when a test output directory is configured; not
+    /// user-configurable, so keep it out of serialized rule settings.
+    #[serde(skip)]
+    pub generate_tests: bool,
 }
 
 impl Default for Settings {
@@ -40,6 +45,7 @@ impl Default for Settings {
             timeout_ms: 1_000,
             unknown_policy: String::from("report"),
             max_findings_per_function: 50,
+            generate_tests: false,
         }
     }
 }

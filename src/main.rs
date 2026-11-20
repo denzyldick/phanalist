@@ -10,16 +10,21 @@ use indicatif::ProgressBar;
 
 use crate::analyse::Analyse;
 use crate::baseline::Baseline;
+use crate::config::{Config, ConfigLoadInfo};
 use crate::engineer::{BlameConfig, EngineerBlame};
+use crate::init::InitArgs;
 use crate::outputs::Format;
 
 mod analyse;
 mod baseline;
+mod callchain;
 mod config;
 mod debug_stats;
 mod engineer;
 mod file;
 mod fingerprint;
+mod generated_tests;
+mod init;
 mod lsp;
 mod outputs;
 mod paths;
@@ -34,16 +39,19 @@ mod verification;
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about=None)]
 struct Args {
-    #[arg(short, long, default_value = "./phanalist.yaml")]
+    #[command(subcommand)]
+    command: Option<Commands>,
+    #[arg(short, long, global = true, default_value = "./phanalist.yaml")]
     config: String,
-    #[arg(short, long, default_values_t = ["./src".to_string()])]
+    #[arg(short, long)]
+    /// Directories to scan (default: paths from config, otherwise ./src)
     src: Vec<String>,
     #[arg(short, long)]
     /// The list of rules to use (by default it is used from config)
     rules: Option<Vec<String>>,
-    #[arg(short, long, default_value = "text")]
-    /// Possible options: text, json, sarif, codeclimate
-    output_format: String,
+    #[arg(short, long)]
+    /// Possible options: text, json, sarif, codeclimate (default: config.output_format)
+    output_format: Option<String>,
     #[arg(long)]
     /// Output only summary
     summary_only: bool,
@@ -94,26 +102,73 @@ struct Args {
     /// Only report taint findings reachable from request input; hide
     /// parameter-derived leads (the deeper pass is on by default)
     taint_source_request: bool,
+    #[arg(long, value_name = "DIR")]
+    /// Generate PHPUnit regression tests from Z3 counterexamples in DIR
+    generate_tests: Option<String>,
     #[arg(long)]
     /// Start as a Language Server (LSP) for editor integrations
     lsp: bool,
+}
+
+#[derive(clap::Subcommand, Debug)]
+enum Commands {
+    /// Interactively configure phanalist for a project
+    Init(InitArgs),
 }
 
 fn main() {
     std::env::set_var("RUST_BACKTRACE", "1");
     let args = Args::parse();
 
-    let quiet = args.quiet || args.lsp;
-
-    let format = match outputs::Format::from_str(args.output_format.as_str()) {
-        Ok(format) => format,
-        Err(_) => {
-            println!("Invalid input format ({})", args.output_format.as_str());
+    if let Some(Commands::Init(init_args)) = &args.command {
+        if let Err(error) = init::run(init_args, Path::new(&args.config)) {
+            eprintln!("{error}");
             process::exit(exitcode::USAGE);
+        }
+        process::exit(exitcode::OK);
+    }
+
+    let quiet = args.quiet || args.lsp;
+    let config_path = Path::new(&args.config);
+    let (mut config, load_info) = match Config::load_or_create(config_path) {
+        Ok(loaded) => loaded,
+        Err(error) => {
+            eprintln!("Failed to read configuration {}: {error}", args.config);
+            process::exit(exitcode::DATAERR);
         }
     };
 
-    let mut config = Analyse::parse_config(args.config.clone(), &format, quiet);
+    if !quiet && config_path.is_file() && args.output_format.is_none() {
+        println!("Using configuration file {}", args.config.bold());
+    }
+    match &load_info {
+        ConfigLoadInfo::CreatedDefault => {
+            if !quiet {
+                println!(
+                    "The new {} configuration file as been created",
+                    args.config.bold()
+                );
+            }
+        }
+        ConfigLoadInfo::InvalidYaml(error) => {
+            if !quiet {
+                println!("Unable to use the config: {error}. Ignoring it.");
+            }
+        }
+        ConfigLoadInfo::Loaded => {}
+    }
+
+    let format = match args.output_format.as_deref() {
+        Some(value) => match Format::from_str(value) {
+            Ok(format) => format,
+            Err(_) => {
+                println!("Invalid input format ({value})");
+                process::exit(exitcode::USAGE);
+            }
+        },
+        None => config.output_format.clone(),
+    };
+
     if args.taint_source_request {
         config.taint_source_all = false;
     }
@@ -121,7 +176,15 @@ fn main() {
         config.enabled_rules = rules;
     }
 
+    if let Some(directory) = args.generate_tests.clone() {
+        let mut generation = config.test_generation.clone().unwrap_or_default();
+        generation.output_dir = directory;
+        config.test_generation = Some(generation);
+    }
+
     if args.lsp {
+        // The LSP has no place to write generated test files.
+        config.test_generation = None;
         match lsp::run_server(&config) {
             Ok(()) => process::exit(exitcode::OK),
             Err(err) => {
@@ -131,24 +194,41 @@ fn main() {
         }
     }
 
-    let paths = args.src;
+    let paths = if args.src.is_empty() {
+        config.paths.clone()
+    } else {
+        args.src.clone()
+    };
+    if paths.is_empty() {
+        eprintln!(
+            "No scan paths configured; pass --src or set paths in {}",
+            args.config
+        );
+        process::exit(exitcode::USAGE);
+    }
     for path in paths.iter() {
-        if !Path::new(&path).exists() {
+        if !Path::new(path).exists() {
             eprintln!("Path {} does not exist", path);
             process::exit(exitcode::IOERR);
         }
     }
 
+    let baseline_path = args
+        .use_baseline
+        .clone()
+        .or_else(|| config.baseline_path.clone());
+    let summary_only = args.summary_only || config.summary_only;
+
     let mut analyze = Analyse::new(&config);
     analyze.prepare_project(&paths, &config, args.verbose, None);
 
-    if args.update_baseline && args.use_baseline.is_none() {
-        eprintln!("--update-baseline requires --use-baseline <path>");
+    if args.update_baseline && baseline_path.is_none() {
+        eprintln!("--update-baseline requires --use-baseline <path> or baseline_path in config");
         process::exit(exitcode::USAGE);
     }
 
     // In filter mode (use-baseline without update) load the baseline up front.
-    let baseline = match (&args.use_baseline, args.update_baseline) {
+    let baseline = match (&baseline_path, args.update_baseline) {
         (Some(path), false) => match Baseline::load(Path::new(path)) {
             Ok(b) => Some(b),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
@@ -201,12 +281,38 @@ fn main() {
             baseline.filter(&mut results);
         }
 
+        if let Some(ref generation) = config.test_generation {
+            match generated_tests::write_generated_tests(
+                &mut results,
+                Path::new(&generation.output_dir),
+            ) {
+                Ok(summary) => {
+                    if !quiet {
+                        println!(
+                            "Generated {} regression tests in {}.",
+                            summary.written, generation.output_dir
+                        );
+                        if summary.composer_updated {
+                            println!("Added the phanalist-tests Composer script.");
+                        }
+                        if summary.phpunit_updated {
+                            println!("Added the generated tests to the PHPUnit configuration.");
+                        }
+                    }
+                }
+                Err(error) => {
+                    eprintln!("Failed to write generated tests: {error}");
+                    process::exit(exitcode::SOFTWARE);
+                }
+            }
+        }
+
         // Compute the exit status before `output()`: summary-only mode clears
         // `results.files` after printing, which would hide taint tiers here.
         has_violations = has_violations || results.has_blocking_violations();
 
         if !quiet && !args.blame {
-            analyze.output(&mut results, format.clone(), args.summary_only);
+            analyze.output(&mut results, format.clone(), summary_only);
         }
 
         if collect_rule_metrics && format == Format::text {
@@ -243,7 +349,7 @@ fn main() {
     }
 
     if args.update_baseline {
-        let path = args.use_baseline.expect("validated above");
+        let path = baseline_path.expect("validated above");
         let baseline = Baseline::from_results(&aggregate);
         let path_clone = path.clone();
         match baseline.save(&std::path::PathBuf::from(path_clone)) {

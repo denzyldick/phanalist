@@ -34,6 +34,24 @@ pub enum Format {
     codeclimate,
 }
 
+impl Default for Format {
+    fn default() -> Self {
+        Format::text
+    }
+}
+
+impl Format {
+    /// Stable spelling used by CLI flags and configuration files.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Format::text => "text",
+            Format::json => "json",
+            Format::sarif => "sarif",
+            Format::codeclimate => "codeclimate",
+        }
+    }
+}
+
 impl FromStr for Format {
     type Err = ();
 

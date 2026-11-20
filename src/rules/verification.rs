@@ -51,6 +51,9 @@ impl crate::rules::Rule for Rule {
         if let Some(rule_config) = config.rules.get(&code) {
             self.set_config(rule_config);
         }
+        if config.test_generation.is_some() {
+            self.settings.generate_tests = true;
+        }
     }
 
     fn validate(
@@ -121,5 +124,21 @@ mod tests {
         );
 
         assert_eq!(rule.settings.timeout_ms, 1234);
+    }
+
+    #[test]
+    fn global_test_generation_enables_witness_capture() {
+        let mut config = Config {
+            enabled_rules: vec![],
+            disable_rules: vec![],
+            rules: serde_json::Map::new().into_iter().collect(),
+            ..Default::default()
+        };
+        config.test_generation = Some(crate::config::TestGenerationConfig::default());
+
+        let mut rule = Rule::new(FindingClass::Division);
+        rule.read_config(&config);
+
+        assert!(rule.verification_settings().unwrap().generate_tests);
     }
 }
