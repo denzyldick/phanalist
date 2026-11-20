@@ -62,6 +62,14 @@ impl Text {
                         line_symbol,
                         suggestion.line
                     );
+                    if !suggestion.call_chain.is_empty() {
+                        println!(
+                            "  {}\t{} {}",
+                            "call chain".cyan().bold(),
+                            line_symbol,
+                            suggestion.call_chain.join(" → ").bold()
+                        );
+                    }
                 }
                 println!()
             }

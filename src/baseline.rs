@@ -164,7 +164,9 @@ mod tests {
             end_line: 0,
             end_column: 0,
             taint_source: None,
+            call_chain: Vec::new(),
             meta: Default::default(),
+            generated_test: None,
         }
     }
 
