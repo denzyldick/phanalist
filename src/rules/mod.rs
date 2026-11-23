@@ -941,12 +941,22 @@ mod tests {
                 .remove(code)
                 .unwrap_or_else(|| panic!("missing {code}"));
             let doc = rule.get_detailed_explanation().unwrap();
-            let has_plain_english = doc.contains("**In plain English:**") || doc.contains("## Why it matters");
-            assert!(has_plain_english, "{code} documentation is missing **In plain English:** or ## Why it matters");
+            let has_plain_english =
+                doc.contains("**In plain English:**") || doc.contains("## Why it matters");
+            assert!(
+                has_plain_english,
+                "{code} documentation is missing **In plain English:** or ## Why it matters"
+            );
             let has_bad = doc.contains("## Bad") || doc.contains("## Bad example");
-            assert!(has_bad, "{code} documentation is missing ## Bad or ## Bad example");
+            assert!(
+                has_bad,
+                "{code} documentation is missing ## Bad or ## Bad example"
+            );
             let has_good = doc.contains("## Good") || doc.contains("## Good example");
-            assert!(has_good, "{code} documentation is missing ## Good or ## Good example");
+            assert!(
+                has_good,
+                "{code} documentation is missing ## Good or ## Good example"
+            );
             for section in [
                 "## What it checks",
                 "## When it does not report",
@@ -954,7 +964,9 @@ mod tests {
                 "## Configuration",
             ] {
                 assert!(
-                    doc.contains(section) || (section == "## What it checks" && doc.contains("## What the rule checks")),
+                    doc.contains(section)
+                        || (section == "## What it checks"
+                            && doc.contains("## What the rule checks")),
                     "{code} documentation is missing {section}"
                 );
             }
