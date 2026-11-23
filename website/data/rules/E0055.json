@@ -1,12 +1,12 @@
 {
   "rule_code": "E0055",
   "title": "E0055: Dynamic include or require",
-  "plain_english": "",
-  "why_matters": "",
+  "plain_english": "`include`, `require`, `include_once`, and `require_once` load the file path they are given. When that path is built from runtime data, it can be difficult to know which files will be loaded and, if untrusted input is involved, may allow unexpected file inclusion.",
+  "why_matters": "Dynamic include paths can make code harder to audit, expose local files, or load attacker-controlled code depending on how the path is constructed.",
   "bad_example": "include $_GET['page'];\ninclude $base . '/bootstrap.php';",
   "good_example": "switch ($page) {\n    case 'home':\n        include __DIR__ . '/pages/home.php';\n        break;\n\n    case 'about':\n        include __DIR__ . '/pages/about.php';\n        break;\n\n    default:\n        http_response_code(404);\n}",
-  "severity": "major",
-  "category": "taint",
+  "severity": "critical",
+  "category": "security",
   "what_it_checks": [
     "A path that is a variable, property access, array access, or function call",
     "A concatenation where any part is dynamic",

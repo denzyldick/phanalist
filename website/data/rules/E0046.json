@@ -1,13 +1,22 @@
 {
   "rule_code": "E0046",
   "title": "E0046: Input-Controlled Cardinality",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "",
-  "good_example": "",
+  "plain_english": "This rule reports request-controlled values that reach loops, allocation sinks, or callees without a bound. Cardinality is separate from taint: a value may be tainted without controlling collection size, and an input-controlled collection may contain ordinary strings.",
+  "why_matters": "When user input controls how many times code loops or how much memory is allocated, a large or unexpected value can cause excessive CPU use, memory growth, or denial of service. Adding an explicit bound or validation step makes the cost predictable.",
+  "bad_example": "<?php\nfunction loadAll(PDO $db): array\n{\n    return $db->query('SELECT * FROM users')->fetchAll(); // unbounded\n}",
+  "good_example": "<?php\nfunction loadPage(PDO $db, int $limit, int $offset): array\n{\n    $stmt = $db->prepare('SELECT * FROM users LIMIT ? OFFSET ?');\n    $stmt->execute([$limit, $offset]);\n    return $stmt->fetchAll();\n}",
   "severity": "major",
   "category": "resource",
   "what_it_checks": [
-    "Checks for E0046 violations"
+    "Superglobals `$_GET`, `$_POST`, `$_REQUEST`, `$_COOKIE`, and `$_FILES`",
+    "Request-relevant `$_SERVER` keys such as `HTTP_*`, `REQUEST_*`, `PHP_AUTH_*`, `QUERY_STRING`, and `PATH_INFO`; iterating the whole `$_SERVER` array is treated as server metadata",
+    "`$argv` when `include_cli_input` is enabled",
+    "Results of `filter_input()`, `apache_request_headers()`, and `getallheaders()`",
+    "`readline()` when `include_cli_input` is enabled",
+    "`file_get_contents('php://input')`",
+    "Heuristic request accessors named `input`, `query`, `post`, `get`, `all`, `json`, `file`, `cookie`, `header`, or `param`",
+    "Request-controlled values used as loop bounds",
+    "Request-controlled values passed to allocation sinks such as `str_repeat()`, `range()`, `array_fill()`, `array_pad()`, `str_split()`, `explode()`, and `preg_split()`",
+    "Request-controlled arguments passed to local functions or methods whose resource summary iterates or allocates in proportion to that argument"
   ]
 }

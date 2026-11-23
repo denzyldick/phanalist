@@ -1,0 +1,35 @@
+{
+  "root": true,
+  "env": {
+    "browser": true,
+    "es2022": true,
+    "node": true
+  },
+  "extends": [
+    "eslint:recommended"
+  ],
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "module"
+  },
+  "plugins": ["html"],
+  "rules": {
+    "no-console": "warn",
+    "no-unused-vars": "warn",
+    "no-var": "error",
+    "prefer-const": "error",
+    "no-await-in-loop": "off",
+    "no-plusplus": "off",
+    "no-restricted-syntax": "off",
+    "html/no-missing-doctype": "warn",
+    "html/require-lang": "warn",
+    "html/require-title": "warn"
+  },
+  "overrides": [
+    {
+      "files": ["*.html"],
+      "processor": "html/html"
+    }
+  ],
+  "ignorePatterns": ["node_modules/", "dist/", "public/"]
+}

@@ -1,15 +1,15 @@
 {
   "rule_code": "E0108",
-  "title": "E0108: Dynamic instantiation",
-  "plain_english": "",
-  "why_matters": "",
+  "title": "E0108: Dynamic Instantiation",
+  "plain_english": "Instantiating a class using a name that comes from user input can allow an attacker to instantiate any autoloadable class, potentially leading to object injection.",
+  "why_matters": "Combined with gadget chains, dynamic class instantiation can: - Instantiate any autoloadable class - Trigger object injection via magic methods - Lead to remote code execution",
   "bad_example": "$class = $_GET['class'] ?? '';\n$obj = new $class();",
   "good_example": "$class = $_GET['class'] ?? '';\n$allowed = ['User', 'Product', 'Order'];\nif (!in_array($class, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\n$obj = new $class();",
-  "severity": "info",
-  "category": "general",
+  "severity": "major",
+  "category": "security",
   "what_it_checks": [
     "`new $class()` where `$class` comes from superglobal array access",
-    "`ReflectionClass::newInstanceArgs()` with tainted class name",
+    "`ReflectionClass::newInstanceArgs()` with a tainted class name",
     "`class_exists()` followed by instantiation of user-controlled class names"
   ]
 }

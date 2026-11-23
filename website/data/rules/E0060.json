@@ -1,14 +1,15 @@
 {
   "rule_code": "E0060",
   "title": "E0060: SQL injection",
-  "plain_english": "",
-  "why_matters": "",
+  "plain_english": "This rule reports SQL query calls where user-controlled input is included in the query string. An attacker may be able to change the meaning of the query by supplying crafted input.",
+  "why_matters": "SQL injection can expose, modify, or delete data, bypass authentication, or lead to broader system compromise depending on database permissions and application behavior.",
   "bad_example": "$id = $_GET['id'] ?? '';\n$result = mysqli_query($conn, \"SELECT * FROM users WHERE id = $id\");",
   "good_example": "$id = $_GET['id'] ?? '';\n$stmt = $pdo->prepare(\"SELECT * FROM users WHERE id = ?\");\n$stmt->execute([$id]);\n$user = $stmt->fetch();",
-  "severity": "major",
-  "category": "taint",
+  "severity": "critical",
+  "category": "security",
   "what_it_checks": [
-    "`mysqli_query()`, `mysqli::query()`, `pg_query()`, `pg_exec()`, `PDO::query()`, `PDO::exec()` calls",
-    "Where user input (`$_GET`, `$_POST`, `$_REQUEST`, `$_COOKIE`, etc.) is concatenated directly into the SQL string"
+    "SQL execution calls such as `mysqli_query()`, `mysqli_real_query()`, `mysqli_multi_query()`, `mysql_query()`, `pg_query()`, `pg_exec()`, `pg_send_query()`, `sqlite_query()`, and `sqlite_exec()`",
+    "Method calls named `query`, `exec`, `real_query`, or `multi_query`",
+    "Cases where user-controlled input reaches the SQL argument, based on taint analysis and dynamic-expression heuristics"
   ]
 }

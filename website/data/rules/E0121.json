@@ -1,12 +1,12 @@
 {
   "rule_code": "E0121",
   "title": "E0121: Assert with user-controlled string",
-  "plain_english": "",
-  "why_matters": "",
+  "plain_english": "Calling `assert()` with a string argument that contains user-controlled input can lead to code execution. In older PHP versions, string arguments to `assert()` are evaluated as PHP code.",
+  "why_matters": "`assert()` with a string argument can act as a code execution sink: - An attacker may be able to execute arbitrary PHP code - It can lead to full server compromise - String arguments to `assert()` were deprecated in PHP 7.2 and removed in PHP 8.0",
   "bad_example": "$condition = $_GET['condition'] ?? '';\nassert(\"$condition\");\n// ?condition=phpinfo() would execute phpinfo()",
   "good_example": "// Use assert() only with boolean expressions, never strings\n$condition = filter_var($_GET['condition'] ?? '', FILTER_VALIDATE_BOOLEAN);\nassert($condition === true);\n\n// Or validate and branch explicitly\n$action = $_GET['action'] ?? '';\n$allowed = ['enable', 'disable'];\nif (!in_array($action, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}",
-  "severity": "info",
-  "category": "general",
+  "severity": "critical",
+  "category": "security",
   "what_it_checks": [
     "`assert()` calls where the argument is a string containing tainted input",
     "String concatenation inside `assert()` with user-controlled variables"

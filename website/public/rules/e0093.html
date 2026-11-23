@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E0093: Template Injection | Phanalist</title>
+  <meta name="description" content="Rendering user-controlled input directly as a template source (Twig, Smarty, Blade, etc.) without validation can allow an attacker to inject template expression" />
+  <link rel="canonical" href="https://phanalist.io/rules/e0093.html" />
+  <meta property="og:title" content="E0093: Template Injection | Phanalist" />
+  <meta property="og:description" content="Rendering user-controlled input directly as a template source (Twig, Smarty, Blade, etc.) without validation can allow an attacker to inject template expressions that execute code on the server." />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://phanalist.io/rules/e0093.html" />
+  <style>
+    :root { --bg:#0a0a0f; --card:#161620; --subtle:#12121a; --fg:#e8e8f0; --muted:#8f8fa3; --accent:#00d4aa; --border:#2a2a3a; }
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--fg);line-height:1.7}
+    .wrap{max-width:980px;margin:0 auto;padding:32px 20px 72px}
+    a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+    .crumbs{font-size:14px;color:var(--muted);margin-bottom:18px}
+    .badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+    .badge{display:inline-flex;padding:4px 10px;border:1px solid var(--border);border-radius:999px;font-size:12px;color:var(--muted);background:var(--subtle)}
+    h1{font-size:clamp(28px,5vw,44px);line-height:1.15;margin:0 0 12px;letter-spacing:-.02em}
+    .lead{font-size:18px;color:#cfcfda;max-width:78ch;margin:0 0 20px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 28px}
+    .btn{display:inline-flex;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--subtle);color:var(--fg);font-weight:600}
+    .btn-primary{background:linear-gradient(135deg,var(--accent),#0066ff);color:#081018;border:none}
+    .content{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px}
+    .content > :first-child{margin-top:0} .content > :last-child{margin-bottom:0}
+    .content h2{margin-top:32px;font-size:24px;line-height:1.25}
+    .content h3{margin-top:24px;font-size:19px;line-height:1.3}
+    .content p,.content li{color:#d9d9e3}
+    .content ul,.content ol{padding-left:24px}
+    .content pre{margin:16px 0;background:#0d0d15;border:1px solid var(--border);border-radius:10px;padding:16px;overflow:auto}
+    .content code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.94em}
+    .content p code,.content li code{background:#0d0d15;border:1px solid var(--border);padding:.12em .35em;border-radius:5px}
+    .content pre code{background:none;border:none;padding:0;font-size:13px;line-height:1.55}
+    .content blockquote{margin:16px 0;padding:0 0 0 16px;border-left:3px solid var(--accent);color:#cfcfda}
+    .content table{width:100%;border-collapse:collapse;margin:16px 0}
+    .content th,.content td{border:1px solid var(--border);padding:10px;text-align:left;vertical-align:top}
+    .content th{background:var(--subtle)}
+  </style>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"E0093: Template Injection","description":"Rendering user-controlled input directly as a template source (Twig, Smarty, Blade, etc.) without validation can allow an attacker to inject template expressions that execute code on the server.","url":"https://phanalist.io/rules/e0093.html"}</script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="crumbs"><a href="/">Phanalist</a> / <a href="/#rules">Rules</a> / E0093</div>
+    <div class="badges">
+      <span class="badge">E0093</span>
+      <span class="badge">security</span>
+      <span class="badge">critical</span>
+    </div>
+    <h1>Template Injection</h1>
+    <p class="lead">Rendering user-controlled input directly as a template source (Twig, Smarty, Blade, etc.) without validation can allow an attacker to inject template expressions that execute code on the server.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="/?rule=E0093#playground">Try in Playground</a>
+      <a class="btn" href="/#rules">All rules</a>
+      <a class="btn" href="https://github.com/denzyldick/phanalist">GitHub</a>
+    </div>
+    <article class="content">
+      <p>Rendering user-controlled input directly as a template source (Twig, Smarty, Blade, etc.) without validation can allow an attacker to inject template expressions that execute code on the server.</p>
+<h2>Why it matters</h2>
+<p>Server-side template injection (SSTI) can lead to:</p>
+<ul>
+<li>Remote code execution</li>
+<li>Reading sensitive files (for example <code>/etc/passwd</code>)</li>
+<li>Full server compromise</li>
+</ul>
+<h2>Bad example</h2>
+<pre><code class="language-php">$template = $_GET[&#39;template&#39;] ?? &#39;&#39;;
+echo $twig-&gt;render($template, [&#39;name&#39; =&gt; $user-&gt;name]);
+</code></pre>
+<p>An attacker can send <code>?template={{7*7}}</code> or other template expressions to execute code.</p>
+<h2>Good example</h2>
+<pre><code class="language-php">$template = $_GET[&#39;template&#39;] ?? &#39;&#39;;
+$allowed = [&#39;welcome&#39;, &#39;goodbye&#39;, &#39;reminder&#39;];
+if (!in_array($template, $allowed, true)) {
+    $template = &#39;welcome&#39;;
+}
+echo $twig-&gt;render($template, [&#39;name&#39; =&gt; $user-&gt;name]);
+</code></pre>
+<h2>What it checks</h2>
+<ul>
+<li><code>Twig::render()</code>, <code>$twig-&gt;render()</code>, <code>$smarty-&gt;display()</code>, <code>$blade-&gt;render()</code>, and similar calls with tainted template names or sources</li>
+<li>Template engines rendering user-controlled strings as template source</li>
+</ul>
+<h2>When it does not report</h2>
+<ul>
+<li>Allowlist validation on template names is recognized</li>
+<li>Template file contents are not analyzed for inline expression injection</li>
+<li>JavaScript template engines (Vue, React) are not covered; those are client-side</li>
+</ul>
+<h2>How to fix</h2>
+<ol>
+<li>Use an allowlist of permitted template names.</li>
+<li>Never pass user input as the template source.</li>
+<li>Use template engine sandbox modes when they are available.</li>
+</ol>
+<h2>Configuration</h2>
+<p>E0093 is enabled by default.</p>
+<pre><code class="language-yaml">rules:
+  E0093:
+    template_engines:
+      - twig
+      - smarty
+      - blade
+      - latte
+    render_methods:
+      - render
+      - display
+      - fetch
+      - make
+</code></pre>
+
+    </article>
+  </div>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "rule_code": "E0065",
+  "title": "E0065: NoSQL injection",
+  "plain_english": "This rule reports NoSQL query calls where user-controlled input reaches the query argument. In NoSQL systems, attacker-controlled operators or structures can change query behavior.",
+  "why_matters": "NoSQL injection can bypass authentication, expose unintended records, or modify or delete data depending on the query and database permissions.",
+  "bad_example": "$username = $_GET['user'] ?? '';\n$collection->findOne(['username' => $username]);",
+  "good_example": "$username = (string)($_GET['user'] ?? '');\n$collection->findOne(['username' => $username]);",
+  "severity": "critical",
+  "category": "security",
+  "what_it_checks": [
+    "MongoDB/PHPLIB-style method calls such as `insertOne`, `insertMany`, `updateOne`, `updateMany`, `replaceOne`, `deleteOne`, `deleteMany`, `findOne`, `find`, `aggregate`, `countDocuments`, `distinct`, and `createClient`",
+    "Functions such as `mongo_insert`, `mongo_update`, and `mongo_find`",
+    "Cases where user-controlled input reaches these calls, based on taint analysis and dynamic-expression heuristics"
+  ]
+}

@@ -1,15 +1,15 @@
 {
   "rule_code": "E0012",
-  "title": "E0012: Service compatibility with Shared Memory Model",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "namespace App\\Service;\n\nclass UserService {\n    private string $currentUser;\n\n    public function handleRequest(Request $request): void {\n        // Mutating $this state in a long-running worker!\n        $this->currentUser = $request->get('user'); \n        $this->process();\n    }\n}",
-  "good_example": "namespace App\\Service;\n\nclass UserService {\n    // Pass state as method parameters instead of storing in $this\n    public function handleRequest(Request $request): void {\n        $user = $request->get('user');\n        $this->process($user);\n    }\n}",
-  "severity": "info",
-  "category": "general",
+  "title": "E0012: Service compatibility with shared-memory runtimes",
+  "plain_english": "In long-running PHP runtimes such as RoadRunner, Swoole, or FrankenPHP, service instances can remain in memory across multiple requests. This rule checks for service state mutations that can leak data between requests.",
+  "why_matters": "Traditional PHP-FPM typically discards request memory after each request. In long-running worker runtimes, the same service instance may handle many requests. If request-specific data is stored on `$this` or in static properties, that state can leak into later requests, causing data corruption or security issues.",
+  "bad_example": "namespace App\\Service;\n\nclass UserService {\n    private string $currentUser;\n\n    public function handleRequest(Request $request): void {\n        // Mutating $this state in a long-running worker.\n        $this->currentUser = $request->get('user');\n        $this->process();\n    }\n}",
+  "good_example": "namespace App\\Service;\n\nclass UserService {\n    // Pass request-specific state as method parameters instead of storing it on $this.\n    public function handleRequest(Request $request): void {\n        $user = $request->get('user');\n        $this->process($user);\n    }\n}",
+  "severity": "minor",
+  "category": "code-health",
   "what_it_checks": [
-    "Scans classes in configured namespaces (`App\\Service\\`, `App\\Controller\\`).",
-    "Detects assignments to `$this->property` or static properties (`self::$prop`) inside methods (excluding constructors).",
-    "Allows classes that implement a reset interface (e.g., `ResetInterface`) designed to clear state between requests."
+    "Classes in configured namespaces (by default `App\\Service\\` and `App\\Controller\\`).",
+    "Assignments to `$this->property` or static properties such as `self::$prop` inside methods, excluding constructors.",
+    "Classes that implement a configured reset interface (for example, `ResetInterface`) are allowed."
   ]
 }

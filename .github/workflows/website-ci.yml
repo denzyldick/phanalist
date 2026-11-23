@@ -1,0 +1,55 @@
+name: Website CI
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'website/**'
+      - '.github/workflows/website-ci.yml'
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'website/**'
+      - '.github/workflows/website-ci.yml'
+
+jobs:
+  lint-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: website/package-lock.json
+
+      - name: Install dependencies
+        working-directory: website
+        run: npm ci
+
+      - name: Check formatting (Prettier)
+        working-directory: website
+        run: npm run format:check
+
+      - name: Lint (ESLint)
+        working-directory: website
+        run: npm run lint
+
+      - name: Lint HTML (HTMLHint)
+        working-directory: website
+        run: npm run htmlhint
+
+      - name: Build (Vite)
+        working-directory: website
+        run: npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: website-dist
+          path: website/dist/
+          retention-days: 7
+
+

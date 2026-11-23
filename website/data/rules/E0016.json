@@ -1,12 +1,12 @@
 {
   "rule_code": "E0016",
   "title": "E0016: Cognitive complexity",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "",
-  "good_example": "",
-  "severity": "info",
-  "category": "general",
+  "plain_english": "Cognitive complexity estimates how difficult code is to understand by accounting for control flow, nesting, and logical operators.",
+  "why_matters": "Code that is deeply nested or contains many branching conditions takes more effort to read and maintain. Reducing cognitive complexity usually makes behavior easier to follow and safer to modify.",
+  "bad_example": "public function checkAccess($user, $job) {\n    if ($user->isLoggedIn()) {          // +1\n        if ($user->hasPermission()) {   // +2 (nested)\n            if ($job->isActive()) {     // +3 (deeply nested)\n                return true;\n            }\n        }\n    }\n    return false;\n}",
+  "good_example": "public function checkAccess($user, $job) {\n    if (!$user->isLoggedIn()) return false;    // +1\n    if (!$user->hasPermission()) return false; // +1 (not nested)\n    if (!$job->isActive()) return false;       // +1 (not nested)\n\n    return true;\n}",
+  "severity": "minor",
+  "category": "code-health",
   "what_it_checks": [
     "Checks for E0016 violations"
   ]

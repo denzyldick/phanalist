@@ -1,13 +1,16 @@
 {
   "rule_code": "E0018",
   "title": "E0018: Weighted Methods per Class (WMC)",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "",
-  "good_example": "",
-  "severity": "info",
-  "category": "general",
+  "plain_english": "Weighted Methods per Class (WMC) measures the total complexity of a class by summing the cyclomatic complexity of its methods.",
+  "why_matters": "Even if individual methods are manageable, a class can still be difficult to maintain when it contains too much total complexity. A high WMC score often indicates that a class has too many responsibilities.",
+  "bad_example": "class ReportGenerator {\n    public function parseData(): void {\n        // ... many branches and loops ...\n    }\n\n    public function validateData(): void {\n        // ... many branches and loops ...\n    }\n\n    public function transformData(): void {\n        // ... many branches and loops ...\n    }\n\n    public function exportData(): void {\n        // ... many branches and loops ...\n    }\n    // Total WMC may exceed the configured limit.\n}",
+  "good_example": "class ReportGenerator {\n    public function __construct(\n        private DataParser $parser,\n        private DataValidator $validator,\n        private DataTransformer $transformer,\n        private DataExporter $exporter\n    ) {}\n\n    public function generate(): void {\n        $data = $this->parser->parse();\n        $this->validator->validate($data);\n        $transformed = $this->transformer->transform($data);\n        $this->exporter->export($transformed);\n    }\n}",
+  "severity": "minor",
+  "category": "code-health",
   "what_it_checks": [
-    "Checks for E0018 violations"
+    "Method A: 5",
+    "Method B: 2",
+    "Method C: 15",
+    "Total WMC: 22"
   ]
 }

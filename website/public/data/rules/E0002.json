@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0002",
+  "title": "E0002: Empty catch",
+  "plain_english": "A `catch` block should not be left empty. Caught exceptions should be handled, logged, or rethrown.",
+  "why_matters": "Catching an exception and doing nothing with it hides failures such as bugs, failed database queries, or invalid input. When something goes wrong, the application may fail silently or behave unpredictably without leaving useful trace information.",
+  "bad_example": "try {\n    $this->saveUser($data);\n} catch (Exception $e) {\n    // Empty catch block: the error is swallowed silently.\n}",
+  "good_example": "try {\n    $this->saveUser($data);\n} catch (DatabaseException $e) {\n    // Log the error and rethrow or handle it appropriately.\n    Log::error(\"Failed to save user: \" . $e->getMessage());\n    throw new UserSaveFailedException(\"Could not save user.\", 0, $e);\n}",
+  "severity": "minor",
+  "category": "code-health",
+  "what_it_checks": [
+    "`try...catch` blocks where the catch body contains no statements."
+  ]
+}

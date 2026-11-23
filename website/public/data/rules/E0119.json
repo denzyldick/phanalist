@@ -1,0 +1,15 @@
+{
+  "rule_code": "E0119",
+  "title": "E0119: Session cookie without Secure flag",
+  "plain_english": "Session cookies configured without the `Secure` flag can be sent over unencrypted HTTP connections, increasing the risk of interception.",
+  "why_matters": "Without the `Secure` flag on session cookies: - Session IDs can be exposed through network sniffing - Attackers on the same network may be able to hijack sessions - Authentication is more vulnerable to man-in-the-middle attacks",
+  "bad_example": "session_set_cookie_params([\n    'secure' => false,    // sent over HTTP\n    'httponly' => true,\n]);\nsession_start();",
+  "good_example": "session_set_cookie_params([\n    'secure' => true,     // HTTPS only\n    'httponly' => true,   // not accessible via JavaScript\n    'samesite' => 'Lax',\n]);\nsession_start();",
+  "severity": "minor",
+  "category": "security",
+  "what_it_checks": [
+    "`session_set_cookie_params()` with `secure => false`, or where `secure` is not set",
+    "`ini_set('session.cookie_secure', '0')`, or cases where it is not set",
+    "Session cookies created without the `Secure` attribute"
+  ]
+}

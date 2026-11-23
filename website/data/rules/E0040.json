@@ -1,13 +1,18 @@
 {
   "rule_code": "E0040",
   "title": "E0040: Return Contract Violation",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "",
-  "good_example": "",
-  "severity": "info",
-  "category": "general",
+  "plain_english": "Reports return values that contradict a declared return contract.",
+  "why_matters": "A return value that violates a native type or PHPDoc `@return` contract can cause runtime type errors or break callers that rely on the documented contract. This rule uses Phanalist's bounded formal verification engine (Z3-backed) to detect feasible violating paths.",
+  "bad_example": "<?php\n/** @return int */\nfunction countItems(array $items): int\n{\n    return $items; // wrong return type\n}",
+  "good_example": "<?php\n/** @return int */\nfunction countItems(array $items): int\n{\n    return count($items);\n}",
+  "severity": "major",
+  "category": "verification",
   "what_it_checks": [
-    "Checks for E0040 violations"
+    "Native return types and PHPDoc `@return` contracts",
+    "Missing return values on paths that must return a value",
+    "`never` contracts that make following code unreachable",
+    "Strict and weak PHP return coercion rules",
+    "Numeric, string, list, non-empty, and shaped array contracts",
+    "Generator returns are not checked against the generator return type"
   ]
 }

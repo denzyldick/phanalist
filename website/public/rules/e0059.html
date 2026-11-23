@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E0059: Dynamic eval or assert | Phanalist</title>
+  <meta name="description" content="`eval()` executes a string as PHP code. A string-based `assert()` can also execute code. If any part of that code comes from untrusted input, it can lead to cod" />
+  <link rel="canonical" href="https://phanalist.io/rules/e0059.html" />
+  <meta property="og:title" content="E0059: Dynamic eval or assert | Phanalist" />
+  <meta property="og:description" content="`eval()` executes a string as PHP code. A string-based `assert()` can also execute code. If any part of that code comes from untrusted input, it can lead to code execution." />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://phanalist.io/rules/e0059.html" />
+  <style>
+    :root { --bg:#0a0a0f; --card:#161620; --subtle:#12121a; --fg:#e8e8f0; --muted:#8f8fa3; --accent:#00d4aa; --border:#2a2a3a; }
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--fg);line-height:1.7}
+    .wrap{max-width:980px;margin:0 auto;padding:32px 20px 72px}
+    a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+    .crumbs{font-size:14px;color:var(--muted);margin-bottom:18px}
+    .badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+    .badge{display:inline-flex;padding:4px 10px;border:1px solid var(--border);border-radius:999px;font-size:12px;color:var(--muted);background:var(--subtle)}
+    h1{font-size:clamp(28px,5vw,44px);line-height:1.15;margin:0 0 12px;letter-spacing:-.02em}
+    .lead{font-size:18px;color:#cfcfda;max-width:78ch;margin:0 0 20px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 28px}
+    .btn{display:inline-flex;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--subtle);color:var(--fg);font-weight:600}
+    .btn-primary{background:linear-gradient(135deg,var(--accent),#0066ff);color:#081018;border:none}
+    .content{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px}
+    .content > :first-child{margin-top:0} .content > :last-child{margin-bottom:0}
+    .content h2{margin-top:32px;font-size:24px;line-height:1.25}
+    .content h3{margin-top:24px;font-size:19px;line-height:1.3}
+    .content p,.content li{color:#d9d9e3}
+    .content ul,.content ol{padding-left:24px}
+    .content pre{margin:16px 0;background:#0d0d15;border:1px solid var(--border);border-radius:10px;padding:16px;overflow:auto}
+    .content code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.94em}
+    .content p code,.content li code{background:#0d0d15;border:1px solid var(--border);padding:.12em .35em;border-radius:5px}
+    .content pre code{background:none;border:none;padding:0;font-size:13px;line-height:1.55}
+    .content blockquote{margin:16px 0;padding:0 0 0 16px;border-left:3px solid var(--accent);color:#cfcfda}
+    .content table{width:100%;border-collapse:collapse;margin:16px 0}
+    .content th,.content td{border:1px solid var(--border);padding:10px;text-align:left;vertical-align:top}
+    .content th{background:var(--subtle)}
+  </style>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"E0059: Dynamic eval or assert","description":"`eval()` executes a string as PHP code. A string-based `assert()` can also execute code. If any part of that code comes from untrusted input, it can lead to code execution.","url":"https://phanalist.io/rules/e0059.html"}</script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="crumbs"><a href="/">Phanalist</a> / <a href="/#rules">Rules</a> / E0059</div>
+    <div class="badges">
+      <span class="badge">E0059</span>
+      <span class="badge">security</span>
+      <span class="badge">critical</span>
+    </div>
+    <h1>Dynamic eval or assert</h1>
+    <p class="lead">`eval()` executes a string as PHP code. A string-based `assert()` can also execute code. If any part of that code comes from untrusted input, it can lead to code execution.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="/?rule=E0059#playground">Try in Playground</a>
+      <a class="btn" href="/#rules">All rules</a>
+      <a class="btn" href="https://github.com/denzyldick/phanalist">GitHub</a>
+    </div>
+    <article class="content">
+      <p><code>eval()</code> executes a string as PHP code. A string-based <code>assert()</code> can also execute code. If any part of that code comes from untrusted input, it can lead to code execution.</p>
+<h2>Why it matters</h2>
+<p>Executing code built at runtime is difficult to validate safely and can turn data into executable behavior.</p>
+<h2>Bad example</h2>
+<pre><code class="language-php">return eval($code);
+
+assert(&#39;$value &gt; 0&#39;);
+</code></pre>
+<h2>Good example</h2>
+<pre><code class="language-php">$callback = $handlers[$name] ?? null;
+
+if ($callback !== null) {
+    return $callback();
+}
+
+assert($value &gt; 0);
+</code></pre>
+<h2>What it checks</h2>
+<ul>
+<li>Any <code>eval()</code> call</li>
+<li><code>assert()</code> with a string literal or string concatenation</li>
+</ul>
+<h2>When it does not report</h2>
+<ul>
+<li><code>assert()</code> receives a boolean expression.</li>
+<li>The code uses a callback, dispatch table, or parser instead of <code>eval()</code>.</li>
+</ul>
+<h2>Model limits</h2>
+<ul>
+<li>String expressions stored in variables before being passed to <code>assert()</code> are not traced.</li>
+<li><code>create_function()</code> and similar legacy helpers are not checked.</li>
+<li>Boolean assertions are accepted.</li>
+</ul>
+<h2>How to fix</h2>
+<ul>
+<li>Replace <code>eval()</code> with a parser, a dispatch table, or an explicit callback.</li>
+<li>Use a boolean expression in <code>assert()</code>.</li>
+<li>Never build executable code from request data.</li>
+</ul>
+<h2>Configuration</h2>
+<p>E0059 is enabled by default and has no section-level switches.</p>
+<p>The taint-aware behavior is controlled by a per-rule <code>taint_mode</code> setting:</p>
+<pre><code class="language-yaml">rules:
+  E0059:
+    taint_mode: annotate
+</code></pre>
+<ul>
+<li><code>annotate</code> (default) reports the finding and adds the proven source origin to the message.</li>
+<li><code>only</code> reports only findings reached by proven tainted data.</li>
+<li><code>off</code> keeps the legacy heuristic-only behavior.</li>
+</ul>
+<p>See the <a href="rule_glossary.md">rule glossary</a> for the definition of taint.</p>
+
+    </article>
+  </div>
+</body>
+</html>

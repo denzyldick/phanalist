@@ -1,14 +1,14 @@
 {
   "rule_code": "E0107",
-  "title": "E0107: Weak random for security tokens",
-  "plain_english": "",
-  "why_matters": "",
+  "title": "E0107: Weak Random for Security Tokens",
+  "plain_english": "Generating security-sensitive tokens (session tokens, CSRF tokens, password reset tokens, API keys) with weak random number generators like `rand()`, `mt_rand()`, or `uniqid()` can make them predictable.",
+  "why_matters": "Weak random values are predictable. Attackers can: - Guess session tokens and hijack user sessions - Predict CSRF tokens and bypass CSRF protection - Guess password reset tokens and take over accounts - Recover API keys and access protected resources",
   "bad_example": "$token = bin2hex(mt_rand(100000, 999999)); // predictable\n$resetToken = uniqid();                    // guessable",
   "good_example": "$token = bin2hex(random_bytes(16));   // cryptographically secure\n$resetToken = random_int(100000, 999999); // cryptographically secure",
-  "severity": "info",
-  "category": "general",
+  "severity": "major",
+  "category": "security",
   "what_it_checks": [
-    "`rand()`, `mt_rand()`, `uniqid()` used for security-sensitive purposes (tokens, keys, salts)",
-    "`mt_rand()` or `rand()` assigned to variables named `token`, `key`, `secret`, `salt`, `nonce`, `csrf`"
+    "`rand()`, `mt_rand()`, or `uniqid()` used for security-sensitive purposes (tokens, keys, salts)",
+    "`mt_rand()` or `rand()` assigned to variables named `token`, `key`, `secret`, `salt`, `nonce`, or `csrf`"
   ]
 }

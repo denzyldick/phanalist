@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E0031: Division by Zero | Phanalist</title>
+  <meta name="description" content="Reports division operations where the divisor can be zero." />
+  <link rel="canonical" href="https://phanalist.io/rules/e0031.html" />
+  <meta property="og:title" content="E0031: Division by Zero | Phanalist" />
+  <meta property="og:description" content="Reports division operations where the divisor can be zero." />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://phanalist.io/rules/e0031.html" />
+  <style>
+    :root { --bg:#0a0a0f; --card:#161620; --subtle:#12121a; --fg:#e8e8f0; --muted:#8f8fa3; --accent:#00d4aa; --border:#2a2a3a; }
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--fg);line-height:1.7}
+    .wrap{max-width:980px;margin:0 auto;padding:32px 20px 72px}
+    a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+    .crumbs{font-size:14px;color:var(--muted);margin-bottom:18px}
+    .badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+    .badge{display:inline-flex;padding:4px 10px;border:1px solid var(--border);border-radius:999px;font-size:12px;color:var(--muted);background:var(--subtle)}
+    h1{font-size:clamp(28px,5vw,44px);line-height:1.15;margin:0 0 12px;letter-spacing:-.02em}
+    .lead{font-size:18px;color:#cfcfda;max-width:78ch;margin:0 0 20px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 28px}
+    .btn{display:inline-flex;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--subtle);color:var(--fg);font-weight:600}
+    .btn-primary{background:linear-gradient(135deg,var(--accent),#0066ff);color:#081018;border:none}
+    .content{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px}
+    .content > :first-child{margin-top:0} .content > :last-child{margin-bottom:0}
+    .content h2{margin-top:32px;font-size:24px;line-height:1.25}
+    .content h3{margin-top:24px;font-size:19px;line-height:1.3}
+    .content p,.content li{color:#d9d9e3}
+    .content ul,.content ol{padding-left:24px}
+    .content pre{margin:16px 0;background:#0d0d15;border:1px solid var(--border);border-radius:10px;padding:16px;overflow:auto}
+    .content code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.94em}
+    .content p code,.content li code{background:#0d0d15;border:1px solid var(--border);padding:.12em .35em;border-radius:5px}
+    .content pre code{background:none;border:none;padding:0;font-size:13px;line-height:1.55}
+    .content blockquote{margin:16px 0;padding:0 0 0 16px;border-left:3px solid var(--accent);color:#cfcfda}
+    .content table{width:100%;border-collapse:collapse;margin:16px 0}
+    .content th,.content td{border:1px solid var(--border);padding:10px;text-align:left;vertical-align:top}
+    .content th{background:var(--subtle)}
+  </style>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"E0031: Division by Zero","description":"Reports division operations where the divisor can be zero.","url":"https://phanalist.io/rules/e0031.html"}</script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="crumbs"><a href="/">Phanalist</a> / <a href="/#rules">Rules</a> / E0031</div>
+    <div class="badges">
+      <span class="badge">E0031</span>
+      <span class="badge">verification</span>
+      <span class="badge">critical</span>
+    </div>
+    <h1>Division by Zero</h1>
+    <p class="lead">Reports division operations where the divisor can be zero.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="/?rule=E0031#playground">Try in Playground</a>
+      <a class="btn" href="/#rules">All rules</a>
+      <a class="btn" href="https://github.com/denzyldick/phanalist">GitHub</a>
+    </div>
+    <article class="content">
+      <p>Reports division operations where the divisor can be zero.</p>
+<h2>Why it matters</h2>
+<p>Division by zero causes runtime errors. This rule uses Phanalist&#39;s bounded formal verification engine (Z3-backed) to find feasible paths where a divisor can be zero and provide a solver-backed counterexample.</p>
+<p>This rule is part of the verification family E0031-E0043. Proofs are relative to the modeled subset, configured checks, and project interprocedural summaries. A clean result means no violation was found in that model; it does not prove every possible PHP execution is safe.</p>
+<h2>What it does not prove</h2>
+<ul>
+<li>Full PHP semantics. Dynamic features such as <code>eval</code>, reflection, variable
+variables, dynamic calls and includes, magic methods, and runtime code
+generation are not modeled.</li>
+<li>Heap, object-state, reference, and alias invariants beyond the supported
+function summaries. Nested array shapes are tracked only while they remain
+unambiguous; a write through an untracked path forgets the affected root array.
+Reference aliases are not tracked: a tracked array is forgotten when it is
+shared by reference or iterated by reference, which is conservative but can
+miss findings. Stream lifecycle tracking is limited to direct <code>fopen()</code>,
+<code>fclose()</code>, <code>fread()</code>, and <code>fwrite()</code> calls; see <a href="../e43/e43.md">E0043</a>.</li>
+<li>Arbitrary loop invariants. Loops are unrolled to a configured bound; this finds
+bugs within that bound but does not prove an inductive invariant for all
+iterations.</li>
+<li>Arbitrary relationships between the lengths of different arrays. A key from
+one list is not assumed to index another list even when the source constructs
+them in parallel. The engine only uses relationships produced by modeled
+built-ins such as <code>array_diff()</code>, <code>array_map()</code>, and <code>array_merge()</code>, or by
+explicit guards and assertions.</li>
+<li>Concurrency and persistent-runtime behavior such as Swoole, RoadRunner, or
+ReactPHP.</li>
+<li>Builtin behavior whose result shape depends on an unmodeled flag. For example,
+<code>count($value, COUNT_RECURSIVE)</code> is not treated as a flat count, and
+<code>array_slice()</code> preserves list keys only when the flag is absent or provably
+<code>false</code>.</li>
+<li>Business, authorization, or security intent. Those properties need to be
+expressed as assertions or contracts before they can be checked.</li>
+<li>Properties whose values remain <code>Unknown</code> or unverified. With
+<code>unknown_policy: report</code>, a loop accumulator that is too unknown to model as a
+divisor is reported as <code>unverified</code> instead of being claimed safe. A numeric
+accumulator can still be proven nonzero by a subsequent guard such as
+<code>$count &gt; 0</code>; a strict guard such as <code>$count !== 0</code> remains unverified because
+the accumulator may be an integer or a float.</li>
+</ul>
+<h2>Bad example</h2>
+<pre><code class="language-php">&lt;?php
+function average(int $total, int $count): float
+{
+    return $total / $count; // $count can be 0
+}
+</code></pre>
+<h2>Good example</h2>
+<pre><code class="language-php">&lt;?php
+function average(int $total, int $count): float
+{
+    if ($count === 0) {
+        return 0.0;
+    }
+
+    return $total / $count;
+}
+</code></pre>
+<h2>What it checks</h2>
+<ul>
+<li><code>/</code>, <code>/=</code>, and division inside expressions where the divisor can be zero</li>
+<li>Literal zero, symbolic zero, and zero reached through tracked arrays or
+expressions</li>
+<li>Guarded divisions, including <code>if</code>, <code>switch</code>, <code>match</code>, short-circuit <code>&amp;&amp;</code>, and
+<code>try</code>/<code>catch</code>/<code>finally</code> paths</li>
+<li>Loop exit values merged with the feasible zero-iteration path, so a counter
+initialized before a possibly empty loop is still considered possibly zero</li>
+<li>Constant-return, identity, and PHPDoc method/function summaries, including
+inherited and trait methods and imported class names</li>
+<li>Bounded integer ranges through direct same-class helper calls</li>
+<li>PHP literal array key rules, including duplicate keys and implicit keys after
+negative integer keys</li>
+<li>Exact <code>array_keys()</code> search lengths for tracked arrays passed directly as a
+variable, inline literal arrays, and simple <code>array_filter()</code> results. Simple
+arrow functions and single-return closures are modeled as filters; arbitrary
+callbacks, <code>array_map()</code>/<code>array_values()</code> results, and unknown comparisons
+fall back to an upper-bound length</li>
+<li>PHP literal key coercion for <code>array_key()</code> and <code>array_keys()</code>, including bool
+keys becoming <code>0</code>/<code>1</code>, float keys being truncated to integers, and <code>null</code>
+becoming the empty string</li>
+</ul>
+<h2>Configuration</h2>
+<p>Each verification code has its own settings block. The relevant check is:</p>
+<pre><code class="language-yaml">rules:
+  E0031:
+    php_version: &quot;8.4&quot;
+    check_division: true
+</code></pre>
+<p><code>check_types</code> controls PHPDoc <code>@param</code>/<code>@var</code> refinements. Native PHP type hints
+are always honoured. <code>php_version</code> is accepted for configuration compatibility;
+the modelled semantics are the same across PHP 8.0-8.4. <code>loop_strategy: none</code>
+limits loop bodies to one iteration; every other value uses <code>unroll_depth</code>.
+<code>unknown_policy: report</code> reports a solver <code>unknown</code> as an
+<code>unverified</code> finding so it cannot be mistaken for a proof; <code>ignore</code> suppresses
+that diagnostic.</p>
+<p>Each verification code is enabled, disabled, and configured independently.
+Settings under <code>E0031</code> apply only to division-by-zero checks; other codes do
+not inherit them.</p>
+<h2>Generating regression tests</h2>
+<p>When <code>test_generation</code> is configured, the solver&#39;s parameter values are kept
+alongside the finding and can be turned into a PHPUnit test:</p>
+<pre><code class="language-sh">phanalist --generate-tests tests/phanalist-generated
+</code></pre>
+<p>The test calls the same function with the model&#39;s inputs (for example
+<code>divide(0)</code>) and turns warnings and notices into exceptions, so it fails while
+the reported path is still reachable and passes once it is fixed. Phanalist
+only writes the test; running it is up to you and your project&#39;s PHPUnit setup.
+Generation is limited to values that can be written as reliable PHP literals;
+unsupported inputs are skipped instead of guessed.</p>
+<h2>Precision and recall benchmark</h2>
+<p>The <code>supported_fragment_precision_and_recall</code> test runs a labelled corpus of
+clean and buggy PHP cases through the verification family, then reports
+precision and recall for the supported fragment. The corpus includes division,
+modulo, <code>intdiv()</code>, array, string, nullability, return-contract, assertion,
+unreachable-code, <code>switch</code>, and loop zero-iteration cases. Dedicated benchmark
+fixtures live in <code>src/rules/examples/e31/benchmark/</code>.</p>
+<p>Current result: 49 labelled cases and 50 expected findings, with 0 false
+positives and 0 false negatives (100% precision and recall). This is a
+regression benchmark for the supported fragment, not a random sample of
+arbitrary PHP projects. Run it with:</p>
+<pre><code class="language-sh">cargo test supported_fragment_precision_and_recall -- --nocapture
+</code></pre>
+<h3>Pinned analyzer reference</h3>
+<p>The loop fixtures are database-independent: they take an <code>iterable</code> and never
+open a connection. Compare them with PHPStan <strong>2.3.2</strong>, level <code>max</code>, and no
+baseline. The pinned configuration is
+<code>src/rules/examples/e31/benchmark/phpstan.neon</code>; run it with the pinned phar:</p>
+<pre><code class="language-sh">curl -L -o /tmp/phpstan-2.3.2.phar \
+  https://github.com/phpstan/phpstan/releases/download/2.3.2/phpstan.phar
+php /tmp/phpstan-2.3.2.phar analyse \
+  --configuration=src/rules/examples/e31/benchmark/phpstan.neon \
+  --no-progress --error-format=table
+</code></pre>
+<p>PHPStan does not report the division by zero on the feasible zero-iteration
+path. E0031 reports <code>division-by-zero</code> on the unguarded fixture and no finding
+on the guarded one.</p>
+<p>For the list fixtures, PHPStan <strong>2.3.2</strong> at level <code>max</code> and Psalm <strong>6.20.1</strong> at
+<code>errorLevel=&quot;1&quot;</code> both report the literal <code>-1</code> access on <code>non-empty-list&lt;int&gt;</code>,
+but neither reports <code>$items[count($items)]</code> nor the
+<code>for ($i = 0; $i &lt;= count($items); $i++)</code> access. E0036 reports all three.</p>
+
+    </article>
+  </div>
+</body>
+</html>

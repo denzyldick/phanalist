@@ -1,13 +1,20 @@
 {
   "rule_code": "E0031",
   "title": "E0031: Division by Zero",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "",
-  "good_example": "",
+  "plain_english": "Reports division operations where the divisor can be zero.",
+  "why_matters": "Division by zero causes runtime errors. This rule uses Phanalist's bounded formal verification engine (Z3-backed) to find feasible paths where a divisor can be zero and provide a solver-backed counterexample. This rule is part of the verification family E0031-E0043. Proofs are relative to the modeled subset, configured checks, and project interprocedural summaries. A clean result means no violation was found in that model; it does not prove every possible PHP execution is safe.",
+  "bad_example": "<?php\nfunction average(int $total, int $count): float\n{\n    return $total / $count; // $count can be 0\n}",
+  "good_example": "<?php\nfunction average(int $total, int $count): float\n{\n    if ($count === 0) {\n        return 0.0;\n    }\n\n    return $total / $count;\n}",
   "severity": "critical",
   "category": "verification",
   "what_it_checks": [
-    "Checks for E0031 violations"
+    "Full PHP semantics. Dynamic features such as `eval`, reflection, variable",
+    "Heap, object-state, reference, and alias invariants beyond the supported",
+    "Arbitrary loop invariants. Loops are unrolled to a configured bound; this finds",
+    "Arbitrary relationships between the lengths of different arrays. A key from",
+    "Concurrency and persistent-runtime behavior such as Swoole, RoadRunner, or",
+    "Builtin behavior whose result shape depends on an unmodeled flag. For example,",
+    "Business, authorization, or security intent. Those properties need to be",
+    "Properties whose values remain `Unknown` or unverified. With"
   ]
 }

@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0008",
+  "title": "E0008: Return type signature",
+  "plain_english": "Methods should declare an explicit return type, such as `: int`, `: string`, `: void`, or `: ?User`.",
+  "why_matters": "Return type declarations make a method's contract clearer. They help readers understand what to expect and allow PHP and static analysis tools to catch type mismatches earlier.",
+  "bad_example": "class UserService {\n    // Missing return type signature.\n    public function getUser($id) {\n        return $this->repository->find($id);\n    }\n}",
+  "good_example": "class UserService {\n    public function getUser(int $id): ?User {\n        return $this->repository->find($id);\n    }\n}",
+  "severity": "minor",
+  "category": "code-health",
+  "what_it_checks": [
+    "Method declarations that are missing a return type."
+  ]
+}

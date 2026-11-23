@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0097",
+  "title": "E0097: Cookie Without HttpOnly Flag",
+  "plain_english": "Setting a cookie without the `HttpOnly` flag allows it to be accessed by JavaScript, which increases the impact of XSS vulnerabilities.",
+  "why_matters": "Without the `HttpOnly` flag: - Session cookies can be stolen by malicious JavaScript - XSS attacks can exfiltrate authentication tokens - Attackers can hijack user sessions",
+  "bad_example": "setcookie('session_id', $value, [\n    'secure' => true,\n    'httponly' => false,   // accessible via JavaScript\n]);",
+  "good_example": "setcookie('session_id', $value, [\n    'secure' => true,\n    'httponly' => true,    // not accessible via JavaScript\n    'samesite' => 'Lax',\n]);",
+  "severity": "minor",
+  "category": "security",
+  "what_it_checks": [
+    "`setcookie()` or `setrawcookie()` calls where `httponly` is not set to `true`",
+    "`session_set_cookie_params()` with `httponly => false`"
+  ]
+}

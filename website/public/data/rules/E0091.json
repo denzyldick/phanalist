@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0091",
+  "title": "E0091: Source code exposure via highlight_file",
+  "plain_english": "Using `highlight_file()`, `show_source()`, or `highlight_string()` in production code can expose PHP source code, including credentials and application logic, to anyone who can access that page.",
+  "why_matters": "Source code disclosure can expose: - Database credentials and API keys - Business logic and application flow - Other vulnerabilities in the codebase - Third-party library versions",
+  "bad_example": "if ($_GET['debug'] === '1') {\n    highlight_file(__FILE__); // exposes entire file source\n}\nshow_source('config.php'); // exposes config file including DB credentials",
+  "good_example": "// Remove source-highlighting functions from production code.\n// If debugging is needed, use a local development environment.",
+  "severity": "major",
+  "category": "security",
+  "what_it_checks": [
+    "`highlight_file()`, `show_source()`, and `highlight_string()` calls",
+    "Especially risky when gated by user input (`$_GET['debug']`)"
+  ]
+}

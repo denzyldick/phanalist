@@ -1,13 +1,17 @@
 {
   "rule_code": "E0026",
   "title": "E0026: Comment Ratio",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "",
-  "good_example": "",
-  "severity": "info",
-  "category": "general",
+  "plain_english": "Reports classes whose comment ratio is below the configured minimum or above the configured maximum.",
+  "why_matters": "Comments can provide useful context, but too few or too many can both be signals of maintenance problems. Very low comment coverage may leave intent unclear; very high comment coverage can indicate code that is hard to follow.",
+  "bad_example": "class PaymentProcessor\n{\n    public function execute(): void\n    {\n        $this->validate();\n        $this->charge();\n        $this->notify();\n    }\n}",
+  "good_example": "/**\n * Processes payments through the configured gateway.\n * Supports credit cards and wire transfers.\n */\nclass PaymentProcessor\n{\n    public function execute(): void\n    {\n        $this->validate();\n        $this->charge();\n        $this->notify();\n    }\n}",
+  "severity": "minor",
+  "category": "code-health",
   "what_it_checks": [
-    "Checks for E0026 violations"
+    "Applies to class declarations.",
+    "Scans raw file lines and classifies them as code, comment, or blank.",
+    "Calculates ratio as `comment_lines / (code_lines + comment_lines)`.",
+    "Reports `E0026:undercommented` when ratio is below `min_ratio`.",
+    "Reports `E0026:overcommented` when ratio is above `max_ratio`."
   ]
 }

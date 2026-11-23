@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0000",
+  "title": "E0000: Example rule",
+  "plain_english": "This is the template rule used by the \"Adding a new rule\" tutorial. It never reports a violation.",
+  "why_matters": "It shows the smallest complete rule implementation. It is not intended for real analysis.",
+  "bad_example": "<?php\n// E0000 is a placeholder rule and should not report real issues.\nfunction example(): void {}",
+  "good_example": "<?php\n// Use a real rule code in configuration and rule docs.\nfunction example(): void {}",
+  "severity": "minor",
+  "category": "code-health",
+  "what_it_checks": [
+    "Checks for E0000 violations"
+  ]
+}

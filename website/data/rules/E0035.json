@@ -1,13 +1,18 @@
 {
   "rule_code": "E0035",
   "title": "E0035: Missing Array Key",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "",
-  "good_example": "",
-  "severity": "info",
-  "category": "general",
+  "plain_english": "Reports reads of keys that are missing from tracked literal arrays.",
+  "why_matters": "Accessing a missing array key can produce warnings/notices and lead to unexpected `null` values. This rule uses Phanalist's bounded formal verification engine (Z3-backed) to find feasible paths where a key read is missing.",
+  "bad_example": "<?php\n/** @param array{name: string} $user */\nfunction greet(array $user): string\n{\n    return $user['email']; // key may be missing\n}",
+  "good_example": "<?php\n/** @param array{name: string, email?: string} $user */\nfunction greet(array $user): string\n{\n    $email = $user['email'] ?? 'unknown';\n\n    return $email;\n}",
+  "severity": "major",
+  "category": "verification",
   "what_it_checks": [
-    "Checks for E0035 violations"
+    "Missing string and integer keys in tracked literal arrays",
+    "Keys returned by `array_key_first()` and `array_key_last()` for tracked literal arrays, preserving PHP insertion order",
+    "Nested literal array shapes",
+    "Reads guarded by `isset()` and `??`",
+    "Arrays forgotten after writes through untracked paths or by-reference calls",
+    "Keys checked through bounded branches and short-circuit conditions"
   ]
 }

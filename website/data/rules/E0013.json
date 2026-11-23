@@ -1,15 +1,15 @@
 {
   "rule_code": "E0013",
-  "title": "E0013: Private method not being called.",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "class OrderProcessor {\n    public function process(Order $order): void {\n        $this->validateOrder($order);\n    }\n\n    private function validateOrder(Order $order): void {\n        // ...\n    }\n\n    // Unused private method left over from refactoring\n    private function oldFormattingHelper(string $data): string {\n        return strtoupper($data);\n    }\n}",
+  "title": "E0013: Private method not being used",
+  "plain_english": "This rule reports private methods that are declared in a class but never called within that class.",
+  "why_matters": "Unused private methods are dead code. They add noise, make classes harder to understand, and can leave behind maintenance or testing overhead for logic that is no longer needed.",
+  "bad_example": "class OrderProcessor {\n    public function process(Order $order): void {\n        $this->validateOrder($order);\n    }\n\n    private function validateOrder(Order $order): void {\n        // ...\n    }\n\n    // Unused private method left over from refactoring.\n    private function oldFormattingHelper(string $data): string {\n        return strtoupper($data);\n    }\n}",
   "good_example": "class OrderProcessor {\n    public function process(Order $order): void {\n        $this->validateOrder($order);\n    }\n\n    private function validateOrder(Order $order): void {\n        // ...\n    }\n}",
-  "severity": "info",
-  "category": "general",
+  "severity": "minor",
+  "category": "code-health",
   "what_it_checks": [
-    "Scans all classes for methods marked `private`.",
-    "Inspects all method calls (`$this->methodName()`) within the class.",
-    "Reports any private method that is never referenced in any method body."
+    "Private methods declared in a class.",
+    "Method calls inside the class, such as `$this->methodName()`.",
+    "Reports private methods that are never referenced in the class."
   ]
 }

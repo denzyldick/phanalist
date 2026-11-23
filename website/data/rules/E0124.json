@@ -1,12 +1,12 @@
 {
   "rule_code": "E0124",
   "title": "E0124: Weak hash for passwords",
-  "plain_english": "",
-  "why_matters": "",
+  "plain_english": "Hashing passwords with weak algorithms such as MD5, SHA1, or `crypt()` does not provide adequate protection for password storage. Use a dedicated password hashing function instead.",
+  "why_matters": "Weak password hashing makes it easier for attackers to: - Crack password hashes quickly using rainbow tables or brute-force attacks - Recover common passwords in a short time - Compromise many accounts if a password database is exposed",
   "bad_example": "$hash = md5($password);       // weak, fast, unsalted\n$hash = sha1($password);      // weak, fast, unsalted\n$hash = crypt($password);     // weak, may use DES-based crypt",
   "good_example": "$hash = password_hash($password, PASSWORD_DEFAULT);\n// Uses bcrypt or argon2 with automatic salting and cost factor\nif (password_verify($password, $hash)) {\n    // valid\n}",
-  "severity": "info",
-  "category": "general",
+  "severity": "critical",
+  "category": "security",
   "what_it_checks": [
     "`md5()`, `sha1()`, `hash('md5', ...)`, `hash('sha1', ...)` applied to password-like variables",
     "`crypt()` used for password hashing"

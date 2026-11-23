@@ -1,0 +1,16 @@
+{
+  "rule_code": "E0034",
+  "title": "E0034: intdiv() Overflow",
+  "plain_english": "Reports `intdiv()` calls that can overflow for `PHP_INT_MIN / -1`.",
+  "why_matters": "`intdiv(PHP_INT_MIN, -1)` overflows integer arithmetic in PHP and causes a runtime error. This rule uses Phanalist's bounded formal verification engine (Z3-backed) to detect feasible paths that reach this case.",
+  "bad_example": "<?php\nfunction overflow(): int\n{\n    return intdiv(PHP_INT_MIN, -1); // overflow\n}",
+  "good_example": "<?php\nfunction safeIntDiv(int $a, int $b): int\n{\n    if ($b === 0) {\n        throw new InvalidArgumentException('Division by zero');\n    }\n    if ($a === PHP_INT_MIN && $b === -1) {\n        throw new InvalidArgumentException('Overflow');\n    }\n\n    return intdiv($a, $b);\n}",
+  "severity": "major",
+  "category": "verification",
+  "what_it_checks": [
+    "`intdiv(PHP_INT_MIN, -1)` and equivalent constant expressions",
+    "Symbolic dividends and divisors whose feasible values reach the overflow case",
+    "Guarded calls and bounded integer ranges",
+    "Constant-return, identity, and PHPDoc method/function summaries"
+  ]
+}

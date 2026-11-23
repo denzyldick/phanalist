@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0083",
+  "title": "E0083: Open redirect",
+  "plain_english": "Redirecting users to a URL supplied in the request without validating where it goes can allow attackers to craft phishing links that appear to come from your domain.",
+  "why_matters": "Open redirect vulnerabilities are commonly used in: - **Phishing campaigns**: users trust your domain and click the link - **Bypassing SSO protections**: redirecting after login to a malicious site - **Credential harvesting**: the malicious site mimics a trusted page",
+  "bad_example": "$url = $_GET['redirect'] ?? '';\nheader(\"Location: $url\");\nexit;",
+  "good_example": "$url = $_GET['redirect'] ?? '';\n$allowed = ['/dashboard', '/profile', '/login'];\nif (!in_array($url, $allowed, true)) {\n    $url = '/dashboard';\n}\nheader(\"Location: $url\");\nexit;",
+  "severity": "major",
+  "category": "security",
+  "what_it_checks": [
+    "`header(\"Location: ...\")` with tainted input",
+    "`header(\"refresh: ...;url=...\")` with tainted input"
+  ]
+}

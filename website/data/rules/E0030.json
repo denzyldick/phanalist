@@ -1,13 +1,16 @@
 {
   "rule_code": "E0030",
   "title": "E0030: Cyclomatic Complexity Density",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "",
-  "good_example": "",
-  "severity": "info",
-  "category": "general",
+  "plain_english": "Reports methods where decision-making logic is densely packed into a small number of lines.",
+  "why_matters": "Cyclomatic complexity density measures how much branching occurs per line of code. A short method can still be difficult to understand if most lines contain decisions.",
+  "bad_example": "public function resolve($a, $b, $c): int\n{\n    if ($a) { if ($b) { return 1; } else { if ($c) { return 2; } } }\n    if ($a && $b || $c) { return 3; }\n    if (!$a) { return 4; }\n    return 0;\n}",
+  "good_example": "public function resolve($a, $b, $c): int\n{\n    if ($a && $b) {\n        return 1;\n    }\n    if ($a && $c) {\n        return 2;\n    }\n    if ($a || $c) {\n        return 3;\n    }\n    if (!$a) {\n        return 4;\n    }\n    return 0;\n}",
+  "severity": "minor",
+  "category": "code-health",
   "what_it_checks": [
-    "Checks for E0030 violations"
+    "Applies to concrete methods in classes, traits, and enums.",
+    "Computes `density = (1 + total_branches) / body_lines`.",
+    "Branches include `if`, `elseif`, `case`, `catch`, and loops (`for`, `foreach`, `while`, `do-while`).",
+    "Reports when density is greater than `max_density`."
   ]
 }

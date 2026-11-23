@@ -1,0 +1,15 @@
+{
+  "rule_code": "E0052",
+  "title": "E0052: Unchecked json_decode result",
+  "plain_english": "`json_decode()` returns `null` when the JSON is invalid. If the result is immediately accessed as an object or array, PHP may produce a warning, exception, or \"property on null\" error.",
+  "why_matters": "Malformed input from a request body, file, or external API can cause a runtime failure instead of a clear validation or error-handling path.",
+  "bad_example": "return json_decode($json)->name;\nreturn json_decode($json, true)[0];",
+  "good_example": "$data = json_decode($json, true, flags: JSON_THROW_ON_ERROR);\n\nreturn $data['name'];",
+  "severity": "major",
+  "category": "lifecycle",
+  "what_it_checks": [
+    "`json_decode($json)->property`",
+    "`json_decode($json)->method()`",
+    "`json_decode($json)[$key]`"
+  ]
+}

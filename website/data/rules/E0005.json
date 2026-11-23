@@ -1,14 +1,14 @@
 {
   "rule_code": "E0005",
   "title": "E0005: Capitalized class name",
-  "plain_english": "",
-  "why_matters": "",
+  "plain_english": "Class names should start with an uppercase letter, typically using PascalCase (StudlyCase).",
+  "why_matters": "PHP naming conventions and PSR-4 autoloading expect class names to start with an uppercase letter. Consistent naming makes class references easier to recognize and keeps code predictable.",
   "bad_example": "class paymentProcessor {\n    // ...\n}",
   "good_example": "class PaymentProcessor {\n    // ...\n}",
-  "severity": "info",
-  "category": "general",
+  "severity": "minor",
+  "category": "code-health",
   "what_it_checks": [
-    "Inspects the declaration of every PHP class.",
-    "Verifies that the first letter of the class name is uppercase (`is_uppercase()`)."
+    "Class declarations.",
+    "Whether the first letter of the class name is uppercase."
   ]
 }

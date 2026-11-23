@@ -1,12 +1,12 @@
 {
   "rule_code": "E0019",
   "title": "E0019: Response For a Class (RFC)",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "",
-  "good_example": "",
-  "severity": "info",
-  "category": "general",
+  "plain_english": "Response For a Class (RFC) measures how many distinct methods can be invoked in response to messages received by a class.",
+  "why_matters": "A high RFC score means a class interacts with many operations, either in its own methods or through external calls. This can increase the class's complexity and make changes harder to reason about.",
+  "bad_example": "class ReportProcessor {\n    public function process(): void {\n        Validator::check();\n        $repo = new Repository();\n        $repo->persist();\n        $repo->flush();\n        Logger::info('done');\n        EventBus::dispatch();\n    }\n}",
+  "good_example": "class FocusedProcessor {\n    public function process(): void {\n        $this->repository->saveAll();\n        $this->notifier->notifySuccess();\n    }\n}",
+  "severity": "minor",
+  "category": "code-health",
   "what_it_checks": [
     "Checks for E0019 violations"
   ]

@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E0052: Unchecked json_decode result | Phanalist</title>
+  <meta name="description" content="`json_decode()` returns `null` when the JSON is invalid. If the result is immediately accessed as an object or array, PHP may produce a warning, exception, or &" />
+  <link rel="canonical" href="https://phanalist.io/rules/e0052.html" />
+  <meta property="og:title" content="E0052: Unchecked json_decode result | Phanalist" />
+  <meta property="og:description" content="`json_decode()` returns `null` when the JSON is invalid. If the result is immediately accessed as an object or array, PHP may produce a warning, exception, or &quot;property on null&quot; error." />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://phanalist.io/rules/e0052.html" />
+  <style>
+    :root { --bg:#0a0a0f; --card:#161620; --subtle:#12121a; --fg:#e8e8f0; --muted:#8f8fa3; --accent:#00d4aa; --border:#2a2a3a; }
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--fg);line-height:1.7}
+    .wrap{max-width:980px;margin:0 auto;padding:32px 20px 72px}
+    a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+    .crumbs{font-size:14px;color:var(--muted);margin-bottom:18px}
+    .badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+    .badge{display:inline-flex;padding:4px 10px;border:1px solid var(--border);border-radius:999px;font-size:12px;color:var(--muted);background:var(--subtle)}
+    h1{font-size:clamp(28px,5vw,44px);line-height:1.15;margin:0 0 12px;letter-spacing:-.02em}
+    .lead{font-size:18px;color:#cfcfda;max-width:78ch;margin:0 0 20px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 28px}
+    .btn{display:inline-flex;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--subtle);color:var(--fg);font-weight:600}
+    .btn-primary{background:linear-gradient(135deg,var(--accent),#0066ff);color:#081018;border:none}
+    .content{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px}
+    .content > :first-child{margin-top:0} .content > :last-child{margin-bottom:0}
+    .content h2{margin-top:32px;font-size:24px;line-height:1.25}
+    .content h3{margin-top:24px;font-size:19px;line-height:1.3}
+    .content p,.content li{color:#d9d9e3}
+    .content ul,.content ol{padding-left:24px}
+    .content pre{margin:16px 0;background:#0d0d15;border:1px solid var(--border);border-radius:10px;padding:16px;overflow:auto}
+    .content code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.94em}
+    .content p code,.content li code{background:#0d0d15;border:1px solid var(--border);padding:.12em .35em;border-radius:5px}
+    .content pre code{background:none;border:none;padding:0;font-size:13px;line-height:1.55}
+    .content blockquote{margin:16px 0;padding:0 0 0 16px;border-left:3px solid var(--accent);color:#cfcfda}
+    .content table{width:100%;border-collapse:collapse;margin:16px 0}
+    .content th,.content td{border:1px solid var(--border);padding:10px;text-align:left;vertical-align:top}
+    .content th{background:var(--subtle)}
+  </style>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"E0052: Unchecked json_decode result","description":"`json_decode()` returns `null` when the JSON is invalid. If the result is immediately accessed as an object or array, PHP may produce a warning, exception, or \"property on null\" error.","url":"https://phanalist.io/rules/e0052.html"}</script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="crumbs"><a href="/">Phanalist</a> / <a href="/#rules">Rules</a> / E0052</div>
+    <div class="badges">
+      <span class="badge">E0052</span>
+      <span class="badge">lifecycle</span>
+      <span class="badge">major</span>
+    </div>
+    <h1>Unchecked json_decode result</h1>
+    <p class="lead">`json_decode()` returns `null` when the JSON is invalid. If the result is immediately accessed as an object or array, PHP may produce a warning, exception, or &quot;property on null&quot; error.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="/?rule=E0052#playground">Try in Playground</a>
+      <a class="btn" href="/#rules">All rules</a>
+      <a class="btn" href="https://github.com/denzyldick/phanalist">GitHub</a>
+    </div>
+    <article class="content">
+      <p><code>json_decode()</code> returns <code>null</code> when the JSON is invalid. If the result is immediately accessed as an object or array, PHP may produce a warning, exception, or &quot;property on null&quot; error.</p>
+<h2>Why it matters</h2>
+<p>Malformed input from a request body, file, or external API can cause a runtime failure instead of a clear validation or error-handling path.</p>
+<h2>Bad example</h2>
+<pre><code class="language-php">return json_decode($json)-&gt;name;
+return json_decode($json, true)[0];
+</code></pre>
+<h2>Good example</h2>
+<pre><code class="language-php">$data = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
+
+return $data[&#39;name&#39;];
+</code></pre>
+<p><code>JSON_THROW_ON_ERROR</code> makes invalid JSON throw a <code>JsonException</code> that you can catch. If you prefer not to use exceptions, check the result before reading it:</p>
+<pre><code class="language-php">$data = json_decode($json, true);
+if (!is_array($data)) {
+    return null;
+}
+
+return $data[&#39;name&#39;] ?? null;
+</code></pre>
+<h2>What it checks</h2>
+<ul>
+<li><code>json_decode($json)-&gt;property</code></li>
+<li><code>json_decode($json)-&gt;method()</code></li>
+<li><code>json_decode($json)[$key]</code></li>
+</ul>
+<p>It also accepts direct accesses guarded by <code>??</code>, <code>isset()</code>, or <code>empty()</code>, and calls that use <code>JSON_THROW_ON_ERROR</code> in a positional or named <code>flags</code> argument.</p>
+<h2>When it does not report</h2>
+<ul>
+<li>The access is guarded by <code>??</code>, <code>isset()</code>, or <code>empty()</code>.</li>
+<li>The call uses <code>JSON_THROW_ON_ERROR</code>.</li>
+<li>The decoded value is assigned to a variable first. The rule only checks direct access, so it does not report this even when the variable is not checked.</li>
+<li>The null check happens inside a helper function or custom wrapper.</li>
+</ul>
+<h2>How to fix</h2>
+<ul>
+<li>Use <code>JSON_THROW_ON_ERROR</code> and catch <code>JsonException</code>.</li>
+<li>Check <code>is_array()</code> or <code>is_object()</code> before reading the result.</li>
+<li>Use <code>??</code> or <code>isset()</code> for optional keys.</li>
+<li>Consider decoding into a typed DTO or validating the structure before using it.</li>
+</ul>
+<h2>Configuration</h2>
+<p>E0052 has no configuration options and is enabled by default.</p>
+
+    </article>
+  </div>
+</body>
+</html>

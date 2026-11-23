@@ -1,12 +1,12 @@
 {
   "rule_code": "E0059",
   "title": "E0059: Dynamic eval or assert",
-  "plain_english": "",
-  "why_matters": "",
+  "plain_english": "`eval()` executes a string as PHP code. A string-based `assert()` can also execute code. If any part of that code comes from untrusted input, it can lead to code execution.",
+  "why_matters": "Executing code built at runtime is difficult to validate safely and can turn data into executable behavior.",
   "bad_example": "return eval($code);\n\nassert('$value > 0');",
   "good_example": "$callback = $handlers[$name] ?? null;\n\nif ($callback !== null) {\n    return $callback();\n}\n\nassert($value > 0);",
-  "severity": "major",
-  "category": "taint",
+  "severity": "critical",
+  "category": "security",
   "what_it_checks": [
     "Any `eval()` call",
     "`assert()` with a string literal or string concatenation"

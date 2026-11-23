@@ -1,13 +1,17 @@
 {
   "rule_code": "E0029",
-  "title": "E0029: Class-level Fan-in / Fan-out",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "",
-  "good_example": "",
-  "severity": "info",
-  "category": "general",
+  "title": "E0029: Class Fan-in and Fan-out",
+  "plain_english": "Reports classes whose fan-out or fan-in exceeds configured thresholds.",
+  "why_matters": "- **High fan-out** means a class depends on many other classes, making it more fragile and harder to change. - **High fan-in** means many classes depend on this class, so changes can have wide impact and require careful testing.",
+  "bad_example": "class ReportService\n{\n    public function __construct(\n        private Database $db,\n        private Mailer $mail,\n        private PdfGenerator $pdf,\n        private ExcelWriter $excel,\n        private S3Storage $storage,\n        private Logger $log,\n        private Cache $cache,\n        private Queue $queue,\n        private EventBus $events,\n        private Config $config,\n    ) {}\n\n    public function run(): void\n    {\n        $data = $this->db->query();\n        $report = $this->pdf->generate($data);\n        $this->storage->upload($report);\n        $this->mail->send(new Notification());\n    }\n}",
+  "good_example": "class ReportService\n{\n    public function __construct(\n        private ReportRepository $reports,\n        private ReportRenderer $renderer,\n    ) {}\n\n    public function run(): void\n    {\n        $report = $this->renderer->render($this->reports->fetch());\n        $this->reports->save($report);\n    }\n}",
+  "severity": "minor",
+  "category": "code-health",
   "what_it_checks": [
-    "Checks for E0029 violations"
+    "**Fan-out**: number of distinct classes a class depends on.",
+    "**Fan-in**: number of other classes that depend on this class.",
+    "Dependencies are collected from type hints, `new` instantiations, `instanceof` checks, static method calls, and property/constant access.",
+    "Reports `E0029:fan-out` when fan-out exceeds `max_fan_out`.",
+    "Reports `E0029:fan-in` when fan-in exceeds `max_fan_in`."
   ]
 }

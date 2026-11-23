@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E0069: Unsafe deserialization | Phanalist</title>
+  <meta name="description" content="Passing untrusted data to `unserialize()` or similar deserialization functions can instantiate arbitrary PHP objects and trigger magic methods such as `__wakeup" />
+  <link rel="canonical" href="https://phanalist.io/rules/e0069.html" />
+  <meta property="og:title" content="E0069: Unsafe deserialization | Phanalist" />
+  <meta property="og:description" content="Passing untrusted data to `unserialize()` or similar deserialization functions can instantiate arbitrary PHP objects and trigger magic methods such as `__wakeup()` and `__destruct()`." />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://phanalist.io/rules/e0069.html" />
+  <style>
+    :root { --bg:#0a0a0f; --card:#161620; --subtle:#12121a; --fg:#e8e8f0; --muted:#8f8fa3; --accent:#00d4aa; --border:#2a2a3a; }
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--fg);line-height:1.7}
+    .wrap{max-width:980px;margin:0 auto;padding:32px 20px 72px}
+    a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+    .crumbs{font-size:14px;color:var(--muted);margin-bottom:18px}
+    .badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+    .badge{display:inline-flex;padding:4px 10px;border:1px solid var(--border);border-radius:999px;font-size:12px;color:var(--muted);background:var(--subtle)}
+    h1{font-size:clamp(28px,5vw,44px);line-height:1.15;margin:0 0 12px;letter-spacing:-.02em}
+    .lead{font-size:18px;color:#cfcfda;max-width:78ch;margin:0 0 20px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 28px}
+    .btn{display:inline-flex;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--subtle);color:var(--fg);font-weight:600}
+    .btn-primary{background:linear-gradient(135deg,var(--accent),#0066ff);color:#081018;border:none}
+    .content{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px}
+    .content > :first-child{margin-top:0} .content > :last-child{margin-bottom:0}
+    .content h2{margin-top:32px;font-size:24px;line-height:1.25}
+    .content h3{margin-top:24px;font-size:19px;line-height:1.3}
+    .content p,.content li{color:#d9d9e3}
+    .content ul,.content ol{padding-left:24px}
+    .content pre{margin:16px 0;background:#0d0d15;border:1px solid var(--border);border-radius:10px;padding:16px;overflow:auto}
+    .content code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.94em}
+    .content p code,.content li code{background:#0d0d15;border:1px solid var(--border);padding:.12em .35em;border-radius:5px}
+    .content pre code{background:none;border:none;padding:0;font-size:13px;line-height:1.55}
+    .content blockquote{margin:16px 0;padding:0 0 0 16px;border-left:3px solid var(--accent);color:#cfcfda}
+    .content table{width:100%;border-collapse:collapse;margin:16px 0}
+    .content th,.content td{border:1px solid var(--border);padding:10px;text-align:left;vertical-align:top}
+    .content th{background:var(--subtle)}
+  </style>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"E0069: Unsafe deserialization","description":"Passing untrusted data to `unserialize()` or similar deserialization functions can instantiate arbitrary PHP objects and trigger magic methods such as `__wakeup()` and `__destruct()`.","url":"https://phanalist.io/rules/e0069.html"}</script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="crumbs"><a href="/">Phanalist</a> / <a href="/#rules">Rules</a> / E0069</div>
+    <div class="badges">
+      <span class="badge">E0069</span>
+      <span class="badge">security</span>
+      <span class="badge">critical</span>
+    </div>
+    <h1>Unsafe deserialization</h1>
+    <p class="lead">Passing untrusted data to `unserialize()` or similar deserialization functions can instantiate arbitrary PHP objects and trigger magic methods such as `__wakeup()` and `__destruct()`.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="/?rule=E0069#playground">Try in Playground</a>
+      <a class="btn" href="/#rules">All rules</a>
+      <a class="btn" href="https://github.com/denzyldick/phanalist">GitHub</a>
+    </div>
+    <article class="content">
+      <p>Passing untrusted data to <code>unserialize()</code> or similar deserialization functions can instantiate arbitrary PHP objects and trigger magic methods such as <code>__wakeup()</code> and <code>__destruct()</code>.</p>
+<h2>Why it matters</h2>
+<p>PHP object injection is a critical vulnerability. A crafted serialized payload can:</p>
+<ul>
+<li>Trigger magic methods when unserialized</li>
+<li>Execute code through gadget chains in loaded classes</li>
+<li>Read, modify, or delete files</li>
+<li>Lead to remote code execution</li>
+</ul>
+<h2>Bad example</h2>
+<pre><code class="language-php">$data = $_GET[&#39;data&#39;] ?? &#39;&#39;;
+$result = unserialize($data);
+</code></pre>
+<p>An attacker can send a malicious serialized payload that triggers <code>__wakeup()</code> or <code>__destruct()</code> in a loaded class.</p>
+<h2>Good example</h2>
+<pre><code class="language-php">// Use JSON instead of PHP serialization for untrusted data
+$data = $_GET[&#39;json&#39;] ?? &#39;&#39;;
+$result = json_decode($data, true);
+if (json_last_error() !== JSON_ERROR_NONE) {
+    http_response_code(400);
+    exit;
+}
+</code></pre>
+<h2>What it checks</h2>
+<ul>
+<li><code>unserialize()</code> calls with tainted input from <code>$_GET</code>, <code>$_POST</code>, <code>$_REQUEST</code>, <code>$_COOKIE</code>, or <code>php://input</code></li>
+<li><code>session_decode()</code> with user-controlled data</li>
+</ul>
+<h2>When it does not report</h2>
+<ul>
+<li><code>unserialize()</code> on literal strings or trusted internal variables</li>
+<li><code>unserialize()</code> with the <code>allowed_classes</code> option set to <code>false</code> or a restrictive array</li>
+</ul>
+<h2>How to fix</h2>
+<ol>
+<li>Do not pass user-controlled data to <code>unserialize()</code>.</li>
+<li>Use JSON (<code>json_decode()</code> / <code>json_encode()</code>) instead of PHP serialization for untrusted data.</li>
+<li>If you must use <code>unserialize()</code>, pass <code>[&#39;allowed_classes&#39; =&gt; false]</code> to prevent object instantiation.</li>
+</ol>
+<h2>Configuration</h2>
+<p>E0069 is enabled by default and has no configuration options.</p>
+
+    </article>
+  </div>
+</body>
+</html>

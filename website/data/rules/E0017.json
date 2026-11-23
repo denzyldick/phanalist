@@ -1,12 +1,12 @@
 {
   "rule_code": "E0017",
   "title": "E0017: Coupling Between Objects (CBO)",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "",
-  "good_example": "",
-  "severity": "info",
-  "category": "general",
+  "plain_english": "Coupling Between Objects (CBO) counts how many distinct external classes a class depends on.",
+  "why_matters": "Highly coupled classes are more sensitive to changes elsewhere in the codebase. Reducing coupling can make classes easier to test, reuse, and modify independently.",
+  "bad_example": "// Depends on many external classes.\nclass OrderService extends BaseService implements AuditableService\n{\n    private UserRepository $users;\n    private PaymentGateway $payments;\n    private Mailer $mailer;\n\n    public function __construct(Logger $logger, EventBus $events) {}\n\n    public function refund(Order $order): RefundReceipt\n    {\n        if ($order instanceof PaidOrder) {\n            StripeRefund::create($order);\n        }\n\n        try {\n            return new RefundReceipt();\n        } catch (GatewayException $exception) {\n            throw new CannotRefundOrder();\n        }\n    }\n}",
+  "good_example": "class RefundService\n{\n    public function __construct(\n        private PaymentGateway $payments,\n        private RefundReceiptFactory $receipts,\n    ) {}\n\n    public function refund(Order $order): RefundReceipt\n    {\n        $this->payments->refund($order);\n        return $this->receipts->createFor($order);\n    }\n}",
+  "severity": "minor",
+  "category": "code-health",
   "what_it_checks": [
     "Checks for E0017 violations"
   ]

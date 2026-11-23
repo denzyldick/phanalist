@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E0130: Command execution via passthru | Phanalist</title>
+  <meta name="description" content="Passing untrusted input to `passthru()` can allow an attacker to execute arbitrary shell commands on the server." />
+  <link rel="canonical" href="https://phanalist.io/rules/e0130.html" />
+  <meta property="og:title" content="E0130: Command execution via passthru | Phanalist" />
+  <meta property="og:description" content="Passing untrusted input to `passthru()` can allow an attacker to execute arbitrary shell commands on the server." />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://phanalist.io/rules/e0130.html" />
+  <style>
+    :root { --bg:#0a0a0f; --card:#161620; --subtle:#12121a; --fg:#e8e8f0; --muted:#8f8fa3; --accent:#00d4aa; --border:#2a2a3a; }
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--fg);line-height:1.7}
+    .wrap{max-width:980px;margin:0 auto;padding:32px 20px 72px}
+    a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+    .crumbs{font-size:14px;color:var(--muted);margin-bottom:18px}
+    .badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+    .badge{display:inline-flex;padding:4px 10px;border:1px solid var(--border);border-radius:999px;font-size:12px;color:var(--muted);background:var(--subtle)}
+    h1{font-size:clamp(28px,5vw,44px);line-height:1.15;margin:0 0 12px;letter-spacing:-.02em}
+    .lead{font-size:18px;color:#cfcfda;max-width:78ch;margin:0 0 20px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 28px}
+    .btn{display:inline-flex;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--subtle);color:var(--fg);font-weight:600}
+    .btn-primary{background:linear-gradient(135deg,var(--accent),#0066ff);color:#081018;border:none}
+    .content{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px}
+    .content > :first-child{margin-top:0} .content > :last-child{margin-bottom:0}
+    .content h2{margin-top:32px;font-size:24px;line-height:1.25}
+    .content h3{margin-top:24px;font-size:19px;line-height:1.3}
+    .content p,.content li{color:#d9d9e3}
+    .content ul,.content ol{padding-left:24px}
+    .content pre{margin:16px 0;background:#0d0d15;border:1px solid var(--border);border-radius:10px;padding:16px;overflow:auto}
+    .content code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.94em}
+    .content p code,.content li code{background:#0d0d15;border:1px solid var(--border);padding:.12em .35em;border-radius:5px}
+    .content pre code{background:none;border:none;padding:0;font-size:13px;line-height:1.55}
+    .content blockquote{margin:16px 0;padding:0 0 0 16px;border-left:3px solid var(--accent);color:#cfcfda}
+    .content table{width:100%;border-collapse:collapse;margin:16px 0}
+    .content th,.content td{border:1px solid var(--border);padding:10px;text-align:left;vertical-align:top}
+    .content th{background:var(--subtle)}
+  </style>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"E0130: Command execution via passthru","description":"Passing untrusted input to `passthru()` can allow an attacker to execute arbitrary shell commands on the server.","url":"https://phanalist.io/rules/e0130.html"}</script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="crumbs"><a href="/">Phanalist</a> / <a href="/#rules">Rules</a> / E0130</div>
+    <div class="badges">
+      <span class="badge">E0130</span>
+      <span class="badge">security</span>
+      <span class="badge">critical</span>
+    </div>
+    <h1>Command execution via passthru</h1>
+    <p class="lead">Passing untrusted input to `passthru()` can allow an attacker to execute arbitrary shell commands on the server.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="/?rule=E0130#playground">Try in Playground</a>
+      <a class="btn" href="/#rules">All rules</a>
+      <a class="btn" href="https://github.com/denzyldick/phanalist">GitHub</a>
+    </div>
+    <article class="content">
+      <p>Passing untrusted input to <code>passthru()</code> can allow an attacker to execute arbitrary shell commands on the server.</p>
+<h2>Why it matters</h2>
+<p>Command injection through <code>passthru()</code> can:</p>
+<ul>
+<li>Run arbitrary system commands</li>
+<li>Read or modify files and databases</li>
+<li>Install malware or backdoors</li>
+<li>Lead to full server compromise</li>
+</ul>
+<h2>Bad example</h2>
+<pre><code class="language-php">$cmd = $_GET[&#39;cmd&#39;] ?? &#39;&#39;;
+passthru($cmd);
+</code></pre>
+<p>An attacker can send <code>?cmd=cat /etc/passwd</code>, causing the server to execute the command.</p>
+<h2>Good example</h2>
+<pre><code class="language-php">// Avoid passthru() entirely. Use PHP-native functions instead.
+// If you must run a command, validate strictly and escape:
+$cmd = $_GET[&#39;cmd&#39;] ?? &#39;&#39;;
+$allowed = [&#39;whoami&#39;, &#39;date&#39;, &#39;uptime&#39;];
+$base = explode(&#39; &#39;, $cmd)[0] ?? &#39;&#39;;
+if (!in_array($base, $allowed, true)) {
+    http_response_code(400);
+    exit;
+}
+passthru(escapeshellcmd($cmd));
+</code></pre>
+<h2>What it checks</h2>
+<ul>
+<li><code>passthru()</code> calls where the command string contains tainted input</li>
+<li><code>passthru()</code> calls with user-controlled command arguments without escaping</li>
+</ul>
+<h2>When it does not report</h2>
+<ul>
+<li><code>passthru()</code> with literal commands or validated input</li>
+<li>Cases where <code>escapeshellarg()</code> / <code>escapeshellcmd()</code> sanitization is recognized</li>
+</ul>
+<h2>How to fix</h2>
+<ol>
+<li>Do not pass user input directly to <code>passthru()</code>.</li>
+<li>Prefer PHP-native functions instead of shell commands.</li>
+<li>If a shell command is required, validate it against an allowlist and escape all arguments.</li>
+</ol>
+<h2>Configuration</h2>
+<p>E0130 is enabled by default and has no configuration options.</p>
+
+    </article>
+  </div>
+</body>
+</html>

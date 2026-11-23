@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E0075: Session security | Phanalist</title>
+  <meta name="description" content="Calling `session_start()` without secure cookie settings can leave session IDs vulnerable to interception and theft." />
+  <link rel="canonical" href="https://phanalist.io/rules/e0075.html" />
+  <meta property="og:title" content="E0075: Session security | Phanalist" />
+  <meta property="og:description" content="Calling `session_start()` without secure cookie settings can leave session IDs vulnerable to interception and theft." />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://phanalist.io/rules/e0075.html" />
+  <style>
+    :root { --bg:#0a0a0f; --card:#161620; --subtle:#12121a; --fg:#e8e8f0; --muted:#8f8fa3; --accent:#00d4aa; --border:#2a2a3a; }
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--fg);line-height:1.7}
+    .wrap{max-width:980px;margin:0 auto;padding:32px 20px 72px}
+    a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+    .crumbs{font-size:14px;color:var(--muted);margin-bottom:18px}
+    .badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+    .badge{display:inline-flex;padding:4px 10px;border:1px solid var(--border);border-radius:999px;font-size:12px;color:var(--muted);background:var(--subtle)}
+    h1{font-size:clamp(28px,5vw,44px);line-height:1.15;margin:0 0 12px;letter-spacing:-.02em}
+    .lead{font-size:18px;color:#cfcfda;max-width:78ch;margin:0 0 20px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 28px}
+    .btn{display:inline-flex;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--subtle);color:var(--fg);font-weight:600}
+    .btn-primary{background:linear-gradient(135deg,var(--accent),#0066ff);color:#081018;border:none}
+    .content{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px}
+    .content > :first-child{margin-top:0} .content > :last-child{margin-bottom:0}
+    .content h2{margin-top:32px;font-size:24px;line-height:1.25}
+    .content h3{margin-top:24px;font-size:19px;line-height:1.3}
+    .content p,.content li{color:#d9d9e3}
+    .content ul,.content ol{padding-left:24px}
+    .content pre{margin:16px 0;background:#0d0d15;border:1px solid var(--border);border-radius:10px;padding:16px;overflow:auto}
+    .content code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.94em}
+    .content p code,.content li code{background:#0d0d15;border:1px solid var(--border);padding:.12em .35em;border-radius:5px}
+    .content pre code{background:none;border:none;padding:0;font-size:13px;line-height:1.55}
+    .content blockquote{margin:16px 0;padding:0 0 0 16px;border-left:3px solid var(--accent);color:#cfcfda}
+    .content table{width:100%;border-collapse:collapse;margin:16px 0}
+    .content th,.content td{border:1px solid var(--border);padding:10px;text-align:left;vertical-align:top}
+    .content th{background:var(--subtle)}
+  </style>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"E0075: Session security","description":"Calling `session_start()` without secure cookie settings can leave session IDs vulnerable to interception and theft.","url":"https://phanalist.io/rules/e0075.html"}</script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="crumbs"><a href="/">Phanalist</a> / <a href="/#rules">Rules</a> / E0075</div>
+    <div class="badges">
+      <span class="badge">E0075</span>
+      <span class="badge">security</span>
+      <span class="badge">major</span>
+    </div>
+    <h1>Session security</h1>
+    <p class="lead">Calling `session_start()` without secure cookie settings can leave session IDs vulnerable to interception and theft.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="/?rule=E0075#playground">Try in Playground</a>
+      <a class="btn" href="/#rules">All rules</a>
+      <a class="btn" href="https://github.com/denzyldick/phanalist">GitHub</a>
+    </div>
+    <article class="content">
+      <p>Calling <code>session_start()</code> without secure cookie settings can leave session IDs vulnerable to interception and theft.</p>
+<h2>Why it matters</h2>
+<p>Insecure session configuration can allow attackers to:</p>
+<ul>
+<li>Steal session cookies over unencrypted HTTP</li>
+<li>Access session data via JavaScript in an XSS attack</li>
+<li>Fixate session IDs before authentication</li>
+<li>Hijack authenticated user sessions</li>
+</ul>
+<h2>Bad example</h2>
+<pre><code class="language-php">session_set_cookie_params([
+    &#39;secure&#39; =&gt; false,    // sent over HTTP
+    &#39;httponly&#39; =&gt; false,  // accessible via JavaScript
+]);
+session_start();
+</code></pre>
+<h2>Good example</h2>
+<pre><code class="language-php">session_set_cookie_params([
+    &#39;lifetime&#39; =&gt; 3600,
+    &#39;path&#39; =&gt; &#39;/&#39;,
+    &#39;secure&#39; =&gt; true,      // HTTPS only
+    &#39;httponly&#39; =&gt; true,    // not accessible via JavaScript
+    &#39;samesite&#39; =&gt; &#39;Lax&#39;,   // prevent cross-site leakage
+]);
+ini_set(&#39;session.use_strict_mode&#39;, &#39;1&#39;);
+session_start();
+</code></pre>
+<h2>What it checks</h2>
+<ul>
+<li><code>session_start()</code> without prior <code>session_set_cookie_params()</code> setting <code>secure =&gt; true</code> and <code>httponly =&gt; true</code></li>
+<li><code>ini_set(&#39;session.cookie_secure&#39;, &#39;0&#39;)</code> or <code>ini_set(&#39;session.cookie_httponly&#39;, &#39;0&#39;)</code></li>
+<li><code>session.use_trans_sid = 1</code> (session ID in URL)</li>
+</ul>
+<h2>When it does not report</h2>
+<ul>
+<li>CLI scripts where session cookies do not apply</li>
+<li>Secure cookie parameters set via <code>.htaccess</code> or web server configuration (not detectable statically)</li>
+</ul>
+<h2>How to fix</h2>
+<ol>
+<li>Set <code>session.cookie_secure = 1</code> so cookies are sent only over HTTPS.</li>
+<li>Set <code>session.cookie_httponly = 1</code> so cookies are not accessible via JavaScript.</li>
+<li>Set <code>session.cookie_samesite = Lax</code> or <code>Strict</code>.</li>
+<li>Set <code>session.use_only_cookies = 1</code> so session IDs are not placed in URLs.</li>
+<li>Set <code>session.use_strict_mode = 1</code> to reject uninitialized session IDs.</li>
+</ol>
+<h2>Configuration</h2>
+<p>E0075 is enabled by default and has no configuration options.</p>
+
+    </article>
+  </div>
+</body>
+</html>

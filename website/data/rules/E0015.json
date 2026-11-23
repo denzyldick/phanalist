@@ -1,12 +1,12 @@
 {
   "rule_code": "E0015",
   "title": "E0015: Lack of Cohesion of Methods (LCOM4)",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "",
-  "good_example": "",
-  "severity": "info",
-  "category": "general",
+  "plain_english": "LCOM4 measures whether the methods in a class are connected through shared properties or method calls. A higher score can indicate that a class contains unrelated responsibilities.",
+  "why_matters": "A class with low cohesion often does more than one job. Splitting it into focused classes can make behavior easier to understand, test, and change.",
+  "bad_example": "class UserManager {\n    private $db;\n    private $logger;\n\n    // Island 1: database work\n    public function saveUser($user) {\n        $this->db->save($user);\n    }\n\n    // Island 2: logging work\n    public function logError($message) {\n        $this->logger->write($message);\n    }\n}",
+  "good_example": "class Counter {\n    private $count = 0;\n\n    public function increment() {\n        $this->count++;\n    }\n\n    public function getCount() {\n        return $this->count;\n    }\n}",
+  "severity": "minor",
+  "category": "code-health",
   "what_it_checks": [
     "Checks for E0015 violations"
   ]

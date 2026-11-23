@@ -1,13 +1,16 @@
 {
   "rule_code": "E0047",
   "title": "E0047: Resource lifecycle leak",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "",
-  "good_example": "",
-  "severity": "info",
-  "category": "general",
+  "plain_english": "This rule reports function-scoped resources that are opened and never closed or transferred to another owner. It complements E0043, which reports use-after-close and double-close on tracked streams.",
+  "why_matters": "Leaving file handles, pipes, process handles, or directory handles open can exhaust system resources, especially in long-running workers or code paths that run many times. Closing resources explicitly, or transferring ownership clearly, makes resource lifetimes easier to reason about.",
+  "bad_example": "<?php\nfunction write(string $path, string $data): void\n{\n    $h = fopen($path, 'w');\n    fwrite($h, $data);\n    // missing fclose($h)\n}",
+  "good_example": "<?php\nfunction write(string $path, string $data): void\n{\n    $h = fopen($path, 'w');\n    if ($h === false) {\n        return;\n    }\n    try {\n        fwrite($h, $data);\n    } finally {\n        fclose($h);\n    }\n}",
+  "severity": "major",
+  "category": "lifecycle",
   "what_it_checks": [
-    "Checks for E0047 violations"
+    "`fopen()`, `fsockopen()`, `pfsockopen()`, `stream_socket_client()`, and `tmpfile()` handles that should be closed with `fclose()`",
+    "`popen()` handles that should be closed with `pclose()`",
+    "`proc_open()` handles that should be closed with `proc_close()`",
+    "`opendir()` handles that should be closed with `closedir()`"
   ]
 }

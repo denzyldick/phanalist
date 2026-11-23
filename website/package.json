@@ -1,0 +1,50 @@
+{
+  "name": "phanalist-website",
+  "version": "1.0.0",
+  "description": "Phanalist landing page and playground",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vite",
+    "build": "node scripts/generate-rule-pages.mjs && vite build && node scripts/generate-rule-pages.mjs",
+    "preview": "vite preview",
+    "lint": "eslint index.html && eslint --ext .js,.ts,.tsx,.vue . --ignore-path .gitignore || true",
+    "lint:fix": "eslint --fix index.html && eslint --fix --ext .js,.ts,.tsx,.vue . --ignore-path .gitignore || true",
+    "format": "prettier --write index.html vite.config.ts src/",
+    "format:check": "prettier --check index.html vite.config.ts src/",
+    "htmlhint": "htmlhint index.html || true",
+    "ci": "npm run check:rules-sync && npm run format:check && npm run lint && npm run htmlhint && npm run build",
+    "generate:rules": "node scripts/generate-rule-pages.mjs",
+    "check:rules-sync": "node scripts/check-rules-sync.mjs"
+  },
+  "keywords": [
+    "phanalist",
+    "php",
+    "static-analysis",
+    "website"
+  ],
+  "author": "Denzyl Dick",
+  "license": "MIT",
+  "type": "module",
+  "devDependencies": {
+    "@playwright/test": "^1.65.0",
+    "eslint": "^8.57.0",
+    "eslint-plugin-html": "^7.1.0",
+    "htmlhint": "^0.13.0",
+    "marked": "^12.0.2",
+    "playwright": "^1.65.0",
+    "prettier": "^3.2.5",
+    "vite": "^5.4.21"
+  },
+  "dependencies": {
+    "@codemirror/autocomplete": "^6.20.4",
+    "@codemirror/commands": "^6.11.1",
+    "@codemirror/lang-php": "^6.0.2",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.43.15",
+    "autoprefixer": "^10.6.2",
+    "postcss": "^8.5.32",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwindcss": "^4.3.5"
+  }
+}

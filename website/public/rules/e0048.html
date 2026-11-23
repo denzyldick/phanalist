@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E0048: Unbounded direct recursion | Phanalist</title>
+  <meta name="description" content="This rule reports direct recursion that reuses unchanged arguments and does not reassign the corresponding parameters. These calls are strong candidates for inf" />
+  <link rel="canonical" href="https://phanalist.io/rules/e0048.html" />
+  <meta property="og:title" content="E0048: Unbounded direct recursion | Phanalist" />
+  <meta property="og:description" content="This rule reports direct recursion that reuses unchanged arguments and does not reassign the corresponding parameters. These calls are strong candidates for infinite recursion." />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://phanalist.io/rules/e0048.html" />
+  <style>
+    :root { --bg:#0a0a0f; --card:#161620; --subtle:#12121a; --fg:#e8e8f0; --muted:#8f8fa3; --accent:#00d4aa; --border:#2a2a3a; }
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--fg);line-height:1.7}
+    .wrap{max-width:980px;margin:0 auto;padding:32px 20px 72px}
+    a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+    .crumbs{font-size:14px;color:var(--muted);margin-bottom:18px}
+    .badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+    .badge{display:inline-flex;padding:4px 10px;border:1px solid var(--border);border-radius:999px;font-size:12px;color:var(--muted);background:var(--subtle)}
+    h1{font-size:clamp(28px,5vw,44px);line-height:1.15;margin:0 0 12px;letter-spacing:-.02em}
+    .lead{font-size:18px;color:#cfcfda;max-width:78ch;margin:0 0 20px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 28px}
+    .btn{display:inline-flex;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--subtle);color:var(--fg);font-weight:600}
+    .btn-primary{background:linear-gradient(135deg,var(--accent),#0066ff);color:#081018;border:none}
+    .content{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px}
+    .content > :first-child{margin-top:0} .content > :last-child{margin-bottom:0}
+    .content h2{margin-top:32px;font-size:24px;line-height:1.25}
+    .content h3{margin-top:24px;font-size:19px;line-height:1.3}
+    .content p,.content li{color:#d9d9e3}
+    .content ul,.content ol{padding-left:24px}
+    .content pre{margin:16px 0;background:#0d0d15;border:1px solid var(--border);border-radius:10px;padding:16px;overflow:auto}
+    .content code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.94em}
+    .content p code,.content li code{background:#0d0d15;border:1px solid var(--border);padding:.12em .35em;border-radius:5px}
+    .content pre code{background:none;border:none;padding:0;font-size:13px;line-height:1.55}
+    .content blockquote{margin:16px 0;padding:0 0 0 16px;border-left:3px solid var(--accent);color:#cfcfda}
+    .content table{width:100%;border-collapse:collapse;margin:16px 0}
+    .content th,.content td{border:1px solid var(--border);padding:10px;text-align:left;vertical-align:top}
+    .content th{background:var(--subtle)}
+  </style>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"E0048: Unbounded direct recursion","description":"This rule reports direct recursion that reuses unchanged arguments and does not reassign the corresponding parameters. These calls are strong candidates for infinite recursion.","url":"https://phanalist.io/rules/e0048.html"}</script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="crumbs"><a href="/">Phanalist</a> / <a href="/#rules">Rules</a> / E0048</div>
+    <div class="badges">
+      <span class="badge">E0048</span>
+      <span class="badge">lifecycle</span>
+      <span class="badge">major</span>
+    </div>
+    <h1>Unbounded direct recursion</h1>
+    <p class="lead">This rule reports direct recursion that reuses unchanged arguments and does not reassign the corresponding parameters. These calls are strong candidates for infinite recursion.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="/?rule=E0048#playground">Try in Playground</a>
+      <a class="btn" href="/#rules">All rules</a>
+      <a class="btn" href="https://github.com/denzyldick/phanalist">GitHub</a>
+    </div>
+    <article class="content">
+      <p>This rule reports direct recursion that reuses unchanged arguments and does not reassign the corresponding parameters. These calls are strong candidates for infinite recursion.</p>
+<h2>Why it matters</h2>
+<p>A recursive call that keeps the same inputs can repeat forever, leading to stack exhaustion or a process crash. Making the termination condition and the changing argument explicit helps ensure the recursion makes progress.</p>
+<h2>Bad example</h2>
+<pre><code class="language-php">&lt;?php
+function walk(Node $node): void
+{
+    walk($node-&gt;next); // no base case/guard
+}
+</code></pre>
+<h2>Good example</h2>
+<pre><code class="language-php">&lt;?php
+function walk(?Node $node): void
+{
+    if ($node === null) {
+        return;
+    }
+
+    walk($node-&gt;next);
+}
+</code></pre>
+<h2>What it checks</h2>
+<ul>
+<li>A function calling itself with the same parameter variables</li>
+<li>A method calling <code>$this-&gt;sameMethod()</code> with the same parameter variables</li>
+<li>A static method calling <code>self::sameMethod()</code>, <code>static::sameMethod()</code>, or <code>ClassName::sameMethod()</code> with the same parameter variables</li>
+<li>Zero-argument functions and methods that call themselves</li>
+</ul>
+<p>A recursive call is accepted when it changes an argument, for example <code>countdown($number - 1)</code>, or when the function mutates the parameter before the call. Mutations include direct assignment, <code>++</code>/<code>--</code>, array element writes, property writes on parameter objects, <code>unset()</code>, <code>foreach</code> targets, and builtins that mutate an argument such as <code>array_pop()</code>, <code>array_shift()</code>, <code>sort()</code>, or <code>preg_match()</code>.</p>
+<p>Recursion is also accepted when the function mutates object or static state, calls another method on <code>$this</code> before recursing, or places the recursive call in a closure that shadows a parameter name. A fully qualified call such as <code>\getenv()</code> is treated as the global function, not as a recursive call to a namespaced <code>getenv()</code> function.</p>
+<h2>When it does not report</h2>
+<p>E0048 is a local, conservative heuristic:</p>
+<ul>
+<li>Mutual recursion between two functions or methods is not reported.</li>
+<li>Recursion that changes global, static, or object state is not reported.</li>
+<li>Recursion through a closure parameter that shadows a function parameter is not reported.</li>
+<li>A base case is not required for a finding; the rule reports the unchanged recursive call and asks for termination to be made explicit.</li>
+<li>Recursive calls through variables, first-class callables, or dynamic method names are not reported.</li>
+<li>Argument identity is syntactic. <code>countdown($number + 0)</code> is treated as changed, and <code>countdown($number)</code> is treated as unchanged.</li>
+<li>Variadic parameter lists are skipped.</li>
+</ul>
+<h2>How to fix</h2>
+<ul>
+<li>Change at least one argument on each recursive call so the function moves toward a base case.</li>
+<li>Add or make the base case explicit before recursing.</li>
+<li>If the recursion depends on external or object state, make that progress visible and ensure the state changes on every path.</li>
+<li>Consider replacing deep recursion with an iterative loop when the input size can be large.</li>
+</ul>
+<h2>Configuration</h2>
+<p>E0048 has no configuration options and is enabled by default.</p>
+
+    </article>
+  </div>
+</body>
+</html>

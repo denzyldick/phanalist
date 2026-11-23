@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0080",
+  "title": "E0080: Weak cryptographic function",
+  "plain_english": "Using `crypt()` for password hashing, or using it with weak parameters, is unsafe. Use a modern password hashing function such as `password_hash()`.",
+  "why_matters": "`crypt()` with weak parameters (such as DES-based crypt) is vulnerable to: - Fast brute-force attacks due to limited key space - Rainbow table attacks when no salt or a weak salt is used - Outdated behavior compared to bcrypt or Argon2 used by `password_hash()`",
+  "bad_example": "$hash = crypt($password, '$1$saltsalt$'); // MD5-based crypt, weak\n$hash = crypt($password);                   // uses system default, may be weak",
+  "good_example": "$hash = password_hash($password, PASSWORD_DEFAULT);\n// Uses bcrypt or argon2 with automatic salt and cost factor\nif (password_verify($password, $hash)) {\n    // valid\n}",
+  "severity": "critical",
+  "category": "security",
+  "what_it_checks": [
+    "`crypt()` calls used for password hashing",
+    "`crypt()` without a proper salt parameter"
+  ]
+}

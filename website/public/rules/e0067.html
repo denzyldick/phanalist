@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E0067: Mail injection | Phanalist</title>
+  <meta name="description" content="This rule reports mail-sending calls where user-controlled input reaches mail headers, subject, or related arguments. Crafted input can inject additional mail h" />
+  <link rel="canonical" href="https://phanalist.io/rules/e0067.html" />
+  <meta property="og:title" content="E0067: Mail injection | Phanalist" />
+  <meta property="og:description" content="This rule reports mail-sending calls where user-controlled input reaches mail headers, subject, or related arguments. Crafted input can inject additional mail headers." />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://phanalist.io/rules/e0067.html" />
+  <style>
+    :root { --bg:#0a0a0f; --card:#161620; --subtle:#12121a; --fg:#e8e8f0; --muted:#8f8fa3; --accent:#00d4aa; --border:#2a2a3a; }
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--fg);line-height:1.7}
+    .wrap{max-width:980px;margin:0 auto;padding:32px 20px 72px}
+    a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+    .crumbs{font-size:14px;color:var(--muted);margin-bottom:18px}
+    .badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+    .badge{display:inline-flex;padding:4px 10px;border:1px solid var(--border);border-radius:999px;font-size:12px;color:var(--muted);background:var(--subtle)}
+    h1{font-size:clamp(28px,5vw,44px);line-height:1.15;margin:0 0 12px;letter-spacing:-.02em}
+    .lead{font-size:18px;color:#cfcfda;max-width:78ch;margin:0 0 20px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 28px}
+    .btn{display:inline-flex;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--subtle);color:var(--fg);font-weight:600}
+    .btn-primary{background:linear-gradient(135deg,var(--accent),#0066ff);color:#081018;border:none}
+    .content{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px}
+    .content > :first-child{margin-top:0} .content > :last-child{margin-bottom:0}
+    .content h2{margin-top:32px;font-size:24px;line-height:1.25}
+    .content h3{margin-top:24px;font-size:19px;line-height:1.3}
+    .content p,.content li{color:#d9d9e3}
+    .content ul,.content ol{padding-left:24px}
+    .content pre{margin:16px 0;background:#0d0d15;border:1px solid var(--border);border-radius:10px;padding:16px;overflow:auto}
+    .content code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.94em}
+    .content p code,.content li code{background:#0d0d15;border:1px solid var(--border);padding:.12em .35em;border-radius:5px}
+    .content pre code{background:none;border:none;padding:0;font-size:13px;line-height:1.55}
+    .content blockquote{margin:16px 0;padding:0 0 0 16px;border-left:3px solid var(--accent);color:#cfcfda}
+    .content table{width:100%;border-collapse:collapse;margin:16px 0}
+    .content th,.content td{border:1px solid var(--border);padding:10px;text-align:left;vertical-align:top}
+    .content th{background:var(--subtle)}
+  </style>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"E0067: Mail injection","description":"This rule reports mail-sending calls where user-controlled input reaches mail headers, subject, or related arguments. Crafted input can inject additional mail headers.","url":"https://phanalist.io/rules/e0067.html"}</script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="crumbs"><a href="/">Phanalist</a> / <a href="/#rules">Rules</a> / E0067</div>
+    <div class="badges">
+      <span class="badge">E0067</span>
+      <span class="badge">security</span>
+      <span class="badge">major</span>
+    </div>
+    <h1>Mail injection</h1>
+    <p class="lead">This rule reports mail-sending calls where user-controlled input reaches mail headers, subject, or related arguments. Crafted input can inject additional mail headers.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="/?rule=E0067#playground">Try in Playground</a>
+      <a class="btn" href="/#rules">All rules</a>
+      <a class="btn" href="https://github.com/denzyldick/phanalist">GitHub</a>
+    </div>
+    <article class="content">
+      <p>This rule reports mail-sending calls where user-controlled input reaches mail headers, subject, or related arguments. Crafted input can inject additional mail headers.</p>
+<h2>Why it matters</h2>
+<p>Mail injection can allow attackers to abuse a contact form or mail feature to send spam, spoof headers, or add unintended recipients.</p>
+<h2>Bad example</h2>
+<pre><code class="language-php">$email = $_GET[&#39;email&#39;] ?? &#39;&#39;;
+mail(&#39;admin@example.com&#39;, &#39;Contact&#39;, $body, &quot;From: $email&quot;);
+</code></pre>
+<p>If an attacker injects CR/LF characters, they may be able to add extra headers such as <code>Bcc</code>.</p>
+<h2>Good example</h2>
+<pre><code class="language-php">$email = filter_var($_GET[&#39;email&#39;] ?? &#39;&#39;, FILTER_VALIDATE_EMAIL);
+if ($email === false) {
+    http_response_code(400);
+    exit;
+}
+mail(&#39;admin@example.com&#39;, &#39;Contact&#39;, $body, &quot;From: $email&quot;);
+</code></pre>
+<p>Validate email addresses and strip newline characters from header values before using them.</p>
+<h2>What it checks</h2>
+<ul>
+<li><code>mail()</code> and <code>mb_send_mail()</code> calls</li>
+<li>Cases where user-controlled input reaches these calls, based on taint analysis and dynamic-expression heuristics</li>
+</ul>
+<h2>When it does not report</h2>
+<ul>
+<li>Mail calls built only from static or trusted data</li>
+<li>Cases where sanitization or data flow prevents the taint/heuristic model from reporting the sink</li>
+<li>Cases where the model cannot prove the input reaches the call</li>
+</ul>
+<h2>How to fix</h2>
+<ul>
+<li>Validate email addresses with <code>filter_var($email, FILTER_VALIDATE_EMAIL)</code>.</li>
+<li>Strip CR and LF characters from header values: <code>str_replace([&quot;\r&quot;, &quot;\n&quot;], &quot;&quot;, $input)</code>.</li>
+<li>Consider using a mail library that handles header construction and escaping safely.</li>
+</ul>
+<h2>Configuration</h2>
+<p>E0067 is enabled by default. The taint-aware behavior is controlled by a per-rule <code>taint_mode</code> setting:</p>
+<pre><code class="language-yaml">rules:
+  E0067:
+    taint_mode: annotate
+</code></pre>
+<ul>
+<li><code>annotate</code> (default) reports the finding and adds the proven source origin to the message.</li>
+<li><code>only</code> reports only findings reached by proven tainted data.</li>
+<li><code>off</code> keeps the legacy heuristic-only behavior.</li>
+</ul>
+
+    </article>
+  </div>
+</body>
+</html>

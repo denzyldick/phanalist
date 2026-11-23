@@ -1,14 +1,14 @@
 {
   "rule_code": "E0067",
   "title": "E0067: Mail injection",
-  "plain_english": "",
-  "why_matters": "",
+  "plain_english": "This rule reports mail-sending calls where user-controlled input reaches mail headers, subject, or related arguments. Crafted input can inject additional mail headers.",
+  "why_matters": "Mail injection can allow attackers to abuse a contact form or mail feature to send spam, spoof headers, or add unintended recipients.",
   "bad_example": "$email = $_GET['email'] ?? '';\nmail('admin@example.com', 'Contact', $body, \"From: $email\");",
   "good_example": "$email = filter_var($_GET['email'] ?? '', FILTER_VALIDATE_EMAIL);\nif ($email === false) {\n    http_response_code(400);\n    exit;\n}\nmail('admin@example.com', 'Contact', $body, \"From: $email\");",
-  "severity": "info",
-  "category": "general",
+  "severity": "major",
+  "category": "security",
   "what_it_checks": [
-    "`mail()` with `$additional_headers` or `$subject` built from tainted input",
-    "`mb_send_mail()` with tainted headers"
+    "`mail()` and `mb_send_mail()` calls",
+    "Cases where user-controlled input reaches these calls, based on taint analysis and dynamic-expression heuristics"
   ]
 }

@@ -1,12 +1,12 @@
 {
   "rule_code": "E0125",
   "title": "E0125: Open redirect via header",
-  "plain_english": "",
-  "why_matters": "",
+  "plain_english": "Redirecting users with `header(\"Location: ...\")` to a URL taken from user input without validation can create an open redirect vulnerability.",
+  "why_matters": "Open redirects can be abused for: - Phishing, by making malicious links appear to come from a trusted domain - Bypassing expectations around post-login redirects - Redirecting users to sites that attempt to steal credentials or deliver malicious content",
   "bad_example": "$url = $_GET['url'] ?? '';\nheader(\"Location: $url\");\nexit;",
   "good_example": "$url = $_GET['url'] ?? '';\n$allowed = ['/dashboard', '/profile', '/login'];\nif (!in_array($url, $allowed, true)) {\n    $url = '/dashboard';\n}\nheader(\"Location: $url\");\nexit;",
-  "severity": "info",
-  "category": "general",
+  "severity": "major",
+  "category": "security",
   "what_it_checks": [
     "`header(\"Location: ...\")` with tainted input",
     "`header(\"refresh: ...;url=...\")` with tainted input"

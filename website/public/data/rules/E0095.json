@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0095",
+  "title": "E0095: Insecure Comparison",
+  "plain_english": "Comparing secrets (passwords, tokens, API keys, signatures) using `==` or `===` instead of `hash_equals()` can create a timing side-channel that attackers can exploit.",
+  "why_matters": "PHP's `==` operator returns early on the first mismatched byte. Attackers can measure response times to: - Guess secrets one character at a time - Bypass authentication by guessing API tokens - Recover signing keys or other secrets",
+  "bad_example": "if ($provided_api_key == $expected_key) {\n    grantAccess();\n}\nif ($signature == $expected) {\n    // VULNERABLE to timing attack\n}",
+  "good_example": "if (hash_equals($provided_api_key, $expected_key)) {\n    grantAccess();\n}\nif (hash_equals($signature, $expected)) {\n    // Constant-time comparison\n}",
+  "severity": "major",
+  "category": "security",
+  "what_it_checks": [
+    "`==` or `===` comparisons where one operand is a secret-like variable (`token`, `secret`, `key`, `password`, `hash`, `signature`, `mac`, `hmac`)",
+    "Both operands must be strings for the timing issue to apply"
+  ]
+}

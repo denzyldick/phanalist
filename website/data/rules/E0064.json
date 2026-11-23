@@ -1,13 +1,15 @@
 {
   "rule_code": "E0064",
   "title": "E0064: XPath injection",
-  "plain_english": "",
-  "why_matters": "",
+  "plain_english": "This rule reports XML/XPath-related calls where user-controlled input reaches the sink. Crafted input can change how XML is loaded or queried, depending on the API and usage.",
+  "why_matters": "XPath or XML injection can expose unintended data, bypass checks, or cause the application to process attacker-controlled XML content.",
   "bad_example": "$user = $_GET['user'] ?? '';\n$query = \"//user[login='$user']\";\n$result = $xpath->query($query);",
   "good_example": "$user = $_GET['user'] ?? '';\n$escaped = str_replace(\"'\", \"\\\\'\", $user);\n$query = \"//user[login='$escaped']\";\n$result = $xpath->query($query);",
-  "severity": "info",
-  "category": "general",
+  "severity": "major",
+  "category": "security",
   "what_it_checks": [
-    "`DOMXPath::query()`, `DOMXPath::evaluate()`, `SimpleXMLElement::xpath()` with tainted string concatenation in the XPath expression"
+    "Method calls named `load` or `loadxml`",
+    "`simplexml_load_string()` calls",
+    "Cases where user-controlled input reaches these calls, based on taint analysis and dynamic-expression heuristics"
   ]
 }
