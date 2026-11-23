@@ -134,6 +134,11 @@ impl SecurityService {
         snap.keys().cloned().collect()
     }
 
+    /// Function name -> file path for flow graph navigation.
+    pub fn function_files(&self) -> HashMap<String, String> {
+        self.summaries.lock().unwrap().function_files()
+    }
+
     /// Check if a function is reachable from any source function via the call graph.
     pub fn is_reachable_from_source(&self, func: &str, source_functions: &[String]) -> bool {
         let cg = self.call_graph.lock().unwrap();

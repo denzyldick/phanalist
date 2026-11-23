@@ -93,6 +93,20 @@ impl TaintSummaryIndex {
         snapshot
     }
 
+    /// Function name -> file path, used to make flow graph nodes navigable.
+    pub fn function_files(&self) -> HashMap<String, String> {
+        let mut files = HashMap::new();
+        for (path, entries) in &self.files {
+            let display = path.to_string_lossy().to_string();
+            for (name, _) in entries {
+                files
+                    .entry(name.to_ascii_lowercase())
+                    .or_insert_with(|| display.clone());
+            }
+        }
+        files
+    }
+
     fn invalidate(&self) {
         if let Ok(mut cache) = self.snapshot_cache.lock() {
             *cache = None;

@@ -26,6 +26,20 @@ pub struct BlameConfig {
     pub sort_by: String,
 }
 
+/// Per-finding git attribution for embedders that persist findings individually.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct FindingAttribution {
+    /// Same identity used by the baseline and the local scan warehouse.
+    pub fingerprint: String,
+    pub file_path: String,
+    pub rule: String,
+    pub author: String,
+    pub author_email: String,
+    pub commit_id: String,
+    /// RFC 3339 timestamp of the blamed commit, when available.
+    pub authored_at: String,
+}
+
 /// Parse a human-readable or absolute date string into a timestamp.
 /// Supported formats:
 ///   - RFC 3339: "2025-01-01T00:00:00Z"
@@ -111,6 +125,9 @@ pub struct EngineerBlame {
 #[derive(Clone)]
 struct BlameLine {
     author: String,
+    author_email: String,
+    commit_id: String,
+    authored_at: String,
     time: i64,
 }
 
@@ -278,6 +295,61 @@ impl EngineerBlame {
         }
 
         report
+    }
+
+    /// Attribute each current finding to the author of the blamed line.
+    ///
+    /// Unlike `attribute_violations`, this keeps the identity of the individual
+    /// finding so callers can persist author/commit data alongside it.
+    pub fn attribute_findings(&self, results: &crate::results::Results) -> Vec<FindingAttribution> {
+        let mut out = Vec::new();
+        let workdir = match self.repo.lock() {
+            Ok(repo) => repo
+                .workdir()
+                .map(|path| path.to_path_buf())
+                .unwrap_or_else(|| self.repo_path.clone()),
+            Err(_) => return out,
+        };
+        let repo = match self.repo.lock() {
+            Ok(repo) => repo,
+            Err(_) => return out,
+        };
+
+        let mut files: Vec<_> = results.files.iter().collect();
+        files.sort_by(|left, right| left.0.cmp(right.0));
+
+        for (file_path, violations) in files {
+            let blame_lines = match get_blame_lines(&self.blame_cache, &repo, file_path, &workdir) {
+                Ok(lines) => lines,
+                Err(_) => continue,
+            };
+
+            for violation in violations {
+                let Some(line) = majority_blame_line(
+                    &blame_lines,
+                    self.since_ts,
+                    self.until_ts,
+                    violation.start_line,
+                    violation.end_line,
+                ) else {
+                    continue;
+                };
+                if is_author_excluded(&line.author, &line.author_email, &self.exclude_authors) {
+                    continue;
+                }
+                out.push(FindingAttribution {
+                    fingerprint: finding_identity(violation, file_path),
+                    file_path: file_path.clone(),
+                    rule: violation.rule.clone(),
+                    author: line.author,
+                    author_email: line.author_email,
+                    commit_id: line.commit_id,
+                    authored_at: line.authored_at,
+                });
+            }
+        }
+
+        out
     }
 
     fn attribute_current(
@@ -607,7 +679,7 @@ fn get_blame_lines(
         let commit = gix_repo
             .find_commit(entry.commit_id)
             .map_err(|e| format!("Cannot find commit {}: {e}", entry.commit_id))?;
-        let (name, _, time) = match commit.author() {
+        let (name, email, time) = match commit.author() {
             Ok(sig) => (
                 sig.name.to_string(),
                 sig.email.to_string(),
@@ -615,10 +687,17 @@ fn get_blame_lines(
             ),
             Err(_) => ("unknown".to_string(), String::new(), 0),
         };
+        let authored_at = DateTime::<Utc>::from_timestamp(time, 0)
+            .map(|date| date.to_rfc3339())
+            .unwrap_or_default();
+        let commit_id = entry.commit_id.to_string();
         let count = entry.len.get() as usize;
         for _ in 0..count {
             lines.push(BlameLine {
                 author: name.clone(),
+                author_email: email.clone(),
+                commit_id: commit_id.clone(),
+                authored_at: authored_at.clone(),
                 time,
             });
         }
@@ -641,32 +720,61 @@ fn get_majority_author(
     start_line: usize,
     end_line: usize,
 ) -> Option<String> {
-    let blame_lines = match get_blame_lines(cache, gix_repo, file_path, workdir) {
-        Ok(lines) => lines,
-        Err(_) => return None,
-    };
+    let blame_lines = get_blame_lines(cache, gix_repo, file_path, workdir).ok()?;
+    majority_blame_line(&blame_lines, since_ts, until_ts, start_line, end_line)
+        .map(|line| line.author)
+}
 
-    let mut counts: HashMap<String, u64> = HashMap::new();
+fn time_matches(time: i64, since_ts: Option<i64>, until_ts: Option<i64>) -> bool {
+    match (since_ts, until_ts) {
+        (Some(since), Some(until)) => time >= since && time <= until,
+        (Some(since), None) => time >= since,
+        (None, Some(until)) => time <= until,
+        (None, None) => true,
+    }
+}
+
+fn majority_blame_line(
+    blame_lines: &[BlameLine],
+    since_ts: Option<i64>,
+    until_ts: Option<i64>,
+    start_line: usize,
+    end_line: usize,
+) -> Option<BlameLine> {
     let start = start_line.saturating_sub(1);
     let end = end_line.min(blame_lines.len());
+    if start >= end {
+        return None;
+    }
+    let lines = &blame_lines[start..end];
 
-    for i in start..end {
-        if i >= blame_lines.len() {
-            break;
-        }
-        let bl = &blame_lines[i];
-        let time_ok = match (since_ts, until_ts) {
-            (Some(s), Some(u)) => bl.time >= s && bl.time <= u,
-            (Some(s), None) => bl.time >= s,
-            (None, Some(u)) => bl.time <= u,
-            (None, None) => true,
-        };
-        if time_ok {
-            *counts.entry(bl.author.clone()).or_insert(0) += 1;
+    let mut counts: HashMap<&str, u64> = HashMap::new();
+    for line in lines {
+        if time_matches(line.time, since_ts, until_ts) {
+            *counts.entry(line.author.as_str()).or_insert(0) += 1;
         }
     }
 
-    counts.into_iter().max_by_key(|&(_, c)| c).map(|(a, _)| a)
+    let author = counts
+        .into_iter()
+        .max_by(|left, right| left.1.cmp(&right.1).then_with(|| right.0.cmp(left.0)))
+        .map(|(author, _)| author)?;
+
+    lines
+        .iter()
+        .find(|line| line.author == author && time_matches(line.time, since_ts, until_ts))
+        .cloned()
+}
+
+fn finding_identity(violation: &Violation, path: &str) -> String {
+    if violation.meta.fingerprint.is_empty() {
+        format!(
+            "{}|{}|{}|{}",
+            violation.rule, path, violation.start_line, violation.start_column
+        )
+    } else {
+        violation.meta.fingerprint.clone()
+    }
 }
 
 fn make_bar(total: usize, format: &Format) -> Option<ProgressBar> {
@@ -834,6 +942,38 @@ mod tests {
         assert!(config.until.is_none());
         assert!(config.exclude_authors.is_empty());
         assert_eq!(config.min_violations, 0);
+    }
+
+    #[test]
+    fn test_majority_blame_line_is_deterministic_on_ties() {
+        let line = |author: &str| BlameLine {
+            author: author.to_string(),
+            author_email: String::new(),
+            commit_id: String::new(),
+            authored_at: String::new(),
+            time: 100,
+        };
+        let lines = vec![line("Zoe"), line("Alice")];
+
+        let chosen = majority_blame_line(&lines, None, None, 1, 3).unwrap();
+        assert_eq!(chosen.author, "Alice");
+    }
+
+    #[test]
+    fn test_majority_blame_line_prefers_highest_count() {
+        let line = |author: &str| BlameLine {
+            author: author.to_string(),
+            author_email: String::new(),
+            commit_id: String::new(),
+            authored_at: String::new(),
+            time: 100,
+        };
+        // Alice appears once; Zoe appears three times and must win even though
+        // Alice sorts first alphabetically.
+        let lines = vec![line("Alice"), line("Zoe"), line("Zoe"), line("Zoe")];
+
+        let chosen = majority_blame_line(&lines, None, None, 1, 5).unwrap();
+        assert_eq!(chosen.author, "Zoe");
     }
 
     #[test]
