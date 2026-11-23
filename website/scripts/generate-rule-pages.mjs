@@ -3,6 +3,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { marked } from 'marked';
 
+const SITE = process.env.SITE_URL || 'https://denzyl.github.io/phanalist';
+const BASE_PATH = (process.env.BASE_PATH || '/').replace(/\/$/, '');
+const withBase = (p) => `${BASE_PATH}${p.startsWith('/') ? p : `/${p}`}`;
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(root, '..');
@@ -67,7 +71,7 @@ for (const rule of rules) {
     rule.why_matters ||
     (Array.isArray(rule.what_it_checks) ? rule.what_it_checks[0] : '') ||
     `Phanalist ${code} rule documentation.`;
-  const canonical = `${baseUrl}/rules/${code.toLowerCase()}.html`;
+  const canonical = `${baseUrl}${withBase(`/rules/${code.toLowerCase()}.html`)}`;
   urls.push(canonical);
 
   const html = `<!doctype html>
@@ -120,7 +124,7 @@ for (const rule of rules) {
 </head>
 <body>
   <div class="wrap">
-    <div class="crumbs"><a href="/">Phanalist</a> / <a href="/#rules">Rules</a> / ${esc(code)}</div>
+    <div class="crumbs"><a href="/">Phanalist</a> / <a href="${withBase('/#rules')}">Rules</a> / ${esc(code)}</div>
     <div class="badges">
       <span class="badge">${esc(code)}</span>
       <span class="badge">${esc(rule.category || 'general')}</span>
