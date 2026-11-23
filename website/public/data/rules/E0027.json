@@ -1,0 +1,16 @@
+{
+  "rule_code": "E0027",
+  "title": "E0027: God Class",
+  "plain_english": "Reports classes, traits, or enums that have too many methods and too many fields, which can indicate a God Class.",
+  "why_matters": "A type with many responsibilities is harder to understand, test, and change safely. Splitting it into focused types usually reduces coupling and makes behavior easier to maintain.",
+  "bad_example": "class OrderManager\n{\n    private Database $db;\n    private Cache $cache;\n    private Logger $log;\n    private Mailer $mail;\n    // ... 7 more properties ...\n\n    public function createOrder(): void { /* ... */ }\n    public function updateOrder(): void { /* ... */ }\n    public function cancelOrder(): void { /* ... */ }\n    public function createUser(): void { /* ... */ }\n    public function blockUser(): void { /* ... */ }\n    public function generateReport(): void { /* ... */ }\n    public function processRefund(): void { /* ... */ }\n    public function sendInvoice(): void { /* ... */ }\n    public function updateInventory(): void { /* ... */ }\n    public function sendNotification(): void { /* ... */ }\n    public function clearCache(): void { /* ... */ }\n    public function writeAuditLog(): void { /* ... */ }\n    // ... more methods ...\n}",
+  "good_example": "class OrderService\n{\n    public function __construct(\n        private OrderRepository $orders,\n        private BillingService $billing,\n    ) {}\n\n    public function create(Cart $cart): Order { /* ... */ }\n    public function cancel(Order $order): void { /* ... */ }\n}\n\nclass UserService\n{\n    public function __construct(\n        private UserRepository $users,\n    ) {}\n\n    public function register(string $email): User { /* ... */ }\n    public function block(User $user): void { /* ... */ }\n}",
+  "severity": "minor",
+  "category": "code-health",
+  "what_it_checks": [
+    "Counts methods and properties in classes, traits, and enums.",
+    "Reports when **both** thresholds are exceeded:",
+    "`method_count > max_methods`",
+    "`field_count > max_fields`"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0074",
+  "title": "E0074: Weak random number generator",
+  "plain_english": "Generating security-sensitive values (such as tokens, keys, salts, or CSRF tokens) with `rand()` or `mt_rand()` is unsafe because these functions are not cryptographically secure.",
+  "why_matters": "`rand()` and `mt_rand()` use weak pseudorandom number generators. Attackers may be able to: - Predict future random values from prior outputs - Guess session tokens, CSRF tokens, or password reset tokens - Bypass authentication or authorization",
+  "bad_example": "$token = bin2hex(mt_rand(100000, 999999)); // predictable\n$key = rand(1000, 9999);                    // easily brute-forced",
+  "good_example": "$token = bin2hex(random_bytes(16));  // cryptographically secure\n$key = random_int(1000, 9999);       // cryptographically secure",
+  "severity": "major",
+  "category": "security",
+  "what_it_checks": [
+    "`rand()`, `mt_rand()`, and `uniqid()` used for security-sensitive purposes (tokens, keys, salts)",
+    "`mt_rand()` without seeding from a secure source"
+  ]
+}

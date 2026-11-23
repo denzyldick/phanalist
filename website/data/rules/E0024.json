@@ -1,13 +1,15 @@
 {
   "rule_code": "E0024",
-  "title": "E0024: Lines of Code (LOC) per Method",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "",
-  "good_example": "",
-  "severity": "info",
-  "category": "general",
+  "title": "E0024: Lines of Code per Method",
+  "plain_english": "Reports concrete methods whose body exceeds the configured line-count threshold.",
+  "why_matters": "Long methods are harder to read, test, and change safely. Splitting a method into smaller, focused methods usually makes behavior easier to understand and reuse.",
+  "bad_example": "public function processOrder(Order $order): void\n{\n    $this->validate($order);\n    $this->checkStock($order);\n    // ... 50 more lines doing shipping, billing, notifications ...\n    $this->sendConfirmation($order);\n}",
+  "good_example": "public function processOrder(Order $order): void\n{\n    $this->validate($order);\n    $this->processPayment($order);\n    $this->ship($order);\n    $this->notify($order);\n}\n\nprivate function processPayment(Order $order): void { /* 5 lines */ }\nprivate function ship(Order $order): void { /* 8 lines */ }\nprivate function notify(Order $order): void { /* 6 lines */ }",
+  "severity": "minor",
+  "category": "code-health",
   "what_it_checks": [
-    "Checks for E0024 violations"
+    "Concrete method bodies in classes, traits, and enums.",
+    "Lines of code are counted as `end_line - start_line - 1` for the method body.",
+    "A method is reported when its LOC is greater than `max_loc`."
   ]
 }

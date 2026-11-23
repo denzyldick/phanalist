@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0117",
+  "title": "E0117: SQL injection via query string",
+  "plain_english": "Building SQL queries by concatenating query string input (`$_GET`) can allow SQL injection.",
+  "why_matters": "SQL injection through query string parameters is risky because: - Query parameters are easy to modify and share in URLs - Attacks can be automated with simple URL manipulation - Search and filter endpoints are common targets",
+  "bad_example": "$id = $_GET['id'] ?? '';\n$result = mysqli_query($conn, \"SELECT * FROM users WHERE id = $id\");",
+  "good_example": "$id = $_GET['id'] ?? '';\n$stmt = $pdo->prepare(\"SELECT * FROM users WHERE id = ?\");\n$stmt->execute([$id]);\n$user = $stmt->fetch();",
+  "severity": "critical",
+  "category": "security",
+  "what_it_checks": [
+    "`mysqli_query()`, `PDO::query()`, `pg_query()` with SQL strings containing `$_GET` variables",
+    "SQL queries built by string concatenation with query string input"
+  ]
+}

@@ -1,14 +1,14 @@
 {
   "rule_code": "E0066",
   "title": "E0066: Header injection",
-  "plain_english": "",
-  "why_matters": "",
+  "plain_english": "This rule reports HTTP header-related calls where user-controlled input reaches the header value. Crafted input containing CR/LF characters can be used to inject additional headers or manipulate the response.",
+  "why_matters": "Header injection can lead to response splitting, cache poisoning, unsafe redirects, session-related issues, or other header manipulation vulnerabilities depending on the context.",
   "bad_example": "$url = $_GET['url'] ?? '';\nheader(\"Location: $url\");",
   "good_example": "$url = $_GET['url'] ?? '';\n$url = str_replace([\"\\r\", \"\\n\"], \"\", $url);\nheader(\"Location: $url\");",
-  "severity": "info",
-  "category": "general",
+  "severity": "major",
+  "category": "security",
   "what_it_checks": [
-    "`header()`, `header_remove()` with tainted input",
-    "`setcookie()`, `setrawcookie()` with tainted name/value"
+    "`header()`, `header_remove()`, `setcookie()`, and `setrawcookie()` calls",
+    "Cases where user-controlled input reaches these calls, based on taint analysis and dynamic-expression heuristics"
   ]
 }

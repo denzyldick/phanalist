@@ -1,13 +1,24 @@
 {
   "rule_code": "E0023",
-  "title": "E0023: Instability (I), Abstractness (A), Distance from Main Sequence (D)",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "",
-  "good_example": "",
-  "severity": "info",
-  "category": "general",
+  "title": "E0023: Instability, Abstractness, and Distance from Main Sequence",
+  "plain_english": "Reports namespace-level coupling metrics when they exceed configured thresholds: Instability (I), Abstractness (A), and Distance from Main Sequence (D).",
+  "why_matters": "These metrics help evaluate whether a namespace has a healthy balance between stability and abstraction. - **Stable, abstract namespaces** (for example, shared interfaces) are easier to depend on safely. - **Unstable, concrete namespaces** (for example, implementation details) are easier to change when few other parts depend on them. - Namespaces far from this balance can be hard to change or provide little practical value.",
+  "bad_example": "<?php\nnamespace App\\Service;\n\nclass PaymentService\n{\n    public function __construct(\n        private \\App\\Repository\\OrderRepository $orders,\n        private \\App\\Repository\\UserRepository $users,\n        private \\App\\Gateway\\StripeGateway $stripe,\n    ) {}\n}",
+  "good_example": "<?php\nnamespace App\\Service;\n\ninterface PaymentGateway\n{\n    public function charge(int $amount): void;\n}\n\nclass PaymentService\n{\n    public function __construct(private PaymentGateway $gateway) {}\n}",
+  "severity": "minor",
+  "category": "code-health",
   "what_it_checks": [
-    "Checks for E0023 violations"
+    "**Instability (I)** = `Ce / (Ca + Ce)`",
+    "`Ce` (efferent coupling): number of external types this namespace depends on.",
+    "`Ca` (afferent coupling): number of classes outside this namespace that depend on classes in this namespace.",
+    "Higher `I` means the namespace depends on many others relative to how many depend on it.",
+    "**Abstractness (A)** = `abstract / total`",
+    "`abstract`: number of abstract classes and interfaces in the namespace.",
+    "`total`: total number of classes in the namespace.",
+    "**Distance from Main Sequence (D)** = `|A + I - 1|`",
+    "Lower values are closer to the ideal balance.",
+    "`E0023:instability` when `I > max_instability` and `Ca + Ce > 0`.",
+    "`E0023:abstractness` when `A > max_abstractness` and `total > 0`.",
+    "`E0023:distance` when `D > max_distance` and both instability and abstractness are computable."
   ]
 }

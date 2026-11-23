@@ -1,14 +1,14 @@
 {
   "rule_code": "E0110",
-  "title": "E0110: Raw SQL query execution",
-  "plain_english": "",
-  "why_matters": "",
+  "title": "E0110: Raw SQL Query Execution",
+  "plain_english": "Executing raw SQL queries without prepared statements or parameter binding can make the application vulnerable to SQL injection.",
+  "why_matters": "Raw SQL execution with user input can lead to: - Data theft (emails, passwords, credit cards) - Authentication bypass - Data modification or deletion - Full server compromise",
   "bad_example": "$id = $_GET['id'] ?? '';\n$result = $pdo->query(\"SELECT * FROM users WHERE id = $id\");",
   "good_example": "$id = $_GET['id'] ?? '';\n$stmt = $pdo->prepare(\"SELECT * FROM users WHERE id = ?\");\n$stmt->execute([$id]);\n$user = $stmt->fetch();",
-  "severity": "info",
-  "category": "general",
+  "severity": "critical",
+  "category": "security",
   "what_it_checks": [
-    "`PDO::query()`, `mysqli_query()`, `pg_query()` with SQL strings containing interpolated variables",
+    "`PDO::query()`, `mysqli_query()`, and `pg_query()` with SQL strings containing interpolated variables",
     "SQL queries built by string concatenation with user input"
   ]
 }

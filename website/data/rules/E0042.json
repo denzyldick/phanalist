@@ -1,13 +1,16 @@
 {
   "rule_code": "E0042",
   "title": "E0042: Impossible Assertion",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "",
-  "good_example": "",
-  "severity": "info",
-  "category": "general",
+  "plain_english": "Reports assertions that can never hold on any feasible path.",
+  "why_matters": "An assertion that is always false indicates contradictory logic, an incorrect assumption, or a bug in the surrounding control flow. This rule uses Phanalist's bounded formal verification engine (Z3-backed) to detect provably impossible assertions.",
+  "bad_example": "<?php\nfunction f(int $i): void\n{\n    assert($i > 0 && $i < 0); // impossible\n}",
+  "good_example": "<?php\nfunction f(int $i): void\n{\n    assert($i >= 0);\n}",
+  "severity": "major",
+  "category": "verification",
   "what_it_checks": [
-    "Checks for E0042 violations"
+    "Assertions whose condition is unsatisfiable on every feasible path",
+    "Assertions narrowed by earlier branches, `isset()`, and short-circuit conditions",
+    "`assert()` calls with modelable boolean conditions",
+    "Unknown assertion conditions are treated as assumptions, not failures"
   ]
 }

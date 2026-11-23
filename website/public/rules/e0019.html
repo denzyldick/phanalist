@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E0019: Response For a Class (RFC) | Phanalist</title>
+  <meta name="description" content="Response For a Class (RFC) measures how many distinct methods can be invoked in response to messages received by a class." />
+  <link rel="canonical" href="https://phanalist.io/rules/e0019.html" />
+  <meta property="og:title" content="E0019: Response For a Class (RFC) | Phanalist" />
+  <meta property="og:description" content="Response For a Class (RFC) measures how many distinct methods can be invoked in response to messages received by a class." />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://phanalist.io/rules/e0019.html" />
+  <style>
+    :root { --bg:#0a0a0f; --card:#161620; --subtle:#12121a; --fg:#e8e8f0; --muted:#8f8fa3; --accent:#00d4aa; --border:#2a2a3a; }
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--fg);line-height:1.7}
+    .wrap{max-width:980px;margin:0 auto;padding:32px 20px 72px}
+    a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+    .crumbs{font-size:14px;color:var(--muted);margin-bottom:18px}
+    .badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+    .badge{display:inline-flex;padding:4px 10px;border:1px solid var(--border);border-radius:999px;font-size:12px;color:var(--muted);background:var(--subtle)}
+    h1{font-size:clamp(28px,5vw,44px);line-height:1.15;margin:0 0 12px;letter-spacing:-.02em}
+    .lead{font-size:18px;color:#cfcfda;max-width:78ch;margin:0 0 20px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 28px}
+    .btn{display:inline-flex;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--subtle);color:var(--fg);font-weight:600}
+    .btn-primary{background:linear-gradient(135deg,var(--accent),#0066ff);color:#081018;border:none}
+    .content{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px}
+    .content > :first-child{margin-top:0} .content > :last-child{margin-bottom:0}
+    .content h2{margin-top:32px;font-size:24px;line-height:1.25}
+    .content h3{margin-top:24px;font-size:19px;line-height:1.3}
+    .content p,.content li{color:#d9d9e3}
+    .content ul,.content ol{padding-left:24px}
+    .content pre{margin:16px 0;background:#0d0d15;border:1px solid var(--border);border-radius:10px;padding:16px;overflow:auto}
+    .content code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.94em}
+    .content p code,.content li code{background:#0d0d15;border:1px solid var(--border);padding:.12em .35em;border-radius:5px}
+    .content pre code{background:none;border:none;padding:0;font-size:13px;line-height:1.55}
+    .content blockquote{margin:16px 0;padding:0 0 0 16px;border-left:3px solid var(--accent);color:#cfcfda}
+    .content table{width:100%;border-collapse:collapse;margin:16px 0}
+    .content th,.content td{border:1px solid var(--border);padding:10px;text-align:left;vertical-align:top}
+    .content th{background:var(--subtle)}
+  </style>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"E0019: Response For a Class (RFC)","description":"Response For a Class (RFC) measures how many distinct methods can be invoked in response to messages received by a class.","url":"https://phanalist.io/rules/e0019.html"}</script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="crumbs"><a href="/">Phanalist</a> / <a href="/#rules">Rules</a> / E0019</div>
+    <div class="badges">
+      <span class="badge">E0019</span>
+      <span class="badge">code-health</span>
+      <span class="badge">minor</span>
+    </div>
+    <h1>Response For a Class (RFC)</h1>
+    <p class="lead">Response For a Class (RFC) measures how many distinct methods can be invoked in response to messages received by a class.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="/?rule=E0019#playground">Try in Playground</a>
+      <a class="btn" href="/#rules">All rules</a>
+      <a class="btn" href="https://github.com/denzyldick/phanalist">GitHub</a>
+    </div>
+    <article class="content">
+      <p>Response For a Class (RFC) measures how many distinct methods can be invoked in response to messages received by a class.</p>
+<h2>Why it matters</h2>
+<p>A high RFC score means a class interacts with many operations, either in its own methods or through external calls. This can increase the class&#39;s complexity and make changes harder to reason about.</p>
+<h2>How it works</h2>
+<p>RFC is calculated as:</p>
+<ol>
+<li>The number of methods declared in the class.</li>
+<li>Plus the number of unique external methods called by those methods.</li>
+</ol>
+<p>For example, if a class has 5 methods and they call 3 unique external methods, the RFC score is 8. If the score exceeds the configured <code>max_rfc</code>, the rule reports a violation.</p>
+<h2>Bad example</h2>
+<pre><code class="language-php">class ReportProcessor {
+    public function process(): void {
+        Validator::check();
+        $repo = new Repository();
+        $repo-&gt;persist();
+        $repo-&gt;flush();
+        Logger::info(&#39;done&#39;);
+        EventBus::dispatch();
+    }
+}
+</code></pre>
+<h2>Good example</h2>
+<pre><code class="language-php">class FocusedProcessor {
+    public function process(): void {
+        $this-&gt;repository-&gt;saveAll();
+        $this-&gt;notifier-&gt;notifySuccess();
+    }
+}
+</code></pre>
+<h2>How to fix</h2>
+<ul>
+<li>Reduce the number of external calls made directly by the class.</li>
+<li>Delegate detailed work to collaborators with focused responsibilities.</li>
+<li>Group related operations behind a single method where appropriate.</li>
+</ul>
+<h2>Configuration</h2>
+<pre><code class="language-yaml">rules:
+  E0019:
+    max_rfc: 50
+</code></pre>
+
+    </article>
+  </div>
+</body>
+</html>

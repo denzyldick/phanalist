@@ -1,13 +1,18 @@
 {
   "rule_code": "E0041",
   "title": "E0041: Unreachable Code",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "",
-  "good_example": "",
-  "severity": "info",
-  "category": "general",
+  "plain_english": "Reports statements that cannot be reached.",
+  "why_matters": "Unreachable code often indicates a logic error, dead branch, or leftover code after a control-flow change. This rule uses Phanalist's bounded formal verification engine (Z3-backed) to identify statements that cannot be executed on feasible paths.",
+  "bad_example": "<?php\nfunction f(): int\n{\n    return 1;\n    echo \"never\"; // unreachable\n}",
+  "good_example": "<?php\nfunction f(): int\n{\n    echo \"before return\";\n    return 1;\n}",
+  "severity": "major",
+  "category": "verification",
   "what_it_checks": [
-    "Checks for E0041 violations"
+    "Statements after `return`, `break`, `continue`, `throw`, or `exit`",
+    "Numbered `break` and `continue` levels",
+    "`continue` inside `switch`",
+    "Unreachable statements after `never`-returning calls",
+    "Conditional throws and exits that only make one branch unreachable",
+    "Statements after exhaustive `switch` or `match` constructs"
   ]
 }

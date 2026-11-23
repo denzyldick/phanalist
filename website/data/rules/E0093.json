@@ -1,14 +1,14 @@
 {
   "rule_code": "E0093",
-  "title": "E0093: Template injection",
-  "plain_english": "",
-  "why_matters": "",
+  "title": "E0093: Template Injection",
+  "plain_english": "Rendering user-controlled input directly as a template source (Twig, Smarty, Blade, etc.) without validation can allow an attacker to inject template expressions that execute code on the server.",
+  "why_matters": "Server-side template injection (SSTI) can lead to: - Remote code execution - Reading sensitive files (for example `/etc/passwd`) - Full server compromise",
   "bad_example": "$template = $_GET['template'] ?? '';\necho $twig->render($template, ['name' => $user->name]);",
   "good_example": "$template = $_GET['template'] ?? '';\n$allowed = ['welcome', 'goodbye', 'reminder'];\nif (!in_array($template, $allowed, true)) {\n    $template = 'welcome';\n}\necho $twig->render($template, ['name' => $user->name]);",
-  "severity": "info",
-  "category": "general",
+  "severity": "critical",
+  "category": "security",
   "what_it_checks": [
-    "`Twig::render()`, `$twig->render()`, `$smarty->display()`, `$blade->render()` with tainted template names/sources",
+    "`Twig::render()`, `$twig->render()`, `$smarty->display()`, `$blade->render()`, and similar calls with tainted template names or sources",
     "Template engines rendering user-controlled strings as template source"
   ]
 }

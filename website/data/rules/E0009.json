@@ -1,12 +1,12 @@
 {
   "rule_code": "E0009",
   "title": "E0009: Cyclomatic complexity",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "",
-  "good_example": "",
-  "severity": "info",
-  "category": "general",
+  "plain_english": "Cyclomatic complexity measures how many independent execution paths exist through a method.",
+  "why_matters": "Methods with many branches are harder to read, test, and change safely. A high score usually means the method is making too many decisions in one place.",
+  "bad_example": "public function getChapter(int $number, Character $character): bool {\n    if ($number > 0) {                 // +1 path\n        switch ($number) {\n            case 1:                    // +1 path\n            case 2:                    // +1 path\n                if ($character->isAlive()) { // +1 path\n                    return true;\n                }\n                break;\n        }\n        if ($character->hasSword()) {  // +1 path\n            if ($character->isStrong()) { // +1 path\n                return true;\n            }\n        }\n    }\n    return false;\n}",
+  "good_example": "public function getChapter(int $number, Character $character): bool {\n    if ($number <= 0) {\n        return false;\n    }\n\n    if ($this->isEarlyChapter($number) && $character->isAlive()) {\n        return true;\n    }\n\n    return $character->hasSword() && $character->isStrong();\n}\n\nprivate function isEarlyChapter(int $number): bool {\n    return $number === 1 || $number === 2;\n}",
+  "severity": "minor",
+  "category": "code-health",
   "what_it_checks": [
     "Checks for E0009 violations"
   ]

@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E0064: XPath injection | Phanalist</title>
+  <meta name="description" content="This rule reports XML/XPath-related calls where user-controlled input reaches the sink. Crafted input can change how XML is loaded or queried, depending on the " />
+  <link rel="canonical" href="https://phanalist.io/rules/e0064.html" />
+  <meta property="og:title" content="E0064: XPath injection | Phanalist" />
+  <meta property="og:description" content="This rule reports XML/XPath-related calls where user-controlled input reaches the sink. Crafted input can change how XML is loaded or queried, depending on the API and usage." />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://phanalist.io/rules/e0064.html" />
+  <style>
+    :root { --bg:#0a0a0f; --card:#161620; --subtle:#12121a; --fg:#e8e8f0; --muted:#8f8fa3; --accent:#00d4aa; --border:#2a2a3a; }
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--fg);line-height:1.7}
+    .wrap{max-width:980px;margin:0 auto;padding:32px 20px 72px}
+    a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+    .crumbs{font-size:14px;color:var(--muted);margin-bottom:18px}
+    .badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+    .badge{display:inline-flex;padding:4px 10px;border:1px solid var(--border);border-radius:999px;font-size:12px;color:var(--muted);background:var(--subtle)}
+    h1{font-size:clamp(28px,5vw,44px);line-height:1.15;margin:0 0 12px;letter-spacing:-.02em}
+    .lead{font-size:18px;color:#cfcfda;max-width:78ch;margin:0 0 20px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 28px}
+    .btn{display:inline-flex;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--subtle);color:var(--fg);font-weight:600}
+    .btn-primary{background:linear-gradient(135deg,var(--accent),#0066ff);color:#081018;border:none}
+    .content{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px}
+    .content > :first-child{margin-top:0} .content > :last-child{margin-bottom:0}
+    .content h2{margin-top:32px;font-size:24px;line-height:1.25}
+    .content h3{margin-top:24px;font-size:19px;line-height:1.3}
+    .content p,.content li{color:#d9d9e3}
+    .content ul,.content ol{padding-left:24px}
+    .content pre{margin:16px 0;background:#0d0d15;border:1px solid var(--border);border-radius:10px;padding:16px;overflow:auto}
+    .content code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.94em}
+    .content p code,.content li code{background:#0d0d15;border:1px solid var(--border);padding:.12em .35em;border-radius:5px}
+    .content pre code{background:none;border:none;padding:0;font-size:13px;line-height:1.55}
+    .content blockquote{margin:16px 0;padding:0 0 0 16px;border-left:3px solid var(--accent);color:#cfcfda}
+    .content table{width:100%;border-collapse:collapse;margin:16px 0}
+    .content th,.content td{border:1px solid var(--border);padding:10px;text-align:left;vertical-align:top}
+    .content th{background:var(--subtle)}
+  </style>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"E0064: XPath injection","description":"This rule reports XML/XPath-related calls where user-controlled input reaches the sink. Crafted input can change how XML is loaded or queried, depending on the API and usage.","url":"https://phanalist.io/rules/e0064.html"}</script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="crumbs"><a href="/">Phanalist</a> / <a href="/#rules">Rules</a> / E0064</div>
+    <div class="badges">
+      <span class="badge">E0064</span>
+      <span class="badge">security</span>
+      <span class="badge">major</span>
+    </div>
+    <h1>XPath injection</h1>
+    <p class="lead">This rule reports XML/XPath-related calls where user-controlled input reaches the sink. Crafted input can change how XML is loaded or queried, depending on the API and usage.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="/?rule=E0064#playground">Try in Playground</a>
+      <a class="btn" href="/#rules">All rules</a>
+      <a class="btn" href="https://github.com/denzyldick/phanalist">GitHub</a>
+    </div>
+    <article class="content">
+      <p>This rule reports XML/XPath-related calls where user-controlled input reaches the sink. Crafted input can change how XML is loaded or queried, depending on the API and usage.</p>
+<h2>Why it matters</h2>
+<p>XPath or XML injection can expose unintended data, bypass checks, or cause the application to process attacker-controlled XML content.</p>
+<h2>Bad example</h2>
+<pre><code class="language-php">$user = $_GET[&#39;user&#39;] ?? &#39;&#39;;
+$query = &quot;//user[login=&#39;$user&#39;]&quot;;
+$result = $xpath-&gt;query($query);
+</code></pre>
+<p>If untrusted input is interpolated into an XPath expression, an attacker may alter the query logic.</p>
+<h2>Good example</h2>
+<pre><code class="language-php">$user = $_GET[&#39;user&#39;] ?? &#39;&#39;;
+$escaped = str_replace(&quot;&#39;&quot;, &quot;\\&#39;&quot;, $user);
+$query = &quot;//user[login=&#39;$escaped&#39;]&quot;;
+$result = $xpath-&gt;query($query);
+</code></pre>
+<p>Escaping or parameterizing user input reduces the risk of changing the query structure. Use the safest API available in your XML stack.</p>
+<h2>What it checks</h2>
+<ul>
+<li>Method calls named <code>load</code> or <code>loadxml</code></li>
+<li><code>simplexml_load_string()</code> calls</li>
+<li>Cases where user-controlled input reaches these calls, based on taint analysis and dynamic-expression heuristics</li>
+</ul>
+<h2>When it does not report</h2>
+<ul>
+<li>Static XML/XPath inputs with no user-controlled data</li>
+<li>Cases where sanitization or data flow prevents the taint/heuristic model from reporting the sink</li>
+<li>Cases where the model cannot prove the input reaches the call</li>
+</ul>
+<h2>How to fix</h2>
+<ul>
+<li>Avoid building XPath expressions or XML inputs by concatenating untrusted data.</li>
+<li>Escape or parameterize user input according to the XML/XPath API you use.</li>
+<li>Validate input against an expected format before using it in queries.</li>
+</ul>
+<h2>Configuration</h2>
+<p>E0064 is enabled by default. The taint-aware behavior is controlled by a per-rule <code>taint_mode</code> setting:</p>
+<pre><code class="language-yaml">rules:
+  E0064:
+    taint_mode: annotate
+</code></pre>
+<ul>
+<li><code>annotate</code> (default) reports the finding and adds the proven source origin to the message.</li>
+<li><code>only</code> reports only findings reached by proven tainted data.</li>
+<li><code>off</code> keeps the legacy heuristic-only behavior.</li>
+</ul>
+
+    </article>
+  </div>
+</body>
+</html>

@@ -1,13 +1,14 @@
 {
   "rule_code": "E0014",
-  "title": "E0014: Law of Demeter violation. Method chaining should be avoided unless returning the same object type.",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "",
-  "good_example": "",
+  "title": "E0014: Law of Demeter",
+  "plain_english": "The Law of Demeter discourages reaching through one object to access another object's internals. In practice, this rule flags method chains that navigate through unrelated objects.",
+  "why_matters": "Long call chains like `$a->getB()->getC()->doSomething()` tightly couple code to the structure of multiple objects. Small changes in one class can ripple through callers, making code harder to change and test.",
+  "bad_example": "class OrderProcessor {\n    public function process(Order $order): void {\n        // Reaches through Order to Customer, then through Customer to Wallet.\n        $wallet = $order->getCustomer()->getWallet();\n\n        if ($wallet->getBalance() > $order->getTotal()) {\n            $wallet->deduct($order->getTotal());\n        }\n    }\n}",
+  "good_example": "class OrderProcessor {\n    public function process(Order $order): void {\n        // Talk directly to the Order object passed as a parameter.\n        if ($order->canBePaid()) {\n            $order->pay();\n        }\n    }\n}",
   "severity": "major",
-  "category": "law-of-demeter",
+  "category": "code-health",
   "what_it_checks": [
-    "Checks for E0014 violations"
+    "Method chaining that violates the Law of Demeter.",
+    "A method should generally call methods on: `$this`, objects created inside the method, objects passed as parameters, or direct properties of the class."
   ]
 }

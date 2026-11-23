@@ -1,12 +1,12 @@
 {
   "rule_code": "E0051",
   "title": "E0051: Count of a non-countable value",
-  "plain_english": "",
-  "why_matters": "",
+  "plain_english": "`count()` and `sizeof()` work on arrays and on objects that implement `Countable`. Passing a string, number, boolean, or `null` causes a `TypeError` in PHP 8.",
+  "why_matters": "The code fails at runtime instead of returning a length, which can break a request, job, or CLI command.",
   "bad_example": "count('hello'); // TypeError\nsizeof(42);     // TypeError\ncount(null);    // TypeError",
-  "good_example": "count($items);      // $items is an array\nsizeof($collection); // $collection implements Countable\nstrlen($text);      // use strlen() for strings",
+  "good_example": "count($items);       // $items is an array\nsizeof($collection); // $collection implements Countable\nstrlen($text);       // use strlen() for strings",
   "severity": "major",
-  "category": "taint",
+  "category": "lifecycle",
   "what_it_checks": [
     "`count()` or `sizeof()` with a string literal",
     "`count()` or `sizeof()` with an integer or float literal",

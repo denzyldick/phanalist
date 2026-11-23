@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E0057: MD5 or SHA1 used for a password | Phanalist</title>
+  <meta name="description" content="MD5 and SHA1 are fast hash functions. Password hashing should use a deliberately slow, salted algorithm so large-scale guessing attacks are more expensive." />
+  <link rel="canonical" href="https://phanalist.io/rules/e0057.html" />
+  <meta property="og:title" content="E0057: MD5 or SHA1 used for a password | Phanalist" />
+  <meta property="og:description" content="MD5 and SHA1 are fast hash functions. Password hashing should use a deliberately slow, salted algorithm so large-scale guessing attacks are more expensive." />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://phanalist.io/rules/e0057.html" />
+  <style>
+    :root { --bg:#0a0a0f; --card:#161620; --subtle:#12121a; --fg:#e8e8f0; --muted:#8f8fa3; --accent:#00d4aa; --border:#2a2a3a; }
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--fg);line-height:1.7}
+    .wrap{max-width:980px;margin:0 auto;padding:32px 20px 72px}
+    a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+    .crumbs{font-size:14px;color:var(--muted);margin-bottom:18px}
+    .badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+    .badge{display:inline-flex;padding:4px 10px;border:1px solid var(--border);border-radius:999px;font-size:12px;color:var(--muted);background:var(--subtle)}
+    h1{font-size:clamp(28px,5vw,44px);line-height:1.15;margin:0 0 12px;letter-spacing:-.02em}
+    .lead{font-size:18px;color:#cfcfda;max-width:78ch;margin:0 0 20px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 28px}
+    .btn{display:inline-flex;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--subtle);color:var(--fg);font-weight:600}
+    .btn-primary{background:linear-gradient(135deg,var(--accent),#0066ff);color:#081018;border:none}
+    .content{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px}
+    .content > :first-child{margin-top:0} .content > :last-child{margin-bottom:0}
+    .content h2{margin-top:32px;font-size:24px;line-height:1.25}
+    .content h3{margin-top:24px;font-size:19px;line-height:1.3}
+    .content p,.content li{color:#d9d9e3}
+    .content ul,.content ol{padding-left:24px}
+    .content pre{margin:16px 0;background:#0d0d15;border:1px solid var(--border);border-radius:10px;padding:16px;overflow:auto}
+    .content code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.94em}
+    .content p code,.content li code{background:#0d0d15;border:1px solid var(--border);padding:.12em .35em;border-radius:5px}
+    .content pre code{background:none;border:none;padding:0;font-size:13px;line-height:1.55}
+    .content blockquote{margin:16px 0;padding:0 0 0 16px;border-left:3px solid var(--accent);color:#cfcfda}
+    .content table{width:100%;border-collapse:collapse;margin:16px 0}
+    .content th,.content td{border:1px solid var(--border);padding:10px;text-align:left;vertical-align:top}
+    .content th{background:var(--subtle)}
+  </style>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"E0057: MD5 or SHA1 used for a password","description":"MD5 and SHA1 are fast hash functions. Password hashing should use a deliberately slow, salted algorithm so large-scale guessing attacks are more expensive.","url":"https://phanalist.io/rules/e0057.html"}</script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="crumbs"><a href="/">Phanalist</a> / <a href="/#rules">Rules</a> / E0057</div>
+    <div class="badges">
+      <span class="badge">E0057</span>
+      <span class="badge">security</span>
+      <span class="badge">critical</span>
+    </div>
+    <h1>MD5 or SHA1 used for a password</h1>
+    <p class="lead">MD5 and SHA1 are fast hash functions. Password hashing should use a deliberately slow, salted algorithm so large-scale guessing attacks are more expensive.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="/?rule=E0057#playground">Try in Playground</a>
+      <a class="btn" href="/#rules">All rules</a>
+      <a class="btn" href="https://github.com/denzyldick/phanalist">GitHub</a>
+    </div>
+    <article class="content">
+      <p>MD5 and SHA1 are fast hash functions. Password hashing should use a deliberately slow, salted algorithm so large-scale guessing attacks are more expensive.</p>
+<h2>Why it matters</h2>
+<p>If password hashes are exposed, fast unsalted hashes can be cracked much more easily than hashes produced by dedicated password hashing functions.</p>
+<h2>Bad example</h2>
+<pre><code class="language-php">return md5($password);
+return sha1($user-&gt;password);
+return hash(&#39;md5&#39;, $password);
+</code></pre>
+<h2>Good example</h2>
+<pre><code class="language-php">$hash = password_hash($password, PASSWORD_DEFAULT);
+
+if (password_verify($password, $hash)) {
+    // Password is correct.
+}
+</code></pre>
+<p><code>password_hash()</code> adds a salt and uses a password-oriented algorithm. <code>password_verify()</code> checks the password safely.</p>
+<h2>What it checks</h2>
+<ul>
+<li><code>md5($password)</code> and <code>sha1($password)</code></li>
+<li><code>hash(&#39;md5&#39;, $password)</code> and <code>hash(&#39;sha1&#39;, $password)</code></li>
+<li>Password-like variables or properties used as the hashed value</li>
+</ul>
+<h2>When it does not report</h2>
+<ul>
+<li>The value is not password-like, such as a file checksum.</li>
+<li>The code uses <code>password_hash()</code>.</li>
+<li>The code uses a different hash algorithm. This rule only reports MD5 and SHA1.</li>
+<li>The digest is computed in a helper whose name contains <code>sign</code> or <code>hmac</code>, such as <code>generateSignature()</code>. This avoids flagging API request signing.</li>
+</ul>
+<h2>Model limits</h2>
+<ul>
+<li>Password detection is based on variable and property names.</li>
+<li>Signature-helper detection is based on the function or method name. A password hash inside a helper named <code>signPassword()</code> would be skipped.</li>
+<li>Other weak password schemes, such as a single round of SHA-256, are not reported by this rule.</li>
+</ul>
+<h2>How to fix</h2>
+<ul>
+<li>Use <code>password_hash($password, PASSWORD_DEFAULT)</code>.</li>
+<li>Use <code>password_verify()</code> to check a password.</li>
+<li>Rehash old hashes with <code>password_needs_rehash()</code> when users log in.</li>
+<li>Do not use MD5 or SHA1 for passwords, even with a salt.</li>
+</ul>
+<h2>Configuration</h2>
+<p>E0057 has no configuration options and is enabled by default.</p>
+
+    </article>
+  </div>
+</body>
+</html>

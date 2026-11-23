@@ -1,15 +1,15 @@
 {
   "rule_code": "E0068",
   "title": "E0068: Eval injection",
-  "plain_english": "",
-  "why_matters": "",
+  "plain_english": "This rule reports code-evaluation sinks where user-controlled input reaches `eval()` or a string-based `assert()` call. This can allow arbitrary PHP code execution.",
+  "why_matters": "If an attacker can control evaluated code, they may be able to execute commands, read or modify files, access data, or take control of the application environment.",
   "bad_example": "$code = $_GET['code'] ?? '';\neval($code);",
-  "good_example": "// Never eval user input. Use a whitelist of allowed operations instead.\n$action = $_GET['action'] ?? '';\n$allowed = ['list', 'view', 'search'];\nif (!in_array($action, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\n// Handle each allowed action explicitly\nswitch ($action) {\n    case 'list':\n        listItems();\n        break;\n    // ...\n}",
-  "severity": "info",
-  "category": "general",
+  "good_example": "// Use an explicit allowlist of actions instead of evaluating input.\n$action = $_GET['action'] ?? '';\n$allowed = ['list', 'view', 'search'];\nif (!in_array($action, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\n\nswitch ($action) {\n    case 'list':\n        listItems();\n        break;\n    // ...\n}",
+  "severity": "critical",
+  "category": "security",
   "what_it_checks": [
-    "`eval()` calls with tainted input",
-    "`assert()` with a string argument containing user input",
-    "`create_function()` (removed in PHP 8) with user input"
+    "`eval()` calls with user-controlled input",
+    "`assert()` calls with user-controlled string input",
+    "Cases detected through taint analysis and dynamic-expression heuristics"
   ]
 }

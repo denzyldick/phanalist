@@ -1,14 +1,14 @@
 {
   "rule_code": "E0084",
   "title": "E0084: SQL query string concatenation",
-  "plain_english": "",
-  "why_matters": "",
+  "plain_english": "Concatenating user input directly into SQL query strings can allow attackers to inject arbitrary SQL and read, modify, or delete database data.",
+  "why_matters": "SQL injection is a serious vulnerability. It can lead to: - Theft of user data (such as emails, passwords, or payment information) - Authentication bypass - Database modification or deletion - Broader server compromise in some environments",
   "bad_example": "$id = $_GET['id'] ?? '';\n$result = mysqli_query($conn, \"SELECT * FROM users WHERE id = $id\");",
   "good_example": "$id = $_GET['id'] ?? '';\n$stmt = $pdo->prepare(\"SELECT * FROM users WHERE id = ?\");\n$stmt->execute([$id]);\n$user = $stmt->fetch();",
-  "severity": "info",
-  "category": "general",
+  "severity": "critical",
+  "category": "security",
   "what_it_checks": [
-    "`mysqli_query()`, `mysqli::query()`, `pg_query()`, `pg_exec()`, `PDO::query()`, `PDO::exec()` calls",
-    "Where user input (`$_GET`, `$_POST`, `$_REQUEST`, `$_COOKIE`, etc.) is concatenated directly into the SQL string"
+    "`mysqli_query()`, `mysqli::query()`, `pg_query()`, `pg_exec()`, `PDO::query()`, and `PDO::exec()` calls",
+    "Cases where user input (`$_GET`, `$_POST`, `$_REQUEST`, `$_COOKIE`, etc.) is concatenated directly into the SQL string"
   ]
 }

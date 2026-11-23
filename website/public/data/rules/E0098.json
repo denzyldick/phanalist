@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0098",
+  "title": "E0098: Session ID in URL",
+  "plain_english": "Embedding session IDs in URLs via `session.use_trans_sid` exposes them in Referer headers, browser history, and server logs.",
+  "why_matters": "Session IDs in URLs can: - Be leaked via Referer headers when users click external links - Be stored in browser history - Be logged by web servers and proxies - Be used for session hijacking",
+  "bad_example": "ini_set('session.use_trans_sid', '1');\nsession_start();\n// Session ID appears in URLs: /page.php?PHPSESSID=abc123",
+  "good_example": "ini_set('session.use_only_cookies', '1');\nini_set('session.use_trans_sid', '0');\nsession_set_cookie_params([\n    'secure' => true,\n    'httponly' => true,\n]);\nsession_start();",
+  "severity": "major",
+  "category": "security",
+  "what_it_checks": [
+    "`session.use_trans_sid = 1` or `ini_set('session.use_trans_sid', '1')`",
+    "Links containing `PHPSESSID` or similar session ID parameters"
+  ]
+}

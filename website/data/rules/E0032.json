@@ -1,13 +1,17 @@
 {
   "rule_code": "E0032",
   "title": "E0032: Modulo by Zero",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "",
-  "good_example": "",
-  "severity": "info",
-  "category": "general",
+  "plain_english": "Reports modulo operations where the right operand can be zero.",
+  "why_matters": "Modulo by zero causes runtime errors. This rule uses Phanalist's bounded formal verification engine (Z3-backed) to find feasible paths where the divisor can be zero and provide a solver-backed counterexample.",
+  "bad_example": "<?php\nfunction bucket(int $id, int $size): int\n{\n    return $id % $size; // $size can be 0\n}",
+  "good_example": "<?php\nfunction bucket(int $id, int $size): int\n{\n    if ($size === 0) {\n        throw new InvalidArgumentException('Size must be non-zero');\n    }\n\n    return $id % $size;\n}",
+  "severity": "major",
+  "category": "verification",
   "what_it_checks": [
-    "Checks for E0032 violations"
+    "`%` and `%=` where the divisor can be zero",
+    "Literal zero, symbolic zero, and zero reached through tracked arrays or expressions",
+    "Guarded modulo, including `if`, `switch`, `match`, short-circuit `&&`, and `try`/`catch`/`finally` paths",
+    "Loop exit values merged with the feasible zero-iteration path",
+    "Constant-return, identity, and PHPDoc method/function summaries"
   ]
 }

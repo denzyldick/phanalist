@@ -1,0 +1,17 @@
+{
+  "rule_code": "E0039",
+  "title": "E0039: Property Access on Null",
+  "plain_english": "Reports property reads on values that can be null.",
+  "why_matters": "Reading a property on `null` causes a fatal runtime error. This rule uses Phanalist's bounded formal verification engine (Z3-backed) to detect feasible paths where the receiver can be null.",
+  "bad_example": "<?php\nfunction id(?User $user): int\n{\n    return $user->id; // $user may be null\n}",
+  "good_example": "<?php\nfunction id(?User $user): int\n{\n    if ($user === null) {\n        return 0;\n    }\n\n    return $user->id;\n}",
+  "severity": "major",
+  "category": "verification",
+  "what_it_checks": [
+    "Property reads on null and nullable values",
+    "Nullness narrowed by `if`, `switch`, `match`, `isset()`, and short-circuit conditions",
+    "Nullsafe property access (`?->`) is treated as safe",
+    "PHPDoc parameter, `@var`, and return contracts",
+    "Constant-return, identity, and method summaries"
+  ]
+}

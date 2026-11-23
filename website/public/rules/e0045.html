@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E0045: Input-Dependent Live-Heap Growth | Phanalist</title>
+  <meta name="description" content="Reports loops that retain memory in proportion to an input-sized collection." />
+  <link rel="canonical" href="https://phanalist.io/rules/e0045.html" />
+  <meta property="og:title" content="E0045: Input-Dependent Live-Heap Growth | Phanalist" />
+  <meta property="og:description" content="Reports loops that retain memory in proportion to an input-sized collection." />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://phanalist.io/rules/e0045.html" />
+  <style>
+    :root { --bg:#0a0a0f; --card:#161620; --subtle:#12121a; --fg:#e8e8f0; --muted:#8f8fa3; --accent:#00d4aa; --border:#2a2a3a; }
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--fg);line-height:1.7}
+    .wrap{max-width:980px;margin:0 auto;padding:32px 20px 72px}
+    a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+    .crumbs{font-size:14px;color:var(--muted);margin-bottom:18px}
+    .badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+    .badge{display:inline-flex;padding:4px 10px;border:1px solid var(--border);border-radius:999px;font-size:12px;color:var(--muted);background:var(--subtle)}
+    h1{font-size:clamp(28px,5vw,44px);line-height:1.15;margin:0 0 12px;letter-spacing:-.02em}
+    .lead{font-size:18px;color:#cfcfda;max-width:78ch;margin:0 0 20px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 28px}
+    .btn{display:inline-flex;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--subtle);color:var(--fg);font-weight:600}
+    .btn-primary{background:linear-gradient(135deg,var(--accent),#0066ff);color:#081018;border:none}
+    .content{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px}
+    .content > :first-child{margin-top:0} .content > :last-child{margin-bottom:0}
+    .content h2{margin-top:32px;font-size:24px;line-height:1.25}
+    .content h3{margin-top:24px;font-size:19px;line-height:1.3}
+    .content p,.content li{color:#d9d9e3}
+    .content ul,.content ol{padding-left:24px}
+    .content pre{margin:16px 0;background:#0d0d15;border:1px solid var(--border);border-radius:10px;padding:16px;overflow:auto}
+    .content code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.94em}
+    .content p code,.content li code{background:#0d0d15;border:1px solid var(--border);padding:.12em .35em;border-radius:5px}
+    .content pre code{background:none;border:none;padding:0;font-size:13px;line-height:1.55}
+    .content blockquote{margin:16px 0;padding:0 0 0 16px;border-left:3px solid var(--accent);color:#cfcfda}
+    .content table{width:100%;border-collapse:collapse;margin:16px 0}
+    .content th,.content td{border:1px solid var(--border);padding:10px;text-align:left;vertical-align:top}
+    .content th{background:var(--subtle)}
+  </style>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"E0045: Input-Dependent Live-Heap Growth","description":"Reports loops that retain memory in proportion to an input-sized collection.","url":"https://phanalist.io/rules/e0045.html"}</script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="crumbs"><a href="/">Phanalist</a> / <a href="/#rules">Rules</a> / E0045</div>
+    <div class="badges">
+      <span class="badge">E0045</span>
+      <span class="badge">resource</span>
+      <span class="badge">major</span>
+    </div>
+    <h1>Input-Dependent Live-Heap Growth</h1>
+    <p class="lead">Reports loops that retain memory in proportion to an input-sized collection.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="/?rule=E0045#playground">Try in Playground</a>
+      <a class="btn" href="/#rules">All rules</a>
+      <a class="btn" href="https://github.com/denzyldick/phanalist">GitHub</a>
+    </div>
+    <article class="content">
+      <p>Reports loops that retain memory in proportion to an input-sized collection.</p>
+<h2>Why it matters</h2>
+<p>Allocating temporary values is not the same as keeping them reachable. E0045 focuses on live heap growth: memory that remains reachable and can accumulate as input size grows, which can increase memory pressure in long-running requests or workers.</p>
+<h2>Bad example</h2>
+<pre><code class="language-php">&lt;?php
+function build(array $items): array
+{
+    $result = [];
+    foreach ($items as $item) {
+        $result[] = $items; // grows with input
+    }
+    return $result;
+}
+</code></pre>
+<h2>Good example</h2>
+<pre><code class="language-php">&lt;?php
+function build(array $items): array
+{
+    $result = [];
+    foreach ($items as $item) {
+        $result[] = $item;
+    }
+    return $result;
+}
+</code></pre>
+<h2>What it checks</h2>
+<ul>
+<li>Appending input-sized values to an array that remains reachable</li>
+<li>Building a new local array with dynamic indexes, then returning or otherwise retaining it</li>
+<li>Retaining input-sized arrays, objects, or strings in another array or property</li>
+<li>Repeated copying growth such as <code>array_unshift()</code>, where cumulative allocation is quadratic even when the final array is linear</li>
+<li>Accumulating values across loop iterations without a corresponding release</li>
+<li>Escaping values whose size is controlled by request input</li>
+<li>Calls to local functions or methods whose resource summary allocates or retains input-sized data</li>
+</ul>
+<p>The finding reports symbolic retained growth, cumulative allocation, and peak live heap. Retained size covers memory added by the loop; pre-existing input arrays are included in the peak estimate but not in the reported retained growth. For example, a retained array may be described as <code>count($items) * bytes($items)</code>. This is a symbolic estimate, not a measurement of PHP&#39;s internal zval or hashtable layout.</p>
+<h2>Model limits</h2>
+<p>E0045 does not run a garbage collector or know when PHP will free a value. It uses conservative reachability rules and the following simplifications:</p>
+<ul>
+<li>Stream reads in loop conditions (<code>fgets()</code>, <code>fgetcsv()</code>, <code>fgetss()</code>, <code>fgetc()</code>, <code>fread()</code>, <code>fscanf()</code>, and <code>stream_get_line()</code>) are treated as unbounded input. Streaming without retention is safe; retaining stream values is reported as input-dependent live-heap growth.</li>
+<li>A generator consumed incrementally is treated as bounded; its peak is not assumed to grow with the full input.</li>
+<li>Copy-on-write is modeled approximately; aliases and reference assignments are not tracked with full PHP reference semantics.</li>
+<li>Writing an existing element of a non-empty parameter array is treated as an in-place overwrite rather than new retention; local arrays with a known constant size still track indexed growth.</li>
+<li>Element byte sizes come from known scalar sizes; unknown element sizes remain symbolic. <code>retained_element_bytes</code> sets the minimum known element size that is treated as large retention.</li>
+<li>Memory held by extensions, opcache, persistent connections, and the PHP runtime itself is outside the model.</li>
+<li>Destructors, <code>unset()</code> in dynamic scopes, and object lifetimes that cross function boundaries are not modeled precisely.</li>
+<li>Recursive retention and cyclic object graphs are not analyzed.</li>
+<li>Parallel workers, fibers, and requests that share persistent state are not modeled.</li>
+</ul>
+<p>The rule is conservative around unknown callees: an unknown call with a tracked argument may invalidate that value&#39;s growth information instead of claiming that memory is released. A callee summary only contributes retained growth when the retained value is derived from one of the callee&#39;s parameters. Helpers that throw fresh exceptions or return unrelated temporary objects do not make their callers retain input-sized data.</p>
+<p>When retained growth is unknown, the rule requires direct local accumulation or cumulative allocation at or above <code>heap_alloc_threshold</code>. Validation and predicate loops that only call helpers and discard their results are therefore not reported as live-heap growth. A discarded helper return value does not contribute retained growth, but in-place mutators such as <code>array_push()</code> still count as local accumulation.</p>
+<h2>How to fix</h2>
+<ul>
+<li>Avoid retaining input-sized values in arrays/properties unless necessary.</li>
+<li>Process data in chunks or stream it when possible instead of accumulating full collections.</li>
+<li>Release references when no longer needed and avoid copying large arrays repeatedly.</li>
+<li>Cap input sizes before building large in-memory structures.</li>
+</ul>
+<h2>Configuration</h2>
+<pre><code class="language-yaml">rules:
+  E0045:
+    runtime_threshold: quadratic
+    heap_alloc_threshold: quadratic
+    retained_element_bytes: 32
+    report_input_cardinality: true
+    include_cli_input: false
+    max_findings_per_function: 20
+</code></pre>
+<p><code>heap_alloc_threshold</code> controls when cumulative allocation is reported. <code>retained_element_bytes</code> is the estimated per-element size used when the element type is unknown. Lowering it makes retention findings more sensitive.</p>
+
+    </article>
+  </div>
+</body>
+</html>

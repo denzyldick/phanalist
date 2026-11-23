@@ -1,14 +1,14 @@
 {
   "rule_code": "E0090",
   "title": "E0090: File write to user-controlled path",
-  "plain_english": "",
-  "why_matters": "",
+  "plain_english": "Using user input to determine a file path for writing can allow an attacker to write files to arbitrary locations on the server.",
+  "why_matters": "Arbitrary file writes can: - Overwrite critical system or application files - Drop a web shell for remote code execution - Modify configuration files to weaken security",
   "bad_example": "$filename = $_GET['file'] ?? '';\n$content = $_GET['content'] ?? '';\nfile_put_contents(\"/var/www/files/$filename\", $content);",
   "good_example": "$filename = $_GET['file'] ?? '';\n$allowed = ['profile.txt', 'settings.txt'];\nif (!in_array($filename, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\nfile_put_contents(\"/var/www/files/$filename\", $content);",
-  "severity": "info",
-  "category": "general",
+  "severity": "critical",
+  "category": "security",
   "what_it_checks": [
-    "`file_put_contents()`, `file()`, `fopen()` with `'w'`, `'w+'`, `'a'`, `'a+'` modes where the path is built from user-controlled input",
+    "`file_put_contents()`, `file()`, and `fopen()` with `'w'`, `'w+'`, `'a'`, or `'a+'` modes where the path is built from user-controlled input",
     "`file_get_contents()` used with write contexts (stream contexts)"
   ]
 }

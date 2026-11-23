@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0135",
+  "title": "E0135: PHP info disclosure",
+  "plain_english": "Calling `phpinfo()` in committed code exposes detailed PHP configuration and environment information.",
+  "why_matters": "`phpinfo()` output can reveal: - PHP version, loaded extensions, and server configuration - Environment variables and configuration values - Information that helps attackers identify version-specific weaknesses and plan targeted attacks",
+  "bad_example": "<?php phpinfo(); ?>",
+  "good_example": "// Remove phpinfo() entirely from production code.\n// Use it only in local development and do not commit it.",
+  "severity": "minor",
+  "category": "security",
+  "what_it_checks": [
+    "`phpinfo()` function calls anywhere in committed source code",
+    "`phpinfo(INFO_ALL)`, `phpinfo(INFO_GENERAL)`, and other `phpinfo(...)` variants"
+  ]
+}

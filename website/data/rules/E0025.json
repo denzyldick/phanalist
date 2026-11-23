@@ -1,13 +1,15 @@
 {
   "rule_code": "E0025",
-  "title": "E0025: Lines of Code (LOC) per File",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "",
-  "good_example": "",
-  "severity": "info",
-  "category": "general",
+  "title": "E0025: Lines of Code per File",
+  "plain_english": "Reports files that exceed the configured total line-count threshold.",
+  "why_matters": "Very large files are harder to navigate and often contain too many responsibilities. Smaller files with clear boundaries are usually easier to review and maintain.",
+  "bad_example": "<?php\n\nnamespace App;\n\nclass OrderManager\n{\n    // 300 lines of order logic...\n    // 200 lines of billing logic...\n    // 150 lines of shipping logic...\n}",
+  "good_example": "<?php\n\nnamespace App;\n\nclass OrderProcessor\n{\n    // ~50 lines\n}",
+  "severity": "minor",
+  "category": "code-health",
   "what_it_checks": [
-    "Checks for E0025 violations"
+    "Applies to files containing a class, trait, enum, or interface declaration.",
+    "Counts every line in the file (`file.lines.len()`).",
+    "Reports when the total line count is greater than `max_loc`."
   ]
 }

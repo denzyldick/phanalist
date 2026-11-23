@@ -1,0 +1,17 @@
+{
+  "rule_code": "E0028",
+  "title": "E0028: Data Class",
+  "plain_english": "Reports classes, traits, or enums that primarily expose data through getters/setters with little or no behavior.",
+  "why_matters": "A data-only class can push behavior into other parts of the codebase, making related logic scattered and harder to maintain. Adding meaningful behavior can improve encapsulation and clarity.",
+  "bad_example": "class UserDTO\n{\n    private string $name;\n    private string $email;\n    private int $age;\n\n    public function getName(): string { return $this->name; }\n    public function setName(string $name): void { $this->name = $name; }\n    public function getEmail(): string { return $this->email; }\n    public function setEmail(string $email): void { $this->email = $email; }\n    public function getAge(): int { return $this->age; }\n    public function setAge(int $age): void { $this->age = $age; }\n}",
+  "good_example": "class User\n{\n    public function __construct(\n        private string $name,\n        private Email $email,\n        private Age $age,\n    ) {}\n\n    public function changeEmail(string $newEmail): void\n    {\n        if (!$this->email->isVerified()) {\n            $this->email = new Email($newEmail);\n        }\n    }\n\n    public function isAdult(): bool\n    {\n        return $this->age->value() >= 18;\n    }\n}",
+  "severity": "minor",
+  "category": "code-health",
+  "what_it_checks": [
+    "Counts fields and methods in classes, traits, and enums.",
+    "Classifies accessor methods (`get*`, `is*`/`has*`, `set*`) using naming and simple body rules.",
+    "Ignores classes with no fields or fewer than `min_methods` methods.",
+    "Reports `E0028:data-class` when all non-constructor, non-accessor behavior is absent.",
+    "Reports `E0028:potential-data-class` when accessor ratio is >= `max_getter_setter_ratio`."
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "rule_code": "E0094",
+  "title": "E0094: Denial of Service via Regular Expression",
+  "plain_english": "User-supplied regular expressions, or regex patterns applied to user input, can cause catastrophic backtracking (ReDoS), consuming CPU and making the application unavailable.",
+  "why_matters": "ReDoS can cause CPU spikes and denial of service. A single malicious request may keep a worker busy for seconds or minutes, exhausting application capacity.",
+  "bad_example": "$pattern = '/^(a+)+$/'; // catastrophic backtracking on \"aaaaaaaaaaaaaaaaaaaa!\"\npreg_match($pattern, $_GET['input']);\n\n// or user-supplied pattern:\n$pattern = $_GET['regex'] ?? '';\npreg_match($pattern, $text);",
+  "good_example": "// Use simple, bounded patterns\n$pattern = '/^[a-z0-9]{1,32}$/';\npreg_match($pattern, $_GET['input']);\n\n// Use time-limited regex evaluation if user-supplied patterns are unavoidable",
+  "severity": "major",
+  "category": "security",
+  "what_it_checks": [
+    "Nested quantifiers in regex patterns, such as `(a+)+`, `(a*)*`, `(a|b)+`",
+    "User-supplied regex patterns passed to `preg_match()`, `preg_replace()`, or `preg_split()`",
+    "`preg_match()` on very long user input without timeout"
+  ]
+}

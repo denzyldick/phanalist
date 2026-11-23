@@ -1,12 +1,12 @@
 {
   "rule_code": "E0021",
   "title": "E0021: Number of Children (NOC)",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "",
-  "good_example": "",
-  "severity": "info",
-  "category": "general",
+  "plain_english": "Number of Children (NOC) counts how many classes directly extend a given class.",
+  "why_matters": "A base class with many direct subclasses can become fragile. Changes to that base class may affect many descendants, increasing the risk of unintended breakage.",
+  "bad_example": "// NOC is 16 in this example.\nclass BaseController {}\n\nclass UserController extends BaseController {}\nclass PostController extends BaseController {}\nclass CommentController extends BaseController {}\n// ... and 13 more controllers ...",
+  "good_example": "// Prefer composition when shared behavior does not require inheritance.\nclass ResponseFactory {\n    public function json($data) { /* ... */ }\n}\n\nclass UserController {\n    public function __construct(private ResponseFactory $response) {}\n}",
+  "severity": "minor",
+  "category": "code-health",
   "what_it_checks": [
     "Checks for E0021 violations"
   ]

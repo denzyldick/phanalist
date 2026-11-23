@@ -1,14 +1,14 @@
 {
   "rule_code": "E0081",
   "title": "E0081: Deprecated regex function",
-  "plain_english": "",
-  "why_matters": "",
+  "plain_english": "POSIX regex functions such as `ereg()` and `split()` are deprecated and were removed in PHP 7.0. Use the `preg_*()` family or `explode()` instead.",
+  "why_matters": "Using removed functions causes fatal errors on PHP 7.0 and later, which breaks the application. The `preg_*()` functions are more capable and actively maintained.",
   "bad_example": "if (ereg(\"^[a-zA-Z]+$\", $username)) { // deprecated, removed in PHP 7.0\n    // valid\n}\n$parts = split(\":\", $data); // deprecated, removed in PHP 7.0",
   "good_example": "if (preg_match(\"/^[a-zA-Z]+$/\", $username)) {\n    // valid\n}\n$parts = explode(\":\", $data); // or preg_split(\"/:/\", $data)",
-  "severity": "info",
-  "category": "general",
+  "severity": "minor",
+  "category": "security",
   "what_it_checks": [
-    "`ereg()`, `ereg_replace()`, `eregi()`, `eregi_replace()` calls",
-    "`split()`, `spliti()` calls"
+    "`ereg()`, `ereg_replace()`, `eregi()`, and `eregi_replace()` calls",
+    "`split()` and `spliti()` calls"
   ]
 }

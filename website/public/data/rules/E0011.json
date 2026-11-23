@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0011",
+  "title": "E0011: Error suppression operator `@`",
+  "plain_english": "The `@` error control operator suppresses PHP errors and warnings. This rule flags its use.",
+  "why_matters": "Suppressing errors hides underlying problems, such as failed file reads, undefined indexes, or connection errors. This makes failures harder to detect and debug, especially when issues only appear in production.",
+  "bad_example": "// Suppressing errors when reading a file or calling a risky function.\n$content = @file_get_contents($filename);\n@$this->connectDatabase();",
+  "good_example": "// Handle errors explicitly using checks, exceptions, or try/catch.\nif (file_exists($filename)) {\n    $content = file_get_contents($filename);\n} else {\n    throw new FileNotFoundException(\"File not found: $filename\");\n}\n\ntry {\n    $this->connectDatabase();\n} catch (DatabaseException $e) {\n    Log::error(\"Database connection failed: \" . $e->getMessage());\n}",
+  "severity": "minor",
+  "category": "code-health",
+  "what_it_checks": [
+    "Expressions and return statements that use the error control operator (`@`)."
+  ]
+}

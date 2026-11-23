@@ -1,15 +1,15 @@
 {
   "rule_code": "E0004",
   "title": "E0004: Uppercase constants",
-  "plain_english": "",
-  "why_matters": "",
+  "plain_english": "Constants should use uppercase letters with underscores, such as `MAX_RETRIES`.",
+  "why_matters": "PHP constants are immutable values. Using an all-uppercase naming convention makes constants easy to distinguish from variables and other identifiers.",
   "bad_example": "define('max_retries', 3);\n\nclass Config {\n    public const timeoutSeconds = 30;\n}",
   "good_example": "define('MAX_RETRIES', 3);\n\nclass Config {\n    public const TIMEOUT_SECONDS = 30;\n}",
-  "severity": "info",
-  "category": "general",
+  "severity": "minor",
+  "category": "code-health",
   "what_it_checks": [
-    "Global constants defined via `define()`.",
-    "Constants defined inside classes, interfaces, traits, and enums (`const FOO = ...`).",
-    "Verifies that constant names match their uppercase equivalent (`name == name.to_uppercase()`)."
+    "Global constants defined with `define()`.",
+    "Constants defined inside classes, interfaces, traits, and enums.",
+    "Whether constant names match their uppercase form."
   ]
 }

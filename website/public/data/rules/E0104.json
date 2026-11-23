@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0104",
+  "title": "E0104: HTTP Response Splitting",
+  "plain_english": "Writing user input to HTTP headers without sanitizing CRLF sequences (`\\r\\n`) can allow an attacker to inject additional headers or split the HTTP response.",
+  "why_matters": "HTTP response splitting can: - Inject malicious headers (for example `Set-Cookie` or `Location`) - Enable cache poisoning - Enable cross-site scripting (XSS) in some contexts - Bypass security controls",
+  "bad_example": "$redirect = $_GET['redirect'] ?? '';\nheader(\"Location: $redirect\");\n// ?redirect=http://evil.com%0d%0aSet-Cookie: session=evil",
+  "good_example": "$redirect = $_GET['redirect'] ?? '';\n$redirect = str_replace([\"\\r\", \"\\n\"], '', $redirect);\n$allowed = ['/dashboard', '/profile'];\nif (!in_array($redirect, $allowed, true)) {\n    $redirect = '/dashboard';\n}\nheader(\"Location: $redirect\");",
+  "severity": "major",
+  "category": "security",
+  "what_it_checks": [
+    "`header()` calls with tainted input that may contain CRLF sequences",
+    "`setcookie()` with tainted values that may contain newlines"
+  ]
+}

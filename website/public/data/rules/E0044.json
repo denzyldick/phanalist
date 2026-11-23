@@ -1,0 +1,17 @@
+{
+  "rule_code": "E0044",
+  "title": "E0044: Input-Dependent Runtime Growth",
+  "plain_english": "Reports loops whose work grows faster than the configured runtime threshold as an input-sized collection grows.",
+  "why_matters": "Runtime cost that grows superlinearly with input size can cause slow requests, timeouts, or denial-of-service risks when input is large or attacker-controlled. E0044 is part of Phanalist's resource-analysis rules (E0044-E0046), which model allocation, retention, and input cardinality separately from bounded verification rules.",
+  "bad_example": "<?php\nfunction hasDuplicates(array $items): bool\n{\n    foreach ($items as $a) {\n        foreach ($items as $b) {\n            if ($a === $b) { return true; }\n        }\n    }\n    return false;\n}",
+  "good_example": "<?php\nfunction hasDuplicates(array $items): bool\n{\n    $seen = [];\n    foreach ($items as $item) {\n        if (isset($seen[$item])) {\n            return true;\n        }\n        $seen[$item] = true;\n    }\n    return false;\n}",
+  "severity": "major",
+  "category": "resource",
+  "what_it_checks": [
+    "Nested loops over the same input-sized collection",
+    "Loops that repeatedly perform linear work such as `array_unshift()`, `array_merge()`, `in_array()`, `array_search()`, `preg_match()`, or repeated array copying",
+    "Linear work inside a loop that is already linear in the same size measure",
+    "Loops whose bound is an unguarded input cardinality, reported together with E0046",
+    "Calls to local functions or methods whose resource summary makes the enclosing loop superlinear"
+  ]
+}

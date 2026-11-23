@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0103",
+  "title": "E0103: Server-Side Request Forgery (SSRF)",
+  "plain_english": "Making network requests to URLs supplied by the user can allow an attacker to probe internal services or exfiltrate data from your internal network.",
+  "why_matters": "SSRF can lead to: - Reading internal services (metadata APIs, databases, internal APIs) - Port scanning your internal network - Exfiltrating sensitive data - Bypassing network-level access controls",
+  "bad_example": "$url = $_GET['url'] ?? '';\n$result = file_get_contents($url);\n// or\n$ch = curl_init($url);\ncurl_exec($ch);",
+  "good_example": "$url = $_GET['url'] ?? '';\n$parsed = parse_url($url);\nif (!in_array($parsed['scheme'] ?? '', ['http', 'https'], true)) {\n    http_response_code(400);\n    exit;\n}\n$allowedHosts = ['api.example.com', 'cdn.example.com'];\nif (!in_array($parsed['host'] ?? '', $allowedHosts, true)) {\n    http_response_code(400);\n    exit;\n}\n$result = file_get_contents($url);",
+  "severity": "critical",
+  "category": "security",
+  "what_it_checks": [
+    "`file_get_contents()`, `curl_init()`, `curl_exec()`, `fopen()`, and `fsockopen()` with tainted URLs",
+    "HTTP client libraries (Guzzle, Symfony HttpClient) with user-controlled URLs"
+  ]
+}

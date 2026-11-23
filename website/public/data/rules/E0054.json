@@ -1,0 +1,15 @@
+{
+  "rule_code": "E0054",
+  "title": "E0054: Dynamic variable creation",
+  "plain_english": "`extract()` and variable variables such as `$$name` create local variable names from runtime data. This makes code harder to follow and can allow unexpected keys to overwrite local variables.",
+  "why_matters": "Unexpected variable creation can make function behavior difficult to understand and, when request data is involved, can overwrite security-sensitive local state.",
+  "bad_example": "extract($_POST);\n\n$$name = 'value';\n${$key} = 'value';",
+  "good_example": "$name = $input['name'] ?? '';\n$email = $input['email'] ?? '';\n\nreturn compact('name', 'email');",
+  "severity": "major",
+  "category": "security",
+  "what_it_checks": [
+    "`extract($data)` calls",
+    "Indirect variables such as `${$name}`",
+    "Nested variables such as `$$name` and `$$$name`"
+  ]
+}

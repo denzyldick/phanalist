@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E0062: Command injection | Phanalist</title>
+  <meta name="description" content="This rule reports shell command calls where user-controlled input reaches the command argument. An attacker may be able to inject additional shell syntax or com" />
+  <link rel="canonical" href="https://phanalist.io/rules/e0062.html" />
+  <meta property="og:title" content="E0062: Command injection | Phanalist" />
+  <meta property="og:description" content="This rule reports shell command calls where user-controlled input reaches the command argument. An attacker may be able to inject additional shell syntax or commands." />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://phanalist.io/rules/e0062.html" />
+  <style>
+    :root { --bg:#0a0a0f; --card:#161620; --subtle:#12121a; --fg:#e8e8f0; --muted:#8f8fa3; --accent:#00d4aa; --border:#2a2a3a; }
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--fg);line-height:1.7}
+    .wrap{max-width:980px;margin:0 auto;padding:32px 20px 72px}
+    a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+    .crumbs{font-size:14px;color:var(--muted);margin-bottom:18px}
+    .badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+    .badge{display:inline-flex;padding:4px 10px;border:1px solid var(--border);border-radius:999px;font-size:12px;color:var(--muted);background:var(--subtle)}
+    h1{font-size:clamp(28px,5vw,44px);line-height:1.15;margin:0 0 12px;letter-spacing:-.02em}
+    .lead{font-size:18px;color:#cfcfda;max-width:78ch;margin:0 0 20px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 28px}
+    .btn{display:inline-flex;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--subtle);color:var(--fg);font-weight:600}
+    .btn-primary{background:linear-gradient(135deg,var(--accent),#0066ff);color:#081018;border:none}
+    .content{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px}
+    .content > :first-child{margin-top:0} .content > :last-child{margin-bottom:0}
+    .content h2{margin-top:32px;font-size:24px;line-height:1.25}
+    .content h3{margin-top:24px;font-size:19px;line-height:1.3}
+    .content p,.content li{color:#d9d9e3}
+    .content ul,.content ol{padding-left:24px}
+    .content pre{margin:16px 0;background:#0d0d15;border:1px solid var(--border);border-radius:10px;padding:16px;overflow:auto}
+    .content code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.94em}
+    .content p code,.content li code{background:#0d0d15;border:1px solid var(--border);padding:.12em .35em;border-radius:5px}
+    .content pre code{background:none;border:none;padding:0;font-size:13px;line-height:1.55}
+    .content blockquote{margin:16px 0;padding:0 0 0 16px;border-left:3px solid var(--accent);color:#cfcfda}
+    .content table{width:100%;border-collapse:collapse;margin:16px 0}
+    .content th,.content td{border:1px solid var(--border);padding:10px;text-align:left;vertical-align:top}
+    .content th{background:var(--subtle)}
+  </style>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"E0062: Command injection","description":"This rule reports shell command calls where user-controlled input reaches the command argument. An attacker may be able to inject additional shell syntax or commands.","url":"https://phanalist.io/rules/e0062.html"}</script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="crumbs"><a href="/">Phanalist</a> / <a href="/#rules">Rules</a> / E0062</div>
+    <div class="badges">
+      <span class="badge">E0062</span>
+      <span class="badge">security</span>
+      <span class="badge">critical</span>
+    </div>
+    <h1>Command injection</h1>
+    <p class="lead">This rule reports shell command calls where user-controlled input reaches the command argument. An attacker may be able to inject additional shell syntax or commands.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="/?rule=E0062#playground">Try in Playground</a>
+      <a class="btn" href="/#rules">All rules</a>
+      <a class="btn" href="https://github.com/denzyldick/phanalist">GitHub</a>
+    </div>
+    <article class="content">
+      <p>This rule reports shell command calls where user-controlled input reaches the command argument. An attacker may be able to inject additional shell syntax or commands.</p>
+<h2>Why it matters</h2>
+<p>Command injection can allow arbitrary command execution on the server, which may lead to data exposure, data loss, or full system compromise.</p>
+<h2>Bad example</h2>
+<pre><code class="language-php">$file = $_GET[&#39;file&#39;] ?? &#39;&#39;;
+system(&quot;cat $file&quot;);
+</code></pre>
+<p>If an attacker visits <code>?file=; rm -rf /var/www/html</code>, the shell may interpret the injected command.</p>
+<h2>Good example</h2>
+<pre><code class="language-php">// Prefer PHP APIs instead of shell commands
+$content = file_get_contents($file);
+
+// If shell execution is unavoidable, validate and escape
+$allowed = [&#39;file1.txt&#39;, &#39;file2.txt&#39;];
+if (!in_array($file, $allowed, true)) {
+    http_response_code(400);
+    exit;
+}
+$file = escapeshellarg($file);
+system(&quot;cat $file&quot;);
+</code></pre>
+<h2>What it checks</h2>
+<ul>
+<li>Shell execution functions such as <code>system()</code>, <code>exec()</code>, <code>shell_exec()</code>, <code>passthru()</code>, <code>popen()</code>, and <code>proc_open()</code></li>
+<li>Cases where user-controlled input reaches the command argument, based on taint analysis and dynamic-expression heuristics</li>
+</ul>
+<h2>When it does not report</h2>
+<ul>
+<li>Commands with literal string arguments only</li>
+<li>Commands where input has been sanitized in ways recognized by the analysis, such as <code>escapeshellarg()</code></li>
+<li>Cases where the taint or heuristic model cannot prove the input reaches the command</li>
+</ul>
+<h2>How to fix</h2>
+<ul>
+<li>Avoid shell execution when a PHP built-in function can do the job.</li>
+<li>If shell execution is necessary, validate input against a strict allowlist.</li>
+<li>Use <code>escapeshellarg()</code> for user-controlled arguments and <code>escapeshellcmd()</code> carefully when escaping a full command string is appropriate.</li>
+<li>Do not pass raw request data to shell commands.</li>
+</ul>
+<h2>Configuration</h2>
+<p>E0062 is enabled by default. The taint-aware behavior is controlled by a per-rule <code>taint_mode</code> setting:</p>
+<pre><code class="language-yaml">rules:
+  E0062:
+    taint_mode: annotate
+</code></pre>
+<ul>
+<li><code>annotate</code> (default) reports the finding and adds the proven source origin to the message.</li>
+<li><code>only</code> reports only findings reached by proven tainted data.</li>
+<li><code>off</code> keeps the legacy heuristic-only behavior.</li>
+</ul>
+
+    </article>
+  </div>
+</body>
+</html>

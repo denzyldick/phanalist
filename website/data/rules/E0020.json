@@ -1,13 +1,15 @@
 {
   "rule_code": "E0020",
   "title": "E0020: Depth of Inheritance Tree (DIT)",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "",
-  "good_example": "",
-  "severity": "info",
-  "category": "general",
+  "plain_english": "Depth of Inheritance Tree (DIT) measures how many parent classes a class has in its inheritance chain.",
+  "why_matters": "Deep inheritance hierarchies can make behavior harder to understand because methods and properties are spread across multiple classes. They also increase the risk that changes in a base class affect many descendants.",
+  "bad_example": "class Model {}\nclass Authenticatable extends Model {}\nclass User extends Authenticatable {}\nclass StaffUser extends User {}\n\n// Depth is 4.\nclass AdminUser extends StaffUser {}",
+  "good_example": "interface Authenticatable {}\nclass Model {}\n\n// Depth is 1. Additional behavior is composed in.\nclass AdminUser extends Model implements Authenticatable {\n    private RolePermissions $permissions;\n}",
+  "severity": "minor",
+  "category": "code-health",
   "what_it_checks": [
-    "Checks for E0020 violations"
+    "`class Animal {}` \u2014 depth 0",
+    "`class Dog extends Animal {}` \u2014 depth 1",
+    "`class Poodle extends Dog {}` \u2014 depth 2"
   ]
 }

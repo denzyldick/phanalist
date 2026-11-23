@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0006",
+  "title": "E0006: Property modifiers",
+  "plain_english": "Class properties should declare an explicit visibility modifier: `public`, `protected`, or `private`.",
+  "why_matters": "Explicit visibility makes it clear how a property is intended to be used. Using `private` or `protected` can also help protect internal state by limiting direct external access.",
+  "bad_example": "class User {\n    // Missing visibility modifier.\n    string $name;\n}",
+  "good_example": "class User {\n    private string $name;\n\n    public function getName(): string {\n        return $this->name;\n    }\n}",
+  "severity": "minor",
+  "category": "code-health",
+  "what_it_checks": [
+    "Class properties that do not declare an explicit visibility modifier."
+  ]
+}

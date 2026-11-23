@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0114",
+  "title": "E0114: PHP Info Disclosure",
+  "plain_english": "Calling `phpinfo()` in committed production code exposes detailed PHP configuration, version, extensions, and environment variables to anyone who can access the page.",
+  "why_matters": "Attackers can use `phpinfo()` output to: - Fingerprint the server (PHP version, loaded extensions) - Find version-specific vulnerabilities - Read environment variables and configuration values - Plan targeted attacks against your infrastructure",
+  "bad_example": "<?php phpinfo(); ?>",
+  "good_example": "// Remove phpinfo() entirely from production code\n// Use it only in local development, never commit it",
+  "severity": "minor",
+  "category": "security",
+  "what_it_checks": [
+    "`phpinfo()` function calls anywhere in committed source code",
+    "`phpinfo(INFO_ALL)`, `phpinfo(INFO_GENERAL)`, and similar calls"
+  ]
+}

@@ -1,13 +1,19 @@
 {
   "rule_code": "E0045",
   "title": "E0045: Input-Dependent Live-Heap Growth",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "",
-  "good_example": "",
+  "plain_english": "Reports loops that retain memory in proportion to an input-sized collection.",
+  "why_matters": "Allocating temporary values is not the same as keeping them reachable. E0045 focuses on live heap growth: memory that remains reachable and can accumulate as input size grows, which can increase memory pressure in long-running requests or workers.",
+  "bad_example": "<?php\nfunction build(array $items): array\n{\n    $result = [];\n    foreach ($items as $item) {\n        $result[] = $items; // grows with input\n    }\n    return $result;\n}",
+  "good_example": "<?php\nfunction build(array $items): array\n{\n    $result = [];\n    foreach ($items as $item) {\n        $result[] = $item;\n    }\n    return $result;\n}",
   "severity": "major",
   "category": "resource",
   "what_it_checks": [
-    "Checks for E0045 violations"
+    "Appending input-sized values to an array that remains reachable",
+    "Building a new local array with dynamic indexes, then returning or otherwise retaining it",
+    "Retaining input-sized arrays, objects, or strings in another array or property",
+    "Repeated copying growth such as `array_unshift()`, where cumulative allocation is quadratic even when the final array is linear",
+    "Accumulating values across loop iterations without a corresponding release",
+    "Escaping values whose size is controlled by request input",
+    "Calls to local functions or methods whose resource summary allocates or retains input-sized data"
   ]
 }

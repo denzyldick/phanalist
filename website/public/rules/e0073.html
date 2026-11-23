@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E0073: Weak cryptographic hash | Phanalist</title>
+  <meta name="description" content="Hashing passwords with weak, fast algorithms such as MD5 or SHA1 is unsafe. Use a dedicated password hashing function such as `password_hash()`." />
+  <link rel="canonical" href="https://phanalist.io/rules/e0073.html" />
+  <meta property="og:title" content="E0073: Weak cryptographic hash | Phanalist" />
+  <meta property="og:description" content="Hashing passwords with weak, fast algorithms such as MD5 or SHA1 is unsafe. Use a dedicated password hashing function such as `password_hash()`." />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://phanalist.io/rules/e0073.html" />
+  <style>
+    :root { --bg:#0a0a0f; --card:#161620; --subtle:#12121a; --fg:#e8e8f0; --muted:#8f8fa3; --accent:#00d4aa; --border:#2a2a3a; }
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--fg);line-height:1.7}
+    .wrap{max-width:980px;margin:0 auto;padding:32px 20px 72px}
+    a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+    .crumbs{font-size:14px;color:var(--muted);margin-bottom:18px}
+    .badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+    .badge{display:inline-flex;padding:4px 10px;border:1px solid var(--border);border-radius:999px;font-size:12px;color:var(--muted);background:var(--subtle)}
+    h1{font-size:clamp(28px,5vw,44px);line-height:1.15;margin:0 0 12px;letter-spacing:-.02em}
+    .lead{font-size:18px;color:#cfcfda;max-width:78ch;margin:0 0 20px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 28px}
+    .btn{display:inline-flex;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--subtle);color:var(--fg);font-weight:600}
+    .btn-primary{background:linear-gradient(135deg,var(--accent),#0066ff);color:#081018;border:none}
+    .content{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px}
+    .content > :first-child{margin-top:0} .content > :last-child{margin-bottom:0}
+    .content h2{margin-top:32px;font-size:24px;line-height:1.25}
+    .content h3{margin-top:24px;font-size:19px;line-height:1.3}
+    .content p,.content li{color:#d9d9e3}
+    .content ul,.content ol{padding-left:24px}
+    .content pre{margin:16px 0;background:#0d0d15;border:1px solid var(--border);border-radius:10px;padding:16px;overflow:auto}
+    .content code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.94em}
+    .content p code,.content li code{background:#0d0d15;border:1px solid var(--border);padding:.12em .35em;border-radius:5px}
+    .content pre code{background:none;border:none;padding:0;font-size:13px;line-height:1.55}
+    .content blockquote{margin:16px 0;padding:0 0 0 16px;border-left:3px solid var(--accent);color:#cfcfda}
+    .content table{width:100%;border-collapse:collapse;margin:16px 0}
+    .content th,.content td{border:1px solid var(--border);padding:10px;text-align:left;vertical-align:top}
+    .content th{background:var(--subtle)}
+  </style>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"E0073: Weak cryptographic hash","description":"Hashing passwords with weak, fast algorithms such as MD5 or SHA1 is unsafe. Use a dedicated password hashing function such as `password_hash()`.","url":"https://phanalist.io/rules/e0073.html"}</script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="crumbs"><a href="/">Phanalist</a> / <a href="/#rules">Rules</a> / E0073</div>
+    <div class="badges">
+      <span class="badge">E0073</span>
+      <span class="badge">security</span>
+      <span class="badge">major</span>
+    </div>
+    <h1>Weak cryptographic hash</h1>
+    <p class="lead">Hashing passwords with weak, fast algorithms such as MD5 or SHA1 is unsafe. Use a dedicated password hashing function such as `password_hash()`.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="/?rule=E0073#playground">Try in Playground</a>
+      <a class="btn" href="/#rules">All rules</a>
+      <a class="btn" href="https://github.com/denzyldick/phanalist">GitHub</a>
+    </div>
+    <article class="content">
+      <p>Hashing passwords with weak, fast algorithms such as MD5 or SHA1 is unsafe. Use a dedicated password hashing function such as <code>password_hash()</code>.</p>
+<h2>Why it matters</h2>
+<p>MD5 and SHA1 are designed for speed, not password storage. Attackers can:</p>
+<ul>
+<li>Crack password hashes quickly using rainbow tables or GPU brute force</li>
+<li>Recover common passwords in a short time</li>
+<li>Compromise many user accounts if hashes are exposed</li>
+</ul>
+<h2>Bad example</h2>
+<pre><code class="language-php">$hash = md5($password);   // weak and fast
+$hash = sha1($password);  // weak and fast
+</code></pre>
+<h2>Good example</h2>
+<pre><code class="language-php">$hash = password_hash($password, PASSWORD_DEFAULT);
+// Uses bcrypt or argon2 with automatic salting and cost factor
+if (password_verify($password, $hash)) {
+    // valid
+}
+</code></pre>
+<h2>What it checks</h2>
+<ul>
+<li><code>md5()</code>, <code>sha1()</code>, <code>hash(&#39;md5&#39;, ...)</code>, and <code>hash(&#39;sha1&#39;, ...)</code> applied to password-like variables</li>
+<li><code>crypt()</code> without a proper salt or cost parameter</li>
+</ul>
+<h2>When it does not report</h2>
+<ul>
+<li><code>password_hash()</code> and <code>password_verify()</code> are recognized as safe</li>
+<li>Hashing non-password data (such as file checksums or data integrity checks) may be flagged conservatively</li>
+</ul>
+<h2>How to fix</h2>
+<ol>
+<li>Use <code>password_hash()</code> with <code>PASSWORD_DEFAULT</code> for password storage.</li>
+<li>Verify passwords with <code>password_verify()</code>.</li>
+<li>Do not use MD5, SHA1, or plain <code>hash()</code> for password storage.</li>
+</ol>
+<h2>Configuration</h2>
+<p>E0073 is enabled by default and has no configuration options.</p>
+
+    </article>
+  </div>
+</body>
+</html>

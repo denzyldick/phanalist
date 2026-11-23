@@ -1,13 +1,15 @@
 {
   "rule_code": "E0007",
   "title": "E0007: Method parameters count",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "",
-  "good_example": "",
-  "severity": "info",
-  "category": "general",
+  "plain_english": "Methods with many parameters can be hard to read, call, and change.",
+  "why_matters": "A long parameter list often means a method is handling too many responsibilities or missing an abstraction. Reducing parameter count can make the method's purpose clearer and reduce the chance of passing arguments in the wrong order.",
+  "bad_example": "<?php\n\nclass Maintenance\n{\n    public function execute(\n        Hammer $hammer,\n        Screw $screw,\n        Screwdriver $screwDriver,\n        Nails $nails,\n        Paint $paint,\n        SandingPaper $sandingPaper,\n        Painting $painting,\n        Brush $brush,\n        Ladder $ladder\n    ) {\n    }\n}",
+  "good_example": "<?php\n\ninterface Activity\n{\n    /** @return array<int, object> */\n    public function getTools(): array;\n}\n\nclass Maintenance\n{\n    public function execute(Activity ...$activities): void\n    {\n        foreach ($activities as $activity) {\n            $tools = $activity->getTools();\n            // Use tools.\n        }\n    }\n}\n\nclass Paint implements Activity\n{\n    public function getTools(): array\n    {\n        return [];\n    }\n}",
+  "severity": "minor",
+  "category": "code-health",
   "what_it_checks": [
-    "Checks for E0007 violations"
+    "The number of parameters declared by a method.",
+    "By default, constructors are included.",
+    "The default maximum is 8 parameters."
   ]
 }

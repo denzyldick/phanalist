@@ -1,12 +1,12 @@
 {
   "rule_code": "E0050",
   "title": "E0050: Position check used as boolean",
-  "plain_english": "",
-  "why_matters": "",
+  "plain_english": "`strpos()`, `stripos()`, `strrpos()`, and `strripos()` return `0` when the match is at the very start of the string. In a boolean context, PHP treats `0` as false, so a condition like `if (strpos(...))` treats a match at position zero as \"not found.\"",
+  "why_matters": "A valid match at the beginning of the string can silently take the wrong branch, causing incorrect behavior that is easy to miss in testing.",
   "bad_example": "if (strpos($path, '/')) {\n    // A leading slash is at position 0, so this branch is skipped.\n}",
   "good_example": "if (strpos($path, '/') !== false) {\n    // Found, including a match at position 0.\n}\n\nif (str_starts_with($path, '/')) {\n    // Clearer when you only care about the prefix.\n}",
-  "severity": "info",
-  "category": "general",
+  "severity": "major",
+  "category": "lifecycle",
   "what_it_checks": [
     "`if`, `elseif`, `while`, `do`/`while`, and `for` conditions",
     "Negated checks such as `!strpos($haystack, $needle)`",

@@ -1,12 +1,12 @@
 {
   "rule_code": "E0096",
-  "title": "E0096: Cookie without secure flag",
-  "plain_english": "",
-  "why_matters": "",
+  "title": "E0096: Cookie Without Secure Flag",
+  "plain_english": "Setting a cookie without the `Secure` flag allows it to be sent over unencrypted HTTP, where it can be intercepted by network attackers.",
+  "why_matters": "Without the `Secure` flag: - Session cookies can be stolen via network sniffing - Attackers on the same network can capture cookies - Authentication tokens are exposed in transit",
   "bad_example": "setcookie('session_id', $value, [\n    'secure' => false,   // sent over HTTP\n    'httponly' => true,\n]);",
   "good_example": "setcookie('session_id', $value, [\n    'secure' => true,    // HTTPS only\n    'httponly' => true,  // not accessible via JavaScript\n    'samesite' => 'Lax',\n]);",
-  "severity": "info",
-  "category": "general",
+  "severity": "minor",
+  "category": "security",
   "what_it_checks": [
     "`setcookie()` or `setrawcookie()` calls where `secure` is not set to `true`",
     "`session_set_cookie_params()` with `secure => false`"

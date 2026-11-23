@@ -1,0 +1,16 @@
+{
+  "rule_code": "E0048",
+  "title": "E0048: Unbounded direct recursion",
+  "plain_english": "This rule reports direct recursion that reuses unchanged arguments and does not reassign the corresponding parameters. These calls are strong candidates for infinite recursion.",
+  "why_matters": "A recursive call that keeps the same inputs can repeat forever, leading to stack exhaustion or a process crash. Making the termination condition and the changing argument explicit helps ensure the recursion makes progress.",
+  "bad_example": "<?php\nfunction walk(Node $node): void\n{\n    walk($node->next); // no base case/guard\n}",
+  "good_example": "<?php\nfunction walk(?Node $node): void\n{\n    if ($node === null) {\n        return;\n    }\n\n    walk($node->next);\n}",
+  "severity": "major",
+  "category": "lifecycle",
+  "what_it_checks": [
+    "A function calling itself with the same parameter variables",
+    "A method calling `$this->sameMethod()` with the same parameter variables",
+    "A static method calling `self::sameMethod()`, `static::sameMethod()`, or `ClassName::sameMethod()` with the same parameter variables",
+    "Zero-argument functions and methods that call themselves"
+  ]
+}

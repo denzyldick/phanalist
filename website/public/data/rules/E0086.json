@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0086",
+  "title": "E0086: Deprecated session function",
+  "plain_english": "Deprecated session functions `session_register()`, `session_is_registered()`, and `session_unregister()` were removed in PHP 5.4. Use the `$_SESSION` superglobal instead.",
+  "why_matters": "These functions no longer exist in PHP 5.4 and later, so code that uses them will cause fatal errors. `$_SESSION` is the supported way to manage session data.",
+  "bad_example": "session_register('username');\n$username = $_POST['username'] ?? '';\nif (session_is_registered('username')) {\n    // ...\n}\nsession_unregister('username');",
+  "good_example": "$_SESSION['username'] = $_POST['username'] ?? '';\nif (isset($_SESSION['username'])) {\n    // ...\n}\nunset($_SESSION['username']);",
+  "severity": "minor",
+  "category": "security",
+  "what_it_checks": [
+    "`session_register()`, `session_is_registered()`, and `session_unregister()` function calls"
+  ]
+}

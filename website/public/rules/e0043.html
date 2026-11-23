@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E0043: Stream Resource Used After Close | Phanalist</title>
+  <meta name="description" content="Reports stream resources that are read, written, or closed after they have already been closed." />
+  <link rel="canonical" href="https://phanalist.io/rules/e0043.html" />
+  <meta property="og:title" content="E0043: Stream Resource Used After Close | Phanalist" />
+  <meta property="og:description" content="Reports stream resources that are read, written, or closed after they have already been closed." />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://phanalist.io/rules/e0043.html" />
+  <style>
+    :root { --bg:#0a0a0f; --card:#161620; --subtle:#12121a; --fg:#e8e8f0; --muted:#8f8fa3; --accent:#00d4aa; --border:#2a2a3a; }
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--fg);line-height:1.7}
+    .wrap{max-width:980px;margin:0 auto;padding:32px 20px 72px}
+    a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+    .crumbs{font-size:14px;color:var(--muted);margin-bottom:18px}
+    .badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+    .badge{display:inline-flex;padding:4px 10px;border:1px solid var(--border);border-radius:999px;font-size:12px;color:var(--muted);background:var(--subtle)}
+    h1{font-size:clamp(28px,5vw,44px);line-height:1.15;margin:0 0 12px;letter-spacing:-.02em}
+    .lead{font-size:18px;color:#cfcfda;max-width:78ch;margin:0 0 20px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 28px}
+    .btn{display:inline-flex;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--subtle);color:var(--fg);font-weight:600}
+    .btn-primary{background:linear-gradient(135deg,var(--accent),#0066ff);color:#081018;border:none}
+    .content{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px}
+    .content > :first-child{margin-top:0} .content > :last-child{margin-bottom:0}
+    .content h2{margin-top:32px;font-size:24px;line-height:1.25}
+    .content h3{margin-top:24px;font-size:19px;line-height:1.3}
+    .content p,.content li{color:#d9d9e3}
+    .content ul,.content ol{padding-left:24px}
+    .content pre{margin:16px 0;background:#0d0d15;border:1px solid var(--border);border-radius:10px;padding:16px;overflow:auto}
+    .content code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.94em}
+    .content p code,.content li code{background:#0d0d15;border:1px solid var(--border);padding:.12em .35em;border-radius:5px}
+    .content pre code{background:none;border:none;padding:0;font-size:13px;line-height:1.55}
+    .content blockquote{margin:16px 0;padding:0 0 0 16px;border-left:3px solid var(--accent);color:#cfcfda}
+    .content table{width:100%;border-collapse:collapse;margin:16px 0}
+    .content th,.content td{border:1px solid var(--border);padding:10px;text-align:left;vertical-align:top}
+    .content th{background:var(--subtle)}
+  </style>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"E0043: Stream Resource Used After Close","description":"Reports stream resources that are read, written, or closed after they have already been closed.","url":"https://phanalist.io/rules/e0043.html"}</script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="crumbs"><a href="/">Phanalist</a> / <a href="/#rules">Rules</a> / E0043</div>
+    <div class="badges">
+      <span class="badge">E0043</span>
+      <span class="badge">verification</span>
+      <span class="badge">major</span>
+    </div>
+    <h1>Stream Resource Used After Close</h1>
+    <p class="lead">Reports stream resources that are read, written, or closed after they have already been closed.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="/?rule=E0043#playground">Try in Playground</a>
+      <a class="btn" href="/#rules">All rules</a>
+      <a class="btn" href="https://github.com/denzyldick/phanalist">GitHub</a>
+    </div>
+    <article class="content">
+      <p>Reports stream resources that are read, written, or closed after they have already been closed.</p>
+<h2>Why it matters</h2>
+<p>Using a closed stream can cause runtime warnings/errors and indicates incorrect resource lifecycle management. This rule uses Phanalist&#39;s bounded formal verification engine (Z3-backed) to detect feasible use-after-close paths.</p>
+<h2>Bad example</h2>
+<pre><code class="language-php">&lt;?php
+function readFile(string $path): string
+{
+    $h = fopen($path, &#39;r&#39;);
+    fclose($h);
+    return fread($h, 100); // used after close
+}
+</code></pre>
+<h2>Good example</h2>
+<pre><code class="language-php">&lt;?php
+function readFile(string $path): string
+{
+    $h = fopen($path, &#39;r&#39;);
+    if ($h === false) {
+        return &#39;&#39;;
+    }
+    $data = fread($h, 100);
+    fclose($h);
+
+    return $data === false ? &#39;&#39; : $data;
+}
+</code></pre>
+<h2>What it checks</h2>
+<ul>
+<li><code>fread()</code> or <code>fwrite()</code> on a stream that was closed on every feasible path</li>
+<li><code>fread()</code> or <code>fwrite()</code> on a stream that may have been closed on another path</li>
+<li><code>fclose()</code> on a stream that was already closed, or may already have been closed</li>
+<li>Direct aliases created with <code>$alias = $stream</code>, because both names refer to the same tracked resource</li>
+<li>Branch and loop joins where one path closes the stream and another leaves it open; these produce a &quot;may have been closed&quot; finding</li>
+<li>Reopening a variable with another direct <code>fopen()</code> resets its lifecycle state</li>
+</ul>
+<h2>Model limits</h2>
+<p>E0043 tracks only resources assigned directly from <code>fopen()</code> and used directly by <code>fclose()</code>, <code>fread()</code>, or <code>fwrite()</code>. It assumes <code>fopen()</code> succeeds unless a later guard or contract narrows the value.</p>
+<p>The following are not tracked and can cause missed findings:</p>
+<ul>
+<li>Resources returned by helpers, methods, or other functions</li>
+<li>Resources stored in object properties, array elements, or static properties</li>
+<li>Resources selected by a conditional expression or passed through an unmodeled wrapper</li>
+<li>Other stream operations such as <code>fseek()</code>, <code>ftell()</code>, <code>fpassthru()</code>, or <code>stream_*()</code> functions</li>
+<li>Stream wrappers, socket resources, and runtime-specific resource lifetimes</li>
+</ul>
+<p>Unknown function, method, and static calls with a tracked stream argument invalidate that stream&#39;s state, because the call may close it. This is conservative: it can miss a later use-after-close rather than report a false positive. Direct aliases share the same resource identity, but reassigning a reference alias to a different resource is not propagated back to the original name.</p>
+<h2>How to fix</h2>
+<ul>
+<li>Close each stream exactly once, on all relevant paths.</li>
+<li>Avoid reading/writing after <code>fclose()</code>, including through aliases.</li>
+<li>Reopen into a new variable or reset lifecycle clearly when a stream is reopened.</li>
+<li>Make branch and loop close behavior explicit so all paths have a clear resource state.</li>
+</ul>
+<h2>Configuration</h2>
+<pre><code class="language-yaml">rules:
+  E0043:
+    php_version: &quot;8.4&quot;
+</code></pre>
+<p>See <a href="../e31/e31.md">E0031</a> for the shared model limits, <code>unknown_policy</code> behavior, and per-code configuration.</p>
+
+    </article>
+  </div>
+</body>
+</html>

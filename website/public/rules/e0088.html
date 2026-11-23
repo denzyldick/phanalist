@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E0088: Reflection-based injection | Phanalist</title>
+  <meta name="description" content="Invoking the PHP Reflection API with user-controlled input can allow an attacker to instantiate classes, call methods, or access properties that should not be r" />
+  <link rel="canonical" href="https://phanalist.io/rules/e0088.html" />
+  <meta property="og:title" content="E0088: Reflection-based injection | Phanalist" />
+  <meta property="og:description" content="Invoking the PHP Reflection API with user-controlled input can allow an attacker to instantiate classes, call methods, or access properties that should not be reachable." />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://phanalist.io/rules/e0088.html" />
+  <style>
+    :root { --bg:#0a0a0f; --card:#161620; --subtle:#12121a; --fg:#e8e8f0; --muted:#8f8fa3; --accent:#00d4aa; --border:#2a2a3a; }
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--fg);line-height:1.7}
+    .wrap{max-width:980px;margin:0 auto;padding:32px 20px 72px}
+    a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+    .crumbs{font-size:14px;color:var(--muted);margin-bottom:18px}
+    .badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+    .badge{display:inline-flex;padding:4px 10px;border:1px solid var(--border);border-radius:999px;font-size:12px;color:var(--muted);background:var(--subtle)}
+    h1{font-size:clamp(28px,5vw,44px);line-height:1.15;margin:0 0 12px;letter-spacing:-.02em}
+    .lead{font-size:18px;color:#cfcfda;max-width:78ch;margin:0 0 20px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 28px}
+    .btn{display:inline-flex;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--subtle);color:var(--fg);font-weight:600}
+    .btn-primary{background:linear-gradient(135deg,var(--accent),#0066ff);color:#081018;border:none}
+    .content{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px}
+    .content > :first-child{margin-top:0} .content > :last-child{margin-bottom:0}
+    .content h2{margin-top:32px;font-size:24px;line-height:1.25}
+    .content h3{margin-top:24px;font-size:19px;line-height:1.3}
+    .content p,.content li{color:#d9d9e3}
+    .content ul,.content ol{padding-left:24px}
+    .content pre{margin:16px 0;background:#0d0d15;border:1px solid var(--border);border-radius:10px;padding:16px;overflow:auto}
+    .content code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.94em}
+    .content p code,.content li code{background:#0d0d15;border:1px solid var(--border);padding:.12em .35em;border-radius:5px}
+    .content pre code{background:none;border:none;padding:0;font-size:13px;line-height:1.55}
+    .content blockquote{margin:16px 0;padding:0 0 0 16px;border-left:3px solid var(--accent);color:#cfcfda}
+    .content table{width:100%;border-collapse:collapse;margin:16px 0}
+    .content th,.content td{border:1px solid var(--border);padding:10px;text-align:left;vertical-align:top}
+    .content th{background:var(--subtle)}
+  </style>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"E0088: Reflection-based injection","description":"Invoking the PHP Reflection API with user-controlled input can allow an attacker to instantiate classes, call methods, or access properties that should not be reachable.","url":"https://phanalist.io/rules/e0088.html"}</script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="crumbs"><a href="/">Phanalist</a> / <a href="/#rules">Rules</a> / E0088</div>
+    <div class="badges">
+      <span class="badge">E0088</span>
+      <span class="badge">security</span>
+      <span class="badge">major</span>
+    </div>
+    <h1>Reflection-based injection</h1>
+    <p class="lead">Invoking the PHP Reflection API with user-controlled input can allow an attacker to instantiate classes, call methods, or access properties that should not be reachable.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="/?rule=E0088#playground">Try in Playground</a>
+      <a class="btn" href="/#rules">All rules</a>
+      <a class="btn" href="https://github.com/denzyldick/phanalist">GitHub</a>
+    </div>
+    <article class="content">
+      <p>Invoking the PHP Reflection API with user-controlled input can allow an attacker to instantiate classes, call methods, or access properties that should not be reachable.</p>
+<h2>Why it matters</h2>
+<p>Reflection-based injection can:</p>
+<ul>
+<li>Instantiate any autoloadable class</li>
+<li>Call private or protected methods</li>
+<li>Access sensitive object properties</li>
+<li>Lead to object injection and remote code execution through gadget chains</li>
+</ul>
+<h2>Bad example</h2>
+<pre><code class="language-php">$class = $_GET[&#39;class&#39;] ?? &#39;&#39;;
+$reflector = new ReflectionClass($class);
+$obj = $reflector-&gt;newInstance($_GET[&#39;args&#39;]);
+</code></pre>
+<h2>Good example</h2>
+<pre><code class="language-php">$class = $_GET[&#39;class&#39;] ?? &#39;&#39;;
+$allowed = [&#39;User&#39;, &#39;Product&#39;, &#39;Order&#39;];
+if (!in_array($class, $allowed, true)) {
+    http_response_code(400);
+    exit;
+}
+$reflector = new ReflectionClass($class);
+</code></pre>
+<h2>What it checks</h2>
+<ul>
+<li><code>ReflectionClass</code>, <code>ReflectionMethod</code>, and <code>ReflectionProperty</code> constructed from tainted input</li>
+<li><code>ReflectionMethod::invoke()</code> and <code>ReflectionMethod::invokeArgs()</code> with tainted method names</li>
+</ul>
+<h2>When it does not report</h2>
+<ul>
+<li>Cases where class or method names are validated against a whitelist before reflection</li>
+<li>Reflection on static, trusted class names</li>
+</ul>
+<h2>How to fix</h2>
+<ol>
+<li>Do not reflect on user-controlled class, method, or property names.</li>
+<li>Use a whitelist of allowed classes and methods.</li>
+<li>Use a factory or command pattern instead of dynamic reflection.</li>
+</ol>
+<h2>Configuration</h2>
+<p>E0088 is enabled by default and has no configuration options.</p>
+
+    </article>
+  </div>
+</body>
+</html>

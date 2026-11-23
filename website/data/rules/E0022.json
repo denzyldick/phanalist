@@ -1,12 +1,12 @@
 {
   "rule_code": "E0022",
   "title": "E0022: Afferent and Efferent Coupling (Ca/Ce)",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "",
-  "good_example": "",
-  "severity": "info",
-  "category": "general",
+  "plain_english": "Afferent coupling (Ca) and efferent coupling (Ce) measure how much a namespace depends on other namespaces and how much other namespaces depend on it.",
+  "why_matters": "- **Ca (incoming coupling):** How many external classes depend on classes in this namespace. High Ca means changes here can affect many other parts of the system. - **Ce (outgoing coupling):** How many external classes this namespace depends on. High Ce means this namespace is more sensitive to changes elsewhere. High coupling in either direction can make code harder to change safely.",
+  "bad_example": "namespace App\\Services\\Reporting;\n\nuse App\\Infrastructure\\Database\\Connection;\nuse App\\Infrastructure\\Mail\\SmtpMailer;\nuse App\\Vendors\\PdfGenerator;\nuse App\\Vendors\\ExcelWriter;\nuse App\\Infrastructure\\Storage\\S3Bucket;\nuse App\\Infrastructure\\Logging\\Syslog;\n\nclass ReportGenerator {\n    // Depends directly on many external infrastructure classes.\n}",
+  "good_example": "namespace App\\Services\\Reporting;\n\ninterface MailerInterface {}\ninterface StorageInterface {}\n\nclass ReportGenerator {\n    public function __construct(MailerInterface $mailer, StorageInterface $storage) {}\n}",
+  "severity": "minor",
+  "category": "code-health",
   "what_it_checks": [
     "Checks for E0022 violations"
   ]

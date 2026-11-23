@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0113",
+  "title": "E0113: Session Regeneration Missing",
+  "plain_english": "Calling `session_start()` and writing session data after authentication without calling `session_regenerate_id()` can leave the application vulnerable to session fixation attacks.",
+  "why_matters": "Session fixation allows an attacker to: - Authenticate using a session ID they chose - Hijack the session after the victim logs in - Access the victim's authenticated account",
+  "bad_example": "session_start();\n// Verify credentials...\n$_SESSION['user_id'] = $user->id;\n// No session_regenerate_id() after login",
+  "good_example": "session_start();\n// Verify credentials...\n$_SESSION['user_id'] = $user->id;\nsession_regenerate_id(true); // Fixation protection",
+  "severity": "major",
+  "category": "security",
+  "what_it_checks": [
+    "`session_start()` followed by `$_SESSION` writes without a subsequent `session_regenerate_id()`",
+    "Login/auth endpoints that set session data without regenerating the ID"
+  ]
+}

@@ -1,13 +1,22 @@
 {
   "rule_code": "E0036",
   "title": "E0036: Array Index Out of Bounds",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "",
-  "good_example": "",
-  "severity": "info",
-  "category": "general",
+  "plain_english": "Reports array indexes that can be out of bounds.",
+  "why_matters": "Out-of-bounds array access can produce warnings and unexpected behavior. This rule uses Phanalist's bounded formal verification engine (Z3-backed) to detect feasible paths where an index is outside the valid range.",
+  "bad_example": "<?php\nfunction firstItem(array $items): mixed\n{\n    return $items[0]; // array may be empty\n}",
+  "good_example": "<?php\nfunction firstItem(array $items): mixed\n{\n    if ($items === []) {\n        return null;\n    }\n\n    return $items[0];\n}",
+  "severity": "major",
+  "category": "verification",
   "what_it_checks": [
-    "Checks for E0036 violations"
+    "Negative and out-of-bounds array indexes",
+    "PHPDoc `list<T>` and `non-empty-list<T>` values, including `count()`/`sizeof()` lengths, appends, `foreach` keys, and `isset()` guards",
+    "First and last keys from `array_key_first()` and `array_key_last()` on tracked literal arrays, preserving PHP insertion order",
+    "Derived list lengths from `array_merge()` on list inputs and lengths preserved by `array_map()`, `array_values()`, and `array_reverse()`",
+    "Generic `array<K,V>` lengths, including lengths returned through PHPDoc contracts",
+    "Upper bounds from `array_diff()`, `array_intersect()`, `array_unique()`, `array_filter()`, and `array_fill_keys()`; exact lengths from `array_keys()`; count-derived lengths from `array_fill()`; padded lengths from `array_pad()`; PHP-compatible offset and length rules for `array_slice()`; and chunk counts from `array_chunk()`",
+    "The longest input length for multi-array `array_map()`",
+    "Guards in short-circuited `&&` chains",
+    "Reachable symbolic indexes that can be out of bounds; indexes that cannot be modeled report `unverified` under `unknown_policy: report`",
+    "Literal accesses that are merely uncertain are not reported as hard out-of-bounds findings"
   ]
 }

@@ -1,13 +1,20 @@
 {
   "rule_code": "E0049",
   "title": "E0049: Invalid builtin argument",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "",
-  "good_example": "",
+  "plain_english": "This rule reports builtin calls whose literal arguments are invalid and would make PHP throw a `ValueError` at runtime.",
+  "why_matters": "These argument errors fail at runtime, often on a specific code path. Catching them statically avoids avoidable crashes and makes the intended input constraints explicit.",
+  "bad_example": "<?php\nfunction bad(array $items): array\n{\n    return array_chunk($items, 0); // invalid size\n}",
+  "good_example": "<?php\nfunction good(array $items): array\n{\n    return array_chunk($items, 2);\n}",
   "severity": "minor",
-  "category": "syntax",
+  "category": "lifecycle",
   "what_it_checks": [
-    "Checks for E0049 violations"
+    "`str_repeat()` with a negative repeat count",
+    "`array_fill()` with a negative count",
+    "`range()` with a zero step",
+    "`str_split()` and `mb_str_split()` with a non-positive chunk length",
+    "`explode()` with an empty delimiter",
+    "`array_chunk()` with a non-positive chunk size",
+    "`array_combine()` with literal arrays of different lengths",
+    "`random_int()`, `mt_rand()`, and `rand()` with a minimum greater than the maximum"
   ]
 }

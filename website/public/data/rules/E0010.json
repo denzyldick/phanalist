@@ -1,0 +1,13 @@
+{
+  "rule_code": "E0010",
+  "title": "E0010: NPath complexity",
+  "plain_english": "NPath complexity counts the number of distinct execution paths through a method. Unlike cyclomatic complexity, consecutive branches multiply the number of possible paths.",
+  "why_matters": "When branches stack on top of each other, the number of possible execution paths can grow quickly. A high NPath score makes a method difficult to reason about and thoroughly test.",
+  "bad_example": "public function labyrinth(string $weather, bool $hasUmbrella, bool $isTired): string {\n    $plan = '';\n\n    // 2 paths\n    if ($weather === 'rain') {\n        $plan .= 'wear coat; ';\n    } else {\n        $plan .= 'wear t-shirt; ';\n    }\n\n    // 2 paths (total so far: 2 x 2 = 4)\n    if ($hasUmbrella) {\n        $plan .= 'take umbrella; ';\n    } else {\n        $plan .= 'run fast; ';\n    }\n\n    // 2 paths (total: 4 x 2 = 8)\n    if ($isTired) {\n        $plan .= 'walk slowly; ';\n    } else {\n        $plan .= 'skip; ';\n    }\n\n    return $plan;\n}",
+  "good_example": "public function getPlan(string $weather, bool $hasUmbrella, bool $isTired): string {\n    return sprintf(\n        '%s; %s; %s;',\n        $this->getClothing($weather),\n        $this->getRainGear($hasUmbrella),\n        $this->getPace($isTired)\n    );\n}\n// Each helper method has a smaller NPath, reducing total complexity.",
+  "severity": "minor",
+  "category": "code-health",
+  "what_it_checks": [
+    "Checks for E0010 violations"
+  ]
+}

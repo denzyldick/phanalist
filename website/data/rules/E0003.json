@@ -1,13 +1,13 @@
 {
   "rule_code": "E0003",
   "title": "E0003: Method modifiers",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "class Calculator {\n    // Missing visibility modifier\n    function add(int $a, int $b): int {\n        return $a + $b;\n    }\n}",
+  "plain_english": "Methods in classes should declare an explicit visibility modifier: `public`, `protected`, or `private`.",
+  "why_matters": "Without an explicit modifier, it is less clear whether a method is intended for external use or internal class behavior. Explicit visibility makes the class interface easier to understand and supports encapsulation.",
+  "bad_example": "class Calculator {\n    // Missing visibility modifier.\n    function add(int $a, int $b): int {\n        return $a + $b;\n    }\n}",
   "good_example": "class Calculator {\n    public function add(int $a, int $b): int {\n        return $a + $b;\n    }\n}",
-  "severity": "info",
-  "category": "general",
+  "severity": "minor",
+  "category": "code-health",
   "what_it_checks": [
-    "Scans class methods for missing visibility modifiers (`public`, `protected`, `private`)."
+    "Class methods that do not declare `public`, `protected`, or `private`."
   ]
 }

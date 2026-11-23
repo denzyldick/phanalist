@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>E0012: Service compatibility with shared-memory runtimes | Phanalist</title>
+  <meta name="description" content="In long-running PHP runtimes such as RoadRunner, Swoole, or FrankenPHP, service instances can remain in memory across multiple requests. This rule checks for se" />
+  <link rel="canonical" href="https://phanalist.io/rules/e0012.html" />
+  <meta property="og:title" content="E0012: Service compatibility with shared-memory runtimes | Phanalist" />
+  <meta property="og:description" content="In long-running PHP runtimes such as RoadRunner, Swoole, or FrankenPHP, service instances can remain in memory across multiple requests. This rule checks for service state mutations that can leak data" />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="https://phanalist.io/rules/e0012.html" />
+  <style>
+    :root { --bg:#0a0a0f; --card:#161620; --subtle:#12121a; --fg:#e8e8f0; --muted:#8f8fa3; --accent:#00d4aa; --border:#2a2a3a; }
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--fg);line-height:1.7}
+    .wrap{max-width:980px;margin:0 auto;padding:32px 20px 72px}
+    a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+    .crumbs{font-size:14px;color:var(--muted);margin-bottom:18px}
+    .badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+    .badge{display:inline-flex;padding:4px 10px;border:1px solid var(--border);border-radius:999px;font-size:12px;color:var(--muted);background:var(--subtle)}
+    h1{font-size:clamp(28px,5vw,44px);line-height:1.15;margin:0 0 12px;letter-spacing:-.02em}
+    .lead{font-size:18px;color:#cfcfda;max-width:78ch;margin:0 0 20px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 28px}
+    .btn{display:inline-flex;padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:var(--subtle);color:var(--fg);font-weight:600}
+    .btn-primary{background:linear-gradient(135deg,var(--accent),#0066ff);color:#081018;border:none}
+    .content{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px}
+    .content > :first-child{margin-top:0} .content > :last-child{margin-bottom:0}
+    .content h2{margin-top:32px;font-size:24px;line-height:1.25}
+    .content h3{margin-top:24px;font-size:19px;line-height:1.3}
+    .content p,.content li{color:#d9d9e3}
+    .content ul,.content ol{padding-left:24px}
+    .content pre{margin:16px 0;background:#0d0d15;border:1px solid var(--border);border-radius:10px;padding:16px;overflow:auto}
+    .content code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:.94em}
+    .content p code,.content li code{background:#0d0d15;border:1px solid var(--border);padding:.12em .35em;border-radius:5px}
+    .content pre code{background:none;border:none;padding:0;font-size:13px;line-height:1.55}
+    .content blockquote{margin:16px 0;padding:0 0 0 16px;border-left:3px solid var(--accent);color:#cfcfda}
+    .content table{width:100%;border-collapse:collapse;margin:16px 0}
+    .content th,.content td{border:1px solid var(--border);padding:10px;text-align:left;vertical-align:top}
+    .content th{background:var(--subtle)}
+  </style>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"E0012: Service compatibility with shared-memory runtimes","description":"In long-running PHP runtimes such as RoadRunner, Swoole, or FrankenPHP, service instances can remain in memory across multiple requests. This rule checks for service state mutations that can leak data between requests.","url":"https://phanalist.io/rules/e0012.html"}</script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="crumbs"><a href="/">Phanalist</a> / <a href="/#rules">Rules</a> / E0012</div>
+    <div class="badges">
+      <span class="badge">E0012</span>
+      <span class="badge">code-health</span>
+      <span class="badge">minor</span>
+    </div>
+    <h1>Service compatibility with shared-memory runtimes</h1>
+    <p class="lead">In long-running PHP runtimes such as RoadRunner, Swoole, or FrankenPHP, service instances can remain in memory across multiple requests. This rule checks for service state mutations that can leak data between requests.</p>
+    <div class="actions">
+      <a class="btn btn-primary" href="/?rule=E0012#playground">Try in Playground</a>
+      <a class="btn" href="/#rules">All rules</a>
+      <a class="btn" href="https://github.com/denzyldick/phanalist">GitHub</a>
+    </div>
+    <article class="content">
+      <p>In long-running PHP runtimes such as RoadRunner, Swoole, or FrankenPHP, service instances can remain in memory across multiple requests. This rule checks for service state mutations that can leak data between requests.</p>
+<h2>Why it matters</h2>
+<p>Traditional PHP-FPM typically discards request memory after each request. In long-running worker runtimes, the same service instance may handle many requests. If request-specific data is stored on <code>$this</code> or in static properties, that state can leak into later requests, causing data corruption or security issues.</p>
+<h2>Bad example</h2>
+<pre><code class="language-php">namespace App\Service;
+
+class UserService {
+    private string $currentUser;
+
+    public function handleRequest(Request $request): void {
+        // Mutating $this state in a long-running worker.
+        $this-&gt;currentUser = $request-&gt;get(&#39;user&#39;);
+        $this-&gt;process();
+    }
+}
+</code></pre>
+<h2>Good example</h2>
+<pre><code class="language-php">namespace App\Service;
+
+class UserService {
+    // Pass request-specific state as method parameters instead of storing it on $this.
+    public function handleRequest(Request $request): void {
+        $user = $request-&gt;get(&#39;user&#39;);
+        $this-&gt;process($user);
+    }
+}
+</code></pre>
+<h2>What it checks</h2>
+<ul>
+<li>Classes in configured namespaces (by default <code>App\Service\</code> and <code>App\Controller\</code>).</li>
+<li>Assignments to <code>$this-&gt;property</code> or static properties such as <code>self::$prop</code> inside methods, excluding constructors.</li>
+<li>Classes that implement a configured reset interface (for example, <code>ResetInterface</code>) are allowed.</li>
+</ul>
+<h2>When it does not report</h2>
+<ul>
+<li>Classes outside the configured namespaces.</li>
+<li>Classes that implement a configured reset interface.</li>
+<li>Properties initialized in constructors that are not reassigned during request-handling methods.</li>
+</ul>
+<h2>How to fix</h2>
+<ul>
+<li>Keep services stateless where possible.</li>
+<li>Pass request-specific data as method parameters instead of storing it in object or static state.</li>
+<li>Make properties immutable or set them only in the constructor when appropriate.</li>
+<li>If state is required, implement a reset interface that clears state between requests.</li>
+</ul>
+<h2>Configuration</h2>
+<pre><code class="language-yaml">rules:
+  E0012:
+    include_namespaces:
+      - &quot;App\\Service\\&quot;
+      - &quot;App\\Controller\\&quot;
+    exclude_namespaces: []
+    reset_interfaces:
+      - &quot;ResetInterface&quot;
+</code></pre>
+
+    </article>
+  </div>
+</body>
+</html>

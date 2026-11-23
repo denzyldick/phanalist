@@ -1,0 +1,16 @@
+{
+  "rule_code": "E0033",
+  "title": "E0033: intdiv() by Zero",
+  "plain_english": "Reports `intdiv()` calls where the divisor can be zero.",
+  "why_matters": "`intdiv()` throws a `DivisionByZeroError` when its divisor is zero. This rule uses Phanalist's bounded formal verification engine (Z3-backed) to find feasible paths where that can happen.",
+  "bad_example": "<?php\nfunction split(int $total, int $parts): int\n{\n    return intdiv($total, $parts); // $parts can be 0\n}",
+  "good_example": "<?php\nfunction split(int $total, int $parts): int\n{\n    if ($parts === 0) {\n        throw new InvalidArgumentException('Parts must be non-zero');\n    }\n\n    return intdiv($total, $parts);\n}",
+  "severity": "major",
+  "category": "verification",
+  "what_it_checks": [
+    "`intdiv($value, 0)` and `intdiv($value, $divisor)` where `$divisor` can be zero",
+    "Symbolic divisors, tracked array elements, and bounded integer ranges",
+    "Guarded calls, including `if`, `switch`, `match`, short-circuit `&&`, and `try`/`catch`/`finally` paths",
+    "Constant-return, identity, and PHPDoc method/function summaries"
+  ]
+}

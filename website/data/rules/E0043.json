@@ -1,13 +1,18 @@
 {
   "rule_code": "E0043",
   "title": "E0043: Stream Resource Used After Close",
-  "plain_english": "",
-  "why_matters": "",
-  "bad_example": "",
-  "good_example": "",
-  "severity": "info",
-  "category": "general",
+  "plain_english": "Reports stream resources that are read, written, or closed after they have already been closed.",
+  "why_matters": "Using a closed stream can cause runtime warnings/errors and indicates incorrect resource lifecycle management. This rule uses Phanalist's bounded formal verification engine (Z3-backed) to detect feasible use-after-close paths.",
+  "bad_example": "<?php\nfunction readFile(string $path): string\n{\n    $h = fopen($path, 'r');\n    fclose($h);\n    return fread($h, 100); // used after close\n}",
+  "good_example": "<?php\nfunction readFile(string $path): string\n{\n    $h = fopen($path, 'r');\n    if ($h === false) {\n        return '';\n    }\n    $data = fread($h, 100);\n    fclose($h);\n\n    return $data === false ? '' : $data;\n}",
+  "severity": "major",
+  "category": "verification",
   "what_it_checks": [
-    "Checks for E0043 violations"
+    "`fread()` or `fwrite()` on a stream that was closed on every feasible path",
+    "`fread()` or `fwrite()` on a stream that may have been closed on another path",
+    "`fclose()` on a stream that was already closed, or may already have been closed",
+    "Direct aliases created with `$alias = $stream`, because both names refer to the same tracked resource",
+    "Branch and loop joins where one path closes the stream and another leaves it open; these produce a \"may have been closed\" finding",
+    "Reopening a variable with another direct `fopen()` resets its lifecycle state"
   ]
 }
