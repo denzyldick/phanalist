@@ -37,11 +37,25 @@ type WasmApi = {
   analyze_with_rules: (source: string, rules: string) => string;
 };
 
-const WASM_SUPPORTED = new Set(['E0014', 'E0060', 'E0061', 'E0062', 'E0053', 'E0069', 'E0101', 'E0106', 'E0059', 'E0068', 'E0120']);
+const WASM_SUPPORTED = new Set([
+  'E0014',
+  'E0060',
+  'E0061',
+  'E0062',
+  'E0053',
+  'E0069',
+  'E0101',
+  'E0106',
+  'E0059',
+  'E0068',
+  'E0120',
+]);
 
-const highlightEffect = StateEffect.define<{line: number} | null>();
+const highlightEffect = StateEffect.define<{ line: number } | null>();
 const highlightField = StateField.define({
-  create() { return Decoration.none; },
+  create() {
+    return Decoration.none;
+  },
   update(deco, tr) {
     deco = deco.map(tr.changes);
     for (const e of tr.effects) {
@@ -54,13 +68,14 @@ const highlightField = StateField.define({
     }
     return deco;
   },
-  provide: f => EditorView.decorations.from(f),
+  provide: (f) => EditorView.decorations.from(f),
 });
 
 const FALLBACK_RULES: RuleMeta[] = [
   {
     rule_code: 'E0014',
-    title: 'E0014: Law of Demeter violation. Method chaining should be avoided unless returning the same object type.',
+    title:
+      'E0014: Law of Demeter violation. Method chaining should be avoided unless returning the same object type.',
     severity: 'major',
     category: 'law-of-demeter',
     bad_example: '<?php\n$a->foo()->bar();\n',
@@ -80,10 +95,14 @@ function normCode(s: string): string {
 
 function findExampleLine(source: string, example: string): number {
   const srcLines = source.replace(/\r\n/g, '\n').split('\n');
-  const exLines = example.replace(/\r\n/g, '\n').split('\n').map(l => l.trim()).filter(Boolean);
+  const exLines = example
+    .replace(/\r\n/g, '\n')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean);
   if (exLines.length === 0) return 1;
   const needle = exLines[0];
-  const idx = srcLines.findIndex(l => l.trim() === needle || l.includes(needle));
+  const idx = srcLines.findIndex((l) => l.trim() === needle || l.includes(needle));
   return idx >= 0 ? idx + 1 : 1;
 }
 
@@ -93,16 +112,22 @@ function mockAnalyze(source: string, rule?: RuleMeta): Finding[] {
   const bad = normCode(rule.bad_example || '');
   const good = normCode(rule.good_example || '');
   if (!src) return [];
-  const isBad = !!bad && (src === bad || src.includes(bad) || (bad.includes(src) && src.length > 40));
+  const isBad =
+    !!bad && (src === bad || src.includes(bad) || (bad.includes(src) && src.length > 40));
   const isGood = !!good && (src === good || src.includes(good));
   if (!isBad || isGood) return [];
-  return [{
-    rule: rule.rule_code,
-    severity: rule.severity || 'info',
-    message: rule.what_it_checks?.[0] || rule.title.replace(`${rule.rule_code}: `, '') || `${rule.rule_code} issue detected`,
-    line: findExampleLine(source, bad),
-    column: 1,
-  }];
+  return [
+    {
+      rule: rule.rule_code,
+      severity: rule.severity || 'info',
+      message:
+        rule.what_it_checks?.[0] ||
+        rule.title.replace(`${rule.rule_code}: `, '') ||
+        `${rule.rule_code} issue detected`,
+      line: findExampleLine(source, bad),
+      column: 1,
+    },
+  ];
 }
 
 export default function App() {
@@ -120,7 +145,7 @@ export default function App() {
 
   const selectedRule = useMemo(
     () => rules.find((r) => r.rule_code === ruleCode) ?? rules[0],
-    [rules, ruleCode],
+    [rules, ruleCode]
   );
   const supported = WASM_SUPPORTED.has(ruleCode);
 
@@ -138,9 +163,10 @@ export default function App() {
           setRules(loaded);
           const params = new URLSearchParams(window.location.search);
           const requested = (params.get('rule') || '').toUpperCase();
-          const preferred = loaded.find((r) => r.rule_code === requested)
-            ?? loaded.find((r) => r.rule_code === 'E0014')
-            ?? loaded[0];
+          const preferred =
+            loaded.find((r) => r.rule_code === requested) ??
+            loaded.find((r) => r.rule_code === 'E0014') ??
+            loaded[0];
           setRuleCode(preferred.rule_code);
           setSource(normalizeExample(preferred.bad_example || preferred.good_example || '<?php\n'));
         }
@@ -148,7 +174,9 @@ export default function App() {
         // Keep fallback rules.
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -166,7 +194,9 @@ export default function App() {
         setError(e instanceof Error ? e.message : String(e));
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -186,12 +216,18 @@ export default function App() {
         }),
         EditorView.theme({
           '&': { height: '360px', fontSize: '13px' },
-          '.cm-scroller': { overflow: 'auto', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' },
+          '.cm-scroller': {
+            overflow: 'auto',
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+          },
         }),
       ],
     });
     viewRef.current = new EditorView({ state, parent: editorRef.current });
-    return () => { viewRef.current?.destroy(); viewRef.current = null; };
+    return () => {
+      viewRef.current?.destroy();
+      viewRef.current = null;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -230,7 +266,13 @@ export default function App() {
         setSelectedFinding(null);
         viewRef.current?.dispatch({ effects: highlightEffect.of(null) });
       } catch (e) {
-        setFindings([{ rule: ruleCode, severity: 'error', message: e instanceof Error ? e.message : String(e) }]);
+        setFindings([
+          {
+            rule: ruleCode,
+            severity: 'error',
+            message: e instanceof Error ? e.message : String(e),
+          },
+        ]);
         setSelectedFinding(null);
       }
     }, 180);
@@ -286,19 +328,70 @@ export default function App() {
               </option>
             ))}
           </select>
-          <button className="btn btn-secondary" onClick={() => loadExample('bad')}>Bad example</button>
-          <button className="btn btn-secondary" onClick={() => loadExample('good')}>Good example</button>
+          <button className="btn btn-secondary" onClick={() => loadExample('bad')}>
+            Bad example
+          </button>
+          <button className="btn btn-secondary" onClick={() => loadExample('good')}>
+            Good example
+          </button>
         </div>
         <div ref={editorRef} />
         {selectedRule && (
-          <div style={{ marginTop: 14, padding: '14px 16px', border: '1px solid var(--border)', borderRadius: 12, background: 'rgba(255,255,255,.02)', color: 'var(--muted)', fontSize: 13 }}>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
+          <div
+            style={{
+              marginTop: 14,
+              padding: '14px 16px',
+              border: '1px solid var(--border)',
+              borderRadius: 12,
+              background: 'rgba(255,255,255,.02)',
+              color: 'var(--muted)',
+              fontSize: 13,
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                gap: 8,
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                marginBottom: 8,
+              }}
+            >
               <strong style={{ color: 'var(--fg)', fontSize: 14 }}>{selectedRule.rule_code}</strong>
-              <span style={{ padding: '2px 8px', border: '1px solid var(--border)', borderRadius: 999, fontSize: 11, textTransform: 'uppercase', letterSpacing: '.04em' }}>{selectedRule.category}</span>
-              <span style={{ padding: '2px 8px', border: '1px solid var(--border)', borderRadius: 999, fontSize: 11, textTransform: 'uppercase', letterSpacing: '.04em' }}>{selectedRule.severity}</span>
-              <a href={`/rules/${selectedRule.rule_code.toLowerCase()}.html`} style={{ color: 'var(--accent)', marginLeft: 'auto', fontWeight: 600 }}>Open rule page</a>
+              <span
+                style={{
+                  padding: '2px 8px',
+                  border: '1px solid var(--border)',
+                  borderRadius: 999,
+                  fontSize: 11,
+                  textTransform: 'uppercase',
+                  letterSpacing: '.04em',
+                }}
+              >
+                {selectedRule.category}
+              </span>
+              <span
+                style={{
+                  padding: '2px 8px',
+                  border: '1px solid var(--border)',
+                  borderRadius: 999,
+                  fontSize: 11,
+                  textTransform: 'uppercase',
+                  letterSpacing: '.04em',
+                }}
+              >
+                {selectedRule.severity}
+              </span>
+              <a
+                href={`/rules/${selectedRule.rule_code.toLowerCase()}.html`}
+                style={{ color: 'var(--accent)', marginLeft: 'auto', fontWeight: 600 }}
+              >
+                Open rule page
+              </a>
             </div>
-            {selectedRule.plain_english ? <div style={{ color: '#d7d7e2', lineHeight: 1.55 }}>{selectedRule.plain_english}</div> : null}
+            {selectedRule.plain_english ? (
+              <div style={{ color: '#d7d7e2', lineHeight: 1.55 }}>{selectedRule.plain_english}</div>
+            ) : null}
           </div>
         )}
       </div>
@@ -309,14 +402,25 @@ export default function App() {
             <h3>Results</h3>
             <p>Click a finding to jump to the relevant line.</p>
           </div>
-          <div className="result-count" style={{ margin: 0, padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 999, background: 'rgba(255,255,255,.02)' }}>
+          <div
+            className="result-count"
+            style={{
+              margin: 0,
+              padding: '6px 10px',
+              border: '1px solid var(--border)',
+              borderRadius: 999,
+              background: 'rgba(255,255,255,.02)',
+            }}
+          >
             {findings.length} finding{findings.length === 1 ? '' : 's'}
           </div>
         </div>
         <div className="results-area">
           <div id="resultsList">
             {findings.length === 0 ? (
-              <div className="results-empty">No findings for <strong>{ruleCode}</strong>.</div>
+              <div className="results-empty">
+                No findings for <strong>{ruleCode}</strong>.
+              </div>
             ) : (
               findings.map((f, i) => (
                 <button
@@ -328,10 +432,16 @@ export default function App() {
                 >
                   <div className="result-head">
                     <span className="result-rule">{f.rule || ruleCode}</span>
-                    <span className={`result-sev ${severityClass(f.severity)}`}>{f.severity || 'info'}</span>
+                    <span className={`result-sev ${severityClass(f.severity)}`}>
+                      {f.severity || 'info'}
+                    </span>
                   </div>
                   <div className="result-msg">{f.message || 'No message'}</div>
-                  <div className="result-snippet">{f.line ? `line ${f.line}${f.column ? `:${f.column}` : ''}` : 'Click not available'}</div>
+                  <div className="result-snippet">
+                    {f.line
+                      ? `line ${f.line}${f.column ? `:${f.column}` : ''}`
+                      : 'Click not available'}
+                  </div>
                 </button>
               ))
             )}

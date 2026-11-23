@@ -175,13 +175,23 @@
         padding: 8px 48px;
         font-size: 12px;
         font-weight: 800;
-        letter-spacing: .04em;
+        letter-spacing: 0.04em;
         text-transform: uppercase;
         transform: rotate(35deg);
-        box-shadow: 0 8px 24px rgba(0,0,0,.35);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
       }
-      .fork-banner:hover { text-decoration: none; filter: brightness(1.05); }
-      @media (max-width: 640px) { .fork-banner { font-size: 10px; top: 10px; right: -46px; padding: 7px 44px; } }
+      .fork-banner:hover {
+        text-decoration: none;
+        filter: brightness(1.05);
+      }
+      @media (max-width: 640px) {
+        .fork-banner {
+          font-size: 10px;
+          top: 10px;
+          right: -46px;
+          padding: 7px 44px;
+        }
+      }
       header {
         position: fixed;
         top: 0;
@@ -525,16 +535,17 @@
       }
       @media (min-width: 1100px) {
         .playground-layout {
-          grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr);
+          grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
         }
       }
       .play-card {
-        background: linear-gradient(180deg, rgba(255,255,255,.02), transparent 120px), var(--card);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 120px), var(--card);
         border: 1px solid var(--border);
         border-radius: 16px;
         padding: 24px;
         min-width: 0;
-        box-shadow: 0 12px 40px rgba(0,0,0,.18);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
       }
       .play-header {
         margin-bottom: 18px;
@@ -547,7 +558,7 @@
         margin: 0 0 6px;
         font-size: 1.2rem;
         font-weight: 800;
-        letter-spacing: -.01em;
+        letter-spacing: -0.01em;
       }
       .play-header p {
         color: var(--muted);
@@ -636,23 +647,38 @@
         padding: 48px 20px;
         border: 1px dashed var(--border);
         border-radius: 12px;
-        background: rgba(255,255,255,.01);
+        background: rgba(255, 255, 255, 0.01);
       }
       .result-item {
         padding: 14px 16px;
         margin: 10px 0;
-        background: rgba(255,255,255,.02);
+        background: rgba(255, 255, 255, 0.02);
         border-radius: 10px;
         border: 1px solid var(--border);
         border-left: 3px solid;
         animation: slideIn 0.25s ease forwards;
         cursor: pointer;
-        transition: transform .12s ease, border-color .12s ease, background .12s ease;
+        transition:
+          transform 0.12s ease,
+          border-color 0.12s ease,
+          background 0.12s ease;
       }
-      .result-item:hover { background: #1a1a27; transform: translateY(-1px); }
-      .result-item.selected { outline: 1px solid var(--accent); background: #18222a; border-color: rgba(0,212,170,.35); }
-      .cm-finding-line { background: rgba(0,212,170,.14); }
-      .cm-finding-gutter { color: var(--accent); font-weight: 700; }
+      .result-item:hover {
+        background: #1a1a27;
+        transform: translateY(-1px);
+      }
+      .result-item.selected {
+        outline: 1px solid var(--accent);
+        background: #18222a;
+        border-color: rgba(0, 212, 170, 0.35);
+      }
+      .cm-finding-line {
+        background: rgba(0, 212, 170, 0.14);
+      }
+      .cm-finding-gutter {
+        color: var(--accent);
+        font-weight: 700;
+      }
       @keyframes slideIn {
         from {
           opacity: 0;
@@ -752,7 +778,7 @@
       }
       .install-code {
         background: #0d0d15;
-        border: 1px solid rgba(0,0,0,.18);
+        border: 1px solid rgba(0, 0, 0, 0.18);
         border-radius: 12px;
         padding: 16px 112px 16px 16px;
         font-family: ui-monospace, monospace;
@@ -768,20 +794,37 @@
         position: absolute;
         top: 10px;
         right: 10px;
-        border: 1px solid rgba(255,255,255,.18);
-        background: rgba(255,255,255,.08);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(255, 255, 255, 0.08);
         color: #fff;
         border-radius: 8px;
         padding: 8px 12px;
-        font: 600 12px/1 Outfit, sans-serif;
+        font:
+          600 12px/1 Outfit,
+          sans-serif;
         cursor: pointer;
-        transition: background .15s ease, transform .15s ease;
+        transition:
+          background 0.15s ease,
+          transform 0.15s ease;
       }
-      .copy-install:hover { background: rgba(255,255,255,.14); transform: translateY(-1px); }
-      .copy-install.copied { background: rgba(0,212,170,.22); border-color: rgba(0,212,170,.45); }
+      .copy-install:hover {
+        background: rgba(255, 255, 255, 0.14);
+        transform: translateY(-1px);
+      }
+      .copy-install.copied {
+        background: rgba(0, 212, 170, 0.22);
+        border-color: rgba(0, 212, 170, 0.45);
+      }
       @media (max-width: 640px) {
-        .install-code { padding-right: 16px; padding-bottom: 52px; }
-        .copy-install { top: auto; bottom: 10px; right: 10px; }
+        .install-code {
+          padding-right: 16px;
+          padding-bottom: 52px;
+        }
+        .copy-install {
+          top: auto;
+          bottom: 10px;
+          right: 10px;
+        }
       }
       .cta-actions {
         display: flex;
@@ -856,10 +899,13 @@
         .toolbar {
           grid-template-columns: 1fr;
         }
-        .toolbar .btn, .select-field {
+        .toolbar .btn,
+        .select-field {
           width: 100%;
         }
-        .play-card { padding: 18px; }
+        .play-card {
+          padding: 18px;
+        }
       }
     </style>
   </head>
@@ -867,7 +913,14 @@
     <div class="cursor-dot"></div>
     <div class="cursor-ring"></div>
     <a href="#main" class="skip">Skip to content</a>
-    <a class="fork-banner" href="https://github.com/denzyldick/phanalist" target="_blank" rel="noopener" aria-label="Fork Phanalist on GitHub">Fork on GitHub</a>
+    <a
+      class="fork-banner"
+      href="https://github.com/denzyldick/phanalist"
+      target="_blank"
+      rel="noopener"
+      aria-label="Fork Phanalist on GitHub"
+      >Fork on GitHub</a
+    >
     <header>
       <div class="container">
         <a href="#" class="brand">Phanalist<span>.</span></a>
@@ -1012,12 +1065,34 @@
               with explanation and code examples.
             </p>
           </div>
-          <div class="rules-controls" style="display:grid;grid-template-columns:1fr 180px 180px;gap:12px;margin:0 0 16px">
-            <input id="rulesSearch" class="select-field" style="min-width:0;width:100%" type="search" placeholder="Search rules... e.g. E0044, SQL injection, complexity" aria-label="Search rules" />
-            <select id="rulesCategory" class="select-field" aria-label="Filter by category"><option value="">All categories</option></select>
-            <select id="rulesSeverity" class="select-field" aria-label="Filter by severity"><option value="">All severities</option></select>
+          <div
+            class="rules-controls"
+            style="
+              display: grid;
+              grid-template-columns: 1fr 180px 180px;
+              gap: 12px;
+              margin: 0 0 16px;
+            "
+          >
+            <input
+              id="rulesSearch"
+              class="select-field"
+              style="min-width: 0; width: 100%"
+              type="search"
+              placeholder="Search rules... e.g. E0044, SQL injection, complexity"
+              aria-label="Search rules"
+            />
+            <select id="rulesCategory" class="select-field" aria-label="Filter by category">
+              <option value="">All categories</option>
+            </select>
+            <select id="rulesSeverity" class="select-field" aria-label="Filter by severity">
+              <option value="">All severities</option>
+            </select>
           </div>
-          <div id="rulesCount" style="color:var(--muted);font-size:14px;margin-bottom:16px"></div>
+          <div
+            id="rulesCount"
+            style="color: var(--muted); font-size: 14px; margin-bottom: 16px"
+          ></div>
           <div id="rulesContainer"></div>
         </div>
       </section>
@@ -1039,8 +1114,16 @@
             required.
           </p>
           <div class="install-wrap">
-            <pre class="install-code" id="installCmd">curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/denzyldick/phanalist/main/bin/init.sh | sh</pre>
-            <button class="copy-install" id="copyInstallBtn" type="button" aria-label="Copy install command">Copy</button>
+            <pre class="install-code" id="installCmd">
+curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/denzyldick/phanalist/main/bin/init.sh | sh</pre>
+            <button
+              class="copy-install"
+              id="copyInstallBtn"
+              type="button"
+              aria-label="Copy install command"
+            >
+              Copy
+            </button>
           </div>
           <div class="cta-actions">
             <a href="#install" class="btn btn-primary">Install</a>
@@ -1069,15 +1152,25 @@
             btn.textContent = 'Copied!';
           } catch {
             const ta = document.createElement('textarea');
-            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
-            document.body.appendChild(ta); ta.select();
-            try { document.execCommand('copy'); btn.textContent = 'Copied!'; }
-            catch { btn.textContent = 'Copy failed'; }
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try {
+              document.execCommand('copy');
+              btn.textContent = 'Copied!';
+            } catch {
+              btn.textContent = 'Copy failed';
+            }
             document.body.removeChild(ta);
           }
           btn.classList.add('copied');
           clearTimeout(timer);
-          timer = setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1800);
+          timer = setTimeout(() => {
+            btn.textContent = 'Copy';
+            btn.classList.remove('copied');
+          }, 1800);
         });
       })();
       (async function renderRulesExplorer() {
@@ -1092,65 +1185,159 @@
           const res = await fetch(`${base.replace(/\/$/, '')}/data/rules/index.json`);
           const data = await res.json();
           const rules = (data.rules || []).filter((r) => r && r.rule_code);
-          const order = ['code-health','formal-verification','resource-analysis','security','runtime-safety','configuration','testing','laravel','best-practices','clean-code','performance','type-safety','law-of-demeter','taint','complexity','dependency-injection','general'];
-          const names = {'code-health':'Code Health','formal-verification':'Formal Verification','resource-analysis':'Resource Analysis','security':'Security','runtime-safety':'Runtime Safety','configuration':'Configuration','testing':'Testing','laravel':'Laravel','best-practices':'Best Practices','clean-code':'Clean Code','performance':'Performance','type-safety':'Type Safety','law-of-demeter':'Law of Demeter','taint':'Taint & Injection','complexity':'Complexity','dependency-injection':'Dependency Injection','general':'General'};
-          const cats = [...new Set(rules.map(r => r.category || 'general'))].sort((a,b)=> (order.indexOf(a)===-1?999:order.indexOf(a)) - (order.indexOf(b)===-1?999:order.indexOf(b)));
+          const order = [
+            'code-health',
+            'formal-verification',
+            'resource-analysis',
+            'security',
+            'runtime-safety',
+            'configuration',
+            'testing',
+            'laravel',
+            'best-practices',
+            'clean-code',
+            'performance',
+            'type-safety',
+            'law-of-demeter',
+            'taint',
+            'complexity',
+            'dependency-injection',
+            'general',
+          ];
+          const names = {
+            'code-health': 'Code Health',
+            'formal-verification': 'Formal Verification',
+            'resource-analysis': 'Resource Analysis',
+            security: 'Security',
+            'runtime-safety': 'Runtime Safety',
+            configuration: 'Configuration',
+            testing: 'Testing',
+            laravel: 'Laravel',
+            'best-practices': 'Best Practices',
+            'clean-code': 'Clean Code',
+            performance: 'Performance',
+            'type-safety': 'Type Safety',
+            'law-of-demeter': 'Law of Demeter',
+            taint: 'Taint & Injection',
+            complexity: 'Complexity',
+            'dependency-injection': 'Dependency Injection',
+            general: 'General',
+          };
+          const cats = [...new Set(rules.map((r) => r.category || 'general'))].sort(
+            (a, b) =>
+              (order.indexOf(a) === -1 ? 999 : order.indexOf(a)) -
+              (order.indexOf(b) === -1 ? 999 : order.indexOf(b))
+          );
           for (const c of cats) {
-            const o = document.createElement('option'); o.value = c; o.textContent = names[c] || c; catSel.appendChild(o);
+            const o = document.createElement('option');
+            o.value = c;
+            o.textContent = names[c] || c;
+            catSel.appendChild(o);
           }
-          const sevOrder = ['critical','error','major','warning','minor','info'];
-          const sevs = [...new Set(rules.map(r => (r.severity||'').toLowerCase()).filter(Boolean))].sort((a,b)=> (sevOrder.indexOf(a)===-1?999:sevOrder.indexOf(a)) - (sevOrder.indexOf(b)===-1?999:sevOrder.indexOf(b)));
+          const sevOrder = ['critical', 'error', 'major', 'warning', 'minor', 'info'];
+          const sevs = [
+            ...new Set(rules.map((r) => (r.severity || '').toLowerCase()).filter(Boolean)),
+          ].sort(
+            (a, b) =>
+              (sevOrder.indexOf(a) === -1 ? 999 : sevOrder.indexOf(a)) -
+              (sevOrder.indexOf(b) === -1 ? 999 : sevOrder.indexOf(b))
+          );
           for (const s of sevs) {
-            const o = document.createElement('option'); o.value = s; o.textContent = s.charAt(0).toUpperCase()+s.slice(1); sevSel.appendChild(o);
+            const o = document.createElement('option');
+            o.value = s;
+            o.textContent = s.charAt(0).toUpperCase() + s.slice(1);
+            sevSel.appendChild(o);
           }
           function matches(r, q) {
             if (!q) return true;
-            const hay = [r.rule_code, r.title, r.plain_english, r.why_matters, r.category, r.severity, ...(r.what_it_checks||[])].join(' ').toLowerCase();
-            return q.toLowerCase().split(/\s+/).filter(Boolean).every(t => hay.includes(t));
+            const hay = [
+              r.rule_code,
+              r.title,
+              r.plain_english,
+              r.why_matters,
+              r.category,
+              r.severity,
+              ...(r.what_it_checks || []),
+            ]
+              .join(' ')
+              .toLowerCase();
+            return q
+              .toLowerCase()
+              .split(/\s+/)
+              .filter(Boolean)
+              .every((t) => hay.includes(t));
           }
           function render() {
             const q = search.value.trim();
             const cat = catSel.value;
             const sev = sevSel.value;
-            const filtered = rules.filter(r => (!cat || (r.category||'general') === cat) && (!sev || (r.severity||'') === sev) && matches(r, q));
+            const filtered = rules.filter(
+              (r) =>
+                (!cat || (r.category || 'general') === cat) &&
+                (!sev || (r.severity || '') === sev) &&
+                matches(r, q)
+            );
             countEl.textContent = `${filtered.length} of ${rules.length} rules`;
             container.innerHTML = '';
             if (!filtered.length) {
-              container.innerHTML = '<p style="color:var(--muted);padding:20px 0">No rules match your search.</p>';
+              container.innerHTML =
+                '<p style="color:var(--muted);padding:20px 0">No rules match your search.</p>';
               return;
             }
             const groups = {};
-            for (const r of filtered) { const c = r.category || 'general'; (groups[c] = groups[c] || []).push(r); }
-            const gcats = Object.keys(groups).sort((a,b)=> (order.indexOf(a)===-1?999:order.indexOf(a)) - (order.indexOf(b)===-1?999:order.indexOf(b)));
+            for (const r of filtered) {
+              const c = r.category || 'general';
+              (groups[c] = groups[c] || []).push(r);
+            }
+            const gcats = Object.keys(groups).sort(
+              (a, b) =>
+                (order.indexOf(a) === -1 ? 999 : order.indexOf(a)) -
+                (order.indexOf(b) === -1 ? 999 : order.indexOf(b))
+            );
             for (const c of gcats) {
               const section = document.createElement('div');
               section.style.marginBottom = '16px';
               const header = document.createElement('button');
               header.type = 'button';
-              header.style.cssText = 'width:100%;text-align:left;background:var(--bg-subtle);color:var(--fg);border:1px solid var(--border);padding:14px 16px;border-radius:10px;cursor:pointer;font:600 15px Outfit,sans-serif;display:flex;justify-content:space-between;align-items:center';
-              header.innerHTML = `<span>${names[c]||c}</span><span style="color:var(--muted);font-size:13px">${groups[c].length} rules</span>`;
+              header.style.cssText =
+                'width:100%;text-align:left;background:var(--bg-subtle);color:var(--fg);border:1px solid var(--border);padding:14px 16px;border-radius:10px;cursor:pointer;font:600 15px Outfit,sans-serif;display:flex;justify-content:space-between;align-items:center';
+              header.innerHTML = `<span>${names[c] || c}</span><span style="color:var(--muted);font-size:13px">${groups[c].length} rules</span>`;
               const grid = document.createElement('div');
               const autoOpen = !!q || !!cat || !!sev;
               grid.style.cssText = `display:${autoOpen ? 'grid' : 'none'};grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-top:12px`;
               for (const r of groups[c]) {
                 const card = document.createElement('div');
                 card.className = 'rule-card';
-                card.style.cssText = 'background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer';
+                card.style.cssText =
+                  'background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer';
                 const title = (r.title || r.rule_code).replace(r.rule_code + ': ', '');
                 const checks = Array.isArray(r.what_it_checks) ? r.what_it_checks[0] || '' : '';
                 const docHref = `/rules/${r.rule_code.toLowerCase()}.html`;
                 card.innerHTML = `<div class="rule-header"><span class="rule-code">${r.rule_code}</span><span class="rule-sev">${r.severity || ''}</span></div><h4>${title}</h4><p>${checks}</p><div style="display:flex;gap:12px;margin-top:10px;font-size:13px"><a href="${docHref}" class="rule-doc-link">Rule page</a><a href="#" class="rule-play-link">Playground</a></div>`;
-                card.querySelector('.rule-doc-link').addEventListener('click', (e) => { e.stopPropagation(); });
-                card.querySelector('.rule-play-link').addEventListener('click', (e) => {
-                  e.preventDefault(); e.stopPropagation();
-                  window.dispatchEvent(new CustomEvent('phanalist:select-rule', { detail: r.rule_code }));
-                  document.getElementById('playground')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                card.querySelector('.rule-doc-link').addEventListener('click', (e) => {
+                  e.stopPropagation();
                 });
-                card.addEventListener('click', () => { window.location.href = docHref; });
+                card.querySelector('.rule-play-link').addEventListener('click', (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  window.dispatchEvent(
+                    new CustomEvent('phanalist:select-rule', { detail: r.rule_code })
+                  );
+                  document
+                    .getElementById('playground')
+                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+                card.addEventListener('click', () => {
+                  window.location.href = docHref;
+                });
                 grid.appendChild(card);
               }
-              header.addEventListener('click', () => { grid.style.display = grid.style.display === 'none' ? 'grid' : 'none'; });
-              section.appendChild(header); section.appendChild(grid); container.appendChild(section);
+              header.addEventListener('click', () => {
+                grid.style.display = grid.style.display === 'none' ? 'grid' : 'none';
+              });
+              section.appendChild(header);
+              section.appendChild(grid);
+              container.appendChild(section);
             }
           }
           search.addEventListener('input', render);
