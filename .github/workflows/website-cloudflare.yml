@@ -51,10 +51,10 @@ jobs:
         run: npm run build
 
       - name: Publish to Cloudflare Pages
-        uses: cloudflare/pages-action@v1
+        uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: phanalist
-          directory: website/dist/
+          workingDirectory: website
+          command: pages deploy dist --project-name=phanalist
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
