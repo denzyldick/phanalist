@@ -128,7 +128,7 @@ export default function App() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch('/data/rules/index.json');
+        const res = await fetch(`${import.meta.env.BASE_URL}data/rules/index.json`);
         if (!res.ok) throw new Error(`Failed to load rules: ${res.status}`);
         const data = (await res.json()) as { rules?: RuleMeta[] };
         const loaded = (data.rules ?? [])

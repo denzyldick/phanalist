@@ -44,6 +44,9 @@ jobs:
 
       - name: Build (Vite)
         working-directory: website
+        env:
+          BASE_PATH: /
+          SITE_URL: https://phanalist.pages.dev
         run: npm run build
 
       - name: Publish to Cloudflare Pages

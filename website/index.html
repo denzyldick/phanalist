@@ -1088,7 +1088,8 @@
         const countEl = document.getElementById('rulesCount');
         if (!container) return;
         try {
-          const res = await fetch('/data/rules/index.json');
+          const base = document.querySelector('base')?.getAttribute('href') || '/';
+          const res = await fetch(`${base.replace(/\/$/, '')}/data/rules/index.json`);
           const data = await res.json();
           const rules = (data.rules || []).filter((r) => r && r.rule_code);
           const order = ['code-health','formal-verification','resource-analysis','security','runtime-safety','configuration','testing','laravel','best-practices','clean-code','performance','type-safety','law-of-demeter','taint','complexity','dependency-injection','general'];
