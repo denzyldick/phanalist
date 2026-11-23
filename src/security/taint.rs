@@ -24,6 +24,13 @@ pub struct CallGraph {
 }
 
 impl CallGraph {
+    /// Function keys are case-insensitive in PHP and are normalized everywhere
+    /// in the taint/intelligence layers. Store them normalized so lookups do
+    /// not silently miss edges for `Foo::Bar` vs `foo::bar`.
+    fn key(name: &str) -> String {
+        name.trim().trim_start_matches('\\').to_ascii_lowercase()
+    }
+
     pub fn new() -> Self {
         Self {
             edges: HashMap::new(),
@@ -34,29 +41,28 @@ impl CallGraph {
     }
 
     pub fn add_edge(&mut self, caller: &str, callee: &str) {
+        let caller = Self::key(caller);
+        let callee = Self::key(callee);
         self.edges
-            .entry(caller.to_string())
+            .entry(caller.clone())
             .or_default()
-            .insert(callee.to_string());
-        self.reverse
-            .entry(callee.to_string())
-            .or_default()
-            .insert(caller.to_string());
+            .insert(callee.clone());
+        self.reverse.entry(callee).or_default().insert(caller);
     }
 
     pub fn add_request_arg(&mut self, callee: &str, index: usize) {
         self.request_args
-            .entry(callee.to_string())
+            .entry(Self::key(callee))
             .or_default()
             .insert(index);
     }
 
     pub fn callees(&self, caller: &str) -> Option<&BTreeSet<String>> {
-        self.edges.get(caller)
+        self.edges.get(&Self::key(caller))
     }
 
     pub fn callers(&self, callee: &str) -> Option<&BTreeSet<String>> {
-        self.reverse.get(callee)
+        self.reverse.get(&Self::key(callee))
     }
 
     pub fn all_callers(&self) -> &HashMap<String, BTreeSet<String>> {

@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
 use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
@@ -23,11 +23,14 @@ use crate::outputs::text::Text;
 use crate::outputs::Format;
 use crate::outputs::OutputFormatter;
 use crate::resource::{ResourceClass, ResourceFinding, ResourceService, ResourceSettings};
-use crate::results::{Results, Violation};
-use crate::rules::meta::FindingMeta;
+use crate::results::{
+    EntrypointInfo, FindingContext, FlowEdge, FlowEdgeKind, FlowNode, FlowNodeKind, Results,
+    ScanIntelligence, Violation,
+};
+use crate::rules::meta::{Confidence, FindingMeta};
 use crate::rules::Rule;
 use crate::rules::{self};
-use crate::security::{FileTaint, SecurityService, SourceFilter};
+use crate::security::{CallGraph, FileTaint, SecurityService, SourceFilter};
 use crate::verification::{testgen, Finding, FindingClass, Settings, VerificationService};
 
 struct FileOutcome {
@@ -787,6 +790,385 @@ impl Analyse {
         }
     }
 
+    /// Build the cross-cutting intelligence model used by Pro's Findings and
+    /// Flow Map views. This is bounded so very large projects stay renderable.
+    pub fn build_intelligence(&self, results: &Results) -> ScanIntelligence {
+        const MAX_FUNCTIONS: usize = 220;
+        const MAX_EDGES: usize = 700;
+
+        let graph = self.security.call_graph();
+        let source_functions = self.security.find_source_functions();
+        let sources: Vec<String> = source_functions
+            .iter()
+            .map(|s| normalize_function(s))
+            .collect();
+        let request_rooted: HashSet<String> = self
+            .security
+            .compute_request_rooted_functions()
+            .into_iter()
+            .map(|s| normalize_function(&s))
+            .collect();
+        let function_files = self.security.function_files();
+        let display_names: HashMap<String, String> = self
+            .security
+            .all_function_names()
+            .into_iter()
+            .map(|name| (normalize_function(&name), name))
+            .collect();
+
+        let entrypoint_candidates = derive_entrypoint_candidates(&graph, &display_names);
+
+        let mut entrypoints = Vec::new();
+        let mut entrypoint_functions = HashSet::new();
+        let mut seen_entrypoints = HashSet::new();
+        for key in entrypoint_candidates.into_iter().take(80) {
+            if !entrypoint_functions.insert(key.clone()) {
+                continue;
+            }
+            let file = function_files.get(&key).cloned();
+            let label = display_names
+                .get(&key)
+                .cloned()
+                .unwrap_or_else(|| key.clone());
+            let (kind, confidence) = classify_entrypoint(&label, file.as_deref());
+            let id = format!("entry:{key}");
+            if seen_entrypoints.insert(id.clone()) {
+                entrypoints.push(EntrypointInfo {
+                    id,
+                    label,
+                    kind,
+                    file,
+                    line: None,
+                    confidence,
+                    finding_count: 0,
+                });
+            }
+        }
+
+        let mut target_functions = BTreeSet::new();
+        for violations in results.files.values() {
+            for violation in violations {
+                let function = violation
+                    .taint_source
+                    .as_ref()
+                    .and_then(|source| source.enclosing_function.clone())
+                    .or_else(|| violation.call_chain.last().cloned());
+                if let Some(function) = function {
+                    target_functions.insert(normalize_function(&function));
+                }
+            }
+        }
+
+        let mut relevant: BTreeSet<String> = BTreeSet::new();
+        for function in entrypoint_functions.iter() {
+            relevant.insert(function.clone());
+        }
+        for function in &target_functions {
+            relevant.insert(function.clone());
+        }
+
+        let mut frontier: Vec<String> = target_functions.iter().cloned().collect();
+        for _ in 0..3 {
+            let mut next = Vec::new();
+            for function in frontier {
+                if let Some(callers) = graph.callers(&function) {
+                    for caller in callers {
+                        let caller = normalize_function(caller);
+                        if relevant.insert(caller.clone()) {
+                            next.push(caller);
+                        }
+                    }
+                }
+            }
+            frontier = next;
+        }
+
+        let mut relevant_vec: Vec<String> = relevant.into_iter().collect();
+        if relevant_vec.len() > MAX_FUNCTIONS {
+            let mut kept: Vec<String> = entrypoint_functions.iter().cloned().collect();
+            for function in relevant_vec {
+                if kept.len() >= MAX_FUNCTIONS {
+                    break;
+                }
+                if !kept.contains(&function) {
+                    kept.push(function);
+                }
+            }
+            relevant_vec = kept;
+        }
+        let relevant_set: HashSet<String> = relevant_vec.iter().cloned().collect();
+        let entrypoint_paths_by_function = entrypoint_paths(&graph, &entrypoints, &relevant_set);
+
+        let mut finding_context = HashMap::new();
+        let mut function_risk: HashMap<String, u8> = HashMap::new();
+
+        for (file, violations) in &results.files {
+            for violation in violations {
+                let fingerprint = if violation.meta.fingerprint.is_empty() {
+                    format!(
+                        "{}|{}|{}|{}",
+                        violation.rule, file, violation.start_line, violation.start_column
+                    )
+                } else {
+                    violation.meta.fingerprint.clone()
+                };
+
+                let function = violation
+                    .taint_source
+                    .as_ref()
+                    .and_then(|source| source.enclosing_function.clone())
+                    .or_else(|| violation.call_chain.last().cloned())
+                    .map(|name| normalize_function(&name));
+                let proven = violation
+                    .taint_source
+                    .as_ref()
+                    .is_some_and(|source| source.request_rooted);
+                let reachable = function
+                    .as_ref()
+                    .map(|name| sources.contains(name) || request_rooted.contains(name))
+                    .unwrap_or(false)
+                    || proven;
+                let path = if reachable {
+                    function
+                        .as_ref()
+                        .map(|name| reachability_path(&graph, &sources, name))
+                        .unwrap_or_default()
+                } else {
+                    Vec::new()
+                };
+
+                let mut entrypoint_ids = Vec::new();
+                if let Some(function) = &function {
+                    if let Some(ids) = entrypoint_paths_by_function.get(function) {
+                        entrypoint_ids.extend(ids.iter().take(4).cloned());
+                    }
+                }
+
+                let (risk_score, risk_reasons) = score_finding(violation, reachable, proven);
+                if let Some(function) = &function {
+                    function_risk
+                        .entry(function.clone())
+                        .and_modify(|score| *score = (*score).max(risk_score))
+                        .or_insert(risk_score);
+                }
+
+                let mut impact = Vec::new();
+                if let Some(cwe) = &violation.meta.cwe {
+                    impact.push(cwe.clone());
+                }
+                if let Some(owasp) = &violation.meta.owasp {
+                    impact.push(owasp.clone());
+                }
+                if violation.meta.category.as_str() == "security" {
+                    impact.push("security-control-failure".to_string());
+                }
+
+                let mut missing_controls = Vec::new();
+                if violation.taint_source.is_some() {
+                    missing_controls
+                        .push("sanitization not proven in recorded evidence".to_string());
+                }
+
+                let mut data_classes = Vec::new();
+                if let Some(source) = &violation.taint_source {
+                    if source.request_rooted {
+                        data_classes.push("request-input".to_string());
+                    } else {
+                        data_classes.push("function-parameter".to_string());
+                    }
+                }
+
+                finding_context.insert(
+                    fingerprint.clone(),
+                    FindingContext {
+                        fingerprint,
+                        rule: violation.rule.clone(),
+                        file: file.clone(),
+                        line: violation.start_line,
+                        reachable,
+                        reachability_path: path,
+                        entrypoint_ids,
+                        risk_score,
+                        risk_reasons,
+                        impact,
+                        missing_controls,
+                        data_classes,
+                    },
+                );
+            }
+        }
+
+        for entry in &mut entrypoints {
+            entry.finding_count = finding_context
+                .values()
+                .filter(|context| context.entrypoint_ids.contains(&entry.id))
+                .count();
+        }
+
+        let mut nodes = Vec::new();
+        for function in &relevant_vec {
+            let is_entrypoint = entrypoint_functions.contains(function);
+            let id = if is_entrypoint {
+                format!("entry:{function}")
+            } else {
+                format!("fn:{function}")
+            };
+            nodes.push(FlowNode {
+                label: display_names
+                    .get(function)
+                    .cloned()
+                    .unwrap_or_else(|| function.clone()),
+                id,
+                kind: if is_entrypoint {
+                    FlowNodeKind::Entrypoint
+                } else {
+                    FlowNodeKind::Function
+                },
+                file: function_files.get(function).cloned(),
+                line: None,
+                function: Some(function.clone()),
+                risk_score: function_risk.get(function).copied().unwrap_or(0),
+            });
+        }
+
+        for function in &source_functions {
+            let key = normalize_function(function);
+            if relevant_set.contains(&key) {
+                continue;
+            }
+            nodes.push(FlowNode {
+                id: format!("source:{key}"),
+                label: format!("Request source: {function}"),
+                kind: FlowNodeKind::Source,
+                file: function_files.get(&key).cloned(),
+                line: None,
+                function: Some(key),
+                risk_score: 70,
+            });
+        }
+
+        for context in finding_context.values() {
+            nodes.push(FlowNode {
+                id: format!("sink:{}", context.fingerprint),
+                label: format!("{} · {}:{}", context.rule, context.file, context.line),
+                kind: FlowNodeKind::Sink,
+                file: Some(context.file.clone()),
+                line: Some(context.line),
+                function: None,
+                risk_score: context.risk_score,
+            });
+        }
+
+        let node_id = |function: &str| {
+            if entrypoint_functions.contains(function) {
+                format!("entry:{function}")
+            } else {
+                format!("fn:{function}")
+            }
+        };
+
+        let node_ids: HashSet<String> = nodes.iter().map(|node| node.id.clone()).collect();
+        let mut edges = Vec::new();
+
+        // Reserve most of the budget for finding evidence. Call edges are
+        // useful context, but must never crowd out the actual source→sink path.
+        let mut contexts: Vec<&FindingContext> = finding_context.values().collect();
+        contexts.sort_by(|a, b| {
+            b.risk_score
+                .cmp(&a.risk_score)
+                .then_with(|| a.fingerprint.cmp(&b.fingerprint))
+        });
+        for context in contexts {
+            if let Some(function) = context.reachability_path.last() {
+                let from = node_id(&normalize_function(function));
+                let to = format!("sink:{}", context.fingerprint);
+                if node_ids.contains(&from) && node_ids.contains(&to) {
+                    edges.push(FlowEdge {
+                        from,
+                        to: to.clone(),
+                        kind: FlowEdgeKind::Taint,
+                        label: if context.reachable {
+                            "proven flow".to_string()
+                        } else {
+                            "lead".to_string()
+                        },
+                        proven: context.reachable,
+                        finding_fingerprint: Some(context.fingerprint.clone()),
+                    });
+
+                    // Connect the source node when the path starts at a source
+                    // that was not kept in the function subgraph.
+                    if let Some(source) = context.reachability_path.first() {
+                        let source_key = normalize_function(source);
+                        let source_id = if relevant_set.contains(&source_key) {
+                            node_id(&source_key)
+                        } else {
+                            format!("source:{source_key}")
+                        };
+                        let next_id = context
+                            .reachability_path
+                            .get(1)
+                            .map(|next| node_id(&normalize_function(next)))
+                            .unwrap_or(to);
+                        if node_ids.contains(&source_id) && node_ids.contains(&next_id) {
+                            edges.push(FlowEdge {
+                                from: source_id,
+                                to: next_id,
+                                kind: FlowEdgeKind::Reachability,
+                                label: "request data".to_string(),
+                                proven: context.reachable,
+                                finding_fingerprint: Some(context.fingerprint.clone()),
+                            });
+                        }
+                    }
+                }
+            }
+            if edges.len() >= MAX_EDGES.saturating_sub(280) {
+                break;
+            }
+        }
+
+        // Deterministic call edges; HashMap iteration order must not decide
+        // which flows survive truncation.
+        let mut graph_edges: Vec<_> = graph.edges.iter().collect();
+        graph_edges.sort_by(|a, b| a.0.cmp(b.0).then_with(|| a.1.cmp(b.1)));
+        for (caller, callees) in graph_edges {
+            for callee in callees {
+                let caller = normalize_function(caller);
+                let callee = normalize_function(callee);
+                if !relevant_set.contains(&caller) || !relevant_set.contains(&callee) {
+                    continue;
+                }
+                let from = node_id(&caller);
+                let to = node_id(&callee);
+                if !node_ids.contains(&from) || !node_ids.contains(&to) {
+                    continue;
+                }
+                edges.push(FlowEdge {
+                    from,
+                    to,
+                    kind: FlowEdgeKind::Call,
+                    label: "calls".to_string(),
+                    proven: false,
+                    finding_fingerprint: None,
+                });
+                if edges.len() >= MAX_EDGES {
+                    break;
+                }
+            }
+            if edges.len() >= MAX_EDGES {
+                break;
+            }
+        }
+
+        ScanIntelligence {
+            entrypoints,
+            nodes,
+            edges,
+            finding_context,
+        }
+    }
+
     pub(crate) fn analyse_file(
         &self,
         file: &mut File<'_>,
@@ -1050,9 +1432,340 @@ impl Analyse {
     }
 }
 
+fn normalize_function(name: &str) -> String {
+    name.trim().trim_start_matches('\\').to_ascii_lowercase()
+}
+
+/// Functions that nothing calls locally are the strongest available signal for
+/// externally invoked entrypoints (routes, commands, listeners).
+fn derive_entrypoint_candidates(
+    graph: &CallGraph,
+    display_names: &HashMap<String, String>,
+) -> BTreeSet<String> {
+    let called: HashSet<String> = graph
+        .edges
+        .values()
+        .flatten()
+        .chain(graph.request_args.keys())
+        .cloned()
+        .collect();
+    let mut candidates: BTreeSet<String> = graph
+        .entry_points
+        .iter()
+        .map(|name| normalize_function(name))
+        .collect();
+    candidates.extend(
+        display_names
+            .keys()
+            .filter(|name| !called.contains(*name))
+            .cloned(),
+    );
+    candidates
+}
+
+fn contains_word(haystack: &str, word: &str) -> bool {
+    haystack
+        .split(|c: char| !c.is_ascii_alphanumeric() && c != '_' && c != '\\')
+        .any(|token| token.eq_ignore_ascii_case(word))
+}
+
+fn classify_entrypoint(function: &str, file: Option<&str>) -> (String, u8) {
+    let haystack = format!("{} {}", file.unwrap_or_default(), function).to_ascii_lowercase();
+    if contains_word(&haystack, "controller")
+        || contains_word(&haystack, "action")
+        || contains_word(&haystack, "route")
+        || function.eq_ignore_ascii_case("index")
+    {
+        ("HTTP route".to_string(), 90)
+    } else if haystack.contains("command") || haystack.contains("console") {
+        ("CLI command".to_string(), 82)
+    } else if haystack.contains("listener")
+        || haystack.contains("subscriber")
+        || haystack.contains("job")
+        || haystack.contains("worker")
+    {
+        ("Job / listener".to_string(), 76)
+    } else {
+        ("Candidate entrypoint".to_string(), 48)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PathDirection {
+    /// Walk callers: a tainted callee propagates up into the function that calls it.
+    Callers,
+    /// Walk callees: an entrypoint reaches the functions it calls.
+    Callees,
+}
+
+fn call_path(
+    graph: &CallGraph,
+    roots: &[String],
+    target: &str,
+    direction: PathDirection,
+) -> Vec<String> {
+    let target = normalize_function(target);
+
+    for root in roots {
+        let root = normalize_function(root);
+        if root == target {
+            return vec![root];
+        }
+
+        let mut visited = HashSet::new();
+        let mut queue: VecDeque<(String, Vec<String>)> = VecDeque::new();
+        queue.push_back((root.clone(), vec![root.clone()]));
+
+        while let Some((current, path)) = queue.pop_front() {
+            if !visited.insert(current.clone()) {
+                continue;
+            }
+            let neighbors = match direction {
+                PathDirection::Callers => graph.callers(&current),
+                PathDirection::Callees => graph.callees(&current),
+            };
+            let Some(neighbors) = neighbors else {
+                continue;
+            };
+            for neighbor in neighbors {
+                let neighbor = normalize_function(neighbor);
+                if neighbor == target {
+                    let mut found = path.clone();
+                    found.push(neighbor);
+                    return found;
+                }
+                if !visited.contains(&neighbor) {
+                    let mut next = path.clone();
+                    next.push(neighbor.clone());
+                    queue.push_back((neighbor, next));
+                }
+            }
+        }
+    }
+    Vec::new()
+}
+
+/// Path from a tainted source up to the function that consumes it.
+fn reachability_path(graph: &CallGraph, roots: &[String], target: &str) -> Vec<String> {
+    call_path(graph, roots, target, PathDirection::Callers)
+}
+
+/// Precompute which entrypoints can reach each relevant function.
+///
+/// This avoids a BFS per finding per entrypoint on large projects, and uses the
+/// downstream (`callees`) direction because an entrypoint calls into the code.
+fn entrypoint_paths(
+    graph: &CallGraph,
+    entrypoints: &[EntrypointInfo],
+    relevant: &HashSet<String>,
+) -> HashMap<String, Vec<String>> {
+    let mut paths: HashMap<String, Vec<String>> = HashMap::new();
+
+    for entry in entrypoints {
+        let root = entry.id.trim_start_matches("entry:").to_string();
+        let mut visited = HashSet::new();
+        let mut queue = VecDeque::new();
+        queue.push_back(root);
+
+        while let Some(current) = queue.pop_front() {
+            if !visited.insert(current.clone()) {
+                continue;
+            }
+            paths
+                .entry(current.clone())
+                .or_default()
+                .push(entry.id.clone());
+
+            let Some(callees) = graph.callees(&current) else {
+                continue;
+            };
+            for callee in callees {
+                let callee = normalize_function(callee);
+                if relevant.contains(&callee) && !visited.contains(&callee) {
+                    queue.push_back(callee);
+                }
+            }
+        }
+    }
+
+    paths
+}
+
+fn score_finding(violation: &Violation, reachable: bool, proven: bool) -> (u8, Vec<String>) {
+    let mut score = violation.meta.severity.weight() as u16 * 9;
+    let mut reasons = vec![format!("{} severity", violation.meta.severity.as_str())];
+
+    if proven {
+        score += 20;
+        reasons.push("proven request taint".to_string());
+    } else if violation.taint_source.is_some() {
+        score += 7;
+        reasons.push("taint lead".to_string());
+    }
+
+    if reachable {
+        score += 14;
+        reasons.push("reachable from a request root".to_string());
+    }
+
+    if violation.meta.confidence == Confidence::High {
+        score += 5;
+        reasons.push("high confidence".to_string());
+    }
+    if let Some(cwe) = &violation.meta.cwe {
+        score += 5;
+        reasons.push(cwe.clone());
+    }
+    if let Some(owasp) = &violation.meta.owasp {
+        score += 4;
+        reasons.push(owasp.clone());
+    }
+
+    (score.min(100) as u8, reasons)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn entrypoints_include_defined_but_uncalled_functions() {
+        let mut graph = CallGraph::new();
+        graph.add_edge("Controller::index", "Service::run");
+        let display_names = HashMap::from([
+            (
+                "controller::index".to_string(),
+                "Controller::index".to_string(),
+            ),
+            ("service::run".to_string(), "Service::run".to_string()),
+            ("worker::nightly".to_string(), "Worker::nightly".to_string()),
+        ]);
+
+        let candidates = derive_entrypoint_candidates(&graph, &display_names);
+        assert!(candidates.contains("controller::index"));
+        assert!(candidates.contains("worker::nightly"));
+        assert!(!candidates.contains("service::run"));
+    }
+
+    #[test]
+    fn classify_entrypoint_ignores_action_inside_other_words() {
+        let (kind, confidence) =
+            classify_entrypoint("TransactionService", Some("src/TransactionService.php"));
+        assert_eq!(kind, "Candidate entrypoint");
+        assert_eq!(confidence, 48);
+    }
+
+    #[test]
+    fn call_paths_follow_the_requested_direction() {
+        let mut graph = CallGraph::new();
+        graph.add_edge("Controller::index", "Service::run");
+        graph.add_edge("Service::run", "Db::query");
+        let roots = vec!["Controller::index".to_string()];
+
+        assert_eq!(
+            call_path(&graph, &roots, "DB::Query", PathDirection::Callees),
+            vec![
+                "controller::index".to_string(),
+                "service::run".to_string(),
+                "db::query".to_string()
+            ]
+        );
+        assert!(call_path(&graph, &roots, "db::query", PathDirection::Callers).is_empty());
+    }
+
+    #[test]
+    fn entrypoint_paths_precompute_downstream_reachability() {
+        let mut graph = CallGraph::new();
+        graph.add_edge("Controller::index", "Service::run");
+        graph.add_edge("Service::run", "Db::query");
+
+        let entrypoints = vec![EntrypointInfo {
+            id: "entry:controller::index".to_string(),
+            label: "Controller::index".to_string(),
+            kind: "HTTP route".to_string(),
+            file: None,
+            line: None,
+            confidence: 90,
+            finding_count: 0,
+        }];
+        let relevant = HashSet::from([
+            "controller::index".to_string(),
+            "service::run".to_string(),
+            "db::query".to_string(),
+        ]);
+
+        let paths = entrypoint_paths(&graph, &entrypoints, &relevant);
+        assert_eq!(
+            paths["db::query"],
+            vec!["entry:controller::index".to_string()]
+        );
+        assert_eq!(
+            paths["service::run"],
+            vec!["entry:controller::index".to_string()]
+        );
+    }
+
+    #[test]
+    fn score_finding_reflects_taint_and_reachability() {
+        let mut violation = Violation {
+            rule: "E0060".to_string(),
+            line: "10".to_string(),
+            message: crate::results::Message::new("E0060", "SQL injection"),
+            start_line: 10,
+            start_column: 1,
+            end_line: 10,
+            end_column: 20,
+            taint_source: None,
+            call_chain: vec![],
+            meta: FindingMeta::from_rule("E0060", String::new()),
+            generated_test: None,
+        };
+        let (score, reasons) = score_finding(&violation, true, true);
+        assert!(score >= 50);
+        assert!(reasons.iter().any(|r| r.contains("proven request taint")));
+        assert!(reasons.iter().any(|r| r.contains("reachable")));
+    }
+
+    #[test]
+    fn build_intelligence_includes_entrypoints_and_finding_context() {
+        let config = Config::default();
+        let analyse = Analyse::new(&config);
+        let mut results = Results::default();
+        let mut v = Violation {
+            rule: "E0060".to_string(),
+            line: "12".to_string(),
+            message: crate::results::Message::new("E0060", "SQL injection"),
+            start_line: 12,
+            start_column: 1,
+            end_line: 12,
+            end_column: 40,
+            taint_source: Some(crate::results::TaintSource {
+                request_rooted: true,
+                source_kind: Some("Request".to_string()),
+                origins: vec!["$_GET".to_string()],
+                file: Some("src/Controller.php".to_string()),
+                line: Some(10),
+                enclosing_function: Some("Controller::index".to_string()),
+            }),
+            call_chain: vec!["controller::index".to_string()],
+            meta: FindingMeta::from_rule("E0060", String::new()),
+            generated_test: None,
+        };
+        v.meta.fingerprint = "fp-1".to_string();
+        results
+            .files
+            .insert("src/Controller.php".to_string(), vec![v]);
+
+        let intel = analyse.build_intelligence(&results);
+        assert!(intel.finding_context.contains_key("fp-1"));
+        let ctx = &intel.finding_context["fp-1"];
+        assert_eq!(ctx.rule, "E0060");
+        assert_eq!(ctx.file, "src/Controller.php");
+        assert!(ctx.reachable);
+        assert!(ctx.risk_score > 0);
+        assert!(ctx.data_classes.iter().any(|c| c == "request-input"));
+        assert!(intel.nodes.iter().any(|n| n.kind == FlowNodeKind::Sink));
+    }
 
     #[test]
     fn collect_php_files_skips_excluded_paths() {

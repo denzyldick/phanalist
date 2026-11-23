@@ -166,6 +166,123 @@ fn default_schema_version() -> u32 {
     2
 }
 
+/// A node in the local flow graph shown by Phanalist Pro.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum FlowNodeKind {
+    Entrypoint,
+    Function,
+    Source,
+    Sink,
+    Sensitive,
+    Control,
+}
+
+impl Default for FlowNodeKind {
+    fn default() -> Self {
+        Self::Function
+    }
+}
+
+impl FlowNodeKind {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Entrypoint => "entrypoint",
+            Self::Function => "function",
+            Self::Source => "source",
+            Self::Sink => "sink",
+            Self::Sensitive => "sensitive",
+            Self::Control => "control",
+        }
+    }
+}
+
+/// Why two flow nodes are connected.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum FlowEdgeKind {
+    Call,
+    Taint,
+    Reachability,
+    Data,
+}
+
+impl Default for FlowEdgeKind {
+    fn default() -> Self {
+        Self::Call
+    }
+}
+
+impl FlowEdgeKind {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Call => "call",
+            Self::Taint => "taint",
+            Self::Reachability => "reachability",
+            Self::Data => "data",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct EntrypointInfo {
+    pub id: String,
+    pub label: String,
+    pub kind: String,
+    pub file: Option<String>,
+    pub line: Option<usize>,
+    pub confidence: u8,
+    pub finding_count: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FlowNode {
+    pub id: String,
+    pub label: String,
+    pub kind: FlowNodeKind,
+    pub file: Option<String>,
+    pub line: Option<usize>,
+    pub function: Option<String>,
+    pub risk_score: u8,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FlowEdge {
+    pub from: String,
+    pub to: String,
+    pub kind: FlowEdgeKind,
+    pub label: String,
+    pub proven: bool,
+    pub finding_fingerprint: Option<String>,
+}
+
+/// Explanatory context attached to one finding.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct FindingContext {
+    pub fingerprint: String,
+    pub rule: String,
+    pub file: String,
+    pub line: usize,
+    pub reachable: bool,
+    pub reachability_path: Vec<String>,
+    pub entrypoint_ids: Vec<String>,
+    pub risk_score: u8,
+    pub risk_reasons: Vec<String>,
+    pub impact: Vec<String>,
+    pub missing_controls: Vec<String>,
+    pub data_classes: Vec<String>,
+}
+
+/// Cross-cutting intelligence derived from the scan's call graph and taint pass.
+/// Stored alongside the raw report so old reports still deserialize.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ScanIntelligence {
+    pub entrypoints: Vec<EntrypointInfo>,
+    pub nodes: Vec<FlowNode>,
+    pub edges: Vec<FlowEdge>,
+    pub finding_context: HashMap<String, FindingContext>,
+}
+
 #[derive(Serialize, Debug, Deserialize, Clone)]
 pub struct Results {
     /// Version of the serialized report contract. Bumped when a consumer would
@@ -180,6 +297,9 @@ pub struct Results {
     pub rule_timings: Option<RuleTimings>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub engineer_report: Option<EngineerReport>,
+    /// Flow graph, reachability and risk context. Optional for older reports.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub intelligence: Option<ScanIntelligence>,
 }
 
 impl Default for Results {
@@ -192,6 +312,7 @@ impl Default for Results {
             duration: None,
             rule_timings: None,
             engineer_report: None,
+            intelligence: None,
         }
     }
 }
@@ -290,6 +411,7 @@ mod tests {
             duration: None,
             rule_timings: None,
             engineer_report: None,
+            intelligence: None,
         }
     }
     fn get_file<'a>(arena: &'a LocalArena, name: &str) -> File<'a> {
