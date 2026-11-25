@@ -402,6 +402,26 @@ pub trait Rule: Sync {
                     }
                 }
             }
+            Statement::Switch(switch) => {
+                let cases = match &switch.body {
+                    SwitchBody::BraceDelimited(body) => &body.cases,
+                    SwitchBody::ColonDelimited(body) => &body.cases,
+                };
+                for case in cases.iter() {
+                    let statements = match case {
+                        SwitchCase::Expression(case) => &case.statements,
+                        SwitchCase::Default(case) => &case.statements,
+                    };
+                    for s in statements.iter() {
+                        self.traverse_statements_to_validate(flatten_statements, s);
+                    }
+                }
+            }
+            Statement::Function(function) => {
+                for s in function.body.statements.iter() {
+                    self.traverse_statements_to_validate(flatten_statements, s);
+                }
+            }
             Statement::Namespace(namespace) => {
                 for s in namespace.statements().iter() {
                     self.traverse_statements_to_validate(flatten_statements, s);

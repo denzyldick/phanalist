@@ -7,6 +7,7 @@ use serde_json::Value;
 
 use crate::file::File;
 use crate::results::{Message, Violation};
+use crate::rules::ast_support::{walk_expression, walk_statement_expressions};
 use crate::rules::Rule as RuleTrait;
 
 pub(crate) static CODE: &str = "E0015";
@@ -179,25 +180,27 @@ impl RuleTrait for Rule {
 
                 if let Some(stmts) = node.body_statements() {
                     for stmt in stmts {
-                        for s in self.flatten_statements_to_validate(stmt) {
-                            self.scan_statement(
-                                s,
+                        walk_statement_expressions(stmt, &mut |expression| {
+                            self.scan_expression(
+                                expression,
                                 &property_names,
                                 &mut used_props,
                                 &mut called_methods,
                             );
-                        }
+                        });
                     }
                 } else if let MethodNode::Hook(h, _) = node {
                     if let PropertyHookBody::Concrete(PropertyHookConcreteBody::Expression(expr)) =
                         &h.body
                     {
-                        self.scan_expression(
-                            expr.expression,
-                            &property_names,
-                            &mut used_props,
-                            &mut called_methods,
-                        );
+                        walk_expression(expr.expression, &mut |expression| {
+                            self.scan_expression(
+                                expression,
+                                &property_names,
+                                &mut used_props,
+                                &mut called_methods,
+                            );
+                        });
                     }
                 }
 
@@ -245,31 +248,9 @@ impl Rule {
         false
     }
 
-    fn scan_statement(
-        &self,
-        stmt: &Statement<'_>,
-        property_names: &HashSet<String>,
-        used_props: &mut HashSet<String>,
-        called_methods: &mut HashSet<String>,
-    ) {
-        match stmt {
-            Statement::Expression(s) => {
-                self.scan_expression(s.expression, property_names, used_props, called_methods)
-            }
-            Statement::Return(s) => {
-                if let Some(expr) = s.value {
-                    self.scan_expression(expr, property_names, used_props, called_methods);
-                }
-            }
-            Statement::Echo(s) => {
-                for expr in s.values.iter() {
-                    self.scan_expression(expr, property_names, used_props, called_methods);
-                }
-            }
-            _ => {}
-        }
-    }
-
+    /// Inspects a single expression node; children are visited by the shared
+    /// expression walker, so this must not recurse itself. Anonymous classes
+    /// stay opaque because they have their own scope.
     fn scan_expression(
         &self,
         expr: &Expression<'_>,
@@ -278,169 +259,36 @@ impl Rule {
         called_methods: &mut HashSet<String>,
     ) {
         match expr {
-            Expression::Call(call) => match call {
-                Call::Method(m) => {
-                    if self.is_this(m.object) {
-                        if let ClassLikeMemberSelector::Identifier(id) = &m.method {
+            Expression::Call(call) => {
+                let target = match call {
+                    Call::Method(call) => Some((call.object, &call.method)),
+                    Call::NullSafeMethod(call) => Some((call.object, &call.method)),
+                    _ => None,
+                };
+                if let Some((object, selector)) = target {
+                    if self.is_this(object) {
+                        if let ClassLikeMemberSelector::Identifier(id) = selector {
                             called_methods.insert(String::from_utf8_lossy(id.value).into_owned());
                         }
                     }
-                    self.scan_expression(m.object, property_names, used_props, called_methods);
-                    for arg in m.argument_list.arguments.iter() {
-                        self.scan_expression(
-                            arg.value(),
-                            property_names,
-                            used_props,
-                            called_methods,
-                        );
-                    }
                 }
-                Call::NullSafeMethod(m) => {
-                    if self.is_this(m.object) {
-                        if let ClassLikeMemberSelector::Identifier(id) = &m.method {
-                            called_methods.insert(String::from_utf8_lossy(id.value).into_owned());
-                        }
-                    }
-                    self.scan_expression(m.object, property_names, used_props, called_methods);
-                    for arg in m.argument_list.arguments.iter() {
-                        self.scan_expression(
-                            arg.value(),
-                            property_names,
-                            used_props,
-                            called_methods,
-                        );
-                    }
-                }
-                Call::Function(f) => {
-                    self.scan_expression(f.function, property_names, used_props, called_methods);
-                    for arg in f.argument_list.arguments.iter() {
-                        self.scan_expression(
-                            arg.value(),
-                            property_names,
-                            used_props,
-                            called_methods,
-                        );
-                    }
-                }
-                Call::StaticMethod(m) => {
-                    self.scan_expression(m.class, property_names, used_props, called_methods);
-                    for arg in m.argument_list.arguments.iter() {
-                        self.scan_expression(
-                            arg.value(),
-                            property_names,
-                            used_props,
-                            called_methods,
-                        );
-                    }
-                }
-            },
-            Expression::Access(access) => match access {
-                Access::Property(p) => {
-                    if self.is_this(p.object) {
-                        if let ClassLikeMemberSelector::Identifier(id) = &p.property {
+            }
+            Expression::Access(access) => {
+                let target = match access {
+                    Access::Property(access) => Some((access.object, &access.property)),
+                    Access::NullSafeProperty(access) => Some((access.object, &access.property)),
+                    _ => None,
+                };
+                if let Some((object, selector)) = target {
+                    if self.is_this(object) {
+                        if let ClassLikeMemberSelector::Identifier(id) = selector {
                             let name = format!("${}", String::from_utf8_lossy(id.value));
                             if property_names.contains(&name) {
                                 used_props.insert(name);
                             }
                         }
                     }
-                    self.scan_expression(p.object, property_names, used_props, called_methods);
                 }
-                Access::NullSafeProperty(p) => {
-                    if self.is_this(p.object) {
-                        if let ClassLikeMemberSelector::Identifier(id) = &p.property {
-                            let name = format!("${}", String::from_utf8_lossy(id.value));
-                            if property_names.contains(&name) {
-                                used_props.insert(name);
-                            }
-                        }
-                    }
-                    self.scan_expression(p.object, property_names, used_props, called_methods);
-                }
-                Access::ClassConstant(c) => {
-                    self.scan_expression(c.class, property_names, used_props, called_methods);
-                }
-                Access::StaticProperty(p) => {
-                    self.scan_expression(p.class, property_names, used_props, called_methods);
-                }
-            },
-            Expression::Binary(bin) => {
-                self.scan_expression(bin.lhs, property_names, used_props, called_methods);
-                self.scan_expression(bin.rhs, property_names, used_props, called_methods);
-            }
-            Expression::UnaryPrefix(un) => {
-                self.scan_expression(un.operand, property_names, used_props, called_methods);
-            }
-            Expression::UnaryPostfix(un) => {
-                self.scan_expression(un.operand, property_names, used_props, called_methods);
-            }
-            Expression::Assignment(ass) => {
-                self.scan_expression(ass.lhs, property_names, used_props, called_methods);
-                self.scan_expression(ass.rhs, property_names, used_props, called_methods);
-            }
-            Expression::Parenthesized(p) => {
-                self.scan_expression(p.expression, property_names, used_props, called_methods);
-            }
-            Expression::Array(a) => {
-                for element in a.elements.iter() {
-                    if let Some(val) = element.get_value() {
-                        self.scan_expression(val, property_names, used_props, called_methods);
-                    }
-                    if let Some(key) = element.get_key() {
-                        self.scan_expression(key, property_names, used_props, called_methods);
-                    }
-                }
-            }
-            Expression::Closure(c) => {
-                for stmt in c.body.statements.iter() {
-                    for s in self.flatten_statements_to_validate(stmt) {
-                        self.scan_statement(s, property_names, used_props, called_methods);
-                    }
-                }
-            }
-            Expression::ArrowFunction(c) => {
-                self.scan_expression(c.expression, property_names, used_props, called_methods);
-            }
-            Expression::Match(m) => {
-                self.scan_expression(m.expression, property_names, used_props, called_methods);
-                for arm in m.arms.iter() {
-                    match arm {
-                        MatchArm::Expression(a) => {
-                            for cond in a.conditions.iter() {
-                                self.scan_expression(
-                                    cond,
-                                    property_names,
-                                    used_props,
-                                    called_methods,
-                                );
-                            }
-                            self.scan_expression(
-                                a.expression,
-                                property_names,
-                                used_props,
-                                called_methods,
-                            );
-                        }
-                        MatchArm::Default(a) => {
-                            self.scan_expression(
-                                a.expression,
-                                property_names,
-                                used_props,
-                                called_methods,
-                            );
-                        }
-                    }
-                }
-            }
-            Expression::AnonymousClass(_) => {
-                // Stop! Do not traverse into anonymous classes as they have their own scope
-            }
-            Expression::Conditional(t) => {
-                self.scan_expression(t.condition, property_names, used_props, called_methods);
-                if let Some(then_expr) = t.then {
-                    self.scan_expression(then_expr, property_names, used_props, called_methods);
-                }
-                self.scan_expression(t.r#else, property_names, used_props, called_methods);
             }
             _ => {}
         }
@@ -449,7 +297,7 @@ impl Rule {
 
 #[cfg(test)]
 mod tests {
-    use crate::rules::tests::analyze_file_for_rule;
+    use crate::rules::tests::{analyze_file_for_rule, analyze_source_for_rule};
 
     use super::*;
 
@@ -476,5 +324,31 @@ mod tests {
     fn test_anonymous_class_isolation() {
         let violations = analyze_file_for_rule("e15/anonymous_class.php", CODE);
         assert!(!violations.is_empty());
+    }
+
+    #[test]
+    fn calls_and_property_reads_in_switch_cases_are_cohesion() {
+        let source = r#"<?php
+final class Connected {
+    private $value = 1;
+
+    public function run(): void {
+        switch (1) {
+            case 1:
+                $this->helper();
+                break;
+        }
+    }
+
+    public function helper(): void {
+        if ($this->value) {
+            return;
+        }
+    }
+}
+"#;
+
+        let violations = analyze_source_for_rule(source, "e15-inline.php", CODE);
+        assert_eq!(violations.len(), 0, "{violations:?}");
     }
 }

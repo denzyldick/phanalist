@@ -8,6 +8,7 @@ use std::fs;
 use std::io;
 use std::path::{Component, Path, PathBuf};
 
+use crate::paths::portable_path_string;
 use crate::results::Results;
 
 const COMPOSER_SCRIPT: &str = "phanalist-tests";
@@ -76,7 +77,7 @@ fn add_composer_script(composer: &Path, output_dir: &Path) -> io::Result<bool> {
     let dir = composer.parent().unwrap_or_else(|| Path::new("."));
     let command = format!(
         "phpunit {}",
-        relative_path(dir, &absolutize(output_dir)).display()
+        portable_path_string(&relative_path(dir, &absolutize(output_dir)))
     );
     let entry = format!(
         "{}: {}",
@@ -209,7 +210,7 @@ pub fn add_phpunit_testsuite(config: &Path, output_dir: &Path) -> io::Result<boo
     let entry = format!(
         "    <testsuite name=\"{}\">\n        <directory>{}</directory>\n    </testsuite>\n",
         TESTSUITE_NAME,
-        xml_escape(&relative.to_string_lossy())
+        xml_escape(&portable_path_string(&relative))
     );
     let updated = if let Some(pos) = original.rfind("</testsuites>") {
         format!("{}{}{}", &original[..pos], entry, &original[pos..])
