@@ -242,6 +242,20 @@ fn push_expression_children<'a>(
         Expression::Throw(throw) => children.push(throw.exception),
         Expression::Clone(clone) => children.push(clone.object),
         Expression::Call(call) => push_call_children(call, &mut children),
+        Expression::PartialApplication(application) => match application {
+            PartialApplication::Function(application) => {
+                children.push(application.function);
+                push_partial_argument_children(&application.argument_list.arguments, &mut children);
+            }
+            PartialApplication::Method(application) => {
+                children.push(application.object);
+                push_partial_argument_children(&application.argument_list.arguments, &mut children);
+            }
+            PartialApplication::StaticMethod(application) => {
+                children.push(application.class);
+                push_partial_argument_children(&application.argument_list.arguments, &mut children);
+            }
+        },
         Expression::Instantiation(instantiation) => {
             children.push(instantiation.class);
             if let Some(arguments) = &instantiation.argument_list {
@@ -380,6 +394,21 @@ fn push_argument_children<'a>(
         match argument {
             Argument::Positional(argument) => children.push(argument.value),
             Argument::Named(argument) => children.push(argument.value),
+        }
+    }
+}
+
+fn push_partial_argument_children<'a>(
+    arguments: &'a TokenSeparatedSequence<'a, PartialArgument<'a>>,
+    children: &mut Vec<&'a Expression<'a>>,
+) {
+    for argument in arguments.iter() {
+        match argument {
+            PartialArgument::Positional(argument) => children.push(argument.value),
+            PartialArgument::Named(argument) => children.push(argument.value),
+            PartialArgument::NamedPlaceholder(_)
+            | PartialArgument::Placeholder(_)
+            | PartialArgument::VariadicPlaceholder(_) => {}
         }
     }
 }

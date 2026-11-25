@@ -1,7 +1,14 @@
 //! Shared path helpers: normalize scanned paths to a stable, portable form and
 //! match them against `exclude_paths` patterns.
 
-use std::path::Path;
+use std::path::{Path, MAIN_SEPARATOR};
+
+/// Render a path with `/` separators, for paths embedded in generated PHP,
+/// Composer commands and XML. Paths built by `Path::join` use the host
+/// separator, which is `\` on Windows; those strings must stay portable.
+pub fn portable_path_string(path: &Path) -> String {
+    path.to_string_lossy().replace(MAIN_SEPARATOR, "/")
+}
 
 /// Normalize a path to a stable relative form: relative to the current working
 /// directory, posix separators, no leading `./`. Shared by `exclude_paths`
@@ -154,6 +161,12 @@ fn matches_from(tokens: &[Token], text: &[char]) -> bool {
 mod tests {
     use super::*;
     use std::path::PathBuf;
+
+    #[test]
+    fn portable_path_string_uses_forward_slashes() {
+        let path = PathBuf::from("tests").join("phanalist-generated");
+        assert_eq!(portable_path_string(&path), "tests/phanalist-generated");
+    }
 
     #[test]
     fn normalize_strips_leading_dot_slash() {

@@ -149,14 +149,6 @@ impl Rule {
                     }
                 }
             }
-
-            if let Statement::Switch(switch) = nested {
-                for case in switch.body.cases().iter() {
-                    for statement in case.statements().iter() {
-                        self.escape_returned_resources(statement, scan);
-                    }
-                }
-            }
         }
     }
 
