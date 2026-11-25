@@ -82,6 +82,28 @@ mod tests {
         assert_eq!(violations.len(), 1);
     }
 
+    #[test]
+    fn reports_request_echo_in_switch_case() {
+        let source = r#"<?php
+switch (1) {
+    case 1:
+        echo $_GET['name'];
+        break;
+}
+"#;
+        assert_eq!(analyze_file(source).len(), 1);
+    }
+
+    #[test]
+    fn reports_request_echo_in_function_body() {
+        let source = r#"<?php
+function render(): void {
+    echo $_GET['name'];
+}
+"#;
+        assert_eq!(analyze_file(source).len(), 1);
+    }
+
     fn analyze_file(source: &str) -> Vec<Violation> {
         crate::rules::tests::analyze_source_for_rule(source, "inline.php", CODE)
     }

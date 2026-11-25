@@ -5,6 +5,7 @@ use serde_json::Value;
 
 use crate::file::File;
 use crate::results::{Message, Violation};
+use crate::rules::ast_support::walk_statement_expressions;
 use crate::rules::Rule as RuleTrait;
 
 pub(crate) static CODE: &str = "E0012";
@@ -83,7 +84,9 @@ impl RuleTrait for Rule {
 
                     if let MethodBody::Concrete(block) = &method.body {
                         for stmt in block.statements.iter() {
-                            self.find_property_assignments(file, stmt, &mut violations);
+                            walk_statement_expressions(stmt, &mut |expression| {
+                                self.check_expression(file, expression, &mut violations);
+                            });
                         }
                     }
                 }
@@ -113,120 +116,8 @@ impl Rule {
         false
     }
 
-    fn find_property_assignments(
-        &self,
-        file: &File<'_>,
-        statement: &Statement<'_>,
-        violations: &mut Vec<Violation>,
-    ) {
-        if let Statement::Expression(expr_stmt) = statement {
-            self.check_expression(file, expr_stmt.expression, violations);
-        }
-
-        match statement {
-            Statement::Block(block) => {
-                for stmt in block.statements.iter() {
-                    self.find_property_assignments(file, stmt, violations);
-                }
-            }
-            Statement::If(if_stmt) => match &if_stmt.body {
-                IfBody::Statement(body) => {
-                    self.find_property_assignments(file, body.statement, violations);
-                    for clauses in body.else_if_clauses.iter() {
-                        self.find_property_assignments(file, clauses.statement, violations);
-                    }
-                    if let Some(else_clause) = &body.else_clause {
-                        self.find_property_assignments(file, else_clause.statement, violations);
-                    }
-                }
-                IfBody::ColonDelimited(body) => {
-                    for stmt in body.statements.iter() {
-                        self.find_property_assignments(file, stmt, violations);
-                    }
-                    for clauses in body.else_if_clauses.iter() {
-                        for stmt in clauses.statements.iter() {
-                            self.find_property_assignments(file, stmt, violations);
-                        }
-                    }
-                    if let Some(else_clause) = &body.else_clause {
-                        for stmt in else_clause.statements.iter() {
-                            self.find_property_assignments(file, stmt, violations);
-                        }
-                    }
-                }
-            },
-            Statement::While(while_stmt) => match &while_stmt.body {
-                WhileBody::Statement(body) => {
-                    self.find_property_assignments(file, body, violations);
-                }
-                WhileBody::ColonDelimited(body) => {
-                    for stmt in body.statements.iter() {
-                        self.find_property_assignments(file, stmt, violations);
-                    }
-                }
-            },
-            Statement::DoWhile(do_while) => {
-                self.find_property_assignments(file, do_while.statement, violations);
-            }
-            Statement::Foreach(foreach) => match &foreach.body {
-                ForeachBody::Statement(body) => {
-                    self.find_property_assignments(file, body, violations);
-                }
-                ForeachBody::ColonDelimited(body) => {
-                    for stmt in body.statements.iter() {
-                        self.find_property_assignments(file, stmt, violations);
-                    }
-                }
-            },
-            Statement::For(for_stmt) => match &for_stmt.body {
-                ForBody::Statement(body) => {
-                    self.find_property_assignments(file, body, violations);
-                }
-                ForBody::ColonDelimited(body) => {
-                    for stmt in body.statements.iter() {
-                        self.find_property_assignments(file, stmt, violations);
-                    }
-                }
-            },
-            Statement::Switch(switch) => {
-                let cases = match &switch.body {
-                    SwitchBody::BraceDelimited(body) => &body.cases,
-                    SwitchBody::ColonDelimited(body) => &body.cases,
-                };
-                for case in cases.iter() {
-                    let statements = match case {
-                        SwitchCase::Expression(c) => &c.statements,
-                        SwitchCase::Default(c) => &c.statements,
-                    };
-                    for stmt in statements.iter() {
-                        self.find_property_assignments(file, stmt, violations);
-                    }
-                }
-            }
-            Statement::Try(try_stmt) => {
-                for stmt in try_stmt.block.statements.iter() {
-                    self.find_property_assignments(file, stmt, violations);
-                }
-                for catch in try_stmt.catch_clauses.iter() {
-                    for stmt in catch.block.statements.iter() {
-                        self.find_property_assignments(file, stmt, violations);
-                    }
-                }
-                if let Some(finally) = &try_stmt.finally_clause {
-                    for stmt in finally.block.statements.iter() {
-                        self.find_property_assignments(file, stmt, violations);
-                    }
-                }
-            }
-            Statement::Return(ret) => {
-                if let Some(value) = ret.value {
-                    self.check_expression(file, value, violations);
-                }
-            }
-            _ => {}
-        }
-    }
-
+    /// Inspects a single expression node; children are visited by the shared
+    /// expression walker, so this must not recurse itself.
     fn check_expression(
         &self,
         file: &File<'_>,
@@ -236,15 +127,14 @@ impl Rule {
         match expression {
             Expression::Assignment(assignment) => {
                 self.check_assignment_lhs(file, assignment.lhs, violations);
-                self.check_expression(file, assignment.rhs, violations);
             }
-            Expression::UnaryPrefix(prefix) => {
-                if let UnaryPrefixOperator::PreIncrement(_) | UnaryPrefixOperator::PreDecrement(_) =
-                    prefix.operator
-                {
-                    self.check_assignment_lhs(file, prefix.operand, violations);
-                }
-                self.check_expression(file, prefix.operand, violations);
+            Expression::UnaryPrefix(prefix)
+                if matches!(
+                    prefix.operator,
+                    UnaryPrefixOperator::PreIncrement(_) | UnaryPrefixOperator::PreDecrement(_)
+                ) =>
+            {
+                self.check_assignment_lhs(file, prefix.operand, violations);
             }
             Expression::UnaryPostfix(postfix) => {
                 // UnaryPostfixOperator only has PostIncrement/PostDecrement, both of
@@ -252,41 +142,7 @@ impl Rule {
                 let _: &UnaryPostfixOperator = &postfix.operator;
                 self.check_assignment_lhs(file, postfix.operand, violations);
             }
-            Expression::Call(call) => match call {
-                Call::Function(f) => {
-                    self.check_argument_list(file, &f.argument_list, violations);
-                }
-                Call::Method(m) => {
-                    self.check_expression(file, m.object, violations);
-                    self.check_argument_list(file, &m.argument_list, violations);
-                }
-                Call::NullSafeMethod(m) => {
-                    self.check_expression(file, m.object, violations);
-                    self.check_argument_list(file, &m.argument_list, violations);
-                }
-                Call::StaticMethod(m) => {
-                    self.check_argument_list(file, &m.argument_list, violations);
-                }
-            },
             _ => {}
-        }
-    }
-
-    fn check_argument_list(
-        &self,
-        file: &File<'_>,
-        argument_list: &ArgumentList<'_>,
-        violations: &mut Vec<Violation>,
-    ) {
-        for argument in argument_list.arguments.iter() {
-            match argument {
-                Argument::Positional(arg) => {
-                    self.check_expression(file, arg.value, violations);
-                }
-                Argument::Named(arg) => {
-                    self.check_expression(file, arg.value, violations);
-                }
-            }
         }
     }
 
@@ -351,5 +207,47 @@ fn is_self_or_static_or_class(class_id: &Expression<'_>) -> bool {
             true
         }
         _ => false,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::rules::tests::analyze_source_for_rule;
+
+    use super::*;
+
+    #[test]
+    fn detects_property_assignments_in_nested_expressions() {
+        let source = r#"<?php
+final class Service {
+    private $state;
+    private static $shared;
+
+    public function run(): void {
+        if ($this->state = 1) {}
+        $this->state ??= 2;
+        self::$shared = 3;
+        for ($i = 0; $i < 1; $this->state++) {}
+    }
+}
+"#;
+
+        let violations = analyze_source_for_rule(source, "e12-inline.php", CODE);
+        assert_eq!(violations.len(), 4, "{violations:?}");
+    }
+
+    #[test]
+    fn ignores_constructor_assignments() {
+        let source = r#"<?php
+final class Service {
+    private $state;
+
+    public function __construct() {
+        $this->state = 1;
+    }
+}
+"#;
+
+        assert!(analyze_source_for_rule(source, "e12-inline.php", CODE).is_empty());
     }
 }

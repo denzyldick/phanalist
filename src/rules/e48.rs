@@ -117,27 +117,8 @@ impl Rule {
         &'a self,
         statement: &'a Statement<'a>,
     ) -> Vec<&'a Statement<'a>> {
-        let mut statements = Vec::new();
-        self.collect_statements_with_switch(statement, &mut statements);
-        statements
-    }
-
-    fn collect_statements_with_switch<'a>(
-        &'a self,
-        statement: &'a Statement<'a>,
-        statements: &mut Vec<&'a Statement<'a>>,
-    ) {
-        for nested in self.flatten_statements_to_validate(statement) {
-            statements.push(nested);
-
-            if let Statement::Switch(switch) = nested {
-                for case in switch.body.cases().iter() {
-                    for statement in case.statements().iter() {
-                        self.collect_statements_with_switch(statement, statements);
-                    }
-                }
-            }
-        }
+        // The shared flattener now includes switch cases and function bodies.
+        self.flatten_statements_to_validate(statement)
     }
 
     fn check_body(
