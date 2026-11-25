@@ -134,7 +134,7 @@ impl CallChainIndex {
         let target = format!(
             "{}() at {}:{}",
             declaration.name,
-            declaration.file.display(),
+            portable_path_string(&declaration.file),
             line
         );
         if let Some(route) = &declaration.route {
