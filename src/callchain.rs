@@ -794,7 +794,9 @@ mod tests {
         let arena = LocalArena::new();
         let file = File::new(
             &arena,
-            PathBuf::from("src/Controller/CheckoutController.php"),
+            PathBuf::from("src")
+                .join("Controller")
+                .join("CheckoutController.php"),
             r#"<?php
 
 namespace App\Controller;
@@ -819,7 +821,9 @@ final class CheckoutController
         );
         let service = File::new(
             &arena,
-            PathBuf::from("src/Service/DiscountCalculator.php"),
+            PathBuf::from("src")
+                .join("Service")
+                .join("DiscountCalculator.php"),
             r#"<?php
 
 namespace App\Service;
