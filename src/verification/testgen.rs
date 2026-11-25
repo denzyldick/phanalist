@@ -9,6 +9,7 @@
 use std::hash::{Hash, Hasher};
 use std::path::{Component, Path, PathBuf};
 
+use crate::paths::portable_path_string;
 use crate::results::GeneratedTest;
 
 use super::value::ArrayKey;
@@ -321,7 +322,7 @@ fn require_expr(from_dir: &Path, to_file: &Path) -> String {
     } else {
         format!(
             "__DIR__ . {}",
-            php_string(&format!("/{}", relative.display()))
+            php_string(&format!("/{}", portable_path_string(&relative)))
         )
     }
 }
