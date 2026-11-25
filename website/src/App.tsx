@@ -383,7 +383,7 @@ export default function App() {
                 {selectedRule.severity}
               </span>
               <a
-                href={`/rules/${selectedRule.rule_code.toLowerCase()}.html`}
+                href={`${import.meta.env.BASE_URL}rules/${selectedRule.rule_code.toLowerCase()}.html`}
                 style={{ color: 'var(--accent)', marginLeft: 'auto', fontWeight: 600 }}
               >
                 Open rule page

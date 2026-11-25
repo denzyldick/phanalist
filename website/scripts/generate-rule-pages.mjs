@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { marked } from 'marked';
 
-const SITE = process.env.SITE_URL || 'https://denzyl.github.io/phanalist';
+const SITE = (process.env.SITE_URL || 'https://denzyldick.github.io').replace(/\/$/, '');
 const BASE_PATH = (process.env.BASE_PATH || '/').replace(/\/$/, '');
 const withBase = (p) => `${BASE_PATH}${p.startsWith('/') ? p : `/${p}`}`;
 
@@ -57,8 +57,8 @@ function fallbackMarkdown(rule) {
   return parts.join('\n\n');
 }
 
-const baseUrl = 'https://phanalist.io';
-const urls = [`${baseUrl}/`];
+const baseUrl = `${SITE}${withBase('/')}`;
+const urls = [baseUrl];
 
 for (const rule of rules) {
   const code = rule.rule_code;
@@ -71,7 +71,7 @@ for (const rule of rules) {
     rule.why_matters ||
     (Array.isArray(rule.what_it_checks) ? rule.what_it_checks[0] : '') ||
     `Phanalist ${code} rule documentation.`;
-  const canonical = `${baseUrl}${withBase(`/rules/${code.toLowerCase()}.html`)}`;
+  const canonical = `${baseUrl}rules/${code.toLowerCase()}.html`;
   urls.push(canonical);
 
   const html = `<!doctype html>
@@ -124,7 +124,7 @@ for (const rule of rules) {
 </head>
 <body>
   <div class="wrap">
-    <div class="crumbs"><a href="/">Phanalist</a> / <a href="${withBase('/#rules')}">Rules</a> / ${esc(code)}</div>
+    <div class="crumbs"><a href="${withBase('/')}">Phanalist</a> / <a href="${withBase('/#rules')}">Rules</a> / ${esc(code)}</div>
     <div class="badges">
       <span class="badge">${esc(code)}</span>
       <span class="badge">${esc(rule.category || 'general')}</span>
@@ -133,8 +133,8 @@ for (const rule of rules) {
     <h1>${esc(titleText)}</h1>
     <p class="lead">${esc(rule.plain_english || desc)}</p>
     <div class="actions">
-      <a class="btn btn-primary" href="/?rule=${encodeURIComponent(code)}#playground">Try in Playground</a>
-      <a class="btn" href="/#rules">All rules</a>
+      <a class="btn btn-primary" href="${withBase(`/?rule=${encodeURIComponent(code)}#playground`)}">Try in Playground</a>
+      <a class="btn" href="${withBase('/#rules')}">All rules</a>
       <a class="btn" href="https://github.com/denzyldick/phanalist">GitHub</a>
     </div>
     <article class="content">
@@ -146,7 +146,7 @@ for (const rule of rules) {
   fs.writeFileSync(path.join(outDir, `${code.toLowerCase()}.html`), html);
 }
 
-fs.writeFileSync(path.join(root, 'public', 'robots.txt'), `User-agent: *\nAllow: /\nSitemap: ${baseUrl}/sitemap.xml\n`);
+fs.writeFileSync(path.join(root, 'public', 'robots.txt'), `User-agent: *\nAllow: /\nSitemap: ${baseUrl}sitemap.xml\n`);
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls
   .map((u) => `  <url><loc>${u}</loc></url>`)
   .join('\n')}\n</urlset>\n`;

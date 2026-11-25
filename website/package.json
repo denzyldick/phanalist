@@ -12,6 +12,7 @@
     "format": "prettier --write index.html vite.config.ts src/",
     "format:check": "prettier --check index.html vite.config.ts src/",
     "htmlhint": "htmlhint index.html || true",
+    "test:e2e": "playwright test",
     "ci": "npm run check:rules-sync && npm run format:check && npm run lint && npm run htmlhint && npm run build",
     "generate:rules": "node scripts/generate-rule-pages.mjs",
     "check:rules-sync": "node scripts/check-rules-sync.mjs"
