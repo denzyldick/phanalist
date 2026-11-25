@@ -501,6 +501,10 @@ fn documents_inferred_route_to_service_call_chain() {
         "{generated}"
     );
     assert!(
+        generated.contains(" * Source: src/Service/DiscountCalculator.php:"),
+        "{generated}"
+    );
+    assert!(
         generated
             .contains("CheckoutController::submit() at src/Controller/CheckoutController.php:"),
         "{generated}"

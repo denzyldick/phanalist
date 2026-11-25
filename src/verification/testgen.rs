@@ -53,7 +53,7 @@ pub fn generate_test(witness: &Witness, output_dir: Option<&Path>) -> Option<Gen
         }
     };
 
-    let source_path = witness.source.to_string_lossy();
+    let source_path = portable_path_string(&witness.source);
     let receiver_hash = witness
         .receiver
         .as_ref()
@@ -318,7 +318,7 @@ fn absolutize(path: &Path) -> PathBuf {
 fn require_expr(from_dir: &Path, to_file: &Path) -> String {
     let relative = relative_path(from_dir, to_file);
     if relative.is_absolute() {
-        php_string(&relative.to_string_lossy())
+        php_string(&portable_path_string(&relative))
     } else {
         format!(
             "__DIR__ . {}",

@@ -19,6 +19,7 @@ use mago_span::HasSpan;
 use mago_syntax::cst::*;
 
 use crate::file::File;
+use crate::paths::portable_path_string;
 use crate::rules::ast_support::{literal_string, walk_statement_expressions};
 
 const MAX_CHAIN_DEPTH: usize = 8;
@@ -775,7 +776,7 @@ fn dedupe(sites: Vec<CallSite>) -> Vec<CallSite> {
 fn format_chain(route: &str, chain: &[CallSite], target: &str) -> String {
     let mut parts = vec![route.to_string()];
     for site in chain.iter().rev() {
-        let file = site.file.to_string_lossy();
+        let file = portable_path_string(&site.file);
         parts.push(format!("{}() at {}:{}", site.caller, file, site.line));
     }
     parts.push(target.to_string());

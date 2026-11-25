@@ -22,6 +22,7 @@ use crate::outputs::sarif::Sarif;
 use crate::outputs::text::Text;
 use crate::outputs::Format;
 use crate::outputs::OutputFormatter;
+use crate::paths::portable_path_string;
 use crate::resource::{ResourceClass, ResourceFinding, ResourceService, ResourceSettings};
 use crate::results::{
     EntrypointInfo, FindingContext, FlowEdge, FlowEdgeKind, FlowNode, FlowNodeKind, Results,
@@ -1300,7 +1301,7 @@ impl Analyse {
         if let Some(witness) = finding.witness.as_mut() {
             if witness.call_chain.is_empty() {
                 if let Some(callable) = &witness.callable {
-                    let source = witness.source.to_string_lossy();
+                    let source = portable_path_string(&witness.source);
                     let target = format!("{}() at {}:{}", callable.name, source, witness.line);
                     witness.call_chain = self.callchain.chain_for(&callable.name, &target);
                 }
