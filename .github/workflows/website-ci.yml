@@ -46,6 +46,12 @@ jobs:
         working-directory: website
         run: npm run build
 
+      - name: Run Playwright tests
+        working-directory: website
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7
         with:
@@ -82,7 +88,7 @@ jobs:
         working-directory: website
         env:
           BASE_PATH: /phanalist/
-          SITE_URL: https://denzyl.github.io/phanalist
+          SITE_URL: https://denzyldick.github.io
         run: npm run build
 
       - name: Setup Pages

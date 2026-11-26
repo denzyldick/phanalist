@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="%BASE_URL%" />
     <title>Phanalist — Static PHP Analyzer</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -1312,7 +1313,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/denzyldic
                   'background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer';
                 const title = (r.title || r.rule_code).replace(r.rule_code + ': ', '');
                 const checks = Array.isArray(r.what_it_checks) ? r.what_it_checks[0] || '' : '';
-                const docHref = `/rules/${r.rule_code.toLowerCase()}.html`;
+                const docHref = `${base.replace(/\/$/, '')}/rules/${r.rule_code.toLowerCase()}.html`;
                 card.innerHTML = `<div class="rule-header"><span class="rule-code">${r.rule_code}</span><span class="rule-sev">${r.severity || ''}</span></div><h4>${title}</h4><p>${checks}</p><div style="display:flex;gap:12px;margin-top:10px;font-size:13px"><a href="${docHref}" class="rule-doc-link">Rule page</a><a href="#" class="rule-play-link">Playground</a></div>`;
                 card.querySelector('.rule-doc-link').addEventListener('click', (e) => {
                   e.stopPropagation();
